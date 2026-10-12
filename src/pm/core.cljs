@@ -17,9 +17,11 @@
 (defn tick! [dt]
   (swap! !world update :t + dt)
   (when-let [{:keys [renderer scene camera ^js cube]} @!gfx]
-    (let [{:keys [t spin]} @!world]
+    (let [{:keys [t spin]} @!world
+          hue (mod (* t 0.08) 1)]                       ; full rainbow every ~12 s
       (set! (.-y (.-rotation cube)) (* t spin))
       (set! (.-x (.-rotation cube)) (* t spin 0.4))
+      (.setHSL (.-color (.-material cube)) hue 0.6 0.55)
       (t/render! renderer scene camera))))
 
 (defonce !last (atom nil))
