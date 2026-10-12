@@ -1,0 +1,17 @@
+{
+  "name": "prime-meridian",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A cozy 3D management game where the characters are real AI agents.",
+  "scripts": {
+    "dev": "shadow-cljs watch app",
+    "build": "shadow-cljs release app",
+    "serve": "bb serve"
+  },
+  "devDependencies": {
+    "shadow-cljs": "^2.28.0"
+  },
+  "dependencies": {
+    "three": "^0.170.0"
+  }
+}
