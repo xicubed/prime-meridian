@@ -8,10 +8,19 @@
     html, body { margin: 0; height: 100%; background: #1b1f2a; overflow: hidden; }
     canvas { display: block; }
     #hud { position: fixed; top: 12px; left: 14px; color: #e8e4d8; font: 14px/1.4 system-ui, sans-serif; opacity: .85; pointer-events: none; }
+    #brook { position: fixed; bottom: 14px; left: 14px; color: #e8e4d8; font: 13px system-ui, sans-serif; background: rgba(0,0,0,.35); padding: 8px 10px; border-radius: 8px; display: flex; gap: 12px; align-items: center; }
+    #brook input[type=range] { width: 110px; }
+    #brook button { font: inherit; padding: 4px 10px; border-radius: 6px; border: 1px solid #777; background: #2b3040; color: #e8e4d8; cursor: pointer; }
   </style>
 </head>
 <body>
   <div id="hud">Prime Meridian · week 1 scaffold</div>
+  <div id="brook">
+    <button id="brook-toggle">▶ brook</button>
+    <select id="brook-source"><option value="synth">synth</option><option value="file">file</option><option value="both">both</option></select>
+    <label>flow <input id="brook-flow" type="range" min="0" max="1" step="0.01" value="0.6"></label>
+    <label>depth <input id="brook-depth" type="range" min="0" max="1" step="0.01" value="0.4"></label>
+  </div>
   <script src="/js/main.js"></script>
 </body>
 </html>

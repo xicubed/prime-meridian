@@ -30,6 +30,7 @@ Legend: `[ ]` open · `[~] name` claimed · `[x] #PR` done. Top-most open task i
 ## Backlog (weeks 5+)
 - Time-of-day switch (afternoon / golden / blue / night): sun angle + color, sky, window glow
 - The river: start from three.js `Water2` (examples/webgl_water_flowmap, MIT) stylized to flat-shaded; DOF via `BokehPass` optional; bank; rocks as ONE scaled mesh (on purpose) → then `procedural-rock` (icosahedron + vertex noise + jitter; see offscreencanvas.com "ThreeJS Rocks Demo Explained") as the showcase before/after. Visual reference only: img/ref/hiroshi-island-*.png (closed source).
+- River sound, spatial: `AudioListener` on the camera + `PositionalAudio` emitters spread along the water mesh's long axis (refDistance ~2.5, rolloff ~1.6, inverse model), each playing `public/assets/audio/brook.mp3` at a different offset; `pm.audio` already has the loop + synth fallback and a flow→playbackRate mapping (0.3–1.2×, pitch follows). Proven in the kit build (`assets/private/kit/dist/index.html`, the `pm-brook` script) — port that.
 - Avatar customizer (KayKit hair/hat/clothes) as the level-up reward
 - Possess toggle; autonomy dial; agents walk to the player on `needs-input`
 - XP, levels, hats; estate growth tied to repo stats

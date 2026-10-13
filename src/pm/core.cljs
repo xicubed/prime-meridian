@@ -2,7 +2,8 @@
   "Entry point. Week 1: a lit, flat-shaded cube spinning over a ground plane.
    World state lives in one atom; the render loop reads it. Hot reload keeps the
    renderer and rebuilds the scene."
-  (:require [pm.three :as t]))
+  (:require [pm.three :as t]
+            [pm.audio :as audio]))
 
 (defonce !world (atom {:t 0 :spin 0.6}))
 
@@ -42,7 +43,43 @@
                  " · t=" (.toFixed (:t @!world) 1) "s")))
     (js/requestAnimationFrame frame)))
 
+(defonce !brook-on (atom false))
+
+(defn- brook-source []
+  (some-> (js/document.getElementById "brook-source") .-value keyword))
+
+(defn- brook-start! []
+  (case (brook-source)
+    :synth (audio/start!)
+    :file  (audio/start-file!)
+    :both  (do (audio/start!) (audio/start-file!))))
+
+(defn- brook-stop! [] (audio/stop!) (audio/stop-file!))
+
+(defn wire-brook-ui! []
+  ;; default the source picker to "file" when the loop exists
+  (audio/file-available?
+    (fn [ok?]
+      (when-let [sel (js/document.getElementById "brook-source")]
+        (set! (.-value sel) (if ok? "file" "synth"))
+        (set! (.-title sel) (if ok? "brook.mp3 found" "no brook.mp3 in public/assets/audio/")))))
+  (when-let [btn (js/document.getElementById "brook-toggle")]
+    (.addEventListener btn "click"
+      (fn []
+        (if @!brook-on
+          (do (brook-stop!) (reset! !brook-on false) (set! (.-textContent btn) "▶ brook"))
+          (do (brook-start!) (reset! !brook-on true) (set! (.-textContent btn) "■ brook"))))))
+  (when-let [sel (js/document.getElementById "brook-source")]
+    (.addEventListener sel "change" (fn [] (when @!brook-on (brook-stop!) (brook-start!)))))
+  (doseq [[id k] [["brook-flow" :flow] ["brook-depth" :depth]]]
+    (when-let [el (js/document.getElementById id)]
+      (.addEventListener el "input"
+        (fn [e] (let [v (js/parseFloat (.. e -target -value))]
+                  (audio/set-param! k v)
+                  (when (= k :flow) (audio/set-file-volume! v))))))))
+
 (defn init! []
+  (wire-brook-ui!)
   (let [renderer (t/renderer)
         camera   (t/camera)
         {:keys [scene cube]} (build-scene!)]
