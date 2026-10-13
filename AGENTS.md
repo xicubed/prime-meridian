@@ -7,7 +7,9 @@ Prime Meridian: a 3D management game where the characters are real AI agents. De
 
 ## Stack
 - **ClojureScript** compiled by **shadow-cljs** (JVM: `/opt/homebrew/opt/openjdk@21`). Entry `pm.core/init!`, hot-reload hook `pm.core/reload!`.
-- **three.js** from npm. All three.js interop goes through `src/pm/three.cljs`. Do not sprinkle raw `THREE/...` calls elsewhere; extend the wrapper instead.
+- **three.js 0.186** via **`three/webgpu`** (`WebGPURenderer`, falls back to WebGL2 automatically; init is async — see `pm.three/init-renderer!`). This matches the Hiroshi's Island kit (three 0.186.1, TSL node materials) so its water/wind/sky code can be ported directly. Import from `"three/webgpu"` (and `"three/tsl"` for node materials), never bare `"three"` — mixing the two breaks materials.
+- All three.js interop goes through `src/pm/three.cljs`. Do not sprinkle raw `THREE/...` calls elsewhere; extend the wrapper instead.
+- Licensed kit lives in `assets/private/` (gitignored, never commit): `kit/source/src/*.ts` is readable reference for water (`water.ts`, `cozy/bounded-concept-water.ts`), wind (`cozy/vegetation-wind.ts`), daylight presets (`daylight.ts`, `time-transition.ts`), DSLR camera (`cozy/photo-camera.ts`). License: one commercial project (this one). Port ideas and code into CLJS; do not copy the GLB into the repo.
 - **Babashka** for scripts and (later) the bridge server. No TypeScript, ever.
 - World state is one atom (`pm.core/!world`). Render reads it; nothing else writes to the scene directly.
 

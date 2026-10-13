@@ -1,17 +1,34 @@
 (ns pm.three
   "Thin, reviewed wrapper over three.js interop. Everything in the game that touches
-   three.js should go through here so interop mistakes live in one file."
-  (:require ["three" :as THREE]))
+   three.js should go through here so interop mistakes live in one file.
+
+   Renderer: WebGPURenderer from `three/webgpu` (three r186). It uses WebGPU when the
+   browser has it and falls back to WebGL2 on its own. Initialization is async —
+   call `init-renderer!` and start rendering in its callback. Materials from
+   `three/webgpu` are the same classes as classic three (MeshStandardMaterial etc.),
+   plus TSL node materials become available for water/wind later."
+  (:require ["three/webgpu" :as THREE]))
 
 (defn renderer
-  "WebGL renderer sized to the window, attached to document.body."
+  "Create (but do not yet initialize) a WebGPU/WebGL2 renderer attached to document.body.
+   Call `init-renderer!` before the first render."
   []
-  (let [^js r (THREE/WebGLRenderer. #js {:antialias true})]
+  (let [^js r (THREE/WebGPURenderer. #js {:antialias true})]
     (.setPixelRatio r (min 2 js/window.devicePixelRatio))
     (.setSize r js/window.innerWidth js/window.innerHeight)
     (set! (.-enabled (.-shadowMap r)) true)
     (.appendChild js/document.body (.-domElement r))
     r))
+
+(defn init-renderer!
+  "Async backend init. Calls (on-ready backend-name) when the renderer can draw."
+  [^js renderer on-ready]
+  (-> (.init renderer)
+      (.then (fn []
+               (let [^js backend (.-backend renderer)
+                     name (if (.-isWebGPUBackend backend) "webgpu" "webgl2")]
+                 (on-ready name))))
+      (.catch (fn [e] (js/console.error "renderer init failed" e)))))
 
 (defn scene
   ([] (scene 0x1b1f2a))
