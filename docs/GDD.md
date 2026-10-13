@@ -19,6 +19,7 @@ Secondary motive: Hal (the bot writing this) already runs the author's life admi
 ## 3. Design pillars
 
 1. **Real, not simulated.** Every character maps to a live agent session. Every status is true. Flora's tank reads the actual worm count. If the world says an agent is stuck, it's stuck.
+6. **Everyone's game.** Nothing in the code knows what an axolotl is. Your creatures, chores, and rooms are data you declare; the estate reflects *your* life, whatever it contains.
 2. **Spatial over textual.** You should be able to glance at the world and know who's busy, who's blocked, and who needs you — before reading a word.
 3. **Conversation is the controller.** You don't click "run task." You walk up and talk. Agents talk back, ask questions, and come find you.
 4. **The world is the showcase.** The game is a three.js project worked on by agents. Asking an agent to improve the world is a legitimate in-game action, and the result is visible.
@@ -49,7 +50,7 @@ A single estate, top-down-ish 3D, one screen with zoom. Low-poly.
 | Place | What it represents | Live data source |
 |---|---|---|
 | **Lobby** | Home. Where you spawn. | — |
-| **Flora's tank** | The real axolotl's feeding schedule and worm stock | `worms.json`, feeding cron |
+| **Mirror slots** (tank, barn, pen, garage…) | Your real creatures and chores — Flora's tank in Michael's estate; a barn in yours | mirror config (§9a) |
 | **Mailbox** | Gmail inbox needing attention | Gmail API |
 | **Notice board** | Today's calendar + reminders (the morning brief) | Calendar, Reminders |
 | **Phone booth** | Inbound SMS to the bot's number | Twilio |
@@ -89,7 +90,33 @@ The game is honest about what's real (the work) and what's game (the progression
 - **XP** for an agent: PR merged, tests passing, question answered quickly, task done without a rework.
 - **Levels** unlock cosmetics first (hats, desk upgrades) and, optionally, trust: a level-3 agent may default to *ask before merging* instead of *ask before anything*.
 - **Estate growth**: workshops gain furniture and lighting as their repo grows; a new repo raises a new building.
-- **Living mirrors**: Flora's tank has an "I'm hungry" bubble on feeding day and a "2 worms left!" sign when stock is low. The mailbox overflows visually when the inbox does. The player's real life is a resource system, lightly.
+- **Living mirrors** (see §9a): Flora's tank has an "I'm hungry" bubble on feeding day and a "2 worms left!" sign when stock is low. The mailbox overflows visually when the inbox does. The player's real life is a resource system, lightly.
+
+## 9a. Living mirrors are yours, not ours
+
+Flora is the first mirror, not a built-in feature. **This is everyone's game**: a player without an axolotl has horses, cows, pigs, a greenhouse, a car that needs oil, a sourdough starter. Mirrors are declared in data, and the estate grows a slot for each one.
+
+A mirror is three things:
+
+```clojure
+{:id      :flora
+ :kind    :creature            ; :creature | :plant | :vehicle | :counter | ...
+ :model   :axolotl             ; which low-poly figure to show (fallback: generic by kind)
+ :home    :tank                ; which estate slot it lives in (:tank :barn :pen :garage :bed)
+ :state   {:source "~/.hermes/state/worms.json"   ; where truth comes from (file, URL, script)
+           :fields {:stock :count :last-fed :last_feed}}
+ :rules   [{:when [:due? :feed] :say "I'm hungry"}
+           {:when [:<= :stock 2] :sign "2 worms left!"}]
+ :chores  [{:id :feed :every "2d" :at "17:00" :consumes [:stock 1]}]}
+```
+
+- The **bridge** evaluates `:state` and `:rules` and pushes the result into world state; the game only renders.
+- **Chores** are what the scheduler runs (Hermes cron today); the mirror just reflects them.
+- A horse is the same map with `:kind :creature :model :horse :home :barn`, a hay counter, and a daily chore. A pig pen with three pigs is three mirrors sharing a `:home`.
+- Starter models ship with the game (axolotl, horse, cow, pig, chicken, dog, cat, plant, car); the `:model` is a KayKit/GLTF name so players can add their own.
+- No mirror is required. An empty estate is still a valid estate.
+
+Design rule: anything Hal does for Michael that another player would want for their own life must be expressible as a mirror plus a chore, never as code that knows what an axolotl is.
 
 ## 10. Technology
 

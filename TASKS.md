@@ -13,7 +13,7 @@ Legend: `[ ]` open · `[~] name` claimed · `[x] #PR` done. Top-most open task i
 - [ ] W2-4 Mock agents: three agents wander between room waypoints; statuses cycle `working → idle → needs-input` on timers so every status is visible.
 - [ ] W2-5 Status bubbles: Ralv-format billboard above each agent — task name · status + elapsed · branch · model; "!" variant for `needs-input`, red for `error`; sitting pose for idle, typing for working.
 - [ ] W2-6 Camera controls: orbit/zoom/pan (OrbitControls via the wrapper), clamped so you can't go under the ground.
-- [ ] W2-7 Flora's tank: a glass box with a low-poly axolotl; bubble text "I'm hungry" when `:hungry?`, sign "N worms left" when `:worms <= 2`. Driven from state (mocked this week).
+- [ ] W2-7 Mirrors v0: `pm.world` reads a `mirrors` vector (GDD §9a shape) from `resources/estate.edn`; `pm.scene` renders each in its `:home` slot with a placeholder figure by `:kind`; `:say`/`:sign` rules render as bubble/sign. Ship `estate.edn` with Flora (axolotl, tank) AND a second example (horse, barn) so nothing is axolotl-specific. State mocked this week.
 - [ ] W2-8 HUD: agent list on the left with name + status dot; clicking one centers the camera on it.
 
 ## Week 3 — Bridge v0 (real state)
