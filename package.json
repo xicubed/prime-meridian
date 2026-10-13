@@ -12,6 +12,6 @@
     "shadow-cljs": "^2.28.0"
   },
   "dependencies": {
-    "three": "^0.170.0"
+    "three": "^0.186.1"
   }
 }

@@ -31,12 +31,14 @@
   (when-let [el (js/document.getElementById "hud")]
     (set! (.-textContent el) text)))
 
+(defonce !backend (atom "init…"))
+
 (defn frame [now]
   (let [dt (if-let [l @!last] (/ (- now l) 1000) 0)]
     (reset! !last now)
     (tick! (min dt 0.1))
     (when (zero? (mod (swap! !frames inc) 30))
-      (hud! (str "Prime Meridian · week 1 scaffold · frame " @!frames
+      (hud! (str "Prime Meridian · week 1 scaffold · " @!backend " · frame " @!frames
                  " · t=" (.toFixed (:t @!world) 1) "s")))
     (js/requestAnimationFrame frame)))
 
@@ -46,8 +48,11 @@
         {:keys [scene cube]} (build-scene!)]
     (t/on-resize! camera renderer)
     (reset! !gfx {:renderer renderer :scene scene :camera camera :cube cube})
-    (js/requestAnimationFrame frame)
-    (js/console.log "Prime Meridian: init")))
+    (t/init-renderer! renderer
+                      (fn [backend]
+                        (reset! !backend backend)
+                        (js/console.log "Prime Meridian: renderer ready on" backend)
+                        (js/requestAnimationFrame frame)))))
 
 (defn reload!
   "shadow-cljs after-load hook: rebuild the scene, keep renderer/camera/world."
