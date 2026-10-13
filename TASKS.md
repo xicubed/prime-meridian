@@ -29,7 +29,7 @@ Legend: `[ ]` open · `[~] name` claimed · `[x] #PR` done. Top-most open task i
 
 ## Backlog (weeks 5+)
 - Time-of-day switch (afternoon / golden / blue / night): sun angle + color, sky, window glow
-- The river: water shader, bank, rocks as ONE scaled mesh (on purpose) → then `procedural-rock` (icosahedron + vertex noise + jitter) as the showcase before/after
+- The river: start from three.js `Water2` (examples/webgl_water_flowmap, MIT) stylized to flat-shaded; DOF via `BokehPass` optional; bank; rocks as ONE scaled mesh (on purpose) → then `procedural-rock` (icosahedron + vertex noise + jitter; see offscreencanvas.com "ThreeJS Rocks Demo Explained") as the showcase before/after. Visual reference only: img/ref/hiroshi-island-*.png (closed source).
 - Avatar customizer (KayKit hair/hat/clothes) as the level-up reward
 - Possess toggle; autonomy dial; agents walk to the player on `needs-input`
 - XP, levels, hats; estate growth tied to repo stats
