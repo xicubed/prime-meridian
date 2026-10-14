@@ -27,6 +27,10 @@ Legend: `[ ]` open · `[~] name` claimed · `[x] #PR` done. Top-most open task i
 - [ ] W4-2 Bridge `say` → spawns/continues a Hermes session for that agent; replies stream back as `agent-event`.
 - [ ] W4-3 Conversation history per agent persisted in `localStorage`.
 
+## Business (Pepper)
+Owner: Business Manager (GDD §9b, §10d). Real-world steps that need ID, bank, or a signature are the Director's; Pepper preps everything around them.
+- [ ] B-1 Payments account: finish the provider's business verification before the first sale. Director does the identity/bank steps; Pepper first gets lotect.com review-ready (what we sell, contact info, privacy and refund policies).
+
 ## Backlog (weeks 5+)
 - Time-of-day switch (afternoon / golden / blue / night): sun angle + color, sky, window glow
 - The river: start from three.js `Water2` (examples/webgl_water_flowmap, MIT) stylized to flat-shaded; DOF via `BokehPass` optional; bank; rocks as ONE scaled mesh (on purpose) → then `procedural-rock` (icosahedron + vertex noise + jitter; see offscreencanvas.com "ThreeJS Rocks Demo Explained") as the showcase before/after. Visual reference only: img/ref/hiroshi-island-*.png (closed source).
