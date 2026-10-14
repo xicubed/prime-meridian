@@ -29,6 +29,8 @@ Secondary motive: Hal (the bot writing this) already runs the author's life admi
 
 You're the owner of a small, strange estate staffed by tireless helpers. Mornings you stroll through, see what got done overnight, answer the two questions waiting for you, and point someone at the next thing. Afternoons you might possess the gardener and reshape the river yourself. The estate grows as the work does.
 
+Asside. I want to invoke the feeling of TRON or the Matrix. Where you are a human on earth but you also have a presence in the game as an avatar/agent and interact with other AI agents who don't have humans backing them. Like Neo vs Agent Smith... But hopefully the agents in this realm will all be helpful...
+
 ## 5. Core loop
 
 ```
