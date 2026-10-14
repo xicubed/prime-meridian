@@ -18,3 +18,4 @@ public/js/
 .cpcache/
 .nrepl-port
 assets/private/
+.DS_Store
