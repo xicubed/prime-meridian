@@ -17,3 +17,4 @@ public/js/
 .shadow-cljs/
 .cpcache/
 .nrepl-port
+assets/private/
