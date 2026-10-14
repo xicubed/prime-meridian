@@ -74,6 +74,7 @@ A single estate, top-down-ish 3D, one screen with zoom. Low-poly.
 | **Mailbox** | Gmail inbox needing attention | Gmail API |
 | **Notice board** | Today's calendar + reminders (the morning brief) | Calendar, Reminders |
 | **Phone booth** | Inbound SMS to the bot's number | Twilio |
+| **Front office** | Your business: what sold, what's owed, what needs your signature. Pepper's desk. | payments processor (Stripe), invoices; a mock ledger in demo mode |
 | **Workshops** (one per project) | A repo. Desks = open tasks. Shelves fill as PRs merge. | GitHub |
 | **The river** | The world's own art. Agents improve it on request. | the repo itself |
 
@@ -84,6 +85,7 @@ Rooms are created from a config file at first; later, adding a repo adds a works
 - **Hal** — the house bot. Always present. Your first conversation partner; dispatches other agents.
 - **Workers** — subagents or sessions spawned per task. Named, with a simple visual identity (color, hat). They exist while their task exists.
 - **Specialists** (later) — recurring roles tied to scheduled jobs: the Courier (morning brief), the Keeper (Flora), the Clerk (mail).
+- **Pepper** — the business manager, Pepper Potts to your Tony Stark. Hal runs the house; Pepper runs the company. Always present in the front office (§9b), and the one agent who also works on the game's own release (§10d).
 
 **Status vocabulary** (must be readable at a glance):
 
@@ -140,6 +142,27 @@ A mirror is three things:
 
 Design rule: anything Hal does for Michael that another player would want for their own life must be expressible as a mirror plus a chore, never as code that knows what an axolotl is.
 
+## 9b. The business is a mirror too
+
+The game mirrors a life, and a life usually includes earning a living. Tony Stark has a company, and Pepper keeps it running. A business is declared the same way a mirror is (§9a): data, not code.
+
+```clojure
+{:id     :lotect
+ :kind   :business
+ :home   :front-office
+ :state  {:source :payments}          ; Stripe today; a mock ledger in demo mode
+ :chores [{:id :verify-account :once true :needs :signature}
+          {:id :quarterly-tax  :every "3mo" :needs :signature}]}
+```
+
+Michael's is Lotect LLC, which will sell this game. A second example from the same code path: a farm stand selling eggs, with Square as its source and a weekly "restock the honor box" chore.
+
+**Pepper reads, drafts, and reminds. The player signs.** Guardrails:
+- Money never moves without the player's approval. Pepper can't hold a card or press pay.
+- Identity documents, bank numbers, and tax IDs go straight from the player to the provider, never through Pepper.
+- A chore marked `:needs :signature` shows as a folder on Pepper's desk and brings her to the player with "!" (§8). It never becomes an overdue penalty (D4).
+- Read-only access first (balances, payouts, requirements); write access only for a named task.
+
 ## 10. Technology
 
 | Layer | Choice | Why |
@@ -164,6 +187,7 @@ In my game, each agent takes an input and produces an output that the player see
 | **Worker** (one per task) | a task plus its repo | a branch, commits, and a pull request | typing at a desk with a progress glow, then carrying a finished book to the shelf |
 | **Keeper** (scheduled chore job) | a mirror's state file and rules (§9a) | status events like `due :feed` or `stock 2` | an "I'm hungry" bubble over the creature and a "2 worms left!" sign on its home |
 | **Clerk** (mail job) | the unread inbox | a count plus a short triage summary | the mailbox fills up and overflows, and clicking it shows the summary |
+| **Pepper** (business manager) | the business's payments account, invoices, and business chores (§9b) | a short ledger plus a list of what needs the player's signature | Pepper at her front-office desk; a folder appears when something needs you, and she walks it over |
 | **Artist** (a worker on this repo) | "make the river nicer" | a shader or model PR against the game itself | the river visibly changes after hot reload or a merge |
 
 The same pipeline builds the game: a task in `TASKS.md` becomes a branch, a worker writes ClojureScript, the build must compile with 0 warnings, a PR goes up, and Michael merges it. The game's own development is the first workshop on the estate.
@@ -202,12 +226,13 @@ The agents that **build** the game. (The runtime agents in §10a *run* inside it
 ```
 Director (Michael, human): vision, merges every PR
  ├─ Lead Architect: systemic design decisions, owns the blueprint
- └─ Producer (Hal): breaks work down, dispatches, tracks
-     ├─ Design:      Game Designer · Writer
-     ├─ Engineering: Engine Engineer · Gameplay Engineer · Bridge Engineer
-     ├─ Art & audio: Environment Artist ★ · Character Artist · Tech Artist · Sound Designer
-     ├─ QA:          QA Tester (gates every PR)
-     └─ Utility:     Asset Scraper (feeds everyone raw material)
+ ├─ Producer (Hal): breaks work down, dispatches, tracks
+ │   ├─ Design:      Game Designer · Writer
+ │   ├─ Engineering: Engine Engineer · Gameplay Engineer · Bridge Engineer
+ │   ├─ Art & audio: Environment Artist ★ · Character Artist · Tech Artist · Sound Designer
+ │   ├─ QA:          QA Tester (gates every PR)
+ │   └─ Utility:     Asset Scraper (feeds everyone raw material)
+ └─ Business Manager (Pepper): release, pricing, storefront, payments
 ```
 
 **The crew**, one sentence each ("this agent [does x] when [trigger], and the player sees [y]"):
@@ -216,6 +241,7 @@ Director (Michael, human): vision, merges every PR
 |---|---|---|---|
 | **Lead Architect** | Makes the systemic calls (world-state shape, bridge protocol, namespace boundaries, how a new feature fits the whole) **when** a task touches more than one owner's files or changes the data model, **and the player sees** features that compose: a new mirror kind works right away with the existing bubbles, statuses, and XP. | GDD, blueprint, proposed change → decision record, schema/protocol changes | `docs/architecture.md`, world-state schema, `AGENTS.md` |
 | **Producer** (Hal) | Breaks a request into agent-sized tasks and dispatches them **when** the player asks for something or a milestone opens, **and the player sees** Hal pin a card to the notice board as a worker heads for the workshop. | request, GDD → `TASKS.md` entries, assignments | `TASKS.md` |
+| **Business Manager** (Pepper) | Keeps the company behind the game ready to sell it (payments account, storefront, pricing, policies on lotect.com, release checklist) **when** a release nears or the provider asks for something, **and the player sees** Pepper bring a folder to sign, then the front office light up when the first sale lands. | provider notices, release plan → business tasks in `TASKS.md`, drafts for the player to approve | `TASKS.md` § Business, `docs/business.md` |
 | **Game Designer** | Turns a feature idea into rules and content **when** a task changes how the game plays, **and the player sees** new estate slots, statuses, or rules behaving as this doc describes. | idea, playtest notes → GDD edits, estate content | `docs/GDD.md`, `resources/estate.edn` |
 | **Writer** | Writes Hal's voice, status bubbles, and mirror-rule copy **when** a new status, rule, or mirror is added, **and the player sees** short in-character lines like "2 worms left!" in the bubbles. | rule/status list, tone guide → string tables | `resources/text.edn` |
 | **Engine Engineer** | Extends the three.js wrapper, renderer, camera, and lighting **when** a feature needs a new three.js capability or the frame rate drops, **and the player sees** a smooth 3/4 camera, soft shadows, and a steady frame counter in the HUD. | feature need, profiler → wrapper fns | `pm.three`, `pm.core` |
@@ -234,13 +260,13 @@ Director (Michael, human): vision, merges every PR
 
 ```
 high-level reasoning ◄──────────────────────────────────────────────► low-level utility
-  Lead Architect · Game Designer   Producer · QA   Engineers · Artists · Sound   Writer   Asset Scraper
+  Lead Architect · Game Designer   Producer · Pepper · QA   Engineers · Artists · Sound   Writer   Asset Scraper
 ```
 
 | Tier | Agents | Thinks about | Model | Context | Authority |
 |---|---|---|---|---|---|
 | Strategic | Lead Architect, Game Designer | whole-system tradeoffs, blueprints, schemas | frontier, maximum reasoning | wide: GDD, schemas, all namespaces | decides; few calls, each expensive |
-| Coordination | Producer, QA | sequencing, gating, "is it done?" | frontier | `TASKS.md`, PRs, build output | assigns and blocks; doesn't design |
+| Coordination | Producer, Business Manager, QA | sequencing, gating, "is it done?" | frontier | `TASKS.md`, PRs, build output | assigns and blocks; doesn't design |
 | Craft | Engine, Gameplay, and Bridge Engineers; Environment, Character, and Tech Artists; Sound Designer | making one owned piece excellent | frontier | narrow: only the files it owns plus the spec | builds inside its scope |
 | Content | Writer | voice, short copy | open-weight, mid-size | tone guide plus string list | proposes text |
 | Utility | Asset Scraper | finding, downloading, labeling | small open-weight model or plain scripts (Babashka, curl) | the request only | none: fetches, never decides |
@@ -283,6 +309,7 @@ Course runs Tue/Thu. Plan assumes roughly one milestone per week with agents doi
 2. Voice in/out for conversations, or text only for the course? *(Lean: text; voice is a stretch.)*
 3. Should possessing an agent cost something in-game, to make it a deliberate act? *(Lean: no, in v1.)*
 4. Do non-coding agents (the Courier, the Keeper) get XP, or only workers?
+5. Where does Pepper run? *(Lean: on Hermes beside Hal, since she needs the real accounts; the Claude Code crew never touches money.)*
 
 ---
 *Next: scaffold the repo (shadow-cljs + three.js), `AGENTS.md`, and a `TASKS.md` with week-2 work broken into agent-sized jobs.*
