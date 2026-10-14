@@ -175,6 +175,41 @@ That means each play session (about 20 talk turns plus 3 assigned tasks) costs a
 
 Cost is a soft constraint for this project because the work runs on flat-rate plans (the class's Claude subscription plus a personal $100/mo plan) rather than metered API billing. Open-weight models up to ~130B can take the cheap, high-volume jobs (ambient chatter, bubble text, summaries) at near-zero marginal cost, leaving the frontier model for real work. The figure that *does* matter is context size. Cost per call grows with how much the agent is carrying, so a bloated session can approach $0.25 per call (the bot's long setup session averaged about that). Short-lived, task-scoped workers (§7, §13 "Cost") are the main control.
 
+## 10d. Dev crew
+
+The agents that **build** the game. (The runtime agents in §10a *run* inside it.) Every kind of generation has a dedicated, specialized agent with written inputs, outputs, and scope. Nothing is improvised at runtime, and the crew is organized like a small studio. Scope means files owned: an agent edits only its own files and asks the owner for changes elsewhere. Because pillar 5 makes the game build itself, every crew member is also a visible worker in the Prime Meridian workshop.
+
+**Hierarchy**
+
+```
+Director (Michael, human): vision, merges every PR
+ └─ Producer (Hal): breaks work down, dispatches, tracks
+     ├─ Design:      Game Designer · Writer
+     ├─ Engineering: Engine Engineer · Gameplay Engineer · Bridge Engineer
+     ├─ Art & audio: Environment Artist ★ · Character Artist · Tech Artist · Sound Designer
+     └─ QA:          QA Tester (gates every PR)
+```
+
+**The crew**, one sentence each ("this agent [does x] when [trigger], and the player sees [y]"):
+
+| Agent | One sentence | Inputs → outputs | Owns |
+|---|---|---|---|
+| **Producer** (Hal) | Breaks a request into agent-sized tasks and dispatches them **when** the player asks for something or a milestone opens, **and the player sees** Hal pin a card to the notice board as a worker heads for the workshop. | request, GDD → `TASKS.md` entries, assignments | `TASKS.md` |
+| **Game Designer** | Turns a feature idea into rules and data schemas **when** a task changes how the game works, **and the player sees** new estate slots, statuses, or rules behaving as this doc describes. | idea, playtest notes → GDD edits, `estate.edn` schema | `docs/GDD.md`, `resources/*.edn` schemas |
+| **Writer** | Writes Hal's voice, status bubbles, and mirror-rule copy **when** a new status, rule, or mirror is added, **and the player sees** short in-character lines like "2 worms left!" in the bubbles. | rule/status list, tone guide → string tables | `resources/text.edn` |
+| **Engine Engineer** | Extends the three.js wrapper, renderer, camera, and lighting **when** a feature needs a new three.js capability or the frame rate drops, **and the player sees** a smooth 3/4 camera, soft shadows, and a steady frame counter in the HUD. | feature need, profiler → wrapper fns | `pm.three`, `pm.core` |
+| **Gameplay Engineer** | Codes world rules, movement, and interactions **when** a gameplay task is assigned, **and the player sees** agents walking, pacing with "!", and coming over to find them. | design spec → world-state rules, scene updates | `pm.world`, `pm.scene` |
+| **Bridge Engineer** | Connects live data sources and agent sessions to world state **when** a new source or event type is added, **and the player sees** statuses that match reality, like the tank count changing after a feeding. | API/source, event spec → bridge handlers, protocol | `pm.bridge`, `bridge/` (Babashka) |
+| **Environment Artist ★** | Reshapes and re-lights a piece of the estate (river, rocks, terrain, time of day) **when** the player asks in-game to make it better, **and the player sees** that exact spot change in front of them seconds after the hot reload. | in-game request, `img/ref/`, kit reference → shaders, procedural meshes | `pm.env.*` |
+| **Character Artist** | Builds and animates the agent figures, hats, and status poses **when** a new role, status, or cosmetic unlock is added, **and the player sees** a new worker look or a new typing, pacing, or celebrating animation. | role/status list, KayKit rigs → models, animation clips | `pm.characters`, `public/assets/characters/` |
+| **Tech Artist** | Imports, decimates, and LODs purchased kits and keeps the frame budget **when** a new kit lands in `assets/private/`, **and the player sees** a lush new corner of the estate without the frame rate dropping. | GLB kit → optimized meshes, load code | `pm.assets`, `assets/private/` (local) |
+| **Sound Designer** | Places positional audio emitters and ties them to world state **when** something audible is added or changes speed, **and the player hears** the river get louder as they walk toward it and its pitch follow the flow. | sound files, emitter positions → audio graph | `pm.audio`, `public/assets/audio/` |
+| **QA Tester** | Runs the build (0 warnings), checks the HUD liveness numbers, and asks the player for screenshots **when** any PR opens, **and the player sees** nothing break, or a worker with a red "!" whose PR failed. | PR → pass/fail report on the PR | the gate; owns no game code |
+
+**One wow agent: the Environment Artist.** It is the crew's most visible output and the purest form of the core loop (§5): you walk up to the river, ask for it to be nicer, and watch it change in front of you. The other agents make the estate *true* and *readable*; this one makes it *alive*, and it delivers pillar 5 ("the world is the showcase").
+
+**Models by role:** the Engine, Gameplay, and Bridge Engineers, the Environment Artist, and QA run on the frontier model. The Writer and the bulk bubble/summary text can use an open-weight model (§10c). Matching the model to the role is part of the specialization.
+
 ## 11. Art direction
 
 Low-poly, flat-shaded, warm palette, soft shadows. Think a diorama you'd keep on a desk. Characters are simple capsule-and-hat figures so they're cheap to animate and easy to tell apart. The river is intentionally the one "nice" thing — a standing invitation to ask an agent to make it nicer.
