@@ -1,0 +1,542 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design Review Board</title>
+<style>
+  :root {
+    --bg: #16181D;
+    --panel: #1F232B;
+    --text: #E8E6E1;
+    --muted: #8A8F98;
+    --rule: #2A2F38;
+    --blocking: #E5484D;
+    --major: #F5A623;
+    --minor: #5A6270;
+    --display: "Arial Narrow", "Helvetica Neue Condensed", "HelveticaNeue-CondensedBold", "Roboto Condensed", "Liberation Sans Narrow", sans-serif;
+    --body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 20px;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 72px 24px 48px; }
+  section { margin-top: 96px; }
+  section:first-child { margin-top: 0; }
+  @media (prefers-reduced-motion: no-preference) {
+    section { animation: fadeUp .6s ease-out both; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+  }
+
+  .display {
+    font-family: var(--display);
+    font-stretch: condensed;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .eyebrow {
+    font-family: var(--display);
+    font-stretch: condensed;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: 18px;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  h2.section-title {
+    font-size: 48px;
+    margin: 8px 0 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .muted { color: var(--muted); }
+
+  /* Stamps */
+  .stamp {
+    display: inline-block;
+    font-family: var(--display);
+    font-stretch: condensed;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-variant-caps: all-small-caps;
+    padding: 3px 10px 2px;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    background: transparent;
+    white-space: nowrap;
+    vertical-align: middle;
+    line-height: 1.4;
+  }
+  .stamp.blocking { color: var(--blocking); }
+  .stamp.major { color: var(--major); }
+  .stamp.minor { color: #9AA1AC; border-color: var(--minor); }
+  .stamp.outcome { color: var(--text); border-color: var(--muted); }
+  .arrow { color: var(--muted); margin: 0 6px; font-size: 18px; vertical-align: middle; }
+
+  .chip {
+    display: inline-block;
+    font-size: 15px;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    border: 1px solid var(--muted);
+    border-radius: 2px;
+    padding: 2px 9px;
+    margin: 0 6px 6px 0;
+    white-space: nowrap;
+  }
+  .chip .role { color: var(--muted); }
+
+  /* Masthead */
+  .masthead { display: grid; grid-template-columns: 1fr auto; gap: 48px; align-items: end; }
+  .masthead h1 { font-size: 88px; margin: 14px 0 18px; letter-spacing: -0.02em; }
+  .masthead .meta { color: var(--muted); font-size: 20px; margin: 0 0 24px; }
+  .verdict {
+    font-size: 26px;
+    line-height: 1.35;
+    margin: 0;
+    padding-left: 20px;
+    border-left: 2px solid var(--blocking);
+    max-width: 680px;
+  }
+  .stats { display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); border: 1px solid var(--rule); border-radius: 4px; background: var(--panel); }
+  .stat { padding: 22px 22px 20px; border-left: 1px solid var(--rule); }
+  .stat:first-child { border-left: 0; }
+  .stat .num { font-size: 96px; }
+  .stat .num.blocking { color: var(--blocking); }
+  .stat .label { font-family: var(--display); font-stretch: condensed; text-transform: uppercase; letter-spacing: 0.14em; font-size: 16px; font-weight: 700; margin-top: 10px; }
+  .stat .sub { font-size: 15px; color: var(--muted); margin-top: 4px; line-height: 1.3; }
+
+  /* Top 5 */
+  .issue {
+    position: relative;
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 24px;
+    background: var(--panel);
+    border-radius: 4px;
+    padding: 36px 40px 32px 28px;
+    margin-bottom: 20px;
+  }
+  .issue .rank { font-size: 120px; color: var(--muted); opacity: 0.35; text-align: right; line-height: 0.85; }
+  .issue .tags { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+  .issue .qual { color: var(--muted); font-size: 16px; letter-spacing: 0.04em; }
+  .issue h3 { font-size: 30px; line-height: 1.25; margin: 0 0 18px; font-weight: 600; }
+  .issue .note { font-size: 18px; color: var(--muted); margin: 0 0 18px; max-width: 820px; }
+  .issue .note b { color: var(--text); font-weight: 600; }
+  .flagged { display: flex; flex-wrap: wrap; align-items: baseline; }
+  .flagged .lbl { font-family: var(--display); font-stretch: condensed; text-transform: uppercase; letter-spacing: 0.16em; font-size: 14px; color: var(--muted); margin-right: 12px; font-weight: 700; }
+
+  /* Disagreements */
+  .dispute { margin-bottom: 56px; }
+  .dispute h3 { font-size: 30px; margin: 0 0 18px; font-weight: 600; line-height: 1.25; }
+  .dispute .id { font-family: var(--display); font-stretch: condensed; color: var(--muted); letter-spacing: 0.12em; font-size: 18px; margin-right: 10px; font-weight: 700; }
+  .vs { display: grid; grid-template-columns: 1fr auto 1fr; border: 1px solid var(--rule); border-radius: 4px; background: var(--panel); }
+  .vs .pos { padding: 26px 28px; }
+  .vs .mid { display: flex; align-items: center; justify-content: center; padding: 0 6px; border-left: 1px solid var(--rule); border-right: 1px solid var(--rule); }
+  .vs .mid span { font-family: var(--display); font-stretch: condensed; text-transform: uppercase; color: var(--muted); letter-spacing: 0.2em; font-size: 15px; writing-mode: vertical-rl; transform: rotate(180deg); font-weight: 700; }
+  .pos .who { font-family: var(--display); font-stretch: condensed; text-transform: uppercase; letter-spacing: 0.1em; font-size: 20px; font-weight: 700; margin-bottom: 10px; }
+  .pos p { margin: 0; font-size: 19px; }
+  .also { grid-column: 1 / -1; border-top: 1px solid var(--rule); padding: 18px 28px; font-size: 18px; color: var(--muted); }
+  .also b { color: var(--text); font-weight: 600; }
+  .escalated { margin-top: 14px; font-size: 19px; }
+  .escalated .lbl { font-family: var(--display); font-stretch: condensed; text-transform: uppercase; letter-spacing: 0.16em; font-size: 14px; color: var(--muted); margin-right: 10px; font-weight: 700; }
+
+  /* Full board */
+  .tabs { display: flex; flex-wrap: wrap; gap: 0; border-bottom: 1px solid var(--rule); margin-bottom: 8px; }
+  .tab {
+    font-family: var(--display); font-stretch: condensed; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700;
+    font-size: 18px; color: var(--muted); background: transparent; border: 0; border-bottom: 2px solid transparent;
+    padding: 14px 18px 12px; cursor: pointer; margin-bottom: -1px;
+  }
+  .tab:hover { color: var(--text); }
+  .tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--text); }
+  .tab:focus-visible { outline: 1px solid var(--muted); outline-offset: -4px; }
+  .reviewer { padding-top: 24px; }
+  .reviewer + .reviewer { margin-top: 64px; }
+  .js .reviewer + .reviewer { margin-top: 0; }
+  .reviewer h3 { font-size: 40px; margin: 0 0 6px; }
+  .reviewer .lens { color: var(--muted); font-size: 18px; margin: 0 0 24px; }
+  .sub-h { font-family: var(--display); font-stretch: condensed; text-transform: uppercase; letter-spacing: 0.18em; font-size: 16px; color: var(--muted); margin: 32px 0 0; padding-bottom: 10px; border-bottom: 1px solid var(--rule); font-weight: 700; }
+  .finding { display: grid; grid-template-columns: 250px 1fr; gap: 24px; padding: 20px 0; border-bottom: 1px solid var(--rule); }
+  .finding .sev { padding-top: 3px; }
+  .finding .num { font-family: var(--display); font-stretch: condensed; color: var(--muted); font-size: 18px; margin-right: 8px; font-weight: 700; }
+  .finding .t { font-weight: 600; font-size: 20px; margin: 0 0 6px; line-height: 1.35; }
+  .finding .d { font-size: 18px; color: var(--muted); margin: 0; }
+  .finding .d b { color: var(--text); font-weight: 600; }
+  .xexam { list-style: none; padding: 0; margin: 0; }
+  .xexam li { padding: 14px 0; border-bottom: 1px solid var(--rule); font-size: 18px; }
+  .xexam .k { font-family: var(--display); font-stretch: condensed; text-transform: uppercase; letter-spacing: 0.14em; font-size: 14px; color: var(--muted); font-weight: 700; display: inline-block; min-width: 116px; }
+
+  footer { margin-top: 112px; padding-top: 24px; border-top: 1px solid var(--rule); color: var(--muted); font-size: 17px; }
+  footer .method { font-family: var(--display); font-stretch: condensed; text-transform: uppercase; letter-spacing: 0.16em; color: var(--text); font-weight: 700; font-size: 18px; margin-bottom: 8px; }
+
+  @media (max-width: 900px) {
+    .masthead { grid-template-columns: 1fr; }
+    .masthead h1 { font-size: 60px; }
+    .finding { grid-template-columns: 1fr; gap: 8px; }
+  }
+  @media (max-width: 640px) {
+    .wrap { padding: 40px 16px 32px; }
+    .stats { grid-template-columns: repeat(3, 1fr); }
+    .stat { padding: 16px 12px; }
+    .stat .num { font-size: 56px; }
+    .issue { grid-template-columns: 1fr; padding: 24px 20px; gap: 0; }
+    .issue .rank { text-align: left; font-size: 80px; }
+    .issue h3 { font-size: 24px; }
+    .vs { grid-template-columns: 1fr; }
+    .vs .mid { border: 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 6px; }
+    .vs .mid span { writing-mode: horizontal-tb; transform: none; }
+    h2.section-title { font-size: 36px; }
+    .xexam .k { display: block; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- 1. MASTHEAD -->
+<section class="masthead" aria-labelledby="doc-title">
+  <div>
+    <div class="eyebrow">Design Review Board</div>
+    <h1 id="doc-title" class="display">Prime Meridian<br>GDD v0.2</h1>
+    <p class="meta">Reviewed October 13, 2026 · six reviewers · three rounds</p>
+    <p class="verdict">Not ready to drive production. No reviewer disputes the pitch; the blockers are definitions the plan depends on but never gives.</p>
+  </div>
+  <div class="stats" role="list">
+    <div class="stat" role="listitem">
+      <div class="num display">30</div>
+      <div class="label">Findings</div>
+      <div class="sub">5 per reviewer, Round 1</div>
+    </div>
+    <div class="stat" role="listitem">
+      <div class="num display blocking">7</div>
+      <div class="label">Blocking</div>
+      <div class="sub">Round 1 · 8 after cross-exam</div>
+    </div>
+    <div class="stat" role="listitem">
+      <div class="num display">5</div>
+      <div class="label">Unresolved</div>
+      <div class="sub">disagreements escalated</div>
+    </div>
+  </div>
+</section>
+
+<!-- 2. TOP 5 -->
+<section aria-labelledby="top5">
+  <div class="eyebrow">Moderated synthesis · ranked by severity × confidence</div>
+  <h2 id="top5" class="section-title display">Top 5 Issues</h2>
+
+  <article class="issue">
+    <div class="rank display" aria-hidden="true">1</div>
+    <div>
+      <div class="tags"><span class="stamp blocking">Blocking</span><span class="stamp outcome">Strengthened</span></div>
+      <h3>There is no persistent cast: workers die with their task, so XP, levels, trust, and "familiar helpers" have nothing to attach to.</h3>
+      <p class="note">Five of six reviewers reached it on their own. The board held the cast problem BLOCKING and split XP off as a symptom. The converged fix is a <b>persistent persona record</b> re-bound to a fresh short-lived session for each task, because persistent sessions would break the cost model.</p>
+      <div class="flagged"><span class="lbl">Flagged by</span><span class="chip">Systems Designer</span><span class="chip">Narrative Critic</span><span class="chip">Adversarial QA</span><span class="chip">Player Psychologist</span></div>
+    </div>
+  </article>
+
+  <article class="issue">
+    <div class="rank display" aria-hidden="true">2</div>
+    <div>
+      <div class="tags"><span class="stamp blocking">Blocking</span><span class="stamp outcome">Strengthened</span></div>
+      <h3>The bridge protocol is unspecified in both directions: no source for the <code>question</code> event, no write-back for "mark it done."</h3>
+      <p class="note">Colleagues traced the damage. A guessed "!" makes status <b>wrong</b>, not just unreadable. It breaks Pillar 1's "literally true." Triage loses its signal, and the despawn trigger has nothing to fire on. Proposed remedy: a week-2 spike on an explicit <code>ask_oracle</code> tool call.</p>
+      <div class="flagged"><span class="lbl">Flagged by</span><span class="chip">Feasibility Lead</span><span class="chip">Adversarial QA</span></div>
+    </div>
+  </article>
+
+  <article class="issue">
+    <div class="rank display" aria-hidden="true">3</div>
+    <div>
+      <div class="tags"><span class="stamp blocking">Blocking</span><span class="qual">beyond localhost</span><span class="stamp outcome">Strengthened</span></div>
+      <h3>An exploit chain leads to remote code execution on the machine that holds mail, SMS and repo credentials.</h3>
+      <p class="note">Unauthenticated <code>possess</code> → agent edits a mirror config → an arbitrary script runs on the bridge host. Conversational mirror creation would let an incoming email or SMS trigger the same path. The board disagrees only on the remedy: build authentication, or cut scope to localhost.</p>
+      <div class="flagged"><span class="lbl">Flagged by</span><span class="chip">Adversarial QA</span><span class="chip">Feasibility Lead</span><span class="chip">Business Analyst</span><span class="chip">Player Psychologist</span></div>
+    </div>
+  </article>
+
+  <article class="issue">
+    <div class="rank display" aria-hidden="true">4</div>
+    <div>
+      <div class="tags"><span class="stamp blocking">Blocking</span><span class="stamp major">Major</span><span class="qual">severity disputed</span><span class="stamp outcome">Strengthened</span></div>
+      <h3>The "seconds after the hot reload" wow moment contradicts the QA gate and Director merge, and the ungated path has no rollback.</h3>
+      <p class="note">Agents verify on headless WebGL2 while the player runs WebGPU, so the gate can't catch the crash. Adversarial QA rates it BLOCKING. The others rate it MAJOR because the river is stretch scope, and Feasibility concedes BLOCKING if the river moves into the MVP.</p>
+      <div class="flagged"><span class="lbl">Flagged by</span><span class="chip">Adversarial QA</span><span class="chip">Feasibility Lead</span><span class="chip">Player Psychologist</span><span class="chip">Systems Designer</span><span class="chip">Business Analyst</span><span class="chip">Narrative Critic</span></div>
+    </div>
+  </article>
+
+  <article class="issue">
+    <div class="rank display" aria-hidden="true">5</div>
+    <div>
+      <div class="tags"><span class="stamp blocking">Blocking</span><span class="stamp outcome">Strengthened</span></div>
+      <h3>The document is three products for three audiences and never picks one, so the board can't settle several other findings.</h3>
+      <p class="note">At least five colleague findings change severity or fix depending on the audience decision. Player Psychologist's "no first hour" drops to MINOR if v1's audience is narrowed to Michael.</p>
+      <div class="flagged"><span class="lbl">Flagged by</span><span class="chip">Business Analyst</span><span class="chip">Player Psychologist</span><span class="chip">Narrative Critic</span><span class="chip">Feasibility Lead</span></div>
+    </div>
+  </article>
+</section>
+
+<!-- 3. THE DISAGREEMENT -->
+<section aria-labelledby="disagree">
+  <div class="eyebrow">Round 2 conflicts the board could not settle</div>
+  <h2 id="disagree" class="section-title display">The Disagreement</h2>
+
+  <div class="dispute">
+    <h3><span class="id">D1</span>Is the progression/persistence problem BLOCKING now, or MAJOR until week 6?</h3>
+    <div class="vs">
+      <div class="pos"><div class="who">Systems Designer</div><p>BLOCKING. The real decision is persistent character versus disposable process, and it gets locked in at week 2 (mock agent identity) and week 3 (session-to-character mapping). After that, persistent roles become a refactor.</p></div>
+      <div class="mid"><span>versus</span></div>
+      <div class="pos"><div class="who">Player Psychologist · Adversarial QA</div><p>MAJOR. Gamify v0 is week 6, outside the MVP, so no player of the course build meets the broken XP loop. Both accept that the <em>cast</em> problem is BLOCKING.</p></div>
+    </div>
+    <p class="escalated"><span class="lbl">Escalated</span>Does the persona-vs-session model have to be decided before the week 2 milestone?</p>
+  </div>
+
+  <div class="dispute">
+    <h3><span class="id">D2</span>Should XP be able to buy autonomy at all?</h3>
+    <div class="vs">
+      <div class="pos"><div class="who">Systems Designer</div><p>Keep a real trust ladder. Start it below the default and fund it only with XP sources the agent can't generate itself, such as merged-without-rework judged after the merge, or XP granted by the player.</p></div>
+      <div class="mid"><span>versus</span></div>
+      <div class="pos"><div class="who">Adversarial QA</div><p>On a persistent role, farmed XP builds up indefinitely, and parallel instances multiply the farming rate. Take autonomy off the XP ladder: a human sets trust per role, and XP stays cosmetic.</p></div>
+      <div class="also"><b>Player Psychologist</b> offers a third option: move progression to the player and the estate.</div>
+    </div>
+    <p class="escalated"><span class="lbl">Escalated</span>Is trust earned by the agent or set by the human?</p>
+  </div>
+
+  <div class="dispute">
+    <h3><span class="id">D3</span>Should the wow loop be pulled into the MVP?</h3>
+    <div class="vs">
+      <div class="pos"><div class="who">Business Analyst</div><p>Yes. Without it the course ends with the "3D skin on an agent list" that §2 criticizes. The cheap version is a hot reload of a branch on the local client only, with "reload main" as the rollback.</p></div>
+      <div class="mid"><span>versus</span></div>
+      <div class="pos"><div class="who">Feasibility Lead</div><p>Not before it's specified. Pulling the two least-specified dependencies (<code>question</code> and the preview path) into weeks 1–4 just makes the MVP slip. Specify first, schedule second.</p></div>
+      <div class="also"><b>Adversarial QA</b>: only if a sandbox, a last-known-good build and a watchdog move in with it. Neither colleague's estimate includes that work.</div>
+    </div>
+    <p class="escalated"><span class="lbl">Escalated</span>Does the MVP ship without the differentiator, or take on the safety work needed to include it?</p>
+  </div>
+
+  <div class="dispute">
+    <h3><span class="id">D4</span>Where should pressure and scarcity live, and how loud can "overdue" get?</h3>
+    <div class="vs">
+      <div class="pos"><div class="who">Systems Designer</div><p>The loop needs scarcity. Cap concurrent worker desks and show a visible approval queue. Michael's merge bandwidth is already the real scarce resource.</p></div>
+      <div class="mid"><span>versus</span></div>
+      <div class="pos"><div class="who">Player Psychologist</div><p>Desk slots are fine, but reject the token allowance. Absence must never escalate. A missed chore should be one capped, steady overdue state, not a ladder of increasingly alarming signals.</p></div>
+      <div class="also"><b>Adversarial QA</b>: missed chores need a defined overdue/escalation state. Desk caps also deadlock while the player is away unless workers awaiting a merge or input release their desks.</div>
+    </div>
+    <p class="escalated"><span class="lbl">Escalated</span>What is the ceiling on on-screen pressure, and do awaiting workers count against the cap?</p>
+  </div>
+
+  <div class="dispute">
+    <h3><span class="id">D5</span>Should in-character framing wrap live agent output?</h3>
+    <div class="vs">
+      <div class="pos"><div class="who">Narrative Critic</div><p>Yes. Write a character bible and a rule for how in-character framing wraps live coding-agent output. Otherwise players mostly hear "whatever a coding agent's default register happens to be."</p></div>
+      <div class="mid"><span>versus</span></div>
+      <div class="pos"><div class="who">Business Analyst</div><p>No runtime Writer in v1. Use a one-page Hal voice sheet and one human-written persona line per agent in the system prompt. A Writer model rewriting frontier output adds latency and the risk of softening real errors.</p></div>
+    </div>
+    <p class="escalated"><span class="lbl">Escalated</span>Is a runtime voice layer in scope for v1?</p>
+  </div>
+</section>
+
+<!-- 4. FULL BOARD -->
+<section aria-labelledby="board">
+  <div class="eyebrow">Drill-down · Round 1 findings and Round 2 cross-examination</div>
+  <h2 id="board" class="section-title display">Full Board</h2>
+
+  <div class="tabs" role="tablist" aria-label="Reviewers" hidden>
+    <button class="tab" role="tab" aria-controls="r-systems">Systems</button>
+    <button class="tab" role="tab" aria-controls="r-narrative">Narrative</button>
+    <button class="tab" role="tab" aria-controls="r-psych">Psychologist</button>
+    <button class="tab" role="tab" aria-controls="r-feas">Feasibility</button>
+    <button class="tab" role="tab" aria-controls="r-qa">Adversarial QA</button>
+    <button class="tab" role="tab" aria-controls="r-biz">Business</button>
+  </div>
+
+  <!-- Systems Designer -->
+  <div class="reviewer" id="r-systems" role="tabpanel">
+    <h3 class="display">Systems Designer</h3>
+    <p class="lens">Lens: whether the loop, progression, pacing, and economy actually interlock, or just coexist on the page.</p>
+    <div class="sub-h">Round 1 findings</div>
+    <div class="finding"><div class="sev"><span class="stamp blocking">Blocking</span></div><div><p class="t"><span class="num">1</span>XP and levels go to agents that don't live long enough to level up, and the trust unlock grants what is already the default.</p><p class="d">Workers "exist while their task exists" (§7, §13). The level-3 unlock, "ask before merging", is §8's default for every agent. <b>Needed:</b> decide what carries XP between tasks, and start the trust ladder below the default.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp major">Major</span></div><div><p class="t"><span class="num">2</span>The loop has no resource the player has to allocate, so there are no real decisions.</p><p class="d">Tokens are hidden, possession is free, worker count is uncapped, and chores have no in-game source or sink. The §10c math (~$6.80) holds, but it excludes the bloated-session case (~$10 for one task) and never estimates flat-rate usage caps.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp major">Major</span></div><div><p class="t"><span class="num">3</span>The loop pays out minutes to hours after the input, and nothing fills the gap.</p><p class="d">~40 model calls, the QA gate, then a human merge. §10b handles latency at the frame level, not the loop level. The doc never says whether the session is a check-in or a sit-down.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp major">Major</span></div><div><p class="t"><span class="num">4</span>Ambient tending contradicts agent lifetime and blurs the "real" result signal.</p><p class="d">An agent nobody has asked anything doesn't exist under §7/§13. Procedural growth puts fake change into the same channel as real work. <b>Needed:</b> a visual signature for real-work results that ambient growth never uses.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp minor">Minor</span></div><div><p class="t"><span class="num">5</span>There is no progression arc or end state, and the progression layer is outside the MVP.</p><p class="d">There is no early, mid or late game, and no failure state. Gamify v0 is week 6, and "MVP = weeks 1–4."</p></div></div>
+    <div class="sub-h">Round 2 cross-examination</div>
+    <ul class="xexam">
+      <li><span class="k">Conflict</span>vs Psychologist #3: no penalty on top of no scarcity flattens the loop. Move pressure to the agent side with a hard cap on concurrent worker desks.</li>
+      <li><span class="k">Conflict</span>vs Psychologist #4 (MAJOR): holds BLOCKING. The persistence decision is locked in at weeks 2–3, before progression ships.</li>
+      <li><span class="k">Conflict</span>vs Business #2: withdraws pulling an XP hook into weeks 4–5. The case for moving "!" questions earlier is stronger.</li>
+      <li><span class="k">Connection</span>Feasibility F5 + QA #1: Michael's merge approval is already the real scarce resource, just undesigned. Show the approval queue as the PR shelf.</li>
+      <li><span class="k">Connection</span>QA #3: a working trust ladder needs XP sources the agent can't farm. Drop "question answered quickly."</li>
+      <li><span class="k">Connection</span>QA #4: chores can't complete a single transaction, so they aren't a resource at all.</li>
+      <li><span class="k">Connection</span>Narrative #3 + Psychologist #5: possession has no mechanical reason to exist.</li>
+      <li><span class="k">Revision</span>#1 stays BLOCKING with revised needs. #2 and #3 are strengthened. #4's scope is extended to runaway growth: an unbounded source on a bounded board. #5's XP-hook request is withdrawn in favour of putting the desk cap and approval queue in the MVP.</li>
+    </ul>
+  </div>
+
+  <!-- Narrative Critic -->
+  <div class="reviewer" id="r-narrative" role="tabpanel">
+    <h3 class="display">Narrative Critic</h3>
+    <p class="lens">Lens: story logic, character, tone, theme.</p>
+    <div class="sub-h">Round 1 findings</div>
+    <div class="finding"><div class="sev"><span class="stamp blocking">Blocking</span></div><div><p class="t"><span class="num">1</span>The agents "living there" are mostly temporary, so the estate has no persistent cast to grow attached to.</p><p class="d">A worker that disappears when its PR merges can't be the character who reaches level 3. No "gardener" exists to be possessed: §7 lists only Hal, Workers, and "later" Specialists.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp major">Major</span></div><div><p class="t"><span class="num">2</span>Pillar 1 ("Real, not simulated") is broken by the document's own ambient and specialist design.</p><p class="d">Ambient tending is procedural. Bubble chatter comes from open-weight models. The Keeper and Clerk are scheduled jobs, and Flora's voice is an authored line.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp major">Major</span></div><div><p class="t"><span class="num">3</span>The Oracle fantasy contradicts the possession and do-it-yourself mechanics, and the Oracle's kitchen isn't in the world.</p><p class="d">While possessing, there <em>is</em> a human behind the agent. The reverse loop casts the player as a servant answering a summons. The kitchen is missing from the §6 table and from every §12 milestone.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp major">Major</span></div><div><p class="t"><span class="num">4</span>"Conversation is the controller," but nothing defines who the characters are or how they talk.</p><p class="d">Identity is "color, hat." The Writer is the lowest tier and owns only labels. Live replies stream straight from frontier coding sessions.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp minor">Minor</span><span class="arrow">→</span><span class="stamp major">Major</span></div><div><p class="t"><span class="num">5</span>The epigraph's theme is stated but never dramatized.</p><p class="d">No moment, arc or milestone makes the player <em>feel</em> the reality question. Upgraded in Round 2: neither direction of the reality boundary can be delivered in the MVP.</p></div></div>
+    <div class="sub-h">Round 2 cross-examination</div>
+    <ul class="xexam">
+      <li><span class="k">Conflict</span>vs Business F3: the crew is the only persistent named cast. Keep it as personas and staff it late. The persona is cheap; the orchestration is what costs money.</li>
+      <li><span class="k">Conflict</span>vs Business F1/F4: mostly concedes narrowing to Michael's estate. The epigraph must then be rewritten or reinterpreted.</li>
+      <li><span class="k">Conflict</span>vs Feasibility F3 / Psychologist F2 / QA F1: withdraws "the first river change you watched happen" as a signature MVP moment.</li>
+      <li><span class="k">Connection</span>Neither signature moment can be delivered. The river is stretch work and merge-gated, and "mark it done" has no write message.</li>
+      <li><span class="k">Connection</span>Feasibility F1: a heuristic "!" is an inference shown to the player as fact, which is a sharper Pillar 1 violation.</li>
+      <li><span class="k">Connection</span>The honesty contract breaks both ways: XP buys autonomy (QA F3), and fake growth is mistaken for real output (Systems F4).</li>
+      <li><span class="k">Connection</span>The Oracle's summons is the guilt engine. Make the kitchen the place where petitioners queue. Hal's first line is the onboarding.</li>
+      <li><span class="k">Revision</span>F1 stays BLOCKING, strengthened. F2 is narrowed: the Flora-voice and Keeper/Clerk bullets are withdrawn, and the heuristic <code>question</code> is added. F5 goes MINOR → MAJOR, with "mark Flora fed" as the MVP's signature moment.</li>
+    </ul>
+  </div>
+
+  <!-- Player Psychologist -->
+  <div class="reviewer" id="r-psych" role="tabpanel">
+    <h3 class="display">Player Psychologist</h3>
+    <p class="lens">Lens: what a real player experiences in the first session and the first week.</p>
+    <div class="sub-h">Round 1 findings</div>
+    <div class="finding"><div class="sev"><span class="stamp blocking">Blocking</span></div><div><p class="t"><span class="num">1</span>There is no first hour. A new player starts with an empty estate and a config file.</p><p class="d">"An empty estate is still a valid estate" (§9a). Mirrors are hand-written EDN maps, and there's no first-run flow, tutorial or demo data. Made conditional in Round 2: it drops to MINOR if the audience is narrowed to Michael.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp major">Major</span></div><div><p class="t"><span class="num">2</span>The pitch promises instant payoff, but the pipeline delivers it in minutes to days.</p><p class="d">"You can walk away" is not engagement design. It is the moment the player closes the tab.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp major">Major</span></div><div><p class="t"><span class="num">3</span>A "cozy" game that turns your real obligations into visible guilt.</p><p class="d">Overflowing inboxes, hungry pets and agents walking toward you, with no rules for decay, snoozing or throttling. Cozy games work because nothing bad happens when you are absent.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp major">Major</span></div><div><p class="t"><span class="num">4</span>Progression rewards the wrong entity, attaches to characters that get deleted, and its one real unlock is a no-op.</p><p class="d">"Question answered quickly" grants agent XP for the <em>player's</em> response speed, which is a quiet penalty for being away.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp minor">Minor</span><span class="arrow">→</span><span class="stamp major">Major</span></div><div><p class="t"><span class="num">5</span>The at-a-glance status language is not distinguishable at a glance.</p><p class="d">Idle and Blocked are both seated, told apart only by a red "!". Done looks identical to Idle. Relying on red alone is a colour-vision issue. Talk and Possess are also hard to tell apart.</p></div></div>
+    <div class="sub-h">Round 2 cross-examination</div>
+    <ul class="xexam">
+      <li><span class="k">Conflict</span>vs Systems F2: rejects a token allowance as meter anxiety. Desk slots limit what the player queues, not how fast they have to respond.</li>
+      <li><span class="k">Conflict</span>vs Systems F5: the doc has an emotional failure state even without a mechanical one. It needs a pressure ceiling.</li>
+      <li><span class="k">Conflict</span>vs QA F4: overdue should be one capped, steady state, never louder the longer you stay away.</li>
+      <li><span class="k">Conflict</span>vs Systems/QA/Narrative: keeps XP at MAJOR (week 6). Narrative's persistent-cast framing is the BLOCKING root cause.</li>
+      <li><span class="k">Connection</span>Feasibility F1: misreported status is worse than unreadable status. It teaches players to stop trusting the signal.</li>
+      <li><span class="k">Connection</span>QA F3: the reward system pays agents to interrupt you.</li>
+      <li><span class="k">Connection</span>Narrative F2 + Systems F4 + F5: one small visual grammar for real versus estate life and for status.</li>
+      <li><span class="k">Connection</span>Business F5 + Feasibility F4: visible guilt on a projector becomes visible embarrassment. It needs a presentation mode.</li>
+      <li><span class="k">Revision</span>F5 goes MINOR → MAJOR. F1 stays BLOCKING while Pillar 2 stands. F4 is narrowed. F2 and F3 are strengthened.</li>
+    </ul>
+  </div>
+
+  <!-- Feasibility Lead -->
+  <div class="reviewer" id="r-feas" role="tabpanel">
+    <h3 class="display">Feasibility Lead</h3>
+    <p class="lens">Lens: scope, timeline and buildability against late-2026 technology (three.js r186 / WebGPURenderer, Hermes sessions, flat-rate plans).</p>
+    <div class="sub-h">Round 1 findings</div>
+    <div class="finding"><div class="sev"><span class="stamp blocking">Blocking</span></div><div><p class="t"><span class="num">F1</span>The bridge's agent-event contract is the critical path, and the document never specifies it.</p><p class="d">A waiting CLI session "usually just stops producing output." Possess and streaming need session multiplexing, not a websocket relay. The §13 risk list doesn't mention it.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp major">Major</span></div><div><p class="t"><span class="num">F2</span>The rendering architecture is unstated: an immutable CLJS state map versus three.js's mutable scene graph, on a renderer agents may not be able to run headless.</p><p class="d">The reconciler is the real engine, and nothing schedules it. Headless browsers fall back from WebGPU to WebGL2, so agents verify a different render path from the one the player sees.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp major">Major</span></div><div><p class="t"><span class="num">F3</span>The showcase loop is out of MVP scope, and the pipeline as written can't deliver the promised "seconds" turnaround.</p><p class="d">The river is week 7+. The realistic loop is minutes to hours, gated on the human twice: once for the screenshot and once for the merge.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp major">Major</span><span class="arrow">→</span><span class="stamp blocking">Blocking</span></div><div><p class="t"><span class="num">F4</span>The integration surface contradicts the document's own scope cap, and deployment exposes private data with no security model.</p><p class="d">Six or seven integrations against a "four live data sources max" cap. A public client reaches a bridge on a personal machine with no authentication. Upgraded to BLOCKING for any deployment beyond localhost.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp major">Major</span></div><div><p class="t"><span class="num">F5</span>Large infrastructure commitments have no milestones: the 13-agent dev crew and the generic mirror engine, with one human merging everything.</p><p class="d">Either the MVP slips past week 4, or week 3 hardcodes Flora and Pillar 2 quietly becomes debt.</p></div></div>
+    <div class="sub-h">Round 2 cross-examination</div>
+    <ul class="xexam">
+      <li><span class="k">Conflict</span>vs Business F2: don't pull "!" and the river into the MVP unspecified. Run a week-2 spike on an explicit <code>ask_oracle</code> tool call and gate week 3 on it.</li>
+      <li><span class="k">Conflict</span>vs QA F1: keeps it MAJOR, since the river is stretch. Concedes BLOCKING if the river moves into the MVP.</li>
+      <li><span class="k">Conflict</span>vs Business F3: crew size isn't the bottleneck, the one human is. The plan needs a merge budget or a delegated merge rule.</li>
+      <li><span class="k">Conflict</span>vs "make workers persistent": persistent sessions break the cost model. Use a persistent persona record re-bound to a fresh session instead.</li>
+      <li><span class="k">Connection</span>The protocol is incomplete in both directions (+ QA F4). Shared mirror scripts plus an unauthenticated client add up to remote code execution on the credential host.</li>
+      <li><span class="k">Connection</span>Ungated hot reload can't be verified by the agents who ship it (WebGL2 vs WebGPU). "Awaiting approval" is cheap to get from GitHub.</li>
+      <li><span class="k">Connection</span>Flat-rate usage caps also cap the crew.</li>
+      <li><span class="k">Revision</span>F1 strengthened. F3 gains a rollback requirement. F4 goes to BLOCKING beyond localhost. F5 refined. F2 stays MAJOR, and no colleague engaged with it.</li>
+    </ul>
+  </div>
+
+  <!-- Adversarial QA -->
+  <div class="reviewer" id="r-qa" role="tabpanel">
+    <h3 class="display">Adversarial QA</h3>
+    <p class="lens">Lens: contradictions between sections, unhandled edge cases, exploits, and unplanned fail states.</p>
+    <div class="sub-h">Round 1 findings</div>
+    <div class="finding"><div class="sev"><span class="stamp blocking">Blocking</span></div><div><p class="t"><span class="num">1</span>The game rewrites itself live, with no gate and no rollback.</p><p class="d">On the gated path, "seconds" become hours. On the ungated path, a broken shader goes straight into the player's session, and there's no last-known-good build.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp blocking">Blocking</span><span class="arrow">→</span><span class="stamp major">Major</span></div><div><p class="t"><span class="num">2</span>Workers disappear when their task ends, so XP and levels can't build up.</p><p class="d">The doc never says whether identity carries over, or what happens to XP on respawn. Downgraded in Round 2 because Gamify v0 is week 6.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp major">Major</span></div><div><p class="t"><span class="num">3</span>The autonomy and trust rules contradict each other.</p><p class="d">The level-3 reward is the default. "Fully autonomous" conflicts with "merges every PR." "Progression never changes the work" is false, and XP-farming is an exploit. Possess may bypass the autonomy dial and file ownership.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp major">Major</span></div><div><p class="t"><span class="num">4</span>Mirrors can be read but there's no way to write back, and chore edge cases are missing.</p><p class="d">There's no "chore completed" message, and nobody owns <code>:consumes</code>. Missed, duplicate, zero-stock, offline and typo cases are unhandled. <b>The security sub-point (script <code>:source</code>) became a standalone BLOCKING in Round 2.</b></p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp major">Major</span></div><div><p class="t"><span class="num">5</span>Ambient tending needs idle agents that the cost model says won't exist.</p><p class="d">Persistence, file ownership (<code>pm.env.*</code>) and runaway growth on a one-screen estate are all undefined.</p></div></div>
+    <div class="sub-h">Round 2 cross-examination</div>
+    <ul class="xexam">
+      <li><span class="k">Conflict</span>vs Psychologist F1: "Hal, I have three chickens" is an injection path. Allowlist <code>:source</code>, remove scripts, and confirm before loading.</li>
+      <li><span class="k">Conflict</span>vs Psychologist F2 / Business F2: the rollback and sandbox have to exist before the fast path.</li>
+      <li><span class="k">Conflict</span>vs Systems F1: XP on a persistent role makes the farming exploit permanent. A human should set trust.</li>
+      <li><span class="k">Conflict</span>vs Systems F2: desk caps deadlock when blocked workers hold their desks while the player is away.</li>
+      <li><span class="k">Conflict</span>vs Business F4: hard-coding Flora doesn't fix the missing write message.</li>
+      <li><span class="k">Connection</span>The exploit chain: unauthenticated websocket → <code>possess</code> → agent writes a mirror config → arbitrary script on the credential host.</li>
+      <li><span class="k">Connection</span>The XP rule pays agents to create pressure: progression → more questions → more crowding → player avoidance.</li>
+      <li><span class="k">Connection</span>"Done, then idles" can't be told apart from a stalled session. There's no gardener to possess.</li>
+      <li><span class="k">Revision</span>#1 stays BLOCKING, strengthened. #2 goes BLOCKING → MAJOR. #4's security note becomes a standalone BLOCKING. #5 stays MAJOR. The crowding note is a MAJOR candidate.</li>
+    </ul>
+  </div>
+
+  <!-- Business Analyst -->
+  <div class="reviewer" id="r-biz" role="tabpanel">
+    <h3 class="display">Business Analyst</h3>
+    <p class="lens">Lens: feature creep, market positioning, and load-bearing versus decorative features.</p>
+    <div class="sub-h">Round 1 findings</div>
+    <div class="finding"><div class="sev"><span class="stamp blocking">Blocking</span></div><div><p class="t"><span class="num">1</span>The document is three products with three different audiences, and it never picks one.</p><p class="d">A developer agent-control surface, a cozy life-mirror for "everyone," and a self-building studio showcase. The player that exists today is one person: Michael.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp major">Major</span></div><div><p class="t"><span class="num">2</span>The MVP cut leaves out the features that make this different from a dashboard.</p><p class="d">Weeks 1–4 are a 3D skin on an agent list. "!", possession, the river, and "mark it done" all fall in stretch or no milestone.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp major">Major</span></div><div><p class="t"><span class="num">3</span>The 13-agent dev crew is decorative scope that works against "Keep it simple."</p><p class="d">Several roles have no work before week 7+. Reframed in Round 2: the crew is <b>staffed too early, all at once</b>, and its roles are the best candidate for the persistent cast.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp major">Major</span></div><div><p class="t"><span class="num">4</span>The scope-creep cap in §13 is contradicted elsewhere in the document.</p><p class="d">Twilio, two board sources, and a general mirror DSL. A cap the design doesn't respect isn't a cap.</p></div></div>
+    <div class="finding"><div class="sev"><span class="stamp major">Major</span></div><div><p class="t"><span class="num">5</span>There's no path from "the author's estate" to anyone else's, and cost is waved away for the wrong audience.</p><p class="d">No install, onboarding, privacy or positioning story. ~$7/session is ~$150–200/month for a daily player.</p></div></div>
+    <div class="sub-h">Round 2 cross-examination</div>
+    <ul class="xexam">
+      <li><span class="k">Conflict</span>vs Psychologist #1: the real first-session player is the spectator. Make it BLOCKING only if "everyone's game" stays a v1 goal; otherwise a demo/replay mode is enough.</li>
+      <li><span class="k">Conflict</span>vs QA #1 / Feasibility F3: keep the differentiator through a local branch-preview hot reload, with "reload main" as the rollback.</li>
+      <li><span class="k">Conflict</span>vs Narrative #4: one persona line per agent, and no Writer-in-the-loop for v1.</li>
+      <li><span class="k">Conflict</span>vs Feasibility F4 / QA #4: security is a scope decision. Bind to localhost and cut shared configs.</li>
+      <li><span class="k">Connection</span>The crew roles are the persistent cast. The MVP crew is the MVP cast.</li>
+      <li><span class="k">Connection</span>Adding crew adds queue, not speed. Desk slots create triage and also bound spend per player.</li>
+      <li><span class="k">Connection</span>Guilt is a symptom of the audience problem. <code>question</code> is the hardest event, so it needs a spike.</li>
+      <li><span class="k">Revision</span>F1 strengthened. F2's recommendation revised. F3 reframed. F4 corroborated. F5's cost bullet upgraded: cost isn't "soft" even for Michael.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 5. FOOTER -->
+<footer>
+  <div class="method">Six isolated agent contexts · parallel review · cross-examination · moderated synthesis</div>
+  <div>Source: <code>gdd.txt</code>, <em>Prime Meridian — Game Design Document</em>, working title, v0.2, October 2026. Findings are drawn from <code>reviews/*.md</code> and <code>reviews/SYNTHESIS.md</code>.</div>
+</footer>
+
+</div>
+<script>
+(function () {
+  var tablist = document.querySelector('.tabs');
+  var tabs = Array.prototype.slice.call(tablist.querySelectorAll('.tab'));
+  var panels = tabs.map(function (t) { return document.getElementById(t.getAttribute('aria-controls')); });
+  document.documentElement.classList.add('js');
+  tablist.hidden = false;
+  function select(i) {
+    tabs.forEach(function (t, j) {
+      var on = i === j;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
+      panels[j].hidden = !on;
+    });
+  }
+  tabs.forEach(function (t, i) {
+    t.id = 'tab-' + i;
+    panels[i].setAttribute('aria-labelledby', t.id);
+    t.addEventListener('click', function () { select(i); });
+    t.addEventListener('keydown', function (e) {
+      var n = null;
+      if (e.key === 'ArrowRight') n = (i + 1) % tabs.length;
+      if (e.key === 'ArrowLeft') n = (i - 1 + tabs.length) % tabs.length;
+      if (n !== null) { e.preventDefault(); select(n); tabs[n].focus(); }
+    });
+  });
+  select(0);
+})();
+</script>
+</body>
+</html>

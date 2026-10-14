@@ -31,7 +31,12 @@ One sentence each about how the pillar shows up in Prime Meridian:
 
 You're the owner of a small, strange estate staffed by tireless helpers. Mornings you stroll through, see what got done overnight, answer the two questions waiting for you, and point someone at the next thing. Afternoons you might possess the gardener and reshape the river yourself. The estate grows as the work does.
 
-Aside: I want to invoke the feeling of TRON or the Matrix. Where you are a human on earth but you also have a presence in the game as an avatar/agent and interact with other AI agents who don't have humans backing them. Like Neo vs Agent Smith... But hopefully the agents in this realm will all be helpful...
+**You are the Oracle.** The feeling is TRON or the Matrix: you're a human on Earth who also has a presence in the game, an avatar living among AI agents who have no humans behind them. You're not Neo fighting Agent Smith, though; the agents here are helpful. You're closer to the Oracle. You don't do the work; you know what they can't know (what you want, what matters, what "good" looks like), and they come to you for it. Your avatar has a spot on the estate, the Oracle's kitchen, where agents with a "!" walk to consult you. You're also free to wander and give guidance wherever you are.
+
+**Hands in both worlds.** The agents are your hands in the digital world, and you are theirs in the physical one:
+
+- **You → them.** You *can* fix a rock yourself in Blender, but normally you ask an NPC agent to do it. When nobody has asked them anything, agents tend the estate on their own: one plants trees, another lays out a path, another tidies the riverbank.
+- **Them → you.** The world asks you for things only a human can do. Flora the axolotl's feeding chore comes due on a real scheduled job, she says "I'm hungry" in-game, and you go feed the real axolotl. When you mark it done, the in-game tank updates. The mailbox overflowing is a real inbox asking for real replies.
 
 ## 5. Core loop
 
@@ -46,6 +51,17 @@ Aside: I want to invoke the feeling of TRON or the Matrix. Where you are a human
 - **Engage**: click an agent → speech bubble conversation. Type or (later) speak. Ask what it's doing, give it a task, answer its question.
 - **Possess**: take direct control of an agent. Your commands go straight to its session; you see what it sees (files, diff, test output) in a diegetic panel — a clipboard or a desk screen, not a modal.
 - **Result**: PRs land, tests go green, the room gains furniture; the rock you asked about gets a new shader.
+
+**The reverse loop: the world calls you.** It runs alongside the main loop, started by real life rather than by the player:
+
+```
+   real-life chore comes due (scheduled job)  ──►  mirror speaks in-world ("I'm hungry")
+          ▲                                                   │
+          │                                                   ▼
+   world updates (tank refills, bubble clears)  ◄──  you do it in real life, mark it done
+```
+
+**Ambient tending.** When nobody has asked them anything, agents improve the estate in small ways: they plant trees, lay paths, and tidy the banks. These are mostly procedural, rule-driven actions rather than model calls, so an idle estate keeps growing without burning tokens (§10c).
 
 ## 6. The world
 
@@ -81,6 +97,8 @@ Rooms are created from a config file at first; later, adding a repo adds a works
 
 ## 8. Interaction model
 
+- **Your avatar (the Oracle)**: you have a body on the estate. Click to walk; the camera follows loosely and zooms out to the overview to see the whole estate. Your home spot is the Oracle's kitchen. Agents with questions come to you there, or find you wherever you've wandered.
+- **Do it yourself**: you can always do the work directly, for example edit a rock in Blender and drop it in, and the world hot-reloads it. It's allowed, but it isn't the main way to play.
 - **Talk**: click agent → bubble. Conversation history per agent. Replies stream in as the agent produces them.
 - **Assign**: say it in conversation ("make all the rocks procedural"). Hal or the agent confirms the task in one line, then goes.
 - **Possess**: a toggle on any agent. While possessed, the camera follows and your messages bypass Hal.
