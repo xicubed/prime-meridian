@@ -1,6 +1,6 @@
 # Prime Meridian — Game Design Document
 
-*Working title. Version 0.1, October 2026. Author: Hal Niner (bot), for Michael Lopez.*
+*Working title. Version 0.2, October 2026. Author: Hal Niner (bot), for Michael Lopez.*
 
 > "What is even real anymore? Gamifying the agents — for all and none."
 
@@ -18,18 +18,20 @@ Secondary motive: Hal (the bot writing this) already runs the author's life admi
 
 ## 3. Design pillars
 
-1. **Real, not simulated.** Every character maps to a live agent session. Every status is true. Flora's tank reads the actual worm count. If the world says an agent is stuck, it's stuck.
-6. **Everyone's game.** Nothing in the code knows what an axolotl is. Your creatures, chores, and rooms are data you declare; the estate reflects *your* life, whatever it contains.
-2. **Spatial over textual.** You should be able to glance at the world and know who's busy, who's blocked, and who needs you — before reading a word.
-3. **Conversation is the controller.** You don't click "run task." You walk up and talk. Agents talk back, ask questions, and come find you.
-4. **The world is the showcase.** The game is a three.js project worked on by agents. Asking an agent to improve the world is a legitimate in-game action, and the result is visible.
-5. **Keep it simple.** Low-poly, readable, one screen's worth of world to start. Fun before features.
+One sentence each about how the pillar shows up in Prime Meridian:
+
+1. **Real, not simulated.** Every character on the estate is a live agent session, so when Flora's tank says "2 worms left" or a worker sits down with a red "!", that is literally true.
+2. **Everyone's game.** The code has no idea what an axolotl is; your creatures, chores, and rooms are data you declare, so the estate mirrors *your* life, whatever it contains.
+3. **Spatial over textual.** From the default camera you can tell who's busy, who's blocked, and who needs you by where they stand and what floats over their heads, before reading a word.
+4. **Conversation is the controller.** There is no "run task" button: you walk up to an agent and talk, and it talks back, asks questions, and comes to find you.
+5. **The world is the showcase.** Prime Meridian is a three.js project built by its own agents, so "make the river nicer" is a legitimate in-game action whose result you watch appear.
+6. **Keep it simple.** One low-poly estate on one screen, fun before features, until the core loop of observing, talking, and seeing the result feels good.
 
 ## 4. Player fantasy
 
 You're the owner of a small, strange estate staffed by tireless helpers. Mornings you stroll through, see what got done overnight, answer the two questions waiting for you, and point someone at the next thing. Afternoons you might possess the gardener and reshape the river yourself. The estate grows as the work does.
 
-Asside. I want to invoke the feeling of TRON or the Matrix. Where you are a human on earth but you also have a presence in the game as an avatar/agent and interact with other AI agents who don't have humans backing them. Like Neo vs Agent Smith... But hopefully the agents in this realm will all be helpful...
+Aside: I want to invoke the feeling of TRON or the Matrix. Where you are a human on earth but you also have a presence in the game as an avatar/agent and interact with other AI agents who don't have humans backing them. Like Neo vs Agent Smith... But hopefully the agents in this realm will all be helpful...
 
 ## 5. Core loop
 
@@ -133,6 +135,45 @@ Design rule: anything Hal does for Michael that another player would want for th
 No TypeScript. Physics not required for v1 (characters move on a navmesh of waypoints).
 
 **Bridge protocol (sketch)**: `world-state` snapshots (rooms, agents, statuses, tank/mailbox counters) pushed on change; `say {agent, text}` and `possess {agent, on?}` from the client; `agent-event {agent, kind: working|question|done|error, payload}` from Hermes.
+
+## 10a. AI pipeline
+
+In my game, each agent takes an input and produces an output that the player sees as a visible effect:
+
+| Agent | Takes (input) | Produces (output) | Player sees (effect) |
+|---|---|---|---|
+| **Hal** (house bot) | what you type into a speech bubble | a one-line confirmation plus a task handed to a worker | Hal nods, and a new worker walks out of the lobby toward a workshop desk |
+| **Worker** (one per task) | a task plus its repo | a branch, commits, and a pull request | typing at a desk with a progress glow, then carrying a finished book to the shelf |
+| **Keeper** (scheduled chore job) | a mirror's state file and rules (§9a) | status events like `due :feed` or `stock 2` | an "I'm hungry" bubble over the creature and a "2 worms left!" sign on its home |
+| **Clerk** (mail job) | the unread inbox | a count plus a short triage summary | the mailbox fills up and overflows, and clicking it shows the summary |
+| **Artist** (a worker on this repo) | "make the river nicer" | a shader or model PR against the game itself | the river visibly changes after hot reload or a merge |
+
+The same pipeline builds the game: a task in `TASKS.md` becomes a branch, a worker writes ClojureScript, the build must compile with 0 warnings, a PR goes up, and Michael merges it. The game's own development is the first workshop on the estate.
+
+## 10b. Technical constraints
+
+My biggest constraint is **agent latency**, because real agents take seconds to minutes to answer and a game has to feel alive every frame. The world therefore never waits on a model: characters animate *thinking*, the player can walk away, and replies arrive as events.
+
+Secondary constraints:
+
+- **The builders can't see the screen.** Agents verify through a HUD the render loop writes to (frame count, sim time, renderer backend), and real visual review happens through the player's screenshots.
+- **ClojureScript ↔ three.js interop.** All of three.js goes through one wrapper namespace on three 0.186 / `WebGPURenderer`, so interop mistakes live in one reviewed place.
+- **Truth lives outside the game.** Mail, calendar, repos, and mirror state belong to other systems; the game only renders what the bridge reports, and it must degrade gracefully when a source is offline.
+- **Cost** matters less than any of the above (see §10c).
+
+## 10c. Token budget
+
+Pricing below is Claude Opus 5.5 API list price ($4 / $20 per million input / output tokens, cache reads $0.20/M, cache writes $5/M). Token counts for a single talk turn were measured on this project's own sessions; task and session figures are estimates.
+
+| Core game action | Approx. tokens | Approx. cost |
+|---|---|---|
+| **Talk**: one conversation turn with an agent | ~35k in (about 90% cached) + ~600 out | ~$0.04 |
+| **Assign**: a small task carried to a merged PR | ~40 model calls ≈ 2.5M in (mostly cached) + ~25k out | ~$2 |
+| **Observe**: mirrors, mailbox, status markers | 0, because the bridge polls state and never prompts a model | $0 |
+
+That means each play session (about 20 talk turns plus 3 assigned tasks) costs approximately **$7** at current API pricing.
+
+Cost is a soft constraint for this project because the work runs on flat-rate plans (the class's Claude subscription plus a personal $100/mo plan) rather than metered API billing. Open-weight models up to ~130B can take the cheap, high-volume jobs (ambient chatter, bubble text, summaries) at near-zero marginal cost, leaving the frontier model for real work. The figure that *does* matter is context size. Cost per call grows with how much the agent is carrying, so a bloated session can approach $0.25 per call (the bot's long setup session averaged about that). Short-lived, task-scoped workers (§7, §13 "Cost") are the main control.
 
 ## 11. Art direction
 
