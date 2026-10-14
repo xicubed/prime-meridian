@@ -183,19 +183,22 @@ The agents that **build** the game. (The runtime agents in §10a *run* inside it
 
 ```
 Director (Michael, human): vision, merges every PR
+ ├─ Lead Architect: systemic design decisions, owns the blueprint
  └─ Producer (Hal): breaks work down, dispatches, tracks
      ├─ Design:      Game Designer · Writer
      ├─ Engineering: Engine Engineer · Gameplay Engineer · Bridge Engineer
      ├─ Art & audio: Environment Artist ★ · Character Artist · Tech Artist · Sound Designer
-     └─ QA:          QA Tester (gates every PR)
+     ├─ QA:          QA Tester (gates every PR)
+     └─ Utility:     Asset Scraper (feeds everyone raw material)
 ```
 
 **The crew**, one sentence each ("this agent [does x] when [trigger], and the player sees [y]"):
 
 | Agent | One sentence | Inputs → outputs | Owns |
 |---|---|---|---|
+| **Lead Architect** | Makes the systemic calls (world-state shape, bridge protocol, namespace boundaries, how a new feature fits the whole) **when** a task touches more than one owner's files or changes the data model, **and the player sees** features that compose: a new mirror kind works right away with the existing bubbles, statuses, and XP. | GDD, blueprint, proposed change → decision record, schema/protocol changes | `docs/architecture.md`, world-state schema, `AGENTS.md` |
 | **Producer** (Hal) | Breaks a request into agent-sized tasks and dispatches them **when** the player asks for something or a milestone opens, **and the player sees** Hal pin a card to the notice board as a worker heads for the workshop. | request, GDD → `TASKS.md` entries, assignments | `TASKS.md` |
-| **Game Designer** | Turns a feature idea into rules and data schemas **when** a task changes how the game works, **and the player sees** new estate slots, statuses, or rules behaving as this doc describes. | idea, playtest notes → GDD edits, `estate.edn` schema | `docs/GDD.md`, `resources/*.edn` schemas |
+| **Game Designer** | Turns a feature idea into rules and content **when** a task changes how the game plays, **and the player sees** new estate slots, statuses, or rules behaving as this doc describes. | idea, playtest notes → GDD edits, estate content | `docs/GDD.md`, `resources/estate.edn` |
 | **Writer** | Writes Hal's voice, status bubbles, and mirror-rule copy **when** a new status, rule, or mirror is added, **and the player sees** short in-character lines like "2 worms left!" in the bubbles. | rule/status list, tone guide → string tables | `resources/text.edn` |
 | **Engine Engineer** | Extends the three.js wrapper, renderer, camera, and lighting **when** a feature needs a new three.js capability or the frame rate drops, **and the player sees** a smooth 3/4 camera, soft shadows, and a steady frame counter in the HUD. | feature need, profiler → wrapper fns | `pm.three`, `pm.core` |
 | **Gameplay Engineer** | Codes world rules, movement, and interactions **when** a gameplay task is assigned, **and the player sees** agents walking, pacing with "!", and coming over to find them. | design spec → world-state rules, scene updates | `pm.world`, `pm.scene` |
@@ -205,10 +208,29 @@ Director (Michael, human): vision, merges every PR
 | **Tech Artist** | Imports, decimates, and LODs purchased kits and keeps the frame budget **when** a new kit lands in `assets/private/`, **and the player sees** a lush new corner of the estate without the frame rate dropping. | GLB kit → optimized meshes, load code | `pm.assets`, `assets/private/` (local) |
 | **Sound Designer** | Places positional audio emitters and ties them to world state **when** something audible is added or changes speed, **and the player hears** the river get louder as they walk toward it and its pitch follow the flow. | sound files, emitter positions → audio graph | `pm.audio`, `public/assets/audio/` |
 | **QA Tester** | Runs the build (0 warnings), checks the HUD liveness numbers, and asks the player for screenshots **when** any PR opens, **and the player sees** nothing break, or a worker with a red "!" whose PR failed. | PR → pass/fail report on the PR | the gate; owns no game code |
+| **Asset Scraper** | Fetches raw material (CC0 models such as KayKit, sound loops, reference images, API docs) and records each item's source and license **when** another agent files an asset request, **and the player sees** it only indirectly, as the new hat, the brook sound, or the reference the river was matched to. | asset request → files plus a source/license line | `assets/incoming/`, `img/ref/`, `LICENSES.md` files |
 
 **One wow agent: the Environment Artist.** It is the crew's most visible output and the purest form of the core loop (§5): you walk up to the river, ask for it to be nicer, and watch it change in front of you. The other agents make the estate *true* and *readable*; this one makes it *alive*, and it delivers pillar 5 ("the world is the showcase").
 
-**Models by role:** the Engine, Gameplay, and Bridge Engineers, the Environment Artist, and QA run on the frontier model. The Writer and the bulk bubble/summary text can use an open-weight model (§10c). Matching the model to the role is part of the specialization.
+**Role spectrum: Architect vs Scraper.** Like a real studio, the crew runs from high-level reasoning to low-level utility. Where an agent sits on that spectrum sets its model, how much context it gets, and how much authority it has.
+
+```
+high-level reasoning ◄──────────────────────────────────────────────► low-level utility
+  Lead Architect · Game Designer   Producer · QA   Engineers · Artists · Sound   Writer   Asset Scraper
+```
+
+| Tier | Agents | Thinks about | Model | Context | Authority |
+|---|---|---|---|---|---|
+| Strategic | Lead Architect, Game Designer | whole-system tradeoffs, blueprints, schemas | frontier, maximum reasoning | wide: GDD, schemas, all namespaces | decides; few calls, each expensive |
+| Coordination | Producer, QA | sequencing, gating, "is it done?" | frontier | `TASKS.md`, PRs, build output | assigns and blocks; doesn't design |
+| Craft | Engine, Gameplay, and Bridge Engineers; Environment, Character, and Tech Artists; Sound Designer | making one owned piece excellent | frontier | narrow: only the files it owns plus the spec | builds inside its scope |
+| Content | Writer | voice, short copy | open-weight, mid-size | tone guide plus string list | proposes text |
+| Utility | Asset Scraper | finding, downloading, labeling | small open-weight model or plain scripts (Babashka, curl) | the request only | none: fetches, never decides |
+
+Rules:
+- Decisions flow down and raw material flows up. The Architect never fetches files and the Scraper never makes a design call; if it finds something that changes the plan, it reports up.
+- Anything the Scraper brings in lands in `assets/incoming/` with a source and license line. Nothing reaches the repo until a craft agent adopts it, and licensed kits stay in gitignored `assets/private/`.
+- The spectrum is also the token budget (§10c): spend frontier reasoning on the few strategic calls and run the high-volume utility work on cheap models.
 
 ## 11. Art direction
 
