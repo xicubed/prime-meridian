@@ -29,13 +29,15 @@ A change is not done until `compile app` reports **0 warnings** and the page run
 - Keep `docs/GDD.md` the source of truth; if a task changes the design, update the GDD in the same PR.
 
 ## Git
-- Never commit to `main`. Branch per task: `feat/<task-id>-short-name`, `fix/...`, `docs/...`.
-- One task per PR. PR body: what, why, how verified (paste the compile line and what you saw running).
-- Hal (hal-niner) opens PRs; Michael merges. Agents do not merge.
+- Work on `main`. Commit as you go (small commits, clear messages); **push once at the end of the day**. The day's push includes `docs/session-<date>.md`, Hal's daily blog post: what was built, what was decided, what's open.
+- Each commit's author shows who did it: Michael, or Hal (hal-niner).
+- Never force-push or rewrite pushed history. Branches and PRs are only for risky or experimental work, and only when Michael asks for one.
+- **When more than one agent works at once** (the crew, GDD §10d), each gets its own `git worktree` on a branch (`../pm-<agent>`, branch `crew/<agent>/<task>`) so they never share a working tree. Hal merges finished worktree branches into `main` locally and removes the worktree; the end-of-day push is unchanged. Until then, single-agent days stay on `main`.
+- Before the push, the build gate must pass (`compile app` → 0 warnings) if any code changed.
 - Do not commit `public/js/`, `node_modules/`, `.shadow-cljs/` (gitignored).
 
 ## Tasks
-Open work is in `TASKS.md`. Take the top unclaimed item, mark it `[~] <your name>` in a commit on your branch, do it, open the PR, mark it `[x]` with the PR number in that PR.
+Open work is in `TASKS.md`. Take the top unclaimed item, mark it `[~] <your name>`, do it, and mark it `[x] <date>` in the commit that finishes it.
 
 ## Don'ts
 - No new npm deps without a line in the PR body saying why.

@@ -1,6 +1,6 @@
 # TASKS
 
-Legend: `[ ]` open · `[~] name` claimed · `[x] #PR` done. Top-most open task is next. Keep tasks agent-sized: one branch, one PR, one evening.
+Legend: `[ ]` open · `[~] name` claimed · `[x] #PR` or `[x] <date>` done. Top-most open task is next. Keep tasks agent-sized: one evening's work.
 
 ## Week 1 — GDD + scaffold
 - [x] #1 Game Design Document
