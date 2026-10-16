@@ -231,7 +231,7 @@ An agent raises "!" only by calling an explicit `ask_oracle` tool, so a "!" alwa
 | Agents | **Hermes** (Hal, his errands, Pepper), **Claude Code** (the dev crew), local open-weight models (the night crew) | already running the author's life; flat-rate plans |
 | Build / deploy | shadow-cljs release build, static hosting on lotect.com | the public game holds no data |
 
-No TypeScript. **No general physics engine in v1, and none is needed:** characters walk between waypoints, the camera is kept above the ground by checking the terrain's height (the same approach the licensed scene kit uses), and moments like the worm dropping for Flora's snap are scripted animations. Neither three.js nor the scene kit ships a physics engine; a lightweight one (e.g. Rapier) can be added later if a feature calls for real collisions.
+No TypeScript. **Physics: Rapier, when a feature needs it.** three.js 0.186 ships a ready-made helper for the Rapier physics engine (`examples/jsm/physics/RapierPhysics.js`, with Jolt and Ammo alternatives), which is the planned route; it loads Rapier itself only when used. v1 doesn't need it yet: characters walk between waypoints, the camera is kept above the ground by checking the terrain's height (the same approach the licensed scene kit uses), and moments like the worm dropping for Flora's snap are scripted animations. Physical touches (a worm splashing into the canal, rocks knocked into the water, Biscuit's ball) come with Rapier after the MVP.
 
 ### 4.2 Agent roles: the dev crew
 
