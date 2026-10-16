@@ -231,7 +231,14 @@ An agent raises "!" only by calling an explicit `ask_oracle` tool, so a "!" alwa
 | Agents | **Hermes** (Hal, his errands, Pepper), **Claude Code** (the dev crew), local open-weight models (the night crew) | already running the author's life; flat-rate plans |
 | Build / deploy | shadow-cljs release build, static hosting on lotect.com | the public game holds no data |
 
-No TypeScript. **Physics: Rapier, when a feature needs it.** three.js 0.186 ships a ready-made helper for the Rapier physics engine (`examples/jsm/physics/RapierPhysics.js`, with Jolt and Ammo alternatives), which is the planned route; it loads Rapier itself only when used. v1 doesn't need it yet: characters walk between waypoints, the camera is kept above the ground by checking the terrain's height (the same approach the licensed scene kit uses), and moments like the worm dropping for Flora's snap are scripted animations. Physical touches (a worm splashing into the canal, rocks knocked into the water, Biscuit's ball) come with Rapier after the MVP.
+No TypeScript.
+
+**Physics: motion is physical, not canned.** No cookie-cutter mocap loops: agents and creatures move as physical bodies, so if one is off balance it can stumble and catch itself, or fall and get back up, the way a real person (or axolotl) would. That's what makes this alternate reality feel real.
+- **Engine: Rapier**, through the ready-made helper that ships with three.js 0.186 (`examples/jsm/physics/RapierPhysics.js`; Jolt is the fallback). It runs in the browser as WebAssembly.
+- **Characters are active ragdolls:** a skeleton of rigid bodies whose joint motors try to follow an animation pose, plus a balance controller that keeps the center of mass over the feet. When a push or a bad step overwhelms the motors, the body physically stumbles, recovers, or falls and gets back up, and no two falls look alike.
+- **Flora swims physically:** a spine of linked segments with buoyancy and water drag, a tail that pushes off the water, and the snap as a real lunge.
+- **Stylized look, real motion.** The figures stay low-poly; the movement is what's realistic (the combination games like *Rain World* and *Exanima* use).
+- **Staged:** from week 2, every character moves through one *motion controller* interface (world state says "go there", the controller decides how the body gets there), so the MVP's simple waypoint movement can be swapped for physics without touching game logic. Flora is the first physical character, then the agents.
 
 ### 4.2 Agent roles: the dev crew
 
@@ -257,7 +264,7 @@ Each agent's development role in one sentence:
 | **Lead Architect** | Decides how the pieces fit together (world-state shape, the bridge's message contract) whenever a change touches more than one area. |
 | **Game Designer** | Turns a feature idea into rules and estate content written into this document. |
 | **Writer** | Writes Hal's voice, the status bubbles, and mirror lines like "2 worms left!". |
-| **Engine Engineer** | Extends the three.js wrapper, camera, and lighting and keeps the frame rate steady. |
+| **Engine Engineer** | Extends the three.js wrapper, camera, lighting, and the physics world (Rapier, active ragdolls, balance) and keeps the frame rate steady. |
 | **Gameplay Engineer** | Codes world rules, movement, and interactions such as agents walking over to you with "!". |
 | **Bridge Engineer** | Connects real data sources and agent sessions to the world so statuses match reality. |
 | **Environment Artist ★** | Reshapes and re-lights the estate (river, rocks, time of day) when you ask in-game, so you watch that spot change. |
@@ -307,6 +314,7 @@ Secondary constraints:
 
 - **The builders can't see the screen.** Agents verify through a HUD the render loop writes to (frame count, sim time, renderer backend); real visual review uses the player's screenshots.
 - **ClojureScript ↔ three.js interop** lives in one wrapper namespace, so mistakes stay in one reviewed place.
+- **Physics budget in a browser tab.** Each active ragdoll is a dozen or more rigid bodies; the estate keeps a small cast on screen, puts distant or idle characters to sleep, and steps physics at a fixed rate apart from rendering.
 - **Truth lives outside the game.** The game only renders what the bridge reports and degrades gracefully when a source is offline.
 
 ### 4.5 API constraints
@@ -354,12 +362,13 @@ The course runs Tue/Thu: one milestone per week, with agents doing most of the b
 | Week | Milestone | Done when |
 |---|---|---|
 | 1 | **GDD + scaffold** | shadow-cljs builds and a cube spins in the browser *(done)* |
-| 2 | **World v0 + pretend connections** | the estate with lobby, canal, mailbox, and one workshop; three mock workers; camera; HUD |
+| 2 | **World v0 + pretend connections** | the estate with lobby, canal, mailbox, and one workshop; three mock workers moving through the motion-controller interface; camera; HUD |
 | 3 | **Bridge v0 + message contract** | real agent statuses on the characters; Flora reads her real worm count; `ask_oracle` and `chore-done` work end to end (the snap) |
 | 4 | **Talk** | click an agent, converse, replies stream as bubbles |
 | 5 | **Questions + a day** | agents walk to you with "!" and resume on your answer; jack in and out; closing time and night-shift orders |
 | 6 | **Street cred + the first life chapter** | the estate flourishes or overgrows with your declared habits; household chores with owners |
-| 7+ | **One life chapter per week** | gym, business, mail…; the river; sound; the public demo build on lotect.com |
+| 7 | **Physical motion** | Rapier in; Flora swims and snaps physically; one agent walks as an active ragdoll that can stumble and recover |
+| 8+ | **One life chapter per week** | gym, business, mail…; all agents physical; the river; sound; the public demo build on lotect.com |
 
 **MVP = weeks 1–4.** Everything after is stretch. The river and other showpiece visuals stay out of the MVP; Flora's snap is its signature moment.
 
@@ -367,7 +376,7 @@ The course runs Tue/Thu: one milestone per week, with agents doing most of the b
 
 ## 5. Art Direction
 
-Low-poly, flat-shaded, warm palette, soft shadows: a diorama you'd keep on a desk, floating on a dark grid. An elevated 3/4 camera looks over cutaway rooms (after Ralv.ai's estate view). Characters are KayKit (CC0) figures with a hat or color per crew role. Flora's canal is styled after Xochimilco (slow water, chinampas, a moored trajinera); its lush water and foliage come from one licensed scene kit, kept to one corner so it sits well next to the low-poly figures. Time of day (afternoon, golden hour, blue hour, night) drives the lighting, and night arrives at closing time.
+Low-poly, flat-shaded, warm palette, soft shadows: a diorama you'd keep on a desk, floating on a dark grid. An elevated 3/4 camera looks over cutaway rooms (after Ralv.ai's estate view). Characters are KayKit (CC0) figures with a hat or color per crew role, and they move physically rather than through canned animation loops (§4.1): a stylized look with real weight and balance. Flora's canal is styled after Xochimilco (slow water, chinampas, a moored trajinera); its lush water and foliage come from one licensed scene kit, kept to one corner so it sits well next to the low-poly figures. Time of day (afternoon, golden hour, blue hour, night) drives the lighting, and night arrives at closing time.
 
 ## 6. Risks
 
@@ -376,6 +385,7 @@ Low-poly, flat-shaded, warm palette, soft shadows: a diorama you'd keep on a des
 | **Scope creep:** mirroring a life is bottomless | one life chapter per week after the MVP; the MVP has four live sources (agents, Flora, mailbox, one repo) |
 | **Latency of "real"** | the world never waits; thinking animations; replies as events |
 | **Interop friction** in CLJS ↔ three.js | one small wrapper namespace, reviewed carefully |
+| **Physical motion is hard** (balance controllers take tuning; ragdolls can jitter) | the motion-controller interface lets any character fall back to simple movement; Flora first as the proof; few characters on screen |
 | **Prompt injection** through mail or web content | reader with no keys, localhost bridge, keycards, a weekly red-team pass |
 | **Usage caps** on flat-rate plans | few frontier desks; local night crew; short task-scoped sessions |
 | **Privacy** on a projector or public build | demo mode shows pretend data only; real mirrors exist only on the player's machine |
