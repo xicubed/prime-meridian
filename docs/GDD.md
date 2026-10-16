@@ -164,7 +164,15 @@ There is no XP. Progression belongs to **you**.
 
 ### 2.7 The first hour: the Construct
 
-A new player starts in a blank white space with Hal, who plays the Morpheus role: he explains the world and offers the first skills. Each pick appears on the estate. With nothing connected, everything runs on pretend connections (§4.6), so the first hour works for anyone.
+*"I know kung fu."* Your first hour is Neo's first day out of the pod.
+
+1. **Jack in.** White screen. Silence. Then Hal steps out of nowhere, playing Morpheus: *"Welcome to the real world. This is the Construct: our loading program. We can load anything, from tools to skills to whole buildings. Anything we need."*
+2. **The operator loads your programs.** A rack of programs scrolls past like the weapons racks in the film, and it's huge: **every skill the agent can learn and every MCP connector out there**, from mail, calendar, and a phone line to GitHub, Blender, Stripe, Notion, maps, and smart-home devices. Pick one and it slams in with a flicker: your avatar's eyes snap open, and a new tool hangs on your belt. Load mail and a mailbox drops out of the white sky; load GitHub and a workshop builds itself around you.
+3. **Morpheus teaches you to fight.** The first sparring match is your first real loop. Hal hands a practice job to a worker ("make that rock rounder"), the worker gets stuck and runs to you with a "!", you answer, and a blueprint of the rounder rock appears. Approve it and the rock changes in front of you. Five minutes in, you've played the whole game.
+4. **The jump program.** Hal shows you the hardline (the phone booth) and the one rule that matters: *"When real life calls, you go."* The phone rings with your first pretend chore, you jack out, and you jack back in.
+5. **Free your mind.** The white space dissolves into your estate, built from exactly the programs you loaded. Hal steps back: *"I can only show you the door. You're the one that has to walk through it."* The world is your oyster: go explore.
+
+Every program loads instantly as a pretend version (§4.6), so the Construct works for anyone with no accounts. When you want the real thing, the same program asks for a login and goes live. You can come back to the Construct any time to load more, and when a task needs a skill you don't have, Hal offers to load it right there (*"I need a pilot program for a B-212." "Got it."*). The film lines here show the beats; the Writer gives Hal original lines for the shipped game.
 
 ---
 
@@ -223,7 +231,7 @@ An agent raises "!" only by calling an explicit `ask_oracle` tool, so a "!" alwa
 | Agents | **Hermes** (Hal, his errands, Pepper), **Claude Code** (the dev crew), local open-weight models (the night crew) | already running the author's life; flat-rate plans |
 | Build / deploy | shadow-cljs release build, static hosting on lotect.com | the public game holds no data |
 
-No TypeScript. No physics engine in v1 (characters move on waypoints).
+No TypeScript. **No general physics engine in v1, and none is needed:** characters walk between waypoints, the camera is kept above the ground by checking the terrain's height (the same approach the licensed scene kit uses), and moments like the worm dropping for Flora's snap are scripted animations. Neither three.js nor the scene kit ships a physics engine; a lightweight one (e.g. Rapier) can be added later if a feature calls for real collisions.
 
 ### 4.2 Agent roles: the dev crew
 
