@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary
 
-**Prime Meridian** is a cozy 3D management game in the browser where the characters are real AI agents doing real work. You walk a small low-poly estate whose rooms are your projects and your life: a workshop for each code repo, a canal where your real axolotl lives, a front office for your business, a phone booth where the real world calls in. You talk to the agents living there, hand them work, answer their questions, and watch the world change as they build it.
+**Prime Meridian** is a cozy 3D management game in the browser where the characters are real AI agents doing real work. You walk a small low-poly estate whose rooms are your projects and your life: a workshop for each code repo, a canal where your real axolotl lives, a front office for your business, a phone booth where the real world calls in. You talk to the agents living there, hand them work, answer their questions, and watch the world change as they build it. Think of worlds like the Matrix, TRON and the OASIS. But the OASIS keeps you in while your real life decays, this one encourages (time to feed the pets) or forces you out (bedtime)! Some agents will be more or less NPC's or programs using tools and skills loading in as necessary and they can help you do paperwork or organize your rl.
 
 | At a glance | |
 |---|---|
