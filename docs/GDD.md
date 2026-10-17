@@ -17,6 +17,8 @@
 | **Audience** | v1 is built for one player who already runs an AI agent (the author, on Hermes). A **demo mode** with pretend connections lets anyone else (classmates, the instructor) play with no accounts. |
 | **Session** | one day is one round: jack in, play, put in night-shift orders; the game closes at bedtime (10:30 pm by default) |
 
+**Batteries not included.** Prime Meridian isn't a car off the lot; it's a kit car you assemble yourself. The game ships the chassis: the world, the rules, the crew's bodies. You bring the parts: your own agent and AI logins, your tools and accounts, your life. Before you bolt anything in, take a test drive: every connection comes with a sample version (a pretend inbox, phone, ledger, and scripted agents), so anyone can play with no accounts and swap in the real parts one at a time.
+
 **Core loop:** *observe the estate → spot who needs you ("!") → talk, assign, or answer → agents work → see the result in the world.* Alongside it runs the **reverse loop**: a real chore comes due (Flora the axolotl is hungry, Biscuit the dog needs his walk), the world calls you out, you do it in real life, and the world updates.
 
 **Win / loss**
@@ -334,7 +336,9 @@ Secondary constraints:
 | **Model output** | non-deterministic: the same request can take a different path | blueprints, keycards, and the QA gate catch a bad path before it becomes real |
 | **Browser** | WebGPU isn't available everywhere | automatic WebGL2 fallback, shown in the HUD so a silent fallback is visible |
 
-### 4.6 Pretend connections first, real ones when you're ready
+### 4.6 Pretend connections first, real ones when you're ready (the test drive)
+
+This is the engineering side of "batteries not included" (§1): the sample parts ship with the kit, and the real ones are yours to bring.
 
 Every outside connection has a built-in pretend version: fake inboxes, fake phone numbers, fake accounts, scripted agents. A connection you haven't set up runs on its pretend version; setting it up swaps in the real one through the same message format, with no code changes.
 
