@@ -34,7 +34,7 @@ Think of the Matrix, TRON, and the OASIS, with one difference: **the OASIS keeps
 - **Win the day:** every "!" answered, your own chores done, and you jacked out by bedtime.
 - **Win a chapter:** each week a part of life comes online (pets, household, gym, business, mail). You beat it when it runs a full week with you doing only the human parts.
 - **No game over.** A missed day leaves the estate a little overgrown, never ruined. No streaks, no shame.
-- **The only real loss is in real life:** Flora goes hungry, you miss your kid's game. That's the *Ready Player One* ending, and the game exists to prevent it. The long-term win is needing the game less.
+- **The only real loss is in real life:** Flora goes hungry, you miss your kid's game. That's the *Ready Player One* ending, and the game exists to prevent it. The long-term win is needing the game less and agents doing more.
 
 **Design pillars**
 
