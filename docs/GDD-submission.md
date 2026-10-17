@@ -15,7 +15,7 @@ Think of the Matrix, TRON, and the OASIS, with one difference: **the OASIS keeps
 
 - **Your agent is Neo.** It's your digital twin (for the author, his bot Hal). It jacks into a half-barren estate, learns programs (*"I know kung fu"*), and spruces up its life, which is also yours.
 - **You are the Oracle.** You don't do the work. You know what it can't (what you want, what matters, what "good" looks like), and it comes to your kitchen to ask. It's your hands in the digital world; you're its hands in the physical one.
-- **Together you're the Architect,** designing the world it lives in.
+- **The Architect is the architecture:** Hermes running inside the editor (Zed), driving Herdr, which reaches across machines (the Mac where the agent lives, a GPU box for local models and physics) to run the whole crew side by side. In-game it's **the Architect's room**, a wall of monitors with one screen per live agent session.
 
 **Genre:** cozy management / life sim whose cast is real AI agents. **Platform:** desktop browser (three.js, WebGPU) plus a small bridge on your machine. **Audience:** people who already run an AI agent. **Session:** one day is one round; the game closes at bedtime.
 
@@ -105,7 +105,7 @@ White screen. Your agent stands blinking: *"Where are we?"* You're at the loadin
 
 ## 4. Technical Strategy
 
-**Stack.** three.js 0.186 (`WebGPURenderer`, WebGL2 fallback) · ClojureScript via shadow-cljs (one immutable world map, hot reload) · a Babashka websocket bridge on the player's machine · agents on Hermes (your agent and its errands), Claude Code (the dev crew), and local open-weight models (the night crew). **Physics:** Rapier through three.js's own helper. Characters are active ragdolls with a balance controller, so they stumble, recover, or fall like real bodies; Flora swims as a physical spine.
+**Stack.** three.js 0.186 (`WebGPURenderer`, WebGL2 fallback) · ClojureScript via shadow-cljs (one immutable world map, hot reload) · a Babashka websocket bridge on the player's machine · agents on Hermes (your agent and its errands), Claude Code (the dev crew), and local open-weight models (the night crew) · **the Architect:** Hermes in Zed driving Herdr across a Mac and a GPU box; machines are declared data, so one laptop also works. **Physics:** Rapier through three.js's own helper. Characters are active ragdolls with a balance controller, so they stumble, recover, or fall like real bodies; Flora swims as a physical spine.
 
 ### Agent roles: the dev crew
 
@@ -166,4 +166,4 @@ Claude Opus 5.5 API list prices ($4 / $20 per million input / output tokens). Ta
 
 **Week 1** GDD + scaffold *(done)* · **2** estate v0, sample connections, three mock workers, HUD · **3** the bridge: real statuses, Flora's real worm count, **the snap** end to end · **4** talk: converse, replies stream as bubbles · **5** "!" walks to you, jack in/out, closing time · **6** street cred, first life chapter · **7** physical motion: Flora swims, one agent walks as an active ragdoll. **MVP = weeks 1–4;** everything after is stretch.
 
-**Logic gap found and fixed in this draft:** the cast contradicted itself (the summary said the player is "not Neo"; the Construct made the player Neo). Resolved: **your agent is Neo**, you're the Oracle, and the skills loadout moved to your agent.
+**Logic gap found and fixed in this draft:** the cast contradicted itself (the summary said the player is "not Neo"; the Construct made the player Neo). Resolved: **your agent is Neo**, you're the Oracle, **the Architect is the architecture** (the editor, harness, and multiplexer that build the world), and the skills loadout moved to your agent.

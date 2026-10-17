@@ -34,7 +34,7 @@
 
 - **Your agent is Neo,** and the one wow. It's your digital twin (for the author, his bot Hal): it jacks into a half-barren estate, learns programs ("I know kung fu"), and spruces up its life, which is also yours. Over time it grows into other roles (Morpheus to new workers, the producer who runs the crew).
 - **You are the Oracle.** You don't do the work; you know what it can't (what you want, what matters, what "good" looks like), and it comes to your kitchen to ask. Your agent is your hands in the digital world, and you are its hands in the physical one.
-- **Together you're the Architect:** the two of you design and build the world it lives in.
+- **The Architect is the architecture.** Not a character you play: the system that designs and rebuilds the world. For the author it's Hermes running inside his editor (Zed), driving Herdr, which reaches across machines (the Mac where the agent lives, a GPU box for local models, physics, and Blender) and puts every crew session side by side. In-game it's **the Architect's room**: a wall of monitors, one per live agent session on any machine, the whole crew at a glance.
 
 **Design pillars**
 
@@ -135,6 +135,7 @@ A single estate on one screen with zoom, low-poly, floating on a dark grid.
 | **Notice board** | today's calendar and reminders (the morning brief) | Calendar, Reminders |
 | **Phone booth** | the hardline: where the real world calls in and where you jack out | SMS, iMessage |
 | **Front office** | your business: what sold, what's owed, what needs your signature | Stripe |
+| **The Architect's room** | the build system itself: a wall of monitors, one per live agent session across your machines; each screen shows that session's task, status, and machine | the agent multiplexer (Herdr) and its machine list |
 
 ### 2.5 Mirrors: your life as data
 
@@ -236,6 +237,7 @@ An agent raises "!" only by calling an explicit `ask_oracle` tool, so a "!" alwa
 | Game code | **ClojureScript** via shadow-cljs | the world is one immutable state map re-rendered on change; hot reload into the live scene |
 | Bridge | **Babashka** websocket server on the player's machine | registry of live agents, event stream, prompt relay; a single native binary |
 | Agents | **Hermes** (Hal, his errands, Pepper), **Claude Code** (the dev crew), local open-weight models (the night crew) | already running the author's life; flat-rate plans |
+| The Architect | **Hermes inside the editor (Zed, over ACP)** driving **Herdr**, an agent multiplexer that spans machines: the Mac (the agent's home: messages, reminders) and a Linux GPU box (local models, physics and GPU tests, Blender) | the crew runs side by side across machines, and the game's Architect's room is that view made spatial; machines are declared data, so one laptop is a valid setup |
 | Build / deploy | shadow-cljs release build, static hosting on lotect.com | the public game holds no data |
 
 No TypeScript.
@@ -401,7 +403,7 @@ Low-poly, flat-shaded, warm palette, soft shadows: a diorama you'd keep on a des
 
 ## 7. Open Questions
 
-**Logic gap found and fixed (first draft):** the cast contradicted itself. The executive summary said the player is the Oracle and "not Neo", while the Construct made the player Neo. Resolved: **your agent is Neo** (your digital twin, and the one-wow agent), you are the Oracle, and together you're the Architect. The skills loadout moved to your agent (§2.6); street cred stays yours.
+**Logic gap found and fixed (first draft):** the cast contradicted itself. The executive summary said the player is the Oracle and "not Neo", while the Construct made the player Neo. Resolved: **your agent is Neo** (your digital twin, and the one-wow agent), you are the Oracle, and **the Architect is the architecture**: the editor, agent harness, and multiplexer that build the world across machines. The skills loadout moved to your agent (§2.6); street cred stays yours.
 
 1. Single estate or one per profile (personal vs. work)? *(Lean: one estate, buildings per profile, later.)*
 2. Voice in and out, or text only? *(Lean: text for the course; voice is a stretch.)*
