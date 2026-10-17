@@ -166,8 +166,11 @@ Anything the game reflects from real life is declared in data, never coded. A mi
   - `:memorial` keeps pets who have died: every dog you've ever had can still lie in the sun on the porch. Memorial pets need nothing, never speak as if they were alive, and only you can add one.
 
   ```clojure
-  {:id :rex :kind :creature :model :dog :home :porch :mode :memorial :years "2004–2016"}
+  {:id :rex :kind :creature :model :dog :home :porch :mode :memorial :years "2004–2016"
+   :personality "Barked at every truck. Followed me room to room. Slept in the sunniest spot, snored."}
   ```
+
+  **Personality** works for any creature, in any mode: describe the animal in your own words and that's how it behaves on the estate. An agent reads the description **once**, when you add it, and turns it into behavior settings you approve like any blueprint (how often it barks, whether it follows you, its favorite spot, how much energy it has). After that it runs on simple rules, with no model calls per frame. Barking, following, and snoring are behavior, not speech, so a memorial dog can still bark at the trucks.
 - **Nicknames work:** "walked Bisco" and "Biscuit's walked" reach the same dog.
 - **You're only reminded of (and jacked out for) your own chores.** Someone else's chore shows as the household being on it, never as your "!".
 - **The business is a mirror too.** Pepper keeps it: a free trial about to bill you or a form to sign becomes a folder on her desk with a countdown.
