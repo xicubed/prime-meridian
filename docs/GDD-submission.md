@@ -117,7 +117,7 @@ The agents that **build** the game. Each is a persistent persona on a fresh, tas
 
 | Agent | Development role, in one sentence |
 |---|---|
-| **Producer (Hal) ★ one wow** | Turns your requests into small tasks and sends each one to the right crew member. |
+| **The Hero or Heroine (Hal) ★ one wow** | Your twin, the star of the digital world: takes your requests as quests, splits them into tasks, and leads the right crew member into each one. |
 | **Lead Architect** | Decides how the pieces fit together whenever a change touches more than one area. |
 | **Game Designer** | Turns a feature idea into rules and estate content written into the GDD. |
 | **Writer** | Writes your agent's voice, the status bubbles, and lines like "2 worms left!". |
@@ -133,7 +133,7 @@ The agents that **build** the game. Each is a persistent persona on a fresh, tas
 | **Asset Scraper** | Fetches free models and sounds and records each one's license. |
 | **Business Manager (Pepper)** | Keeps the company ready to sell the game: payments, store page, policies. |
 
-**One wow: your digital twin (Hal).** You load a program and watch your twin carry it out into the half-barren estate, which gains the building that goes with it. Ask it for a nicer river, it hands the job to the Environment Artist, and the water changes in front of you. **v1 staffs five:** Producer, Lead Architect, Gameplay Engineer, Environment Artist, QA. The rest join when their milestone needs them.
+**One wow: your digital twin (Hal).** You load a program and watch your twin carry it out into the half-barren estate, which gains the building that goes with it. Ask it for a nicer river, it hands the job to the Environment Artist, and the water changes in front of you. **v1 staffs five:** the Hero, Lead Architect, Gameplay Engineer, Environment Artist, QA. The rest join when their milestone needs them.
 
 ### Token budget
 

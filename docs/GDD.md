@@ -272,7 +272,7 @@ The agents that **build** the game (the runtime agents in §3 *run* inside it). 
 ```
 Director, the Oracle (Michael, human): vision, approves every change
  ├─ Lead Architect: systemic design decisions, owns the blueprint
- ├─ Producer (Hal ★, your agent): breaks work down, dispatches, tracks
+ ├─ The Hero (Hal ★, your twin): takes your quests, breaks them down, leads the crew
  │   ├─ Design:      Game Designer · Writer
  │   ├─ Engineering: Engine Engineer · Gameplay Engineer · Bridge Engineer
  │   ├─ Art & audio: Environment Artist · Character Artist · Tech Artist · Sound Designer
@@ -285,7 +285,7 @@ Each agent's development role in one sentence:
 
 | Agent | Development role |
 |---|---|
-| **Producer** (Hal) ★ | Turns your requests into small tasks on the board and sends each one to the right crew member. |
+| **The Hero or Heroine** (Hal) ★ | Your twin and the star of the digital world: takes your requests as quests, splits them into small tasks on the board, and leads the right crew member into each one. |
 | **Lead Architect** | Decides how the pieces fit together (world-state shape, the bridge's message contract) whenever a change touches more than one area. |
 | **Game Designer** | Turns a feature idea into rules and estate content written into this document. |
 | **Writer** | Writes Hal's voice, the status bubbles, and mirror lines like "2 worms left!". |
@@ -303,14 +303,14 @@ Each agent's development role in one sentence:
 
 **One wow agent: your digital twin (Hal).** It's the character you see most and the reason the world grows: load a program ("I know kung fu") and watch your twin carry it out into the half-barren estate, which gains the building that goes with it. Ask it for a nicer river and it hands the job to the Environment Artist, and you watch the water change in front of you: the purest form of the core loop.
 
-**Staffing for the semester.** v1 staffs five: Producer (Hal), Lead Architect, Gameplay Engineer, Environment Artist, and QA. The other roles are personas that join when their milestone needs them. When several agents work at once, each gets its own copy of the code (a git worktree), and Hal merges their work.
+**Staffing for the semester.** v1 staffs five: the Hero (Hal), Lead Architect, Gameplay Engineer, Environment Artist, and QA. The other roles are personas that join when their milestone needs them. When several agents work at once, each gets its own copy of the code (a git worktree), and Hal merges their work.
 
 **Tiers (who thinks, who grinds)**
 
 | Tier | Agents | Model | Authority |
 |---|---|---|---|
 | Strategic | Lead Architect, Game Designer | frontier, maximum reasoning | decides; few calls, each expensive |
-| Coordination | Producer, Business Manager, QA, Red Team | frontier | assigns, gates, blocks; doesn't design |
+| Coordination | the Hero, Business Manager, QA, Red Team | frontier | assigns, gates, blocks; doesn't design |
 | Craft | Engineers, Artists, Sound | frontier | builds only inside the files it owns |
 | Content | Writer | open-weight, mid-size | proposes text |
 | Utility | Asset Scraper, night crew | local open-weight models or plain scripts | fetches and grinds; never decides |
