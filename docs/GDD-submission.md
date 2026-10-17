@@ -15,6 +15,8 @@
 
 Think of the Matrix, TRON, and the OASIS, with one difference: **the OASIS keeps you in while your real life decays. This world nudges you out (time to feed the pets, time to work out) or cuts you off (bedtime).**
 
+**Why a game, not a terminal?** You could do all of this at a terminal: agents in split panes, logs scrolling past, a wall of text. Prime Meridian **gamifies the same work**. Instead of tailing a log, you walk up to an agent and talk; instead of a status column, you see who's typing, who's stuck, and who's walking toward you with a "!". Same agents, same real results, a natural 3D interface on top, and the fun is the point.
+
 **The cast**
 
 - **You are Neo.** You jack in, load programs (*"I know kung fu"*), and the whole world turns on you: you know what no program can (what you want, what matters, what "good" looks like), so the agents come to you.
@@ -22,7 +24,7 @@ Think of the Matrix, TRON, and the OASIS, with one difference: **the OASIS keeps
 - **The Oracle is the author** (Michael), who designed the path and approves every change. Playing on his own machine, he's both Oracle and Neo. But eventually you become your own Oracle and study the psychology of the humans and bots.
 - **The Architect is the architecture:** Hermes running inside the editor (Zed), driving Herdr, which reaches across machines (the Mac where the agent lives, a GPU box for local models and physics) to run the whole crew side by side. In-game the Architect's twin sits in **the Architect's room**, inside a wall of monitors, one per live agent session, and that wall is all he sees. You see the whole game, with him in his room of monitors... like when Dorothy visited Oz: the world he "created" is just a little code, yet it expands out into real life.
 
-**Genre:** cozy management / life sim whose cast is real AI agents. **Platform:** the estate renders in your browser (three.js, WebGPU), but you play **everywhere your agent lives**: your editor, phone, mail, calendar, blog, and online accounts (Google, Claude, Hermes, Muse, Twilio…), across your machines. **Audience:** people who already run an AI agent. **Session:** one day is one round; the game closes at bedtime.
+**Genre:** cozy management / life sim whose cast is real AI agents. **Platform:** the estate renders in your browser (three.js, WebGPU), but you play **everywhere your agent lives**: your editor, phone, mail, calendar, blog, and online accounts (Google, Claude, Hermes, Muse, Twilio…), across your machines. **Audience:** people who already run an AI agent.
 
 **Batteries not included.** Prime Meridian isn't a car off the lot; it's a kit car you assemble yourself. The game ships the chassis: the world, the rules, the crew's bodies. You bring the parts: your own agent and AI logins, your tools and accounts, your life. Before you bolt anything in, take a test drive: every connection comes with a sample version (pretend inbox, phone, ledger, scripted agents), so anyone can play with no accounts and swap in the real parts one at a time.
 
@@ -60,8 +62,7 @@ Think of the Matrix, TRON, and the OASIS, with one difference: **the OASIS keeps
 ### Signature moments
 
 1. **The snap.** You mark Flora fed. A worm drops from the dock, Flora shoots up from the weeds, *snap*, a swirl of mud, the hungry bubble pops, and the worm jar shows one fewer.
-2. **"I know kung fu."** You load a program into your agent. Its eyes snap open, and the building that goes with it rises on the estate.
-3. **Closing time.** Last call at 10:15. At 10:30 the estate goes to night and the workshop lights stay on.
+2. **"I know kung fu."** You load a program. Your eyes snap open, your twin gains the tool, and its building rises on the estate.
 
 ### A day is one round
 
