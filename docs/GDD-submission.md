@@ -9,7 +9,7 @@
 
 *You wake up. At least you think you're awake. Someone had better damn well make some coffee. Your lips pull in the hot liquid as you boot up. Who are you kidding? You don't boot up anymore. Your agents are always on. Let's see what they came up with overnight.*
 
-*You jack in. The estate fades up out of the dark grid. The workshop lights are still on, a stack of blueprints waits on the shelf, and Hal is already walking over with the morning card. A worker who got stuck at 3 a.m. paces under a red "!"; one answer and he's back at his desk. You approve last night's river, and the new water ripples into place. Down at the canal, Flora drifts up from the weeds: "I'm hungry." Then the phone booth rings. It's your kid. Time to go.*
+*Then you jack in. The estate fades up out of the dark grid. The workshop lights are still on, a stack of blueprints waits on the shelf, and Hal is already walking over with the morning card. A worker who got stuck at 3 a.m. paces under a red "!"; one answer and he's back at his desk. You approve last night's river, and the new water ripples into place. Down at the canal, Flora drifts up from the weeds: "I'm hungry." Then the phone booth rings. It's your kid. Time to go.*
 
 **Prime Meridian is a cozy 3D management game where the characters are real AI agents doing real work, and the world sends you back to your life.** You walk a small low-poly estate in your browser. Its rooms are your projects and your life: a workshop for each code repo, a canal where your real axolotl lives, a mailbox that fills with your real mail, a phone booth where the real world calls in. You talk to the agents, hand them work, answer their questions, and watch the world change as they build it.
 
