@@ -19,7 +19,7 @@ Think of the Matrix, TRON, and the OASIS, with one difference: **the OASIS keeps
 
 - **You are Neo.** You jack in, load programs (*"I know kung fu"*), and the whole world turns on you: you know what no program can (what you want, what matters, what "good" looks like), so the agents come to you.
 - **Your agent is your digital twin** (for the author, his bot Hal). It's your body in the digital world, always on while you're out: it carries your loadout, runs your errands, and spruces up the half-barren estate. You're its hands in the physical one.
-- **The Oracle is the author** (Michael), who designed the path and approves every change. Playing on his own machine, he's both Oracle and Neo.
+- **The Oracle is the author** (Michael), who designed the path and approves every change. Playing on his own machine, he's both Oracle and Neo. But eventually you become your own Oracle and study the psychology of the humans and bots.
 - **The Architect is the architecture:** Hermes running inside the editor (Zed), driving Herdr, which reaches across machines (the Mac where the agent lives, a GPU box for local models and physics) to run the whole crew side by side. In-game it's **the Architect's room**, a wall of monitors with one screen per live agent session.
 
 **Genre:** cozy management / life sim whose cast is real AI agents. **Platform:** desktop browser (three.js, WebGPU) plus a small bridge on your machine. **Audience:** people who already run an AI agent. **Session:** one day is one round; the game closes at bedtime.
