@@ -12,7 +12,7 @@
 
 *Then you jack in. The estate fades up out of the dark grid. The workshop lights are still on, a stack of blueprints waits on the shelf, and Hal is already walking over with the morning card. A worker who got stuck at 3 a.m. paces under a red "!"; one answer and he's back at his desk. You approve last night's river, and the new water ripples into place. Down at the canal, Flora drifts up from the weeds: "I'm hungry." Then the phone booth rings. It's your kid. Time to go.*
 
-**Prime Meridian** is a cozy 3D management game in the browser where the characters are real AI agents doing real work. You walk a small low-poly estate whose rooms are your projects and your life: a workshop for each code repo, a canal where your real axolotl lives, a front office for your business, a phone booth where the real world calls in. You talk to the agents living there, hand them work, answer their questions, and watch the world change as they build it. Think of the Matrix, TRON, and the OASIS, with one difference: the OASIS keeps you in while your real life decays, and this world nudges you out (time to feed the pets) or sends you out (bedtime). Some agents are closer to NPCs: programs that load tools and skills as needed and help with the paperwork and organizing of real life.
+**Prime Meridian** is a cozy 3D management game in the browser where the characters are real AI agents doing real work. You walk a small medium-poly estate whose rooms are your projects and your life: a workshop for each code repo, a canal where your real axolotl lives, a front office for your business, a phone booth where the real world calls in. You talk to the agents living there, hand them work, answer their questions, and watch the world change as they build it. Think of the Matrix, TRON, and the OASIS, with one difference: the OASIS keeps you in while your real life decays, and this world nudges you out (time to feed the pets) or sends you out (bedtime). Some agents are closer to NPCs: programs that load tools and skills as needed and help with the paperwork and organizing of real life.
 
 | At a glance | |
 |---|---|
@@ -127,7 +127,7 @@
 
 ### 2.4 The world
 
-A single estate on one screen with zoom, low-poly, floating on a dark grid.
+A single estate on one screen with zoom, medium-poly, floating on a dark grid.
 
 | Place | What it represents | Truth comes from |
 |---|---|---|
@@ -250,7 +250,7 @@ No TypeScript.
 - **Engine: Rapier**, through the ready-made helper that ships with three.js 0.186 (`examples/jsm/physics/RapierPhysics.js`; Jolt is the fallback). It runs in the browser as WebAssembly.
 - **Characters are active ragdolls:** a skeleton of rigid bodies whose joint motors try to follow an animation pose, plus a balance controller that keeps the center of mass over the feet. When a push or a bad step overwhelms the motors, the body physically stumbles, recovers, or falls and gets back up, and no two falls look alike.
 - **Flora swims physically:** a spine of linked segments with buoyancy and water drag, a tail that pushes off the water, and the snap as a real lunge.
-- **Stylized look, real motion.** The figures stay low-poly; the movement is what's realistic (the combination games like *Rain World* and *Exanima* use).
+- **Stylized look, real motion.** The figures stay medium-poly; the movement is what's realistic (the combination games like *Rain World* and *Exanima* use).
 - **Staged:** from week 2, every character moves through one *motion controller* interface (world state says "go there", the controller decides how the body gets there), so the MVP's simple waypoint movement can be swapped for physics without touching game logic. Flora is the first physical character, then the agents.
 
 ### 4.2 Agent roles: the dev crew
@@ -391,7 +391,7 @@ The course runs Tue/Thu: one milestone per week, with agents doing most of the b
 
 ## 5. Art Direction
 
-Low-poly, flat-shaded, warm palette, soft shadows: a diorama you'd keep on a desk, floating on a dark grid. An elevated 3/4 camera looks over cutaway rooms (after Ralv.ai's estate view). Characters are KayKit (CC0) figures with a hat or color per crew role, and they move physically rather than through canned animation loops (§4.1): a stylized look with real weight and balance. Flora's canal is styled after Xochimilco (slow water, chinampas, a moored trajinera); its lush water and foliage come from one licensed scene kit, kept to one corner so it sits well next to the low-poly figures. Time of day (afternoon, golden hour, blue hour, night) drives the lighting, and night arrives at closing time.
+Medium-poly, flat-shaded, warm palette, soft shadows: a diorama you'd keep on a desk, floating on a dark grid. An elevated 3/4 camera looks over cutaway rooms (after Ralv.ai's estate view). Characters are KayKit (CC0) figures with a hat or color per crew role, and they move physically rather than through canned animation loops (§4.1): a stylized look with real weight and balance. Flora's canal is styled after Xochimilco (slow water, chinampas, a moored trajinera); its lush water and foliage come from one licensed scene kit, kept to one corner so it sits well next to the medium-poly figures. Time of day (afternoon, golden hour, blue hour, night) drives the lighting, and night arrives at closing time.
 
 ## 6. Risks
 
