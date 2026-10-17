@@ -20,7 +20,7 @@ Think of the Matrix, TRON, and the OASIS, with one difference: **the OASIS keeps
 - **You are Neo.** You jack in, load programs (*"I know kung fu"*), and the whole world turns on you: you know what no program can (what you want, what matters, what "good" looks like), so the agents come to you.
 - **Your agent is your digital twin** (for the author, his bot Hal). It's your body in the digital world, always on while you're out: it carries your loadout, runs your errands, and spruces up the half-barren estate. You're its hands in the physical one.
 - **The Oracle is the author** (Michael), who designed the path and approves every change. Playing on his own machine, he's both Oracle and Neo. But eventually you become your own Oracle and study the psychology of the humans and bots.
-- **The Architect is the architecture:** Hermes running inside the editor (Zed), driving Herdr, which reaches across machines (the Mac where the agent lives, a GPU box for local models and physics) to run the whole crew side by side. In-game it's **the Architect's room**, a wall of monitors with one screen per live agent session.
+- **The Architect is the architecture:** Hermes running inside the editor (Zed), driving Herdr, which reaches across machines (the Mac where the agent lives, a GPU box for local models and physics) to run the whole crew side by side. In-game it's **the Architect's room**, a wall of monitors with one screen per live agent session, but the Architect sees the whole game, not just one room. The player sees the whole world as virtual, that room included... like when Dorothy visited Oz.
 
 **Genre:** cozy management / life sim whose cast is real AI agents. **Platform:** desktop browser (three.js, WebGPU) plus a small bridge on your machine. **Audience:** people who already run an AI agent. **Session:** one day is one round; the game closes at bedtime.
 
@@ -61,8 +61,7 @@ Think of the Matrix, TRON, and the OASIS, with one difference: **the OASIS keeps
 
 1. **The snap.** You mark Flora fed. A worm drops from the dock, Flora shoots up from the weeds, *snap*, a swirl of mud, the hungry bubble pops, and the worm jar shows one fewer.
 2. **"I know kung fu."** You load a program into your agent. Its eyes snap open, and the building that goes with it rises on the estate.
-3. **A blueprint at breakfast.** Scaffolding went up overnight; the night crew's work waits for your approval.
-4. **Closing time.** Last call at 10:15. At 10:30 the estate goes to night and the workshop lights stay on.
+3. **Closing time.** Last call at 10:15. At 10:30 the estate goes to night and the workshop lights stay on.
 
 ### A day is one round
 
@@ -171,4 +170,4 @@ Claude Opus 5.5 API list prices ($4 / $20 per million input / output tokens). Ta
 
 **Week 1** GDD + scaffold *(done)* · **2** estate v0, sample connections, three mock workers, HUD · **3** the bridge: real statuses, Flora's real worm count, **the snap** end to end · **4** talk: converse, replies stream as bubbles · **5** "!" walks to you, jack in/out, closing time · **6** street cred, first life chapter · **7** physical motion: Flora swims, one agent walks as an active ragdoll. **MVP = weeks 1–4;** everything after is stretch.
 
-**Logic gap fixed in this draft:** the cast contradicted itself (the summary said the player is "not Neo"; the Construct made the player Neo). Now: the player is Neo, your agent is your twin, the Oracle is the author, the Architect is the architecture.
+**Logic gap fixed in this draft:** the cast contradicted itself on who is Neo. Now: the player is Neo, your agent is your twin, the Oracle is the author, the Architect is the architecture.
