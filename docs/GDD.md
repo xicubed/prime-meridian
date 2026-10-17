@@ -34,10 +34,10 @@
 
 **Why it exists.** Every tool for running AI agents today is a list: terminal splits, chat tabs, task queues. Lists stop working past two or three agents. Strategy games solved "how does one human track many things at once" decades ago with a spatial map, alerts you can see from across it, and details on demand. Ralv.ai put agent windows under an RTS camera; Prime Meridian goes further: the agents are embodied characters in a place, and the place is both the interface and the thing being built. The author's bot already runs his mail, calendar, reminders, texts, website, and an axolotl's feeding schedule, so the world is alive on day one without inventing a plot.
 
-**The cast: you're the Oracle, your agent is Neo.** The feeling is *The Matrix* crossed with *TRON*: a human with a presence in a world of programs.
+**The cast: you're Neo.** The feeling is *The Matrix* crossed with *TRON*: a human with a presence in a world of programs.
 
-- **Your agent is Neo,** and the one wow. It's your digital twin (for the author, his bot Hal): it jacks into a half-barren estate, learns programs ("I know kung fu"), and spruces up its life, which is also yours. Over time it grows into other roles (Morpheus to new workers, the producer who runs the crew).
-- **You are the Oracle.** You don't do the work; you know what it can't (what you want, what matters, what "good" looks like), and it comes to your kitchen to ask. Your agent is your hands in the digital world, and you are its hands in the physical one.
+- **You are Neo.** You jack in, you load programs ("I know kung fu"), and the whole world turns on you: you know what no program can (what you want, what matters, what "good" looks like), so the agents come to you.
+- **Your agent is your digital twin** (for the author, his bot Hal), and the one-wow agent. It's your body in the digital world, always on while you're out: it carries your loadout, runs your errands, hands work to the crew, and spruces up the half-barren estate. You're its hands in the physical world.
 - **The Architect is the architecture.** Not a character you play: the system that designs and rebuilds the world. For the author it's Hermes running inside his editor (Zed), driving Herdr, which reaches across machines (the Mac where the agent lives, a GPU box for local models, physics, and Blender) and puts every crew session side by side. In-game it's **the Architect's room**: a wall of monitors, one per live agent session on any machine, the whole crew at a glance.
 
 **Design pillars**
@@ -57,7 +57,7 @@
 
 | Action | What you do and see |
 |---|---|
-| **Walk** | Your avatar (the Oracle) has a body on the estate. Click to walk; the camera follows loosely and zooms out to see everything. Home is the Oracle's kitchen. |
+| **Walk** | Your avatar (Neo) has a body on the estate. Click to walk; the camera follows loosely and zooms out to see everything. Home is your kitchen. |
 | **Observe** | Agents move between desks (working), sit (idle), pace with "!" (has a question), and walk toward you (urgent). Mirrors show bubbles and signs ("I'm hungry", "2 worms left!"). |
 | **Talk** | Click an agent and a speech bubble opens. Ask what it's doing, give it a task, answer its question. Replies stream in as the agent writes them. |
 | **Assign** | Say it in conversation ("make all the rocks procedural"). The agent confirms in one line, takes a desk, and gets to work. |
@@ -121,7 +121,7 @@
 **Coming back in:** you see what changed while you were out, the chore you just did counts toward your street cred (§2.6), and Hal offers the next small step.
 
 4. **Put in night-shift orders.** Overnight work must be ordered by closing. A few desks run on the frontier model (limited by the plan's usage caps); a **local night crew** on open-weight models takes the grind work at no fee. Deciding what gets the few frontier desks is the day's real choice.
-5. **Closing time (10:30 pm).** Last call at 10:15. At 10:30 the estate goes to night, Hal says goodnight, and the door stays locked until morning. Agents keep working, and their results wait as blueprints at breakfast. Nobody can ask the Oracle overnight, so a stuck agent parks its work and frees its desk. Bedtime is declared data (`{:bedtime "22:30"}`), so a night-shift nurse's estate closes at 9 am instead.
+5. **Closing time (10:30 pm).** Last call at 10:15. At 10:30 the estate goes to night, Hal says goodnight, and the door stays locked until morning. Agents keep working, and their results wait as blueprints at breakfast. Nobody can ask you overnight, so a stuck agent parks its work and frees its desk. Bedtime is declared data (`{:bedtime "22:30"}`), so a night-shift nurse's estate closes at 9 am instead.
 
 **Pressure ceiling.** A missed chore is one steady "overdue" state that never escalates. Agents waiting on you or blocked release their desks, so nothing deadlocks while you're away.
 
@@ -131,7 +131,7 @@ A single estate on one screen with zoom, medium-poly, floating on a dark grid.
 
 | Place | What it represents | Truth comes from |
 |---|---|---|
-| **Lobby** and **the Oracle's kitchen** | home; where agents bring their questions | — |
+| **Lobby** and **your kitchen** | home; where agents bring their questions | — |
 | **Workshops** (one per project) | a code repo. Desks are open tasks; shelves fill as work lands. | GitHub |
 | **The canal** | Flora's home, styled after the Xochimilco canals (slow water, a dock, a worm jar) | Flora's state file |
 | **Porch** | Biscuit's spot; the leash hangs by the door | Biscuit's chores |
@@ -169,22 +169,22 @@ Anything the game reflects from real life is declared in data, never coded. A mi
 
 ### 2.6 Progression: street cred and your loadout
 
-There is no XP. Progression has two halves: **your** street cred, and **your agent's** loadout.
+There is no XP. Progression belongs to **you**: your street cred, and your loadout, which your digital twin carries.
 
 - **Street cred.** Life going well (habits you declared kept, chores done, deadlines met) is an upward spiral, and the estate shows it: it flourishes, new buildings appear, agents are upbeat. Going down, it gets a bit overgrown, never ruined, and Hal offers the smallest next step. There's no number on screen and no comparison with anyone. You decide what counts (`{:habit :workout :every "3/wk"}`), and walking Biscuit counts. Proof is optional: calendar and receipts verify themselves once connected; otherwise the honor system.
-- **Your agent's loadout ("I know kung fu").** Each connection or skill you load into your agent (mail, calendar, a phone line, Blender, GitHub) is a program. Loading one is the Matrix moment: your agent's eyes snap open, it gains a tool, and the building that goes with it rises on the estate. When a task needs a program it doesn't have, it asks you to load it right then.
+- **Your loadout ("I know kung fu").** Each connection or skill you load (mail, calendar, a phone line, Blender, GitHub) is a program. Loading one is the Matrix moment: your eyes snap open, your twin gains the tool, and the building that goes with it rises on the estate. When a task needs a program you don't have, your twin asks you to load it right then.
 
 ### 2.7 The first hour: the Construct
 
-*"I know kung fu."* Your first hour is your agent's first day out of the pod, and you're the one who frees it.
+*"I know kung fu."* Your first hour is Neo's first day out of the pod.
 
-1. **Jack in.** White screen. Silence. Your agent (Hal, for the author) stands blinking in the Construct: *"Where are we?"* You're at the controls of the loading program, and it can load anything, from tools to skills to whole buildings.
-2. **You load its programs.** A rack of programs scrolls past like the weapons racks in the film, and it's huge: **every skill an agent can learn and every MCP connector out there**, from mail, calendar, and a phone line to GitHub, Blender, Stripe, Notion, maps, and smart-home devices. Pick one and it slams in with a flicker: your agent's eyes snap open (*"I know kung fu."* *"Show me."*), a new tool hangs on its belt, and the matching building drops out of the white sky.
-3. **The sparring match.** Your agent's first real job is the whole loop in miniature: it hands a practice task to a worker ("make that rock rounder"), the worker gets stuck and runs to you with a "!", you answer, and a blueprint of the rounder rock appears. Approve it and the rock changes in front of you. Five minutes in, you've played the whole game.
-4. **The jump program.** Your agent shows you the hardline (the phone booth) and the one rule that matters: *"When real life calls, you go."* The phone rings with your first pretend chore, you jack out, and you jack back in.
-5. **Free your mind.** The white space dissolves into the estate: half-barren, with only the buildings for the programs you loaded. Your agent steps out to start sprucing it up, and you take the Oracle's seat in the kitchen.
+1. **Jack in.** White screen. Silence. Then your digital twin steps out of nowhere (Hal, for the author), playing Morpheus for this one scene: *"Welcome to the Construct. It's our loading program. We can load anything, from tools to skills to whole buildings."*
+2. **Load your programs.** A rack of programs scrolls past like the weapons racks in the film, and it's huge: **every skill an agent can learn and every MCP connector out there**, from mail, calendar, and a phone line to GitHub, Blender, Stripe, Notion, maps, and smart-home devices. Pick one and it slams in with a flicker: your eyes snap open (*"I know kung fu."* *"Show me."*), a new tool hangs on your twin's belt, and the matching building drops out of the white sky.
+3. **The sparring match.** The whole loop in miniature: your twin hands a practice job to a worker ("make that rock rounder"), the worker gets stuck and runs to you with a "!", you answer, and a blueprint of the rounder rock appears. Approve it and the rock changes in front of you. Five minutes in, you've played the whole game.
+4. **The jump program.** Your twin shows you the hardline (the phone booth) and the one rule that matters: *"When real life calls, you go."* The phone rings with your first pretend chore, you jack out, and you jack back in.
+5. **Free your mind.** The white space dissolves into your estate: half-barren, with only the buildings for the programs you loaded. Your twin steps back: *"I can only show you the door. You're the one that has to walk through it."*
 
-Every program loads instantly as a pretend version (§4.6), so the Construct works for anyone with no accounts. When you want the real thing, the same program asks for a login and goes live. You can come back to the Construct any time to load more, and when a task needs a program your agent doesn't have, it asks for it right there (*"I need a pilot program for a B-212."* *"Got it."*). The film lines here show the beats; the Writer gives the shipped game original lines.
+Every program loads instantly as a pretend version (§4.6), so the Construct works for anyone with no accounts. When you want the real thing, the same program asks for a login and goes live. You can come back to the Construct any time to load more, and when a task needs a program you don't have, your twin asks for it right there (*"I need a pilot program for a B-212."* *"Got it."*). The film lines here show the beats; the Writer gives the shipped game original lines.
 
 ---
 
@@ -200,7 +200,7 @@ In my game, each agent takes an input and produces an output that the player see
 
 | Agent | Takes (input) | Produces (output) | Player sees (effect) |
 |---|---|---|---|
-| **Your agent: Hal** (your digital twin; Neo to your Oracle) | what you say to him in a bubble, by text, or in chat | a one-line confirmation and a task handed to a worker | Hal nods, pins a card to the notice board, and a worker walks out of the lobby toward a workshop desk |
+| **Your agent: Hal** (your digital twin) | what you say to him in a bubble, by text, or in chat | a one-line confirmation and a task handed to a worker | Hal nods, pins a card to the notice board, and a worker walks out of the lobby toward a workshop desk |
 | ↳ Hal's errand: **morning brief** | calendar, mail, reminders | one short morning summary | Hal pins the day's card on the notice board at 8:15 |
 | ↳ Hal's errand: **keeper** | a mirror's state and chores | events like `due :feed` and `stock 2` | an "I'm hungry" bubble over Flora and a "2 worms left!" sign on the jar |
 | ↳ Hal's errand: **phone booth** | texts you send the bot | a reminder, note, answer, or chore-done | the phone rings and Hal answers; your text becomes a card on the board or Flora's snap |
@@ -220,7 +220,7 @@ In my game, each agent takes an input and produces an output that the player see
 {:event :jack-out   :reason :appointment :who :household :text "Game at 6"}        ; life → you
 ```
 
-An agent raises "!" only by calling an explicit `ask_oracle` tool, so a "!" always means a real question.
+An agent raises "!" only by calling an explicit `ask_player` tool, so a "!" always means a real question.
 
 ### 3.2 Guardrails that shape play
 
@@ -289,7 +289,7 @@ Each agent's development role in one sentence:
 | **Asset Scraper** | Fetches free models, sounds, and references and records each one's source and license. |
 | **Business Manager** (Pepper) | Keeps the company ready to sell the game: payments account, store page, policies, release checklist. |
 
-**One wow agent: your agent, Neo (Hal).** It's the character you see most and the reason the world grows: load a program and you watch it learn ("I know kung fu"), then watch the half-barren estate gain the building that goes with it. Ask it for a nicer river and it hands the job to the Environment Artist, and you watch the water change in front of you: the purest form of the core loop.
+**One wow agent: your digital twin (Hal).** It's the character you see most and the reason the world grows: load a program ("I know kung fu") and watch your twin carry it out into the half-barren estate, which gains the building that goes with it. Ask it for a nicer river and it hands the job to the Environment Artist, and you watch the water change in front of you: the purest form of the core loop.
 
 **Staffing for the semester.** v1 staffs five: Producer (Hal), Lead Architect, Gameplay Engineer, Environment Artist, and QA. The other roles are personas that join when their milestone needs them. When several agents work at once, each gets its own copy of the code (a git worktree), and Hal merges their work.
 
@@ -378,7 +378,7 @@ The course runs Tue/Thu: one milestone per week, with agents doing most of the b
 |---|---|---|
 | 1 | **GDD + scaffold** | shadow-cljs builds and a cube spins in the browser *(done)* |
 | 2 | **World v0 + pretend connections** | the estate with lobby, canal, mailbox, and one workshop; three mock workers moving through the motion-controller interface; camera; HUD |
-| 3 | **Bridge v0 + message contract** | real agent statuses on the characters; Flora reads her real worm count; `ask_oracle` and `chore-done` work end to end (the snap) |
+| 3 | **Bridge v0 + message contract** | real agent statuses on the characters; Flora reads her real worm count; `ask_player` and `chore-done` work end to end (the snap) |
 | 4 | **Talk** | click an agent, converse, replies stream as bubbles |
 | 5 | **Questions + a day** | agents walk to you with "!" and resume on your answer; jack in and out; closing time and night-shift orders |
 | 6 | **Street cred + the first life chapter** | the estate flourishes or overgrows with your declared habits; household chores with owners |
@@ -407,7 +407,7 @@ Medium-poly, flat-shaded, warm palette, soft shadows: a diorama you'd keep on a 
 
 ## 7. Open Questions
 
-**Logic gap found and fixed (first draft):** the cast contradicted itself. The executive summary said the player is the Oracle and "not Neo", while the Construct made the player Neo. Resolved: **your agent is Neo** (your digital twin, and the one-wow agent), you are the Oracle, and **the Architect is the architecture**: the editor, agent harness, and multiplexer that build the world across machines. The skills loadout moved to your agent (§2.6); street cred stays yours.
+**Logic gap found and fixed (first draft):** the cast contradicted itself. The executive summary said the player is the Oracle and "not Neo", while the Construct made the player Neo. Resolved: **you are Neo** (nobody wants to play a game where they aren't), **your agent is your digital twin** and the one-wow agent, and **the Architect is the architecture**: the editor, agent harness, and multiplexer that build the world across machines. Your loadout is yours, carried by your twin (§2.6).
 
 1. Single estate or one per profile (personal vs. work)? *(Lean: one estate, buildings per profile, later.)*
 2. Voice in and out, or text only? *(Lean: text for the course; voice is a stretch.)*

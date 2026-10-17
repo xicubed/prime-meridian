@@ -17,8 +17,8 @@ Think of the Matrix, TRON, and the OASIS, with one difference: **the OASIS keeps
 
 **The cast**
 
-- **Your agent is Neo.** It's your digital twin (for the author, his bot Hal). It jacks into a half-barren estate, learns programs (*"I know kung fu"*), and spruces up its life, which is also yours.
-- **You are the Oracle.** You don't do the work. You know what it can't (what you want, what matters, what "good" looks like), and it comes to your kitchen to ask. It's your hands in the digital world; you're its hands in the physical one.
+- **You are Neo.** You jack in, load programs (*"I know kung fu"*), and the whole world turns on you: you know what no program can (what you want, what matters, what "good" looks like), so the agents come to you.
+- **Your agent is your digital twin** (for the author, his bot Hal). It's your body in the digital world, always on while you're out: it carries your loadout, runs your errands, and spruces up the half-barren estate. You're its hands in the physical one.
 - **The Architect is the architecture:** Hermes running inside the editor (Zed), driving Herdr, which reaches across machines (the Mac where the agent lives, a GPU box for local models and physics) to run the whole crew side by side. In-game it's **the Architect's room**, a wall of monitors with one screen per live agent session.
 
 **Genre:** cozy management / life sim whose cast is real AI agents. **Platform:** desktop browser (three.js, WebGPU) plus a small bridge on your machine. **Audience:** people who already run an AI agent. **Session:** one day is one round; the game closes at bedtime.
@@ -86,19 +86,19 @@ The same code path runs a horse in a barn with a hay counter. You're only jacked
 ### Progression: no XP
 
 - **Street cred (yours).** Habits you declared, kept: the estate flourishes and new buildings appear. Slip, and it gets a bit overgrown. No number, no leaderboard, and walking the dog counts.
-- **Loadout (your agent's).** Every skill or connector loaded into your agent is a program, and a building.
+- **Loadout (yours, carried by your twin).** Every skill or connector you load is a program, and a building.
 
 ### The first hour: the Construct
 
-White screen. Your agent stands blinking: *"Where are we?"* You're at the loading program. A rack of **every skill and MCP connector out there** scrolls past like the film's weapons racks. Load mail, and a mailbox drops out of the white sky. Then the sparring match: your agent hands a worker a practice job ("make that rock rounder"), the worker runs to you with "!", you answer, a blueprint appears, you approve, and the rock changes. **Five minutes in, you've played the whole game.** The phone rings with a pretend chore; you jack out and back in. The white dissolves into your half-barren estate, and your agent steps out to start sprucing it up. ([full Construct](https://github.com/xicubed/prime-meridian/blob/gdd-draft-1/docs/GDD.md#27-the-first-hour-the-construct))
+Neo's first day out of the pod. White screen. Your digital twin steps out of nowhere, playing Morpheus: *"Welcome to the Construct."* A rack of **every skill and MCP connector out there** scrolls past like the film's weapons racks. Load one and your eyes snap open (*"I know kung fu."* *"Show me."*); load mail, and a mailbox drops out of the white sky. Then the sparring match: your twin hands a worker a practice job ("make that rock rounder"), the worker runs to you with "!", you answer, a blueprint appears, you approve, and the rock changes. **Five minutes in, you've played the whole game.** The phone rings with a pretend chore; you jack out and back in. The white dissolves into your half-barren estate: *"I can only show you the door. You're the one that has to walk through it."* ([full Construct](https://github.com/xicubed/prime-meridian/blob/gdd-draft-1/docs/GDD.md#27-the-first-hour-the-construct))
 
 ## 3. AI Architecture
 
-**The twin rule.** Every character is the body of something real. Your agent's bubble is its live session; workers are real coding sessions; Flora is a real axolotl. In demo mode the counterpart is clearly pretend, never a fake passed off as real. An agent raises "!" only by calling an explicit `ask_oracle` tool, so **a "!" always means a real question.**
+**The twin rule.** Every character is the body of something real. Your agent's bubble is its live session; workers are real coding sessions; Flora is a real axolotl. In demo mode the counterpart is clearly pretend, never a fake passed off as real. An agent raises "!" only by calling an explicit `ask_player` tool, so **a "!" always means a real question.**
 
 | Agent | Player sees (effect on play) |
 |---|---|
-| **Your agent: Hal** (Neo) | You speak; Hal nods, pins a card on the notice board, and a worker walks out to a workshop desk. His scheduled errands are visible too: the 8:15 morning brief pinned on the board, answering the phone booth when you text. |
+| **Your agent: Hal** (your digital twin) | You speak; Hal nods, pins a card on the notice board, and a worker walks out to a workshop desk. His scheduled errands are visible too: the 8:15 morning brief pinned on the board, answering the phone booth when you text. |
 | **Keeper** (an errand of your agent) | Reads each creature's state: an "I'm hungry" bubble over Flora, a "2 worms left!" sign on the jar. |
 | **Workers** (one per task, each a persistent crew persona) | Typing at a desk with a progress glow (*reading → writing → tests passing*), then carrying a finished blueprint to the shelf. |
 | **Clerk** (mail reader, holds **no keys**) | The mailbox fills and overflows; click it for a short triage summary. |
@@ -133,7 +133,7 @@ The agents that **build** the game. Each is a persistent persona on a fresh, tas
 | **Asset Scraper** | Fetches free models and sounds and records each one's license. |
 | **Business Manager (Pepper)** | Keeps the company ready to sell the game: payments, store page, policies. |
 
-**One wow: your agent, Neo.** You load a program and watch it learn; the half-barren estate gains the building that goes with it. Ask it for a nicer river, it hands the job to the Environment Artist, and the water changes in front of you. **v1 staffs five:** Producer, Lead Architect, Gameplay Engineer, Environment Artist, QA. The rest join when their milestone needs them. Strategic roles get frontier models with maximum reasoning; utility work runs on local models or plain scripts.
+**One wow: your digital twin (Hal).** You load a program and watch your twin carry it out into the half-barren estate, which gains the building that goes with it. Ask it for a nicer river, it hands the job to the Environment Artist, and the water changes in front of you. **v1 staffs five:** Producer, Lead Architect, Gameplay Engineer, Environment Artist, QA. The rest join when their milestone needs them. Strategic roles get frontier models with maximum reasoning; utility work runs on local models or plain scripts.
 
 ### Token budget
 
@@ -170,4 +170,4 @@ Claude Opus 5.5 API list prices ($4 / $20 per million input / output tokens). Ta
 
 **Week 1** GDD + scaffold *(done)* · **2** estate v0, sample connections, three mock workers, HUD · **3** the bridge: real statuses, Flora's real worm count, **the snap** end to end · **4** talk: converse, replies stream as bubbles · **5** "!" walks to you, jack in/out, closing time · **6** street cred, first life chapter · **7** physical motion: Flora swims, one agent walks as an active ragdoll. **MVP = weeks 1–4;** everything after is stretch.
 
-**Logic gap found and fixed in this draft:** the cast contradicted itself (the summary said the player is "not Neo"; the Construct made the player Neo). Resolved: **your agent is Neo**, you're the Oracle, **the Architect is the architecture** (the editor, harness, and multiplexer that build the world), and the skills loadout moved to your agent.
+**Logic gap found and fixed in this draft:** the cast contradicted itself (the summary said the player is "not Neo"; the Construct made the player Neo). Resolved: **you are Neo**, **your agent is your digital twin** (and the one-wow agent), and **the Architect is the architecture**: the editor, harness, and multiplexer that build the world.
