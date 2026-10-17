@@ -160,6 +160,14 @@ Anything the game reflects from real life is declared in data, never coded. A mi
           {:id :cancel-trial  :by "2026-11-14" :needs :signature}]}
 ```
 
+- **Add your own creatures: live, virtual, or remembered.** Any pet is a mirror you declare, with a mode:
+  - `:live` (the default) mirrors the real animal's state and chores.
+  - `:virtual` keeps a creature on the estate with no needs: it never gets hungry and never jacks you out. For when you want the company, not the chores.
+  - `:memorial` keeps pets who have died: every dog you've ever had can still lie in the sun on the porch. Memorial pets need nothing, never speak as if they were alive, and only you can add one.
+
+  ```clojure
+  {:id :rex :kind :creature :model :dog :home :porch :mode :memorial :years "2004–2016"}
+  ```
 - **Nicknames work:** "walked Bisco" and "Biscuit's walked" reach the same dog.
 - **You're only reminded of (and jacked out for) your own chores.** Someone else's chore shows as the household being on it, never as your "!".
 - **The business is a mirror too.** Pepper keeps it: a free trial about to bill you or a form to sign becomes a folder on her desk with a countdown.
@@ -191,7 +199,7 @@ Every program loads instantly as a pretend version (§4.6), so the Construct wor
 
 ## 3. AI Architecture
 
-**The twin rule.** Every character is the in-world body of something real. Your agent is your digital twin: for the author that's Hal, who *is* his actual bot, not a character played by a model: his status bubble is his live session, his memory is the bot's memory, and when the bot learns a skill, Hal gains an ability on the estate. Workers are real coding sessions. Flora and Biscuit are real animals. A twin shows only what its counterpart's real state says; in demo mode the counterpart is a clearly pretend connection, never a fake passed off as real.
+**The twin rule.** Every character is the in-world body of something real. Your agent is your digital twin: for the author that's Hal, who *is* his actual bot, not a character played by a model: his status bubble is his live session, his memory is the bot's memory, and when the bot learns a skill, Hal gains an ability on the estate. Workers are real coding sessions. Flora and Biscuit are real animals. A twin shows only what its counterpart's real state says; in demo mode the counterpart is a clearly pretend connection, never a fake passed off as real. Virtual and memorial creatures (§2.5) are the declared exception: they show no needs, so nothing pretends to be live.
 
 **A character means a separate identity.** A character gets its own body only if it has its own account, credentials, and memory. Scheduled jobs that run *as* Hal are his **errands**, not extra characters: at 8:15 Hal walks to the notice board and pins the brief; when a text arrives, he answers the phone booth.
 

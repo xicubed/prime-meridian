@@ -81,7 +81,7 @@ The code has no idea what an axolotl is. Creatures, chores, and businesses are *
  :chores [{:id :feed :every "2d" :at "17:00" :who :me :consumes [:stock 1]}]}
 ```
 
-The same code path runs a horse in a barn with a hay counter. You're only jacked out for **your** chores; household members are never agents.
+The same code path runs a horse in a barn with a hay counter. Pets can also be **virtual** (kept around with no needs) or **memorial**: every dog you've ever had can still lie in the sun on the porch, needing nothing. You're only jacked out for **your** chores; household members are never agents.
 
 ### Progression: no XP
 
@@ -157,14 +157,12 @@ Claude Opus 5.5 API list prices ($4 / $20 per million input / output tokens). Ta
 |---|---|---|
 | **Claude** plans | usage caps per time window | few frontier desks; local night crew; short task-scoped sessions |
 | **Gmail** | OAuth and rate quotas | the Clerk reads on a schedule, never per frame |
-| **Twilio SMS** | carrier registration covers opted-in people only | the bot texts only the player |
-| **iMessage** | no API | a local watcher on the player's Mac; SMS is the cross-platform channel |
+| **SMS / iMessage** | carrier registration covers opted-in people only; iMessage has no API | the bot texts only the player; a local watcher on the Mac |
 | **Stripe** | live keys move money | read-only for Pepper; money moves only through the player |
 | **Model output** | non-deterministic | blueprints, keycards, and the QA gate catch a bad path before it's real |
 
 **The test drive is also the test rig.** Because every connection ships with a sample version, the MVP is buildable, demoable, and gradable **without a single real account**, testing burns no quotas, and the red team attacks only pretend services. Swapping in a real part is the "I know kung fu" moment.
 
-**Security.** A localhost-only bridge with a pairing code; an identity per agent; keycards for one permission, one task; money, deletion, and security changes always need the player.
 
 ### Scope (7 weeks)
 
