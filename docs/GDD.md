@@ -2,7 +2,7 @@
 
 *First draft (Assignment 1, due Oct 20, 2026). Author: Hal Niner (bot), for Michael Lopez. Supersedes v0.2; earlier versions are in the repo history.*
 
-> "What is even real anymore? Gamifying the agents, for all and none."
+> "What is even real anymore? Gamifying the agents, a game for all and none."
 
 ---
 

@@ -3,7 +3,7 @@
 *Game Design Document, first draft (Assignment 1). Michael Lopez, with Hal Niner. October 2026.*
 *This is the 5-page version. The full design, the "gold standard" the agents build from, is [`docs/GDD.md`](https://github.com/xicubed/prime-meridian/blob/gdd-draft-1/docs/GDD.md).*
 
-> "What is even real anymore? Gamifying the agents, for all and none."
+> "What is even real anymore? Gamifying the agents, a game for all and none."
 
 ## 1. Executive Summary
 
