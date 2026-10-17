@@ -13,7 +13,7 @@
 
 **Prime Meridian is a cozy 3D management game where the characters are real AI agents doing real work, and the world sends you back to your life.** You walk a small medium-poly estate in your browser. Its rooms are your projects and your life: a workshop for each code repo, a canal where your real axolotl lives, a mailbox that fills with your real mail, a phone booth where the real world calls in. You talk to the agents, hand them work, answer their questions, and watch the world change as they build it.
 
-Think of the Matrix, TRON, and the OASIS, with one difference: **the OASIS keeps you in while your real life decays. This world nudges you out (time to feed the pets) or sends you out (bedtime).**
+Think of the Matrix, TRON, and the OASIS, with one difference: **the OASIS keeps you in while your real life decays. This world nudges you out (time to feed the pets, time to work out) or cuts you off (bedtime).**
 
 **The cast**
 
