@@ -134,7 +134,7 @@ The agents that **build** the game. Each is a persistent persona on a fresh, tas
 | **Asset Scraper** | Fetches free models and sounds and records each one's license. |
 | **Business Manager (Pepper)** | Keeps the company ready to sell the game: payments, store page, policies. |
 
-**One wow: your digital twin (Hal).** You load a program and watch your twin carry it out into the half-barren estate, which gains the building that goes with it. Ask it for a nicer river, it hands the job to the Environment Artist, and the water changes in front of you. **v1 staffs five:** Producer, Lead Architect, Gameplay Engineer, Environment Artist, QA. The rest join when their milestone needs them. Strategic roles get frontier models with maximum reasoning; utility work runs on local models or plain scripts.
+**One wow: your digital twin (Hal).** You load a program and watch your twin carry it out into the half-barren estate, which gains the building that goes with it. Ask it for a nicer river, it hands the job to the Environment Artist, and the water changes in front of you. **v1 staffs five:** Producer, Lead Architect, Gameplay Engineer, Environment Artist, QA. The rest join when their milestone needs them.
 
 ### Token budget
 
@@ -165,10 +165,10 @@ Claude Opus 5.5 API list prices ($4 / $20 per million input / output tokens). Ta
 
 **The test drive is also the test rig.** Because every connection ships with a sample version, the MVP is buildable, demoable, and gradable **without a single real account**, testing burns no quotas, and the red team attacks only pretend services. Swapping in a real part is the "I know kung fu" moment.
 
-**Security.** The bridge listens only on localhost with a pairing code; each agent has its own identity; keycards grant one permission for one task; money, deletion, and security changes always need the player.
+**Security.** A localhost-only bridge with a pairing code; an identity per agent; keycards for one permission, one task; money, deletion, and security changes always need the player.
 
 ### Scope (7 weeks)
 
 **Week 1** GDD + scaffold *(done)* · **2** estate v0, sample connections, three mock workers, HUD · **3** the bridge: real statuses, Flora's real worm count, **the snap** end to end · **4** talk: converse, replies stream as bubbles · **5** "!" walks to you, jack in/out, closing time · **6** street cred, first life chapter · **7** physical motion: Flora swims, one agent walks as an active ragdoll. **MVP = weeks 1–4;** everything after is stretch.
 
-**Logic gap found and fixed in this draft:** the cast contradicted itself (the summary said the player is "not Neo"; the Construct made the player Neo). Resolved: **the player is Neo**, **your agent is your digital twin** (and the one-wow agent), **the Oracle is the author**, and **the Architect is the architecture**: the editor, harness, and multiplexer that build the world.
+**Logic gap fixed in this draft:** the cast contradicted itself (the summary said the player is "not Neo"; the Construct made the player Neo). Now: the player is Neo, your agent is your twin, the Oracle is the author, the Architect is the architecture.
