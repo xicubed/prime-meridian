@@ -38,6 +38,7 @@
 
 - **You are Neo.** You jack in, you load programs ("I know kung fu"), and the whole world turns on you: you know what no program can (what you want, what matters, what "good" looks like), so the agents come to you.
 - **Your agent is your digital twin** (for the author, his bot Hal), and the one-wow agent. It's your body in the digital world, always on while you're out: it carries your loadout, runs your errands, hands work to the crew, and spruces up the half-barren estate. You're its hands in the physical world.
+- **The Oracle is the author** (Michael): the human who designed the path, knows where it leads, and approves every change the crew makes. On his own machine he happens to be both: the Oracle who designs the game and Neo who plays it.
 - **The Architect is the architecture.** Not a character you play: the system that designs and rebuilds the world. For the author it's Hermes running inside his editor (Zed), driving Herdr, which reaches across machines (the Mac where the agent lives, a GPU box for local models, physics, and Blender) and puts every crew session side by side. In-game it's **the Architect's room**: a wall of monitors, one per live agent session on any machine, the whole crew at a glance.
 
 **Design pillars**
@@ -258,7 +259,7 @@ No TypeScript.
 The agents that **build** the game (the runtime agents in §3 *run* inside it). Each crew member is a persistent **persona** (name, look, history) re-bound to a fresh, task-scoped session for every task, so the cast persists without long, expensive sessions. Each one is also a visible worker in the game's own workshop, and each edits only the files it owns.
 
 ```
-Director (Michael, human): vision, approves every change
+Director, the Oracle (Michael, human): vision, approves every change
  ├─ Lead Architect: systemic design decisions, owns the blueprint
  ├─ Producer (Hal ★, your agent): breaks work down, dispatches, tracks
  │   ├─ Design:      Game Designer · Writer
@@ -407,7 +408,7 @@ Medium-poly, flat-shaded, warm palette, soft shadows: a diorama you'd keep on a 
 
 ## 7. Open Questions
 
-**Logic gap found and fixed (first draft):** the cast contradicted itself. The executive summary said the player is the Oracle and "not Neo", while the Construct made the player Neo. Resolved: **you are Neo** (nobody wants to play a game where they aren't), **your agent is your digital twin** and the one-wow agent, and **the Architect is the architecture**: the editor, agent harness, and multiplexer that build the world across machines. Your loadout is yours, carried by your twin (§2.6).
+**Logic gap found and fixed (first draft):** the cast contradicted itself. The executive summary said the player is the Oracle and "not Neo", while the Construct made the player Neo. Resolved: **the player is Neo** (nobody wants to play a game where they aren't), **your agent is your digital twin** and the one-wow agent, **the Oracle is the author** (on his own machine he's both), and **the Architect is the architecture**: the editor, agent harness, and multiplexer that build the world across machines. Your loadout is yours, carried by your twin (§2.6).
 
 1. Single estate or one per profile (personal vs. work)? *(Lean: one estate, buildings per profile, later.)*
 2. Voice in and out, or text only? *(Lean: text for the course; voice is a stretch.)*
