@@ -6,7 +6,20 @@ Legend: `[ ]` open · `[~] name` claimed · `[x] #PR` or `[x] <date>` done. Top-
 - [x] #1 Game Design Document
 - [x] #2 shadow-cljs + three.js scaffold, spinning cube, AGENTS.md, this file
 
+## Second draft (Assignment 2, due about a week after Oct 20; confirm the date from the assignment PDF)
+Plan of record: [`docs/session-2026-10-17.md`](docs/session-2026-10-17.md) §7. Gold standard first (`docs/GDD.md`), then re-condense `docs/GDD-submission.md` (≤ 6 pages).
+- [ ] D-1 Save the Assignment 2 PDF to `assets/private/course/`; gap-check the draft against its rubric.
+- [ ] D-2 Michael decides open questions A–F (GDD §7); decisions go into the body, the rest stay leans.
+- [ ] D-3 Michael rewrites the design pillars in his own voice; the Writer drafts original Construct lines (no film quotes).
+- [ ] D-4 Revise `GDD.md` from the review board's multi-agent findings (forged "!", approval fatigue, stalled agents, curated MCP set, sample-to-real); answer or explain the standard-game findings in one line each.
+- [ ] D-5 Re-condense `GDD-submission.md`; render the PDF into `docs/`.
+- [ ] D-6 Rerun the review kit Rounds 1–4 on the new submission; archive to `docs/reviews/<date>-draft2/`; report BLOCKING 11 → ?.
+- [ ] D-7 Post the draft in the class Discord feedback thread for human feedback.
+- [ ] D-8 Diff vs `gdd-draft-1` as a section table; tag `gdd-draft-2`; submit.
+
 ## Week 2 — World v0 (estate + mock agents)
+> Rewrite these from the re-cut MVP (GDD §4.8) before starting: no XP or tank; add the static "!", the motion-controller interface with kinematic paths, and the four bridge events as mock data.
+- [ ] W2-0 Rewrite the W2 tasks below from the current GDD (one evening, do first).
 - [ ] W2-1 `pm.world`: world-state shape. `{:rooms {id {:name :pos :size}} :agents {id {:name :room :status :pos :target}} :tank {:worms :hungry?} :mailbox {:count}}`. Pure fns: `spawn-agent`, `set-status`, `step` (advance movement toward `:target` by dt). Unit-testable, no three.js.
 - [ ] W2-2 `pm.scene`: render rooms from state — cutaway room boxes (floor + 2 back walls) floating on a dark grid void, Ralv-style; colored floor per room; label sprite under each; lobby, tank room, mailbox, one workshop. Elevated 3/4 camera framed to the estate; sun shadow frustum sized to the estate.
 - [ ] W2-3 Characters: import KayKit character GLTF (CC0; vendor the files under `public/assets/kaykit/` with its license) via GLTFLoader in the wrapper; idle + walk animation clips; one color/hat variant per agent; `pm.scene` syncs agent positions from state each frame (reuse objects, don't rebuild).
