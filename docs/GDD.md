@@ -6,6 +6,9 @@
 
 ---
 
+![Blue hour on the estate: the creek and the cottage](screen-01.jpg)
+*Blue hour on the estate: the creek and the cottage (work in progress).*
+
 ## 1. Executive Summary
 
 *You wake up. At least you think you're awake. Someone had better damn well make some coffee... Your lips pull in the hot liquid as you boot up. Who are you kidding? You don't boot up anymore. Your agents are always on. Let's see what they came up with while you slept.*
