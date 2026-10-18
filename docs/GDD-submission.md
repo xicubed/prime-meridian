@@ -161,6 +161,8 @@ Claude Opus 5.5 API list prices ($4 / $20 per million input / output tokens). Ta
 
 **My biggest constraint is agent latency, because** real agents take seconds to minutes to answer and a game has to feel alive every frame. So the world never waits on a model: characters animate thinking, you can walk away, replies arrive as events, and progress shows step by step.
 
+**Limits are part of the world.** Every multi-agent setup hits caps, rate limits, and quotas, so agents stay ahead of them: one nearing a limit parks its step, says so ("almost out of juice, parking this at step 3"), hands back its keycards, and sits down to rest. It bows out gracefully instead of failing.
+
 | API / service | Constraint | How the design handles it |
 |---|---|---|
 | **Claude** plans | usage caps per time window | few frontier desks; local night crew; short task-scoped sessions |
@@ -169,7 +171,7 @@ Claude Opus 5.5 API list prices ($4 / $20 per million input / output tokens). Ta
 | **Stripe** | live keys move money | read-only for Pepper; money moves only through the player |
 | **Model output** | non-deterministic | blueprints, keycards, and the QA gate catch a bad path before it's real |
 
-**The test drive is also the test rig.** Because every connection ships with a sample version, the MVP is buildable, demoable, and gradable **without a single real account**, testing burns no quotas, and the red team attacks only pretend services. Swapping in a real part is the "I know kung fu" moment.
+**The test drive is also the test rig.** Because every connection ships with a sample version, the MVP is buildable, demoable, and gradable **without a single real account**, testing burns no quotas, and the red team attacks only pretend services. Swapping in a real part is the "I know kung fu" moment. The swap is literal: the sample inbox is `me@acme.com`; connect your real Gmail and the same mailbox on the estate fills with your real mail.
 
 
 ### Scope (7 weeks)

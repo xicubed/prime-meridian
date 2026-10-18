@@ -341,6 +341,8 @@ So each play session (about 20 talk turns plus 3 assigned tasks) costs about **$
 
 **My biggest constraint is agent latency, because** real agents take seconds to minutes to answer and a game has to feel alive every frame. The world therefore never waits on a model: characters animate *thinking*, the player can walk away, replies arrive as events, and work in progress shows step by step (*reading → writing → tests passing*), so there's a small payoff every few seconds.
 
+**Limits are part of the world: stay ahead of them, bow out gracefully.** Any multi-agent setup runs into usage caps, rate limits, quotas, and full context windows, so the game plans for them instead of treating them as errors. The bridge tracks each agent's usage against its plan's cap and the clock, and the night shift is scheduled with the caps in mind. An agent nearing a limit finishes or parks its current step before it hits the wall, says so in the world ("I'm almost out of juice for today, so I'm parking this at step 3"), hands back its keycards, and sits down to rest: a tired pose, not a red error. If one hits a limit anyway, the bridge marks it stalled, the same graceful exit. Its work waits as a blueprint, and it picks up when the limit resets.
+
 Secondary constraints:
 
 - **The builders can't see the screen.** Agents verify through a HUD the render loop writes to (frame count, sim time, renderer backend); real visual review uses the player's screenshots.
@@ -364,7 +366,7 @@ Secondary constraints:
 
 This is the engineering side of "batteries not included" (§1): the sample parts ship with the kit, and the real ones are yours to bring.
 
-Every outside connection has a built-in pretend version: fake inboxes, fake phone numbers, fake accounts, scripted agents. A connection you haven't set up runs on its pretend version; setting it up swaps in the real one through the same message format, with no code changes.
+Every outside connection has a built-in pretend version: fake inboxes, fake phone numbers, fake accounts, scripted agents. A connection you haven't set up runs on its pretend version; setting it up swaps in the real one through the same message format, with no code changes. The swap is literal: the pretend inbox is `me@acme.com`, where Hal, the agents, and your chores write to you; connect your real Gmail and the same mailbox on the estate now holds your real mail. Nothing else about the game changes, and that moment is when "real, not simulated" comes true for mail.
 
 | Connection | Pretend version | Real version |
 |---|---|---|
