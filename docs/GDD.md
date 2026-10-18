@@ -7,7 +7,7 @@
 ---
 
 ![Blue hour on the estate: the creek and the cottage](screen-01.jpg)
-*Blue hour on the estate: the creek and the cottage (work in progress).*
+*Blue hour on the estate: the creek and the cottage (work in progress). Scene: [Hiroshi's Island](https://3ditions.drop3.app/watch/hiroshis-island/) by 3DITIONS (Pixel Palms / Cocotofy LLC), used under license.*
 
 ## 1. Executive Summary
 
