@@ -1,7 +1,7 @@
 # Prime Meridian
 
 *Game Design Document, first draft (Assignment 1). Michael Lopez, with Hal Niner. October 2026.*
-*This is the 5-page version. The full design, the "gold standard" the agents build from, is [`docs/GDD.md`](https://github.com/xicubed/prime-meridian/blob/gdd-draft-1/docs/GDD.md).*
+*This is the 5-page version. The full design, the "gold standard" the agents build from, is [`docs/GDD.md`](https://github.com/xicubed/prime-meridian/blob/main/docs/GDD.md).*
 
 > "What is even real anymore? Gamifying the agents, a game for all and none."
 
@@ -26,6 +26,8 @@ Think of the Matrix, TRON, and the OASIS, with one difference: **the OASIS keeps
 - **Your agent is your digital twin** (for the author, his bot Hal). It's your body in the digital world, always on while you're out: it carries your loadout, runs your errands, and spruces up the half-barren estate. You're its hands in the physical one.
 - **The Oracle is the author** (Michael), who designed the path and approves every change. Playing on his own machine, he's both Oracle and Neo. But eventually you become your own Oracle and study the psychology of the humans and bots.
 - **The Architect is the architecture:** Hermes running inside the editor (Zed), driving Herdr, which reaches across machines (the Mac where the agent lives, a GPU box for local models and physics) to run the whole crew side by side. In-game the Architect's twin sits in **the Architect's room**, inside a wall of monitors, one per live agent session, and that wall is all he sees. You see the whole game, with him in his room of monitors... like when Dorothy visited Oz: the world he "created" is just a little code, yet it expands out into real life.
+
+*Film references (The Matrix, TRON, Ready Player One, The Wizard of Oz) are shorthand for feelings you already recognize, not the films' characters or lines; the shipped game uses original names and dialogue.*
 
 **Genre:** cozy management / life sim whose cast is real AI agents. **Platform:** the estate renders in your browser (three.js, WebGPU), but you play **everywhere your agent lives**: your editor, phone, mail, calendar, blog, and online accounts (Google, Claude, Hermes, Muse, Twilio…), across your machines. **Audience:** people who already run an AI agent.
 
@@ -94,7 +96,7 @@ The same code path runs a horse in a barn with a hay counter. Pets can also be *
 
 ### The first hour: the Construct
 
-Neo's first day out of the pod. White screen. Your digital twin steps out of nowhere, playing Morpheus: *"Welcome to the Construct."* A rack of **every skill and MCP connector out there** scrolls past like the film's weapons racks. Load one and your eyes snap open (*"I know kung fu."* *"Show me."*); load mail, and a mailbox drops out of the white sky. Then the sparring match: your twin hands a worker a practice job ("make that rock rounder"), the worker runs to you with "!", you answer, a blueprint appears, you approve, and the rock changes. **Five minutes in, you've played the whole game.** The phone rings with a pretend chore; you jack out and back in. The white dissolves into your half-barren estate: *"I can only show you the door. You're the one that has to walk through it."* ([full Construct](https://github.com/xicubed/prime-meridian/blob/gdd-draft-1/docs/GDD.md#27-the-first-hour-the-construct))
+Neo's first day out of the pod. White screen. Your digital twin steps out of nowhere, playing Morpheus: *"Welcome to the Construct."* A rack of **every skill and MCP connector out there** scrolls past like the film's weapons racks. Load one and your eyes snap open (*"I know kung fu."* *"Show me."*); load mail, and a mailbox drops out of the white sky. Then the sparring match: your twin hands a worker a practice job ("make that rock rounder"), the worker runs to you with "!", you answer, a blueprint appears, you approve, and the rock changes. **Five minutes in, you've played the whole game.** The phone rings with a pretend chore; you jack out and back in. The white dissolves into your half-barren estate: *"I can only show you the door. You're the one that has to walk through it."* ([full Construct](https://github.com/xicubed/prime-meridian/blob/main/docs/GDD.md#27-the-first-hour-the-construct))
 
 ## 3. AI Architecture
 
