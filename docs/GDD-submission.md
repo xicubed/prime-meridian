@@ -62,7 +62,7 @@ Think of the Matrix, TRON, and the OASIS, with one difference: **the OASIS keeps
 | **Approve** | Changes appear first as a **blueprint**, a ghosted version. Approve and it becomes real; reject and it vanishes. |
 | **Hand out a keycard** | An agent that needs a permission asks for a keycard. Every key that's out is visible and comes back when the task ends. |
 | **Set autonomy** | A dial per agent, from *ask before anything* to *fully autonomous*. You set trust; agents never earn it on their own. |
-| **Mark a chore done** | Reply "fed" to a text, click the canal, or tell your agent. Every channel sends the same event. |
+| **Mark a chore done** | Reply "fed" to a text, click the canal, or tell your agent. Every channel sends the same event, and only one counts per feeding window (no double worms); texts count only from known numbers. |
 
 ### Signature moments
 
@@ -87,7 +87,7 @@ The code has no idea what an axolotl is. Creatures, chores, and businesses are *
  :chores [{:id :feed :every "2d" :at "17:00" :who :me :consumes [:stock 1]}]}
 ```
 
-The same code path runs a horse in a barn with a hay counter. Pets can also be **virtual** (kept around with no needs) or **memorial**: every dog you've ever had can still lie in the sun on the porch, needing nothing. A `:personality` line in your own words ("barked at every truck, followed me room to room") becomes how it behaves, turned into behavior settings once, not per frame. You're only jacked out for **your** chores; household members are never agents... in v1. **Someday it goes multiplayer:** each person in the house brings their own twin, and the twins meet, trade chores, and negotiate the shared calendar ("our humans are both free Thursday"), with every human approving.
+The same code path runs a horse in a barn with a hay counter. Pets can also be **virtual** (kept around with no needs) or **memorial**: every dog you've ever had can still lie in the sun on the porch, needing nothing. When a live pet dies, only you move it to memorial: its chores stop counting toward your day, and your twin says so kindly and truthfully. A `:personality` line in your own words ("barked at every truck, followed me room to room") becomes how it behaves, turned into behavior settings once, not per frame. You're only jacked out for **your** chores; household members are never agents... in v1. **Someday it goes multiplayer:** each person in the house brings their own twin, and the twins meet, trade chores, and negotiate the shared calendar ("our humans are both free Thursday"), with every human approving.
 
 ### Progression: no XP
 
@@ -96,11 +96,11 @@ The same code path runs a horse in a barn with a hay counter. Pets can also be *
 
 ### The first hour: the Construct
 
-Neo's first day out of the pod. White screen. Your digital twin steps out of nowhere, playing Morpheus: *"Welcome to the Construct."* A rack of **every skill and MCP connector out there** scrolls past like the film's weapons racks. Load one and your eyes snap open (*"I know kung fu."* *"Show me."*); load mail, and a mailbox drops out of the white sky. Then the sparring match: your twin hands a worker a practice job ("make that rock rounder"), the worker runs to you with "!", you answer, a blueprint appears, you approve, and the rock changes. **Five minutes in, you've played the whole game.** The phone rings with a pretend chore; you jack out and back in. The white dissolves into your half-barren estate: *"I can only show you the door. You're the one that has to walk through it."* ([full Construct](https://github.com/xicubed/prime-meridian/blob/main/docs/GDD.md#27-the-first-hour-the-construct))
+Neo's first day out of the pod. White screen. Your digital twin steps out of nowhere, playing Morpheus: *"Welcome to the Construct."* A rack of programs scrolls past like the film's weapons racks, but your first one is chosen for you: **your own agent**, the red pill that makes the game real. It slams in and your eyes snap open (*"I know kung fu."* *"Show me."*). The rest of the rack (mail, GitHub, Blender) loads later from a vetted list, each starting as its sample version. Then the sparring match: your twin hands a worker a practice job ("make that rock rounder"), the worker runs to you with "!", you answer, a blueprint appears, you approve, and the rock changes. **Five minutes in, you've played the whole game.** The phone rings with a pretend chore; you jack out and back in. The white dissolves into your half-barren estate: *"I can only show you the door. You're the one that has to walk through it."* ([full Construct](https://github.com/xicubed/prime-meridian/blob/main/docs/GDD.md#27-the-first-hour-the-construct))
 
 ## 3. AI Architecture
 
-**The twin rule.** Every character is the body of something real. Your agent's bubble is its live session; workers are real coding sessions; Flora is a real axolotl. In demo mode the counterpart is clearly pretend, never a fake passed off as real. An agent raises "!" only by calling an explicit `ask_player` tool, so **a "!" always means a real question.**
+**The twin rule.** Every character is the body of something real. Your agent's bubble is its live session; workers are real coding sessions; Flora is a real axolotl. In demo mode the counterpart is clearly pretend, never a fake passed off as real. An agent raises "!" only by calling an explicit `ask_player` tool, and every "!" carries its source (which agent, which session), so **a "!" always means a real question** and one from an unknown process is refused.
 
 | Agent | Player sees (effect on play) |
 |---|---|
@@ -111,11 +111,13 @@ Neo's first day out of the pod. White screen. Your digital twin steps out of now
 | **Pepper** (business manager) | At her front-office desk; when something needs your signature, a folder appears and she walks it over. |
 | **Night crew** (local models) | Workshop lights on at night; a stack of blueprints at breakfast. |
 
-**Guardrails that shape play.** Purchases and messages to other people always need you. The agent that reads untrusted mail holds no credentials. The game learns your life only from what you connect (receipts, calendar), never from location tracking. Your agent coaches with your own words ("You said three workouts a week. One today?") and never shames or compares.
+**Guardrails that shape play.** Purchases and messages to other people always need you. The agent that reads untrusted mail holds no credentials, and its summaries go to you, never to an agent holding keycards. Keycards grant one permission for one task and time out; money, deletion, and security changes always need you. The game learns your life only from what you connect (receipts, calendar), never from location tracking. Your agent coaches with your own words ("You said three workouts a week. One today?") and never shames or compares.
 
 ## 4. Technical Strategy
 
-**Stack.** three.js 0.186 (`WebGPURenderer`, WebGL2 fallback) · ClojureScript via shadow-cljs (one immutable world map, hot reload) · a Babashka websocket bridge on the player's machine · agents on Hermes (your agent and its errands), Claude Code (the dev crew), and local open-weight models (the night crew) · **the Architect:** Hermes in Zed driving Herdr across a Mac and a GPU box; machines are declared data, so one laptop also works. **Physics:** Rapier through three.js's own helper. Characters are active ragdolls with a balance controller, so they stumble, recover, or fall like real bodies; Flora swims as a physical spine.
+**Stack.** three.js 0.186 (`WebGPURenderer`, WebGL2 fallback) · ClojureScript via shadow-cljs (one immutable world map, hot reload) · a Babashka websocket bridge on the player's machine · agents on Hermes (your agent and its errands), Claude Code (the dev crew), and local open-weight models (the night crew) · **the Architect:** Hermes in Zed driving Herdr across a Mac and a GPU box; machines are declared data, so one laptop also works. **Motion:** in the MVP characters walk on scripted (kinematic) paths through one motion-controller interface, and "!" is a static marker. Physical motion comes later through the same interface: Rapier active ragdolls that stumble and recover, and Flora swimming as a physical spine.
+
+**The bridge** speaks four events (agent → you `question`, you → agent `answer`, real life → world `chore-done`, life → you `jack-out`), listens only on localhost with a pairing code, and marks an agent **stalled** on its own when it stops reporting (say, its usage cap ran out), so nothing shows busy forever.
 
 ### Agent roles: the dev crew
 
@@ -172,6 +174,6 @@ Claude Opus 5.5 API list prices ($4 / $20 per million input / output tokens). Ta
 
 ### Scope (7 weeks)
 
-**Week 1** GDD + scaffold *(done)* · **2** estate v0, sample connections, three mock workers, HUD · **3** the bridge: real statuses, Flora's real worm count, **the snap** end to end · **4** talk: converse, replies stream as bubbles · **5** "!" walks to you, jack in/out, closing time · **6** street cred, first life chapter · **7** physical motion: Flora swims, one agent walks as an active ragdoll. **MVP = weeks 1–4;** everything after is stretch.
+**Week 1** GDD + scaffold *(done)* · **2** estate v0, sample connections, three mock workers, a static "!" over whoever needs you, HUD · **3** bridge spike on the written event schema: real statuses, Flora's real worm count, **the snap** end to end · **4** **the whole loop:** talk → answer → approve → the world changes, plus jack in/out and closing time · **5** "!" walks to you; street cred · **6** first life chapter · **7** physical motion (stretch). **MVP = weeks 1–4, and it closes the full loop.** Deferred in writing: walking "!", progression, real connectors beyond your own agent, physics.
 
 **Logic gap fixed in this draft:** the cast contradicted itself on who is Neo. Now: the player is Neo, your agent is your twin, the Oracle is the author, the Architect is the architecture.

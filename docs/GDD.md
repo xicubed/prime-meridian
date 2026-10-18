@@ -72,7 +72,7 @@
 | **Hand out a keycard** | When an agent needs a permission for a task ("write access to the river shader"), it asks you for a keycard. Every key that's out is visible, and it comes back when the task ends. |
 | **Possess** | Toggle direct control of one agent: the camera follows it, your messages go straight to it, and you see what it sees on a desk screen, not a pop-up. |
 | **Set autonomy** | A dial per agent: *ask before anything* · *ask before approving* · *fully autonomous*. You set trust; agents never earn it on their own. |
-| **Mark a chore done** | Reply "fed" to the reminder text, click the canal, tap an NFC sticker on the tank, or tell Hal. Every channel sends the same `chore-done` event. |
+| **Mark a chore done** | Reply "fed" to the reminder text, click the canal, tap an NFC sticker on the tank, or tell Hal. Every channel sends the same `chore-done` event. Only one counts per due window (the chore's `:every` defines it), so a text and a click don't drop two worms; texts count only from known senders; restocking is a manual event in v1. |
 | **Do it yourself** | You can always do the work directly (edit a rock in Blender and drop it in; the world hot-reloads it). It's allowed, just not the main way to play. |
 
 **Reading the estate (status vocabulary)**
@@ -169,7 +169,7 @@ Anything the game reflects from real life is declared in data, never coded. A mi
 - **Add your own creatures: live, virtual, or remembered.** Any pet is a mirror you declare, with a mode:
   - `:live` (the default) mirrors the real animal's state and chores.
   - `:virtual` keeps a creature on the estate with no needs: it never gets hungry and never jacks you out. For when you want the company, not the chores.
-  - `:memorial` keeps pets who have died: every dog you've ever had can still lie in the sun on the porch. Memorial pets need nothing, never speak as if they were alive, and only you can add one.
+  - `:memorial` keeps pets who have died: every dog you've ever had can still lie in the sun on the porch. Memorial pets need nothing, never speak as if they were alive, and only you can add one. When a live pet dies, only you move it to memorial: its chores stop counting toward "your own chores done", and your twin says so kindly and truthfully, never "I'm hungry" from an animal that's gone.
 
   ```clojure
   {:id :rex :kind :creature :model :dog :home :porch :mode :memorial :years "2004–2016"
@@ -197,7 +197,7 @@ There is no XP. Progression belongs to **you**: your street cred, and your loado
 *"I know kung fu."* Your first hour is Neo's first day out of the pod.
 
 1. **Jack in.** White screen. Silence. Then your digital twin steps out of nowhere (Hal, for the author), playing Morpheus for this one scene: *"Welcome to the Construct. It's our loading program. We can load anything, from tools to skills to whole buildings."*
-2. **Load your programs.** A rack of programs scrolls past like the weapons racks in the film, and it's huge: **every skill an agent can learn and every MCP connector out there**, from mail, calendar, and a phone line to GitHub, Blender, Stripe, Notion, maps, and smart-home devices. Pick one and it slams in with a flicker: your eyes snap open (*"I know kung fu."* *"Show me."*), a new tool hangs on your twin's belt, and the matching building drops out of the white sky.
+2. **Load your programs.** A rack of programs scrolls past like the weapons racks in the film, and it's huge: skills and MCP connectors from mail, calendar, and a phone line to GitHub, Blender, Stripe, Notion, maps, and smart-home devices. But your first program is chosen for you: **your own agent**, the red pill that makes the game real (never mail, which many players can't connect on day one). It slams in with a flicker: your eyes snap open (*"I know kung fu."* *"Show me."*), a new tool hangs on your twin's belt, and the matching building drops out of the white sky.
 3. **The sparring match.** The whole loop in miniature: your twin hands a practice job to a worker ("make that rock rounder"), the worker gets stuck and runs to you with a "!", you answer, and a blueprint of the rounder rock appears. Approve it and the rock changes in front of you. Five minutes in, you've played the whole game.
 4. **The jump program.** Your twin shows you the hardline (the phone booth) and the one rule that matters: *"When real life calls, you go."* The phone rings with your first pretend chore, you jack out, and you jack back in.
 5. **Free your mind.** The white space dissolves into your estate: half-barren, with only the buildings for the programs you loaded. Your twin steps back: *"I can only show you the door. You're the one that has to walk through it."*
@@ -238,12 +238,12 @@ In my game, each agent takes an input and produces an output that the player see
 {:event :jack-out   :reason :appointment :who :household :text "Game at 6"}        ; life → you
 ```
 
-An agent raises "!" only by calling an explicit `ask_player` tool, so a "!" always means a real question.
+An agent raises "!" only by calling an explicit `ask_player` tool, so a "!" always means a real question. Every event carries its source (agent, session, machine); the bridge refuses events from unknown processes, and it marks an agent **stalled** on its own when it stops reporting (for example when its usage cap runs out), so nothing shows busy forever and its keycards come back.
 
 ### 3.2 Guardrails that shape play
 
 - **Purchases and messages to other people always need your approval.** Pepper reads, drafts, and reminds; you sign. Identity documents and bank numbers go straight from you to the provider.
-- **A reader with no keys.** The agent that reads untrusted content (mail, web pages) holds no credentials and returns only counts and summaries; agents with keys never read raw untrusted content. That's why the Clerk is its own character.
+- **A reader with no keys.** The agent that reads untrusted content (mail, web pages) holds no credentials and returns only counts and summaries; agents with keys never read raw untrusted content. That's why the Clerk is its own character. Its summaries go to you, never into an agent holding keycards.
 - **Your agent** (and any second agent you run) never spends money, messages another person, or changes trust settings without you, and it acts on your stated preferences, not guesses. As your coach it uses your own goals and words ("You said three workouts a week. One today?"), never shames, never compares, and points to real people if a slump looks like more than a slump.
 - **The game learns your life only from what you connect** (receipts, calendar, orders), never from location tracking, and every new building is proposed, never sprung on you.
 
@@ -269,7 +269,7 @@ No TypeScript.
 - **Characters are active ragdolls:** a skeleton of rigid bodies whose joint motors try to follow an animation pose, plus a balance controller that keeps the center of mass over the feet. When a push or a bad step overwhelms the motors, the body physically stumbles, recovers, or falls and gets back up, and no two falls look alike.
 - **Flora swims physically:** a spine of linked segments with buoyancy and water drag, a tail that pushes off the water, and the snap as a real lunge.
 - **Stylized look, real motion.** The figures stay medium-poly; the movement is what's realistic (the combination games like *Rain World* and *Exanima* use).
-- **Staged:** from week 2, every character moves through one *motion controller* interface (world state says "go there", the controller decides how the body gets there), so the MVP's simple waypoint movement can be swapped for physics without touching game logic. Flora is the first physical character, then the agents.
+- **Staged:** from week 2, every character moves through one *motion controller* interface (world state says "go there", the controller decides how the body gets there), so the MVP's simple waypoint movement can be swapped for physics without touching game logic. Flora is the first physical character, then the agents. **In the MVP, movement is kinematic (scripted paths) and "!" is a static marker;** the walking "!" and physics come after the MVP.
 
 ### 4.2 Agent roles: the dev crew
 
@@ -385,7 +385,7 @@ An agent can only do as much harm as its permissions allow, and these agents rea
 
 - **The bridge listens only on the player's own machine (localhost),** with a one-time pairing code so other websites can't reach it. The public game holds no data or credentials.
 - **No script sources** for mirrors in v1 (state comes from files and APIs only), and AI-generated mirror configs need the player's confirmation.
-- **Each agent has its own identity**, never the player's credentials; **keycards** grant one permission for one task and come back when it ends.
+- **Each agent has its own identity**, never the player's credentials; **keycards** grant one permission for one task, time out, and come back when it ends. Skills and MCP servers load from a vetted list, each starting as its sample version.
 - **Risk tiers:** reads are automatic, writes get a soft gate (a blueprint), and money, deletion, and security changes always need the player.
 
 ### 4.8 Scope and milestones
@@ -395,15 +395,15 @@ The course runs Tue/Thu: one milestone per week, with agents doing most of the b
 | Week | Milestone | Done when |
 |---|---|---|
 | 1 | **GDD + scaffold** | shadow-cljs builds and a cube spins in the browser *(done)* |
-| 2 | **World v0 + pretend connections** | the estate with lobby, canal, mailbox, and one workshop; three mock workers moving through the motion-controller interface; camera; HUD |
-| 3 | **Bridge v0 + message contract** | real agent statuses on the characters; Flora reads her real worm count; `ask_player` and `chore-done` work end to end (the snap) |
-| 4 | **Talk** | click an agent, converse, replies stream as bubbles |
-| 5 | **Questions + a day** | agents walk to you with "!" and resume on your answer; jack in and out; closing time and night-shift orders |
-| 6 | **Street cred + the first life chapter** | the estate flourishes or overgrows with your declared habits; household chores with owners |
-| 7 | **Physical motion** | Rapier in; Flora swims and snaps physically; one agent walks as an active ragdoll that can stumble and recover |
+| 2 | **World v0 + pretend connections** | the estate with lobby, canal, mailbox, and one workshop; three mock workers on scripted paths through the motion-controller interface; a static "!" over whoever needs you; camera; HUD |
+| 3 | **Bridge spike + event schema** | the four events written down and working: real agent statuses on the characters; Flora reads her real worm count; `ask_player` and `chore-done` end to end (the snap); stalled state |
+| 4 | **The whole loop** | talk → answer → approve a blueprint → the world changes; jack in and out; closing time and night-shift orders |
+| 5 | **Questions walk to you + street cred** | agents walk to you with "!" and resume on your answer; the estate flourishes or overgrows with your declared habits |
+| 6 | **The first life chapter** | household chores with owners; one chapter that can be won |
+| 7 | **Physical motion** *(stretch)* | Rapier in; Flora swims and snaps physically; one agent walks as an active ragdoll that can stumble and recover |
 | 8+ | **One life chapter per week** | gym, business, mail…; all agents physical; the river; sound; the public demo build on lotect.com |
 
-**MVP = weeks 1–4.** Everything after is stretch. The river and other showpiece visuals stay out of the MVP; Flora's snap is its signature moment.
+**MVP = weeks 1–4, and it closes the full loop** (the review board's top finding on the first draft). Deferred past the MVP, in writing: the walking "!", progression, real connectors beyond your own agent, and physics. The river and other showpiece visuals stay out of the MVP; Flora's snap is its signature moment.
 
 ---
 
@@ -426,6 +426,15 @@ Medium-poly, flat-shaded, warm palette, soft shadows: a diorama you'd keep on a 
 ## 7. Open Questions
 
 **Logic gap found and fixed (first draft):** the cast contradicted itself. The executive summary said the player is the Oracle and "not Neo", while the Construct made the player Neo. Resolved: **the player is Neo** (nobody wants to play a game where they aren't), **your agent is your digital twin** and the one-wow agent, **the Oracle is the author** (on his own machine he's both), and **the Architect is the architecture**: the editor, agent harness, and multiplexer that build the world across machines. Your loadout is yours, carried by your twin (§2.6).
+
+**From the review board on the first draft (for the second draft; see [`reviews/2026-10-17-draft1/SYNTHESIS.md`](reviews/2026-10-17-draft1/SYNTHESIS.md)):**
+
+- **A. Wellness game or productivity tool?** Is closing time a lock or a nudge? *(Lean: a wellness game that happens to run your work; closing time is a nudge you set yourself ("you asked me to send you home"), and the override is staged in-world, your twin walking you to the door, never silent.)*
+- **B. Can the game suggest raising an agent's autonomy?** *(Lean: no agent can start a trust change; the game shows each agent's track record, and any suggestion comes from game code on the notice board, never as a "!".)*
+- **C. What does "needing the game less" measure?** *(Lean: both halves of the long-term win: agents doing more (fewer "!"s per task) and you living more (time jacked out, chores done in person); neither counts alone.)*
+- **D. The Construct's original script.** *(Lean: the Construct stays v1 onboarding, cut down to one curated first connection, your own agent; write the original lines for the second draft.)*
+- **E. A second player.** Every approver in the design is the author; design for someone who isn't, including the switch from sample to real.
+- **F. Approval fatigue.** Fewer, grouped approvals, and reads that never ask.
 
 1. Single estate or one per profile (personal vs. work)? *(Lean: one estate, buildings per profile, later.)*
 2. Voice in and out, or text only? *(Lean: text for the course; voice is a stretch.)*
