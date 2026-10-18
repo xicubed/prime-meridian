@@ -180,7 +180,7 @@ Anything the game reflects from real life is declared in data, never coded. A mi
 - **The business is a mirror too.** Pepper keeps it: a free trial about to bill you or a form to sign becomes a folder on her desk with a countdown.
   - *Possible to-do: the front desk.* Catch every message to the business's public channels (the Lotect Messenger page, texts from anyone but the player) without letting strangers steer an agent: a plain script logs them, a Clerk with **no tools** sorts important from noise, and the morning brief gets one line ("Lotect page: 1 customer asking about the release date; 3 spam skipped"). Agents never reply to strangers on their own; the player decides, within Messenger's 24-hour reply window.
 - **A second example from the same code path,** so nothing is specific to one life: a horse in a barn with a hay counter; a roommate who waters the shared plant; a farm stand selling eggs through Square.
-- **Household members are not players or agents** and get no twin unless they want one. They can ring the hardline, and their shared-calendar events can be your appointments. The game sees only what they share, and anything sent to them needs your approval.
+- **Household members are not players or agents** and get no twin unless they want one. They can ring the hardline, and their shared-calendar events can be your appointments. The game sees only what they share, and anything sent to them needs your approval. *Someday (multiplayer, §7.7):* each household member can bring their own twin, and the twins meet, overlap, trade chores, and negotiate the shared calendar, with every human approving.
 - No mirror is required; an empty estate is still a valid estate.
 
 ### 2.6 Progression: street cred and your loadout

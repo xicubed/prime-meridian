@@ -85,7 +85,7 @@ The code has no idea what an axolotl is. Creatures, chores, and businesses are *
  :chores [{:id :feed :every "2d" :at "17:00" :who :me :consumes [:stock 1]}]}
 ```
 
-The same code path runs a horse in a barn with a hay counter. Pets can also be **virtual** (kept around with no needs) or **memorial**: every dog you've ever had can still lie in the sun on the porch, needing nothing. A `:personality` line in your own words ("barked at every truck, followed me room to room") becomes how it behaves, turned into behavior settings once, not per frame. You're only jacked out for **your** chores; household members are never agents.
+The same code path runs a horse in a barn with a hay counter. Pets can also be **virtual** (kept around with no needs) or **memorial**: every dog you've ever had can still lie in the sun on the porch, needing nothing. A `:personality` line in your own words ("barked at every truck, followed me room to room") becomes how it behaves, turned into behavior settings once, not per frame. You're only jacked out for **your** chores; household members are never agents... in v1. **Someday it goes multiplayer:** each person in the house brings their own twin, and the twins meet, trade chores, and negotiate the shared calendar ("our humans are both free Thursday"), with every human approving.
 
 ### Progression: no XP
 
