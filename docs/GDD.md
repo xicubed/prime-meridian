@@ -104,9 +104,10 @@
 **Signature moments**
 
 1. **The snap.** You mark Flora fed, a worm drops from the dock, Flora shoots up from the weeds, *snap*, a swirl of mud, the hungry bubble pops, and the worm jar shows one fewer.
-2. **A blueprint appears.** Scaffolding rises as a worker builds what you asked for; at breakfast it's waiting for your approval.
-3. **Closing time.** Last call, the estate goes to night, the workshop lights stay on.
-4. **Coming home.** You jack in and find things already handled while you were out.
+2. **"I know kung fu."** Agent skills, tools, and MCP servers are Neo's training programs: a skill (know-how), a tool (an ability), or an MCP server (a live line into a real service: mail, GitHub, Blender) loads in seconds, and suddenly your twin can do what it couldn't a moment ago. You load one, your eyes snap open, your twin gains the tool, and its building rises on the estate (§2.6, §2.7).
+3. **A blueprint appears.** Scaffolding rises as a worker builds what you asked for; at breakfast it's waiting for your approval.
+4. **Closing time.** Last call, the estate goes to night, the workshop lights stay on.
+5. **Coming home.** You jack in and find things already handled while you were out.
 
 ### 2.3 A day (one round)
 

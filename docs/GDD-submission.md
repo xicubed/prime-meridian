@@ -65,7 +65,7 @@ Think of the Matrix, TRON, and the OASIS, with one difference: **the OASIS keeps
 ### Signature moments
 
 1. **The snap.** You mark Flora fed. A worm drops from the dock, Flora shoots up from the weeds, *snap*, a swirl of mud, the hungry bubble pops, and the worm jar shows one fewer.
-2. **"I know kung fu."** You load a program. Your eyes snap open, your twin gains the tool, and its building rises on the estate.
+2. **"I know kung fu."** Agent skills, tools, and MCP servers are Neo's training programs: a skill (know-how), a tool (an ability), or an MCP server (a live line into a real service: mail, GitHub, Blender) loads in seconds, and suddenly your twin can do what it couldn't a moment ago. You load one, your eyes snap open, your twin gains the tool, and its building rises on the estate.
 
 ### A day is one round
 
