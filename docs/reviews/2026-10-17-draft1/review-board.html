@@ -1,0 +1,822 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design Review Board</title>
+<style>
+  :root {
+    --bg: #16181D;
+    --panel: #1F232B;
+    --text: #E8E6E1;
+    --muted: #8A8F98;
+    --rule: #2A2F38;
+    --blocking: #E5484D;
+    --major: #F5A623;
+    --minor: #5A6270;
+    --display: "Arial Narrow", "Helvetica Neue Condensed", "HelveticaNeue-CondensedBold", "Roboto Condensed", "Liberation Sans Narrow", sans-serif;
+    --body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 400 19px/1.5 var(--body);
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 72px 16px 0; }
+  @media (min-width: 720px) { .wrap { padding: 88px 32px 0; } }
+
+  .display {
+    font-family: var(--display);
+    font-stretch: condensed;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .eyebrow {
+    font-family: var(--display);
+    font-stretch: condensed;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.28em;
+    font-size: 15px;
+    color: var(--muted);
+    margin: 0 0 16px;
+  }
+
+  section { margin-top: 112px; }
+  .section-head { border-top: 1px solid var(--rule); padding-top: 28px; margin-bottom: 36px; }
+  .section-head h2 {
+    margin: 0;
+    font-size: clamp(36px, 5vw, 52px);
+    line-height: 0.95;
+    letter-spacing: -0.005em;
+  }
+  .section-head p { color: var(--muted); margin: 14px 0 0; max-width: 760px; }
+
+  /* Severity stamps: the signature element */
+  .stamp {
+    display: inline-block;
+    font-family: var(--display);
+    font-stretch: condensed;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 6px 8px 5px 10px;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    background: transparent;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .stamp.blocking { color: var(--blocking); }
+  .stamp.major { color: var(--major); }
+  .stamp.minor { color: var(--muted); border-color: var(--minor); }
+  .stamp.neutral { color: var(--text); border-color: var(--muted); }
+  .stamp.was { opacity: 0.45; }
+  .arrow { color: var(--muted); margin: 0 6px; font-size: 18px; vertical-align: middle; }
+
+  .chip {
+    display: inline-block;
+    font-size: 15px;
+    line-height: 1;
+    padding: 7px 10px;
+    border: 1px solid var(--muted);
+    border-radius: 3px;
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .label {
+    font-family: var(--display);
+    font-stretch: condensed;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* Masthead */
+  .masthead { display: grid; gap: 48px; }
+  @media (min-width: 900px) { .masthead { grid-template-columns: 1fr auto; align-items: end; } }
+  .masthead h1 {
+    margin: 0;
+    font-size: clamp(64px, 11vw, 120px);
+    line-height: 0.86;
+    letter-spacing: -0.015em;
+  }
+  .masthead .sub { color: var(--muted); font-size: 20px; margin: 18px 0 0; }
+  .verdict {
+    margin: 36px 0 0;
+    padding-left: 20px;
+    border-left: 1px solid var(--text);
+    font-size: 24px;
+    line-height: 1.35;
+    max-width: 720px;
+  }
+  .verdict .label { display: block; margin-bottom: 8px; }
+  .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--rule); }
+  @media (min-width: 900px) { .stats { grid-template-columns: repeat(3, 150px); border-top: 0; } }
+  .stat { padding: 20px 16px 0 0; }
+  @media (min-width: 900px) { .stat { padding: 0 0 0 20px; border-left: 1px solid var(--rule); } }
+  .stat .num {
+    display: block;
+    font-family: var(--display);
+    font-stretch: condensed;
+    font-weight: 700;
+    font-size: clamp(64px, 9vw, 96px);
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+  }
+  .stat .num.blocking { color: var(--blocking); }
+  .stat .label { display: block; margin-top: 10px; line-height: 1.3; }
+  .stat-note { grid-column: 1 / -1; color: var(--muted); font-size: 15px; margin: 16px 0 0; }
+  @media (min-width: 900px) { .stat-note { padding-left: 20px; } }
+
+  /* Top 5 */
+  .issues { display: grid; gap: 20px; }
+  .issue {
+    background: var(--panel);
+    border-radius: 4px;
+    padding: 28px 20px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4px 32px;
+  }
+  @media (min-width: 720px) { .issue { grid-template-columns: 110px 1fr; padding: 36px 40px 36px 28px; } }
+  .rank {
+    font-family: var(--display);
+    font-stretch: condensed;
+    font-weight: 700;
+    font-size: 92px;
+    line-height: 0.8;
+    color: var(--muted);
+    opacity: 0.35;
+    letter-spacing: -0.03em;
+  }
+  .issue .tags { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 16px; }
+  .issue .tags .label { margin-left: 8px; }
+  .issue h3 {
+    margin: 0;
+    font-weight: 600;
+    font-size: clamp(24px, 3vw, 30px);
+    line-height: 1.22;
+    letter-spacing: -0.005em;
+  }
+  .issue .note { color: var(--muted); margin: 14px 0 20px; font-size: 18px; }
+  .issue .chips .label { margin-right: 6px; }
+
+  /* Disagreements */
+  .disagreements { display: grid; gap: 28px; }
+  .dis { background: var(--panel); border-radius: 4px; padding: 28px 20px; }
+  @media (min-width: 720px) { .dis { padding: 36px 40px; } }
+  .dis h3 { margin: 0 0 24px; font-size: clamp(24px, 3vw, 30px); line-height: 1.2; font-weight: 600; }
+  .dis h3 .label { display: block; margin-bottom: 8px; }
+  .vs { display: grid; gap: 20px; }
+  @media (min-width: 820px) { .vs { grid-template-columns: 1fr 48px 1fr; gap: 0; } }
+  .side h4 {
+    margin: 0 0 12px;
+    font-family: var(--display);
+    font-stretch: condensed;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 24px;
+    line-height: 1.05;
+    letter-spacing: 0.01em;
+  }
+  .side .arg { margin: 14px 0 0; font-size: 18px; }
+  .side .arg b { font-weight: 600; }
+  .vs-mark {
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--display); font-stretch: condensed; font-weight: 700;
+    color: var(--muted); letter-spacing: 0.2em; font-size: 15px;
+    border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 6px 0;
+  }
+  @media (min-width: 820px) {
+    .vs-mark { border: 0; border-left: 1px solid var(--rule); margin-left: 23px; width: 1px; padding: 0; font-size: 0; }
+    .side + .vs-mark + .side { padding-left: 8px; }
+  }
+  .also { color: var(--muted); font-size: 18px; margin: 24px 0 0; }
+  .escalate { margin: 24px 0 0; padding-top: 18px; border-top: 1px solid var(--rule); font-size: 19px; }
+  .escalate .label { display: block; margin-bottom: 6px; }
+  .empty { color: var(--muted); font-size: 22px; }
+
+  /* Full board */
+  .tablist { display: none; }
+  .js .tablist {
+    display: flex; flex-wrap: wrap; gap: 0 4px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 36px;
+  }
+  .tab {
+    appearance: none; background: transparent; color: var(--muted);
+    border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px;
+    padding: 12px 14px 10px;
+    font-family: var(--display); font-stretch: condensed; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.08em; font-size: 18px;
+    cursor: pointer;
+  }
+  .tab:hover { color: var(--text); }
+  .tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--text); }
+  .tab:focus-visible { outline: 1px solid var(--text); outline-offset: 2px; }
+  .reviewer + .reviewer { margin-top: 96px; }
+  .js .reviewer + .reviewer { margin-top: 0; }
+  .reviewer-head h3 { margin: 0; font-size: clamp(30px, 4vw, 40px); line-height: 1; }
+  .reviewer-head .lens { color: var(--muted); margin: 12px 0 0; max-width: 820px; }
+  .reviewer-head .counts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; align-items: center; }
+  .sub-head { margin: 44px 0 4px; }
+  .finding { padding: 22px 0; border-bottom: 1px solid var(--rule); }
+  .sub-head + .finding { border-top: 1px solid var(--rule); }
+  .finding .sevline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 10px; }
+  .finding h4 { margin: 0; font-size: 21px; line-height: 1.3; font-weight: 600; }
+  .finding h4 .fid { color: var(--muted); font-weight: 400; margin-right: 8px; }
+  .finding p { margin: 8px 0 0; font-size: 18px; }
+  .finding .r2 { color: var(--muted); }
+  .finding .r2 .label { margin-right: 8px; }
+  .xlist { list-style: none; margin: 0; padding: 0; }
+  .xlist li { padding: 14px 0; border-bottom: 1px solid var(--rule); font-size: 18px; }
+  .xlist li:first-child { border-top: 1px solid var(--rule); }
+  .xlist .tgt { color: var(--muted); }
+  .credit { color: var(--muted); font-size: 18px; margin: 20px 0 0; }
+
+  footer { margin-top: 128px; border-top: 1px solid var(--rule); padding: 28px 0 64px; color: var(--muted); font-size: 16px; }
+  footer .method { color: var(--text); font-size: 18px; margin: 0 0 8px; letter-spacing: 0.02em; }
+  footer p { margin: 4px 0; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .fade { animation: fadeUp 0.6s ease-out both; }
+    .fade:nth-of-type(2) { animation-delay: 0.08s; }
+    .fade:nth-of-type(3) { animation-delay: 0.16s; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 1. MASTHEAD -->
+  <header class="masthead fade">
+    <div>
+      <p class="eyebrow">Design Review Board</p>
+      <h1 class="display">Prime<br>Meridian</h1>
+      <p class="sub">Game design document, first draft (5-page version) &middot; Reviewed 17 October 2026</p>
+      <p class="verdict"><span class="label">Verdict</span>Not ready to drive production. The change that matters most: re-cut the MVP so it closes the full loop against one mock worker.</p>
+    </div>
+    <div class="stats" aria-label="Board totals">
+      <div class="stat"><span class="num">31</span><span class="label">Total findings</span></div>
+      <div class="stat"><span class="num blocking">11</span><span class="label">Blocking</span></div>
+      <div class="stat"><span class="num">4</span><span class="label">Unresolved disagreements</span></div>
+      <p class="stat-note">Counts after Round 2 revisions. Round 1: 30 findings, 7 blocking.</p>
+    </div>
+  </header>
+
+  <!-- 2. TOP 5 ISSUES -->
+  <section class="fade" aria-labelledby="top5">
+    <div class="section-head">
+      <p class="eyebrow">01 &middot; Moderated synthesis</p>
+      <h2 id="top5" class="display">Top 5 Issues</h2>
+      <p>Ranked by severity &times; confidence. Each issue is tagged with how it came through cross-examination.</p>
+    </div>
+    <div class="issues">
+
+      <article class="issue">
+        <div class="rank" aria-hidden="true">1</div>
+        <div>
+          <div class="tags"><span class="stamp blocking">Blocking</span><span class="label">Cross-exam</span><span class="stamp neutral">Strengthened</span></div>
+          <h3>The 4-week MVP doesn&rsquo;t contain the game: no &ldquo;!&rdquo;, no jack-out or closing time, no progression, and core systems have no week at all.</h3>
+          <p class="note">All six reviewers engaged with it and none disputed it. The Round 2 re-cut proposals converged: a bridge spike, then talk with a static &ldquo;!&rdquo;, with closing time moved into the MVP.</p>
+          <div class="chips"><span class="label">Flagged by</span><span class="chip">Feasibility Lead</span><span class="chip">Business Analyst</span><span class="chip">Adversarial QA</span></div>
+        </div>
+      </article>
+
+      <article class="issue">
+        <div class="rank" aria-hidden="true">2</div>
+        <div>
+          <div class="tags"><span class="stamp blocking">Blocking</span><span class="label">Cross-exam</span><span class="stamp neutral">Strengthened</span></div>
+          <h3>The human approval gate the safety model depends on can be forged, and the game&rsquo;s own rewards wear it down.</h3>
+          <p class="note">Approval fatigue and the autonomy win condition were both upgraded to blocking. Feasibility Lead scoped the forged &ldquo;!&rdquo; to real accounts, since the MVP is mock-only.</p>
+          <div class="chips"><span class="label">Flagged by</span><span class="chip">Adversarial QA</span><span class="chip">Player Psychologist</span><span class="chip">Systems Designer</span></div>
+        </div>
+      </article>
+
+      <article class="issue">
+        <div class="rank" aria-hidden="true">3</div>
+        <div>
+          <div class="tags"><span class="stamp blocking">Blocking</span><span class="label">Cross-exam</span><span class="stamp neutral">Strengthened</span></div>
+          <h3>No player except the author is designed for, and the switch from sample to real (the payoff of &ldquo;real, not simulated&rdquo;) has no design.</h3>
+          <p class="note">Business Analyst upgraded the audience finding to blocking as the root cause (&ldquo;Every approver in the design is Michael&rdquo;). Feasibility Lead downgraded its integration-gate piece for the 7-week plan only.</p>
+          <div class="chips"><span class="label">Flagged by</span><span class="chip">Player Psychologist</span><span class="chip">Business Analyst</span><span class="chip">Narrative Critic</span><span class="chip">Feasibility Lead</span><span class="chip">Systems Designer</span></div>
+        </div>
+      </article>
+
+      <article class="issue">
+        <div class="rank" aria-hidden="true">4</div>
+        <div>
+          <div class="tags"><span class="stamp blocking">Blocking</span><span class="label">Cross-exam</span><span class="stamp neutral">Strengthened</span></div>
+          <h3>The bridge carries the whole design, yet it is unspecified and gets one week.</h3>
+          <p class="note">It picked up a new requirement from nearly every colleague: dedupe keys, &ldquo;!&rdquo; provenance, presence events, cap state, a stalled state and dial enforcement. No one disputed it.</p>
+          <div class="chips"><span class="label">Flagged by</span><span class="chip">Feasibility Lead</span><span class="chip">Adversarial QA</span></div>
+        </div>
+      </article>
+
+      <article class="issue">
+        <div class="rank" aria-hidden="true">5</div>
+        <div>
+          <div class="tags"><span class="stamp blocking">Blocking</span><span class="label">Cross-exam</span><span class="stamp neutral">Strengthened</span></div>
+          <h3>A real creature&rsquo;s failure or death has no truthful in-world response; the twin of a dead pet would keep saying &ldquo;I&rsquo;m hungry.&rdquo;</h3>
+          <p class="note">Four reviewers reached the dead-pet case independently. A dead Flora&rsquo;s chore still counts toward the daily win, and the snap ships in the MVP.</p>
+          <div class="chips"><span class="label">Flagged by</span><span class="chip">Narrative Critic</span><span class="chip">Adversarial QA</span><span class="chip">Player Psychologist</span><span class="chip">Business Analyst</span></div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- 3. THE DISAGREEMENT -->
+  <section class="fade" aria-labelledby="dis">
+    <div class="section-head">
+      <p class="eyebrow">02 &middot; Escalated to the designer</p>
+      <h2 id="dis" class="display">The Disagreement</h2>
+      <p>Conflicts from Round 2 that the board could not settle. Both positions are stated, followed by the decision being escalated.</p>
+    </div>
+    <div class="disagreements">
+
+      <article class="dis">
+        <h3><span class="label">Disagreement 1</span>Closing time: an enforced lock or an honest nudge?</h3>
+        <div class="vs">
+          <div class="side">
+            <h4>Keep the lock meaningful</h4>
+            <div class="chips"><span class="chip">Business Analyst</span><span class="chip">Narrative Critic</span></div>
+            <p class="arg"><b>Business Analyst:</b> Pillar 4 is the only differentiator from free agent dashboards. A bypassable lock with a one-tap override turns it into &ldquo;a cosmetic setting.&rdquo; Negotiating inside the fiction is fine; a free bypass is not.</p>
+            <p class="arg"><b>Narrative Critic:</b> the lock and jack-out are the only mechanics carrying the thesis. Overrides are allowed, &ldquo;but never invisibly.&rdquo;</p>
+          </div>
+          <div class="vs-mark" aria-hidden="true">VS</div>
+          <div class="side">
+            <h4>Make it an honest, overridable nudge</h4>
+            <div class="chips"><span class="chip">Player Psychologist</span><span class="chip">Feasibility Lead</span></div>
+            <p class="arg"><b>Player Psychologist:</b> on a work tool, a hard lock reads as the game blocking your own work. Frame it as &ldquo;you asked me to send you home&rdquo; and give a cheap, explicit escape hatch.</p>
+            <p class="arg"><b>Feasibility Lead:</b> a hard lock can&rsquo;t be built without revoking the player&rsquo;s own agent access, so the override comes for free.</p>
+          </div>
+        </div>
+        <p class="also">Also on the table: Systems Designer would make &ldquo;jacked out by bedtime&rdquo; a scoring condition only, with no lock. Adversarial QA says the current lock annoys players who comply and stops no one else, so the document has to choose first.</p>
+        <p class="escalate"><span class="label">Escalated decision</span>Is Prime Meridian primarily a productivity tool or a &ldquo;sends you back to your life&rdquo; wellness game?</p>
+      </article>
+
+      <article class="dis">
+        <h3><span class="label">Disagreement 2</span>Should the game ever suggest raising an agent&rsquo;s autonomy?</h3>
+        <div class="vs">
+          <div class="side">
+            <h4>Yes: show a track record and propose</h4>
+            <div class="chips"><span class="chip">Systems Designer</span><span class="chip">Player Psychologist</span></div>
+            <p class="arg"><b>Systems Designer:</b> show each agent&rsquo;s history and &ldquo;have the twin propose raising the dial and let the player confirm,&rdquo; so trust is still granted by the player but no longer guessed.</p>
+            <p class="arg"><b>Player Psychologist:</b> careful review needs its own visible payoff, for example celebrating a rejected blueprint that caught something real.</p>
+          </div>
+          <div class="vs-mark" aria-hidden="true">VS</div>
+          <div class="side">
+            <h4>No agent may start a trust change</h4>
+            <div class="chips"><span class="chip">Adversarial QA</span></div>
+            <p class="arg"><b>Adversarial QA:</b> a raise proposal arrives as a &ldquo;!&rdquo;, which makes &ldquo;give me more autonomy&rdquo; the most valuable thing for a forged &ldquo;!&rdquo; to ask. A track record can be gamed with trivial clean tasks. Show the history, but any proposal must come from game code over a channel <code>ask_player</code> can&rsquo;t reach.</p>
+          </div>
+        </div>
+        <p class="escalate"><span class="label">Escalated decision</span>Who can start a trust change, and through what channel? That first needs a definition of what each dial setting covers.</p>
+      </article>
+
+      <article class="dis">
+        <h3><span class="label">Disagreement 3</span>What does &ldquo;needing the game less&rdquo; measure?</h3>
+        <div class="vs">
+          <div class="side">
+            <h4>Agents doing more</h4>
+            <div class="chips"><span class="chip">Systems Designer</span></div>
+            <p class="arg"><b>Systems Designer:</b> a dialogue beat can&rsquo;t fix an economy where every chapter adds &ldquo;!&rdquo;s. The fix has to be a measured quantity designed to fall, such as &ldquo;!&rdquo;s per task or minutes jacked in.</p>
+          </div>
+          <div class="vs-mark" aria-hidden="true">VS</div>
+          <div class="side">
+            <h4>The human living more</h4>
+            <div class="chips"><span class="chip">Narrative Critic</span></div>
+            <p class="arg"><b>Narrative Critic:</b> a falling &ldquo;!&rdquo; rate rewards agents absorbing more of the player&rsquo;s life. A player who hands everything to fully autonomous agents scores perfectly while becoming more dependent. It needs a human-side counterpart.</p>
+          </div>
+        </div>
+        <p class="also">Also on the table: Business Analyst argues that a success metric of declining use conflicts with any engagement-priced business model, so the thesis has to be written into the business model too.</p>
+        <p class="escalate"><span class="label">Escalated decision</span>Define the long-term win as an observable measure (agent throughput, human time away, or both) together with a business model that won&rsquo;t quietly cut it.</p>
+      </article>
+
+      <article class="dis">
+        <h3><span class="label">Disagreement 4</span>Write the Construct&rsquo;s original script now, or defer the Construct?</h3>
+        <div class="vs">
+          <div class="side">
+            <h4>Write it now</h4>
+            <div class="chips"><span class="chip">Narrative Critic</span><span class="chip">Business Analyst</span></div>
+            <p class="arg"><b>Narrative Critic:</b> without the film lines, the Construct and Signature Moment #2 have no script. Unscoped redesign of a signature moment is major.</p>
+            <p class="arg"><b>Business Analyst:</b> draft the original-IP versions &ldquo;now, before they are built.&rdquo;</p>
+          </div>
+          <div class="vs-mark" aria-hidden="true">VS</div>
+          <div class="side">
+            <h4>Defer it</h4>
+            <div class="chips"><span class="chip">Feasibility Lead</span></div>
+            <p class="arg"><b>Feasibility Lead:</b> the Construct isn&rsquo;t in any week of the schedule. Writing dialogue for an unscheduled feature spends effort before onboarding is buildable, so cut or defer it and scope the script once it&rsquo;s scheduled.</p>
+          </div>
+        </div>
+        <p class="escalate"><span class="label">Escalated decision</span>Is the Construct v1 onboarding? If it is, the script becomes a scheduled dependency. If not, it is deferred along with &ldquo;I know kung fu.&rdquo;</p>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- 4. FULL BOARD -->
+  <section class="fade" aria-labelledby="board">
+    <div class="section-head">
+      <p class="eyebrow">03 &middot; Drill-down</p>
+      <h2 id="board" class="display">Full Board</h2>
+      <p>Each reviewer&rsquo;s Round 1 findings with their Round 2 severity changes, followed by their cross-examination.</p>
+    </div>
+
+    <div class="tablist" role="tablist" aria-label="Reviewers">
+      <button class="tab" role="tab" id="t-sd" aria-controls="p-sd">Systems Designer</button>
+      <button class="tab" role="tab" id="t-nc" aria-controls="p-nc">Narrative Critic</button>
+      <button class="tab" role="tab" id="t-pp" aria-controls="p-pp">Player Psychologist</button>
+      <button class="tab" role="tab" id="t-fl" aria-controls="p-fl">Feasibility Lead</button>
+      <button class="tab" role="tab" id="t-qa" aria-controls="p-qa">Adversarial QA</button>
+      <button class="tab" role="tab" id="t-ba" aria-controls="p-ba">Business Analyst</button>
+    </div>
+
+    <!-- Systems Designer -->
+    <div class="reviewer" role="tabpanel" id="p-sd" aria-labelledby="t-sd">
+      <div class="reviewer-head">
+        <h3 class="display">Systems Designer</h3>
+        <p class="lens">Core loop, progression, pacing, difficulty, resource and economy math. &ldquo;The moment-to-moment loop (observe, &lsquo;!&rsquo;, answer, blueprint, approve) is well specified and holds together. Above that, things get thin.&rdquo;</p>
+        <div class="counts"><span class="label">After Round 2</span><span class="stamp blocking">1 Blocking</span><span class="stamp major">4 Major</span></div>
+      </div>
+      <p class="label sub-head">Round 1 findings</p>
+      <div class="finding">
+        <div class="sevline"><span class="stamp major">Major</span></div>
+        <h4><span class="fid">F1</span>&ldquo;The day&rsquo;s real decision&rdquo; has no numbers, no visible stakes, and a failure case nobody handles</h4>
+        <p>There is no desk count and no stated difference between frontier and local work, so the obvious play is to send everything to the free crew. The real budget, usage caps, never appears in the game. A night worker that hits a question after the door locks has nowhere to send it.</p>
+        <p class="r2"><span class="label">Round 2</span>Kept major, strengthened. The opening scene shows a worker &ldquo;stuck at 3 a.m.&rdquo; as atmosphere, not as a rule. Either cut night-shift allocation from v1 or model it with numbers.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp major">Major</span></div>
+        <h4><span class="fid">F2</span>Chapter wins are a 7-day streak, which breaks the &ldquo;No streaks&rdquo; rule</h4>
+        <p>&ldquo;Runs a full week with you doing only the human parts&rdquo; is a streak by definition. If a missed day resets it, that is streak pressure. If it doesn&rsquo;t, the chapter win means nothing.</p>
+        <p class="r2"><span class="label">Round 2</span>Kept major, strengthened. Player Psychologist found the hidden streak independently, and a &ldquo;!&rdquo; raised at 23:59 can break a chapter from outside the player&rsquo;s control.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp major">Major</span></div>
+        <h4><span class="fid">F3</span>Progression is front-loaded and runs on two separate tracks that never connect</h4>
+        <p>Street cred and loadout both make &ldquo;new buildings appear.&rdquo; Mail loads in the Construct even though it is the last chapter. Nothing unlocks between minute 5 and chapter 5, and street cred has no number, so it can&rsquo;t be tuned.</p>
+        <p class="r2"><span class="label">Round 2</span>Kept major, one claim revised. The loadout can&rsquo;t be maxed in hour one, because the Construct uses sample connectors. The real loadout is paced by outside setup friction, not by play.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp major was">Major</span><span class="arrow">&rarr;</span><span class="stamp blocking">Blocking</span></div>
+        <h4><span class="fid">F4</span>The long-term win has no mechanical hook, and the autonomy dial (its only lever) gets no feedback</h4>
+        <p>Nothing tells the player when raising trust is justified. &ldquo;Win the day&rdquo; is won trivially with every dial at full autonomy.</p>
+        <p class="r2"><span class="label">Round 2</span>Upgraded. Both win conditions reward the strategy that disables the safety model, and the stated long-term goal has no measurable quantity.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp minor was">Minor</span><span class="arrow">&rarr;</span><span class="stamp major">Major</span></div>
+        <h4><span class="fid">F5</span>The worm stock runs down with no refill loop</h4>
+        <p>No restock chore, purchase event or receipt-to-stock rule exists. The showcase resource only counts down.</p>
+        <p class="r2"><span class="label">Round 2</span>Upgraded to major, not blocking. QA&rsquo;s double-count and spoofing points make the only fully specified resource unreliable in the MVP&rsquo;s signature moment, but the fixes are cheap and local.</p>
+      </div>
+      <p class="label sub-head">Round 2 cross-examination: conflicts</p>
+      <ul class="xlist">
+        <li><span class="tgt">vs. Narrative Critic F1:</span> Systems Designer agrees with the diagnosis but not the remedy. The reversal is in the economy, since each chapter adds &ldquo;!&rdquo;s, so the fix has to be a measured quantity designed to fall, not a dialogue beat.</li>
+        <li><span class="tgt">vs. Player Psychologist F4 and Adversarial QA F3:</span> make closing time a scoring condition, not a lock. A snooze with no cost would quietly delete one of the three win clauses.</li>
+        <li><span class="tgt">vs. Adversarial QA F1:</span> Systems Designer accepts the defects but not the blocking rating. A dedupe window, a restock rule and a sender allowlist are a quick win.</li>
+        <li><span class="tgt">vs. Player Psychologist F5:</span> overgrowth is the only negative feedback in the economy. Cap it and make recovery fast; don&rsquo;t remove it.</li>
+      </ul>
+      <p class="label sub-head">Round 2 cross-examination: connections</p>
+      <ul class="xlist">
+        <li>Max autonomy is the dominant strategy, and it runs against the guardrails <span class="tgt">(with Adversarial QA F4)</span>.</li>
+        <li>&ldquo;Win the day&rdquo; produces nothing: no building, no cred, no chapter credit.</li>
+        <li>The MVP has no progression and no strategic decision, so pacing can&rsquo;t be playtested before week 6 <span class="tgt">(with Feasibility Lead F1 and Business Analyst F1)</span>.</li>
+        <li>Loadout progression is the onboarding cliff, paced by OAuth, carrier registration and Full Disk Access <span class="tgt">(with Player Psychologist F1)</span>.</li>
+        <li>Waiting has no meta layer to absorb it <span class="tgt">(with Player Psychologist F2)</span>.</li>
+      </ul>
+    </div>
+
+    <!-- Narrative Critic -->
+    <div class="reviewer" role="tabpanel" id="p-nc" aria-labelledby="t-nc">
+      <div class="reviewer-head">
+        <h3 class="display">Narrative Critic</h3>
+        <p class="lens">Story logic, character motivation, tone, theme and dialogue intent. Does the narrative pay off the promises it sets up?</p>
+        <div class="counts"><span class="label">After Round 2</span><span class="stamp blocking">2 Blocking</span><span class="stamp major">2 Major</span><span class="stamp minor">1 Minor</span></div>
+      </div>
+      <p class="label sub-head">Round 1 findings</p>
+      <div class="finding">
+        <div class="sevline"><span class="stamp blocking">Blocking</span></div>
+        <h4><span class="fid">F1</span>The central thesis (&ldquo;the world sends you back to your life&rdquo;) is stated but structurally reversed</h4>
+        <p>Each chapter brings more of life online, you &ldquo;play everywhere your agent lives,&rdquo; and street cred and loadout both reward more connection. The Construct&rsquo;s &ldquo;I can only show you the door&rdquo; leads into the estate, not out of it.</p>
+        <p class="r2"><span class="label">Round 2</span>Stays blocking, evidence corrected. The bedtime lock and jack-out do carry the thesis, but they are stretch, bypassable, and limit session length rather than dependency.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp major">Major</span></div>
+        <h4><span class="fid">F2</span>The &ldquo;fixed&rdquo; cast contradiction isn&rsquo;t fixed: who is the protagonist, and who is the Oracle for anyone who isn&rsquo;t Michael?</h4>
+        <p>The player is &ldquo;Neo&rdquo; while the twin is &ldquo;the Hero.&rdquo; The twin is your body, Morpheus and the protagonist all at once. The Oracle, &ldquo;the author, who approves every change,&rdquo; only makes sense for Michael.</p>
+        <p class="r2"><span class="label">Round 2</span>Stays major, strengthened by Business Analyst F3 and Feasibility Lead F5: the cast was written from the author&rsquo;s chair.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp major was">Major</span><span class="arrow">&rarr;</span><span class="stamp blocking">Blocking</span></div>
+        <h4><span class="fid">F3</span>Real stakes plus a &ldquo;no shame&rdquo; tone, with no defined in-world response to real failure or loss</h4>
+        <p>A real animal going hungry is treated the same as overgrown grass. There is no transition for a real twinned creature dying, so its twin would keep saying &ldquo;I&rsquo;m hungry.&rdquo;</p>
+        <p class="r2"><span class="label">Round 2</span>Upgraded. QA reached the dead-pet case independently, Flora&rsquo;s worm count is self-reported, and the snap ships in the MVP.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp major">Major</span></div>
+        <h4><span class="fid">F4</span>The emotional peaks are written in film quotes the document says won&rsquo;t ship, and the borrowed metaphor is inverted without comment</h4>
+        <p>Signature Moment #2 and the whole first hour are quoted Matrix dialogue with no original replacement. In the film, machines use humans; here the human is &ldquo;its hands in the physical one.&rdquo;</p>
+        <p class="r2"><span class="label">Round 2</span>Stays major. The IP half is strengthened by Business Analyst F5 and the inverted-metaphor half by Adversarial QA F2. The fix is writing work, not structural rework.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp minor">Minor</span><span class="stamp neutral">Partly withdrawn</span></div>
+        <h4><span class="fid">F5</span>The supporting cast are job titles, not characters; the Architect gets a room and no scene</h4>
+        <p>No persona has a trait, a want or a sample line. The Architect gets the most vivid setup in the document and never appears in play.</p>
+        <p class="r2"><span class="label">Round 2</span>Withdrew the ask for more Flora dialogue, because a single honest status line is correct under the twin rule. Softened the Architect point to &ldquo;cut him for v1.&rdquo;</p>
+      </div>
+      <p class="label sub-head">Round 2 cross-examination: conflicts</p>
+      <ul class="xlist">
+        <li><span class="tgt">vs. Player Psychologist F4:</span> let the player override, &ldquo;but never invisibly.&rdquo; The thesis needs the player to feel the door, even if they walk through it.</li>
+        <li><span class="tgt">vs. Player Psychologist F5:</span> a twin that quietly tidies up while a real axolotl went unfed is the world lying. Separate cosmetic estate neglect from neglect of a real creature.</li>
+        <li><span class="tgt">vs. Business Analyst F5:</span> keeps the IP finding at major, because the Construct&rsquo;s emotional arc is made of the quotes.</li>
+        <li><span class="tgt">vs. Systems Designer F4:</span> a falling &ldquo;!&rdquo; rate measures agents doing more. Without a human-side counterpart, the endgame makes the inversion official.</li>
+      </ul>
+      <p class="label sub-head">Round 2 cross-examination: connections</p>
+      <ul class="xlist">
+        <li>The MVP contains none of the thesis <span class="tgt">(with Feasibility Lead F1 and Business Analyst F1)</span>.</li>
+        <li>The red-pill moment, the player&rsquo;s first real connection, is unwritten <span class="tgt">(with Player Psychologist F1)</span>.</li>
+        <li>A forged &ldquo;!&rdquo; reopens the &ldquo;what is real&rdquo; theme the document thought it had settled <span class="tgt">(with Adversarial QA F2)</span>.</li>
+        <li>The things the story ranks highest (household, kids, a creature&rsquo;s welfare) are the things the system can&rsquo;t see <span class="tgt">(with Adversarial QA F1 and F5)</span>.</li>
+        <li>The cast was written from the author&rsquo;s chair <span class="tgt">(with Feasibility Lead F5 and Business Analyst F3)</span>.</li>
+        <li>The Construct spoils the arc by handing over the whole loadout at once <span class="tgt">(with Systems Designer F3)</span>.</li>
+      </ul>
+    </div>
+
+    <!-- Player Psychologist -->
+    <div class="reviewer" role="tabpanel" id="p-pp" aria-labelledby="t-pp">
+      <div class="reviewer-head">
+        <h3 class="display">Player Psychologist</h3>
+        <p class="lens">What a real player feels in the first hour, the first week, and the moment they decide whether to come back.</p>
+        <div class="counts"><span class="label">After Round 2</span><span class="stamp blocking">2 Blocking</span><span class="stamp major">3 Major</span></div>
+      </div>
+      <p class="label sub-head">Round 1 findings</p>
+      <div class="finding">
+        <div class="sevline"><span class="stamp blocking">Blocking</span></div>
+        <h4><span class="fid">#1</span>The first hour runs on the sample version, and the switch to &ldquo;real&rdquo; has no design</h4>
+        <p>A rack of &ldquo;every skill and MCP connector out there&rdquo; causes choice overload, and the tutorial high is followed by a cliff into account plumbing. That is where people quit.</p>
+        <p class="r2"><span class="label">Round 2</span>Stays blocking, recommendation narrowed. The first real connection should be the player&rsquo;s own agent or local data, never an OAuth-gated service. Drop the full rack from the Construct.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp major">Major</span></div>
+        <h4><span class="fid">#2</span>Waiting is the main thing the player does, and the document doesn&rsquo;t fill it</h4>
+        <p>The core payoff comes after the longest wait. &ldquo;You can walk away&rdquo; assumes there is something to walk to.</p>
+        <p class="r2"><span class="label">Round 2</span>Stays major, and it is worse in the MVP: without the walking &ldquo;!&rdquo;, the MVP player can only watch.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp major was">Major</span><span class="arrow">&rarr;</span><span class="stamp blocking">Blocking</span></div>
+        <h4><span class="fid">#3</span>Approval fatigue, and &ldquo;spatial over textual&rdquo; doesn&rsquo;t work for most of what gets approved</h4>
+        <p>A ghosted rock can be judged at a glance; a ghosted refactor can&rsquo;t. Approvals grow with every task, and trust never grows on its own.</p>
+        <p class="r2"><span class="label">Round 2</span>Upgraded. Combined with Adversarial QA F2, approval fatigue is how the safety model fails in practice.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp major">Major</span></div>
+        <h4><span class="fid">#4</span>Forced jack-outs and the bedtime lock have no override, so the game feels paternalistic to its own audience</h4>
+        <p>The estate holds their repos, mail and business. A hard lock with no user control reads as the game blocking their work.</p>
+        <p class="r2"><span class="label">Round 2</span>Stays major, reframed. The lock can&rsquo;t be enforced anyway (Adversarial QA F3), so it should become a nudge the player authored, not more enforcement.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp major">Major</span></div>
+        <h4><span class="fid">#5</span>The win conditions are driven by agent behavior the player doesn&rsquo;t control, and &ldquo;no shame&rdquo; contradicts overgrowth</h4>
+        <p>&ldquo;Win the day&rdquo; depends on how many &ldquo;!&rdquo;s agents raise. A chapter is a hidden streak. Overgrowth shows a returning player exactly how long they were gone.</p>
+        <p class="r2"><span class="label">Round 2</span>Stays major, strengthened. Systems Designer F2 and F4 and Adversarial QA F3 found the same defects independently.</p>
+      </div>
+      <p class="label sub-head">Round 2 cross-examination: conflicts</p>
+      <ul class="xlist">
+        <li><span class="tgt">vs. Adversarial QA F3:</span> the bypass is the healthiest part of the design. Pillar 4 should be honest about being a request, not a harder lock.</li>
+        <li><span class="tgt">vs. Adversarial QA F1:</span> self-report fraud is out of scope. The double count is the real blocking issue.</li>
+        <li><span class="tgt">vs. Systems Designer F3 fix:</span> decay on absence turns a return visit into a guilt screen. Cap it quickly and front-load recovery. Show the cap gauge at the moment of allocation, not as a permanent HUD element.</li>
+        <li><span class="tgt">vs. Business Analyst F2:</span> memorial pets are one of the few sources of attachment to the place. Cut them or design them; don&rsquo;t ship them half-done.</li>
+      </ul>
+      <p class="label sub-head">Round 2 cross-examination: connections</p>
+      <ul class="xlist">
+        <li>Approval fatigue plus a forged &ldquo;!&rdquo; means the safety gate is set up to fail <span class="tgt">(with Adversarial QA F2)</span>.</li>
+        <li>Every reward pressure pushes players to raise autonomy and stop reviewing <span class="tgt">(with Adversarial QA F4 and Systems Designer F4)</span>.</li>
+        <li>The first-real-connection cliff is steeper than first stated: Gmail and iMessage are gated for anyone who isn&rsquo;t the author <span class="tgt">(with Feasibility Lead F3 and Business Analyst F3)</span>.</li>
+        <li>Onboarding is unscheduled and has lost its script <span class="tgt">(with Feasibility Lead F1, Business Analyst F1 and F5, and Narrative Critic F4)</span>.</li>
+        <li>A long wait can end in a usage cap instead of a result <span class="tgt">(with Business Analyst F4, Systems Designer F1 and Feasibility Lead F5)</span>.</li>
+        <li>Overgrowth after a real pet&rsquo;s death is blocking for any release beyond the author <span class="tgt">(with Narrative Critic F3 and Adversarial QA F5)</span>.</li>
+        <li>The Director is the first casualty of approval fatigue <span class="tgt">(with Feasibility Lead F5)</span>.</li>
+      </ul>
+    </div>
+
+    <!-- Feasibility Lead -->
+    <div class="reviewer" role="tabpanel" id="p-fl" aria-labelledby="t-fl">
+      <div class="reviewer-head">
+        <h3 class="display">Feasibility Lead</h3>
+        <p class="lens">Judged against 2026 constraints: a 7-week schedule, one human Director plus an AI dev crew, a browser three.js/WebGPU client, and Claude, Hermes and local-model agents.</p>
+        <div class="counts"><span class="label">After Round 2</span><span class="stamp blocking">2 Blocking</span><span class="stamp major">1 Major</span><span class="stamp minor">2 Minor</span></div>
+      </div>
+      <p class="label sub-head">Round 1 findings</p>
+      <div class="finding">
+        <div class="sevline"><span class="stamp blocking">Blocking</span></div>
+        <h4><span class="fid">F1</span>The MVP cut line leaves out the core loop, and most headline features have no week at all</h4>
+        <p>&ldquo;!&rdquo; is week 5 and Pillar 4 is stretch. Blueprints, keycards, the autonomy dial, night-shift orders, the Construct, the Architect&rsquo;s room, the Clerk and Pepper have no week. There is no cut list.</p>
+        <p class="r2"><span class="label">Round 2</span>Strengthened. &ldquo;I know kung fu&rdquo; is post-MVP by the document&rsquo;s own definition, since it requires a real account.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp blocking">Blocking</span></div>
+        <h4><span class="fid">F2</span>The bridge carries the whole design, and it&rsquo;s unspecified and given one week</h4>
+        <p>It has to normalize live state from Hermes, Claude Code and local models across machines without using a model. There is no event schema, no <code>ask_player</code> round trip and no definition of a ghosted code blueprint.</p>
+        <p class="r2"><span class="label">Round 2</span>Strengthened. It now holds most of the board&rsquo;s unresolved fixes.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp major was">Major</span><span class="arrow">&rarr;</span><span class="stamp minor">Minor</span></div>
+        <h4><span class="fid">F3</span>&ldquo;Every connection comes with a sample version&rdquo; doubles the integration surface, and real integrations have outside gates</h4>
+        <p>Gmail restricted-scope verification, 10DLC SMS registration, and iMessage Full Disk Access against an undocumented schema.</p>
+        <p class="r2"><span class="label">Round 2</span>Downgraded for the 7-week plan, which needs no real account. It stays major or worse for any real-connector release.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp major was">Major</span><span class="arrow">&rarr;</span><span class="stamp minor">Minor</span></div>
+        <h4><span class="fid">F4</span>The physics claims don&rsquo;t fit the stated stack</h4>
+        <p>Active ragdolls aren&rsquo;t a helper call. Rapier runs in WASM on the CPU, so &ldquo;GPU box for physics&rdquo; doesn&rsquo;t hold up.</p>
+        <p class="r2"><span class="label">Round 2</span>Downgraded, since Week 7 is stretch. What remains is a one-line commitment to kinematic locomotion.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp major">Major</span></div>
+        <h4><span class="fid">F5</span>The production model depends on the product, on one human&rsquo;s approval bandwidth, and on plan usage caps</h4>
+        <p>The crew can&rsquo;t use its in-game interface until week 5. Michael approves every change from five agents. Building and playtesting share capped plans at an estimated, unmeasured ~2.5M tokens per task.</p>
+        <p class="r2"><span class="label">Round 2</span>Unchanged, strengthened.</p>
+      </div>
+      <p class="credit">Credit given: the mock-connection test rig and the &ldquo;world never waits on a model&rdquo; event design are sound. In Round 2, Feasibility Lead stopped counting the test rig as a safety argument.</p>
+      <p class="label sub-head">Round 2 cross-examination: conflicts</p>
+      <ul class="xlist">
+        <li><span class="tgt">vs. Adversarial QA F1:</span> major, not blocking. Allow one completion per chore per due window, and reword Pillar 1 to &ldquo;literally what you reported.&rdquo;</li>
+        <li><span class="tgt">vs. Adversarial QA F2:</span> it blocks connecting real accounts, not the 7-week plan. No real connector should ship until <code>ask_player</code> carries provenance.</li>
+        <li><span class="tgt">vs. Business Analyst F1:</span> &ldquo;!&rdquo; can&rsquo;t come before talk, because the answer goes through talk. Ship talk with a static &ldquo;!&rdquo;. Jack-out and closing time can move into the MVP.</li>
+        <li><span class="tgt">vs. Systems Designer F1:</span> no data source exists for a live cap gauge. Declare a fixed desk count and show &ldquo;desk went dark: cap reached.&rdquo;</li>
+        <li><span class="tgt">vs. Narrative Critic F4:</span> original Construct lines are off the critical path until the Construct is scheduled.</li>
+      </ul>
+      <p class="label sub-head">Round 2 cross-examination: connections</p>
+      <ul class="xlist">
+        <li>Signature Moment #2 can&rsquo;t happen in the MVP, by the document&rsquo;s own definitions <span class="tgt">(with Business Analyst F1 and Narrative Critic F4)</span>.</li>
+        <li>Restocking from receipts runs through the riskiest pipe, from mail to the Clerk to game state <span class="tgt">(with Systems Designer F5 and Adversarial QA F1 and F2)</span>.</li>
+        <li>The bridge picks up a new requirement from nearly every colleague <span class="tgt">(with Adversarial QA, Player Psychologist and Systems Designer)</span>.</li>
+        <li>The Director is the first test subject for approval fatigue <span class="tgt">(with Player Psychologist F3)</span>.</li>
+        <li>The bedtime lock can only be soft <span class="tgt">(with Player Psychologist F4 and Adversarial QA F3)</span>.</li>
+        <li>Token costs hit the build schedule before they hit the customer <span class="tgt">(with Business Analyst F4 and Player Psychologist F2)</span>.</li>
+      </ul>
+    </div>
+
+    <!-- Adversarial QA -->
+    <div class="reviewer" role="tabpanel" id="p-qa" aria-labelledby="t-qa">
+      <div class="reviewer-head">
+        <h3 class="display">Adversarial QA</h3>
+        <p class="lens">Contradictions, edge cases, exploits and unplanned fail states.</p>
+        <div class="counts"><span class="label">After Round 2</span><span class="stamp blocking">2 Blocking</span><span class="stamp major">4 Major</span></div>
+      </div>
+      <p class="label sub-head">Round 1 findings</p>
+      <div class="finding">
+        <div class="sevline"><span class="stamp blocking">Blocking</span></div>
+        <h4><span class="fid">#1</span>Marking a chore done is unverified, comes from several channels and can&rsquo;t be undone, so the worm count stops being &ldquo;literally true&rdquo;</h4>
+        <p>Texting &ldquo;fed&rdquo; and then clicking the canal counts twice. Clicking the canal without feeding Flora still wins the chore. Nothing restocks. Nothing says which SMS senders are accepted.</p>
+        <p class="r2"><span class="label">Round 2</span>Stays blocking with a narrower core. Restock alone is minor; the blocking parts are duplicate events and unauthenticated senders.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp blocking">Blocking</span></div>
+        <h4><span class="fid">#2</span>&ldquo;A &lsquo;!&rsquo; always means a real question&rdquo; can be hijacked: the most trusted signal in the UI can be forged</h4>
+        <p>Any agent that has read attacker-controlled content can call <code>ask_player</code>. The Clerk&rsquo;s summary may feed Hal, and the Red Team attacks only pretend services.</p>
+        <p class="r2"><span class="label">Round 2</span>Strengthened by Feasibility Lead F2 (the transport is unspecified) and by the Construct&rsquo;s scripted &ldquo;!&rdquo;.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp major">Major</span></div>
+        <h4><span class="fid">#3</span>Closing time is easy to bypass, leaves work stuck when it triggers, and isn&rsquo;t in the MVP</h4>
+        <p>Agents stay reachable in Zed and by text. Keycards, unapproved blueprints and a night worker stuck at 3 a.m. are undefined at lock time. A &ldquo;!&rdquo; at 23:59 makes the day unwinnable.</p>
+        <p class="r2"><span class="label">Round 2</span>Withdrew &ldquo;set bedtime to 04:00&rdquo; as an exploit and handed the MVP-contradiction point to Feasibility Lead F1 and Business Analyst F1.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp major">Major</span></div>
+        <h4><span class="fid">#4</span>The autonomy dial contradicts &ldquo;approves every change&rdquo;</h4>
+        <p>Either full autonomy skips blueprint approval, or the dial controls nothing. &ldquo;Win a chapter&rdquo; quietly pushes autonomy up.</p>
+        <p class="r2"><span class="label">Round 2</span>Scope widened. The win conditions consistently reward weakening the guardrails, which is a systems problem and a safety problem at once.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp major">Major</span></div>
+        <h4><span class="fid">#5</span>The highest-priority jack-outs have no data source, and creatures have no way to die or be rehomed</h4>
+        <p>Nothing produces &ldquo;Dinner!&rdquo;, and &ldquo;Biscuit at the door&rdquo; is a timer pretending to be real. The Keeper would keep showing &ldquo;I&rsquo;m hungry&rdquo; over a dead axolotl.</p>
+        <p class="r2"><span class="label">Round 2</span>Strengthened by Narrative Critic F3. Added that a &ldquo;!&rdquo; that has to walk to you can fail to arrive.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp neutral">New in Round 2</span><span class="stamp major">Major</span></div>
+        <h4><span class="fid">X3</span>An agent stalled by its usage cap has no visible state, and its keycard is never returned</h4>
+        <p>An agent at its cap can&rsquo;t call <code>ask_player</code>, so it keeps its progress glow forever and holds its keycard indefinitely. The bridge needs a &ldquo;stalled&rdquo; state it sets on its own, plus a keycard timeout.</p>
+      </div>
+      <p class="label sub-head">Round 2 cross-examination: conflicts</p>
+      <ul class="xlist">
+        <li><span class="tgt">vs. Systems Designer F4 and Player Psychologist F3:</span> a proposal to raise autonomy is the best target for a forged &ldquo;!&rdquo;. No agent, including the twin, should be able to start a trust change.</li>
+        <li><span class="tgt">vs. Player Psychologist F4:</span> the lock is both too strong and too weak. The document must decide between enforcement and a nudge.</li>
+        <li><span class="tgt">vs. Systems Designer F5:</span> agrees restock alone is minor, but taking receipts in through mail opens a new attack path.</li>
+      </ul>
+      <p class="label sub-head">Round 2 cross-examination: connections</p>
+      <ul class="xlist">
+        <li>The bridge has no authentication, so &ldquo;!&rdquo; and &ldquo;fed&rdquo; can be forged locally <span class="tgt">(with Feasibility Lead F2)</span>.</li>
+        <li>The Construct&rsquo;s scripted worker breaks the twin rule. Sample and real &ldquo;!&rdquo;s need to look different <span class="tgt">(with Player Psychologist F1)</span>.</li>
+        <li>An agent at its usage cap can&rsquo;t ask for help, so it looks busy forever <span class="tgt">(with Systems Designer F1, Feasibility Lead F5 and Business Analyst F4)</span>.</li>
+        <li>A &ldquo;!&rdquo; that has to walk to you can fail to arrive <span class="tgt">(with Feasibility Lead F4)</span>.</li>
+        <li>A dead Flora&rsquo;s chore still counts toward the daily win <span class="tgt">(with Narrative Critic F3)</span>.</li>
+      </ul>
+    </div>
+
+    <!-- Business Analyst -->
+    <div class="reviewer" role="tabpanel" id="p-ba" aria-labelledby="t-ba">
+      <div class="reviewer-head">
+        <h3 class="display">Business Analyst</h3>
+        <p class="lens">Feature creep, which features carry the core vision and which are decoration, market positioning, audience clarity, and whether this is one game or several.</p>
+        <div class="counts"><span class="label">After Round 2</span><span class="stamp blocking">2 Blocking</span><span class="stamp major">3 Major</span></div>
+      </div>
+      <p class="label sub-head">Round 1 findings</p>
+      <div class="finding">
+        <div class="sevline"><span class="stamp blocking">Blocking</span></div>
+        <h4><span class="fid">F1</span>The 4-week MVP doesn&rsquo;t contain the core loop, the win condition, or the main pillar</h4>
+        <p>&ldquo;!&rdquo;, jack-out and closing time are week 5; street cred and chapters are week 6. The Construct and &ldquo;I know kung fu&rdquo; aren&rsquo;t scheduled. The MVP is the terminal-with-a-skin the document sets out to beat.</p>
+        <p class="r2"><span class="label">Round 2</span>Stays blocking, with a narrower ask: a static &ldquo;!&rdquo; plus closing time in the MVP, with the walking &ldquo;!&rdquo; and ragdolls deferred.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp major">Major</span></div>
+        <h4><span class="fid">F2</span>The document is several products at once</h4>
+        <p>An agent-orchestration front end, a life and habit app, a pet sim, a household coordination platform, and a self-building dev pipeline.</p>
+        <p class="r2"><span class="label">Round 2</span>Strengthened. This is the decision underneath the Pillar 4 dispute.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp major was">Major</span><span class="arrow">&rarr;</span><span class="stamp blocking">Blocking</span></div>
+        <h4><span class="fid">F3</span>The audience is undefined and contradicts itself</h4>
+        <p>&ldquo;People who already run an AI agent&rdquo; vs. &ldquo;a game for all and none&rdquo; vs. the author&rsquo;s own setup. Nothing describes a player who isn&rsquo;t the author.</p>
+        <p class="r2"><span class="label">Round 2</span>Upgraded. The missing persona is the root cause of Player Psychologist #1, Feasibility Lead F3 and Narrative Critic F2.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp major">Major</span></div>
+        <h4><span class="fid">F4</span>There is no business model, yet the document plans to sell the game and puts real running costs on the player</h4>
+        <p>A session costs about $7 at API prices, and playability depends on the player&rsquo;s own subscriptions and their usage caps.</p>
+        <p class="r2"><span class="label">Round 2</span>Stays major, with one figure corrected: ~$200/month is illustrative, not measured. It becomes blocking once sales work starts.</p>
+      </div>
+      <div class="finding">
+        <div class="sevline"><span class="stamp minor was">Minor</span><span class="arrow">&rarr;</span><span class="stamp major">Major</span></div>
+        <h4><span class="fid">F5</span>The hook and the first hour are built on licensed-film IP the document says it will remove</h4>
+        <p>The whole first hour is a scene-by-scene reenactment with no original replacements.</p>
+        <p class="r2"><span class="label">Round 2</span>Upgraded. The document already plans to sell the game, and the replacement is a redesign, not a rename.</p>
+      </div>
+      <p class="label sub-head">Round 2 cross-examination: conflicts</p>
+      <ul class="xlist">
+        <li><span class="tgt">vs. Player Psychologist #4:</span> a lock that can be bypassed and overridden leaves the game with no differentiator. Escalate it as a product decision, not a usability fix.</li>
+        <li><span class="tgt">vs. Feasibility Lead F1:</span> an MVP without Pillar 4 proves an orchestration UI, not the pitched game, and closing time is cheap.</li>
+        <li><span class="tgt">vs. Narrative Critic #1:</span> the thesis has to be written into the business model as well as the story.</li>
+      </ul>
+      <p class="label sub-head">Round 2 cross-examination: connections</p>
+      <ul class="xlist">
+        <li>The two progression tracks exist because they belong to two different products <span class="tgt">(with Systems Designer #3)</span>.</li>
+        <li>&ldquo;Every skill and MCP connector out there&rdquo; is the most dangerous feature creep in the document. Cut it to one curated connector <span class="tgt">(with Player Psychologist #1, Adversarial QA #2 and Systems Designer #3)</span>.</li>
+        <li>Every approver in the design is Michael <span class="tgt">(with Narrative Critic #2 and Feasibility Lead F5)</span>.</li>
+        <li>Selling the game brings recurring compliance costs and a liability question <span class="tgt">(with Feasibility Lead F3 and Adversarial QA #2)</span>.</li>
+        <li>Real pet death turns a decorative feature into a support burden <span class="tgt">(with Narrative Critic #3 and Adversarial QA #5)</span>.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 5. FOOTER -->
+  <footer>
+    <p class="method">Six isolated agent contexts &middot; parallel review &middot; cross-examination &middot; moderated synthesis</p>
+    <p>Source: <code>gdd.txt</code> (<em>Prime Meridian</em>, game design document, first draft, 5-page version, October 2026). Findings are drawn from <code>reviews/*.md</code> and <code>reviews/SYNTHESIS.md</code>.</p>
+  </footer>
+
+</div>
+<script>
+  (function () {
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+    if (!tabs.length) return;
+    document.documentElement.classList.add('js');
+    function select(tab, focus) {
+      tabs.forEach(function (t) {
+        var on = t === tab;
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        t.tabIndex = on ? 0 : -1;
+        document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+      });
+      if (focus) tab.focus();
+    }
+    tabs.forEach(function (t, i) {
+      t.addEventListener('click', function () { select(t); });
+      t.addEventListener('keydown', function (e) {
+        var n = null;
+        if (e.key === 'ArrowRight') n = tabs[(i + 1) % tabs.length];
+        if (e.key === 'ArrowLeft') n = tabs[(i - 1 + tabs.length) % tabs.length];
+        if (e.key === 'Home') n = tabs[0];
+        if (e.key === 'End') n = tabs[tabs.length - 1];
+        if (n) { e.preventDefault(); select(n, true); }
+      });
+    });
+    select(tabs[0]);
+  })();
+</script>
+</body>
+</html>
