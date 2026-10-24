@@ -70,7 +70,7 @@ Think of the Matrix, TRON, and the OASIS, with one difference: **the OASIS keeps
 ### Signature moments
 
 1. **The snap.** You mark Flora fed. A worm drops from the dock, Flora shoots up from the weeds, *snap*, a swirl of mud, the hungry bubble pops, and the worm jar shows one fewer. Days later you're driving and a message reads out "Feed Flora! Nightcrawlers left after this one: 15."
-2. **"I know kung fu."** Skills, tools, and MCP servers are Neo's training programs: you load one, your eyes snap open, your twin can suddenly do what it couldn't a moment ago, and its building rises on the estate.
+2. **"I know kung fu."** Agent skills, tools, and MCP servers are Neo's training programs: a skill (know-how), a tool (an ability), or an MCP server (a live line into a real service: mail, GitHub, Blender) loads in seconds, and suddenly your twin can do what it couldn't a moment ago. You load one, your eyes snap open, your twin gains the tool, and its building rises on the estate.
 
 ### A day is one round
 
@@ -90,7 +90,7 @@ The code has no idea what an axolotl is. Creatures, chores, and businesses are *
  :chores [{:id :feed :every "2d" :at "17:00" :who :me :consumes [:stock 1]}]}
 ```
 
-The same code path runs a horse in a barn with a hay counter. Pets can also be **virtual** (kept around with no needs) or **memorial**: every dog you've ever had can still lie in the sun on the porch, needing nothing. When a live pet dies, only you move it to memorial: its chores stop counting toward your day, and your twin says so kindly and truthfully. You're only jacked out for **your** chores; household members are never agents... in v1. **Someday it goes multiplayer:** each person in the house brings their own twin, and the twins meet, trade chores, and negotiate the shared calendar ("our humans are both free Thursday"), with every human approving.
+The same code path runs a horse in a barn with a hay counter. Pets can also be **virtual** (kept around with no needs) or **memorial**: every dog you've ever had can still lie in the sun on the porch, needing nothing. When a live pet dies, only you move it to memorial: its chores stop counting toward your day, and your twin says so kindly and truthfully. A `:personality` line in your own words ("barked at every truck, followed me room to room") becomes how it behaves, turned into behavior settings once, not per frame. You're only jacked out for **your** chores; household members are never agents... in v1. **Someday it goes multiplayer:** each person in the house brings their own twin, and the twins meet, trade chores, and negotiate the shared calendar ("our humans are both free Thursday"), with every human approving.
 
 ### Progression: no XP
 
@@ -148,7 +148,7 @@ The agents that **build** the game. Each is a persistent persona on a fresh, tas
 | **Asset Scraper** | Fetches free models and sounds for the crew. | the files plus a license manifest, one entry per asset with source and license (EDN) |
 | **Business Manager (Pepper)** | Keeps the company ready to sell the game: payments, store page, policies. | the release checklist and store-page copy (Markdown), and a read-only sales summary |
 
-**One wow: your digital twin (Hal).** You load a program and watch your twin carry it out into the half-barren estate, which gains the building that goes with it. **v1 staffs five:** the Hero, Lead Architect, Gameplay Engineer, Environment Artist, QA. The rest join when their milestone needs them.
+**One wow: your digital twin (Hal).** You load a program and watch your twin carry it out into the half-barren estate, which gains the building that goes with it. Ask it for a nicer river, it hands the job to the Environment Artist, and the water changes in front of you. **v1 staffs five:** the Hero, Lead Architect, Gameplay Engineer, Environment Artist, QA. The rest join when their milestone needs them.
 
 ### Token budget
 
@@ -168,13 +168,15 @@ Claude Opus 5.5 API list prices ($4 / $20 per million input / output tokens). Ta
 
 **My biggest constraint is agent latency, because** real agents take seconds to minutes to answer and a game has to feel alive every frame. So the world never waits on a model: characters animate thinking, you can walk away, replies arrive as events, and progress shows step by step.
 
-**Limits are part of the world.** Every multi-agent setup hits caps and quotas, so an agent nearing one parks its step, says so ("almost out of juice, parking this at step 3"), hands back its keycards, and rests: it bows out gracefully instead of failing. The bridge shows each login's usage as the juice meter (estimated from the tokens it sees in v1).
+**Limits are part of the world.** Every multi-agent setup hits caps, rate limits, and quotas, so agents stay ahead of them: one nearing a limit parks its step, says so ("almost out of juice, parking this at step 3"), hands back its keycards, and sits down to rest. It bows out gracefully instead of failing. The bridge shows each login's usage as the juice meter (estimated from the tokens it sees in v1).
 
 **API constraints:** **Claude plans:** usage caps per window → few frontier desks, a local night crew, short sessions · **Gmail:** OAuth and rate quotas → the Clerk reads on a schedule, never per frame · **SMS / iMessage:** carrier registration covers opted-in people only, and iMessage has no API → the bot texts only the player; a local watcher on the Mac · **Stripe:** live keys move money → read-only for Pepper · **Model output:** non-deterministic → blueprints, keycards, and the QA gate catch a bad path before it's real.
 
+**The test drive is also the test rig.** Every connection ships with a sample version, so the MVP is buildable, demoable, and gradable **without a single real account**, testing burns no quotas, and the red team attacks only pretend services. The swap is literal: the sample inbox is `me@acme.com`; connect your real Gmail and the same mailbox on the estate fills with your real mail.
+
 ### Scope (one person, through Nov 24)
 
-**One person** (Michael) directs five agents in the evenings and around the Tue/Thu classes. The course ends **Nov 24** and nothing past the scaffold is built yet, so the MVP is the plan. **Done:** GDD + scaffold; two drafts and a review board · **Week of Oct 26:** estate v0 on sample connections (so the MVP is buildable, demoable, and gradable **without a single real account**, and testing burns no quotas): three mock workers on scripted paths, a static "!", HUD · **Nov 2:** bridge + **the snap**: the four events working, your agent's real status, Flora's worm count, stalled state · **Nov 9: the whole loop (MVP):** talk → answer → approve → the world changes, jack in/out, closing time, the juice meter · **Nov 16:** the Construct + demo build · **Nov 24:** final presentation. **Deferred past Nov 24, in writing:** walking "!", street cred, life chapters, real connectors beyond your own agent, physics. **The constraints that set the pace:** his evenings and the plan's usage caps. **Cut line:** harness work counts only when that week's build shows it on the estate.
+**One person** (Michael) directs five agents in the evenings and around the Tue/Thu classes. The course ends **Nov 24** and nothing past the scaffold is built yet, so the MVP is the plan. **Done:** GDD + scaffold; two drafts and a review board · **Week of Oct 26:** estate v0 on sample connections: three mock workers on scripted paths, a static "!", HUD · **Nov 2:** bridge + **the snap**: the four events working, your agent's real status, Flora's worm count, stalled state · **Nov 9: the whole loop (MVP):** talk → answer → approve → the world changes, jack in/out, closing time, the juice meter · **Nov 16:** the Construct + demo build · **Nov 24:** final presentation. **Deferred past Nov 24, in writing:** walking "!", street cred, life chapters, real connectors beyond your own agent, physics. **The constraints that set the pace:** his evenings and the plan's usage caps. **Cut line:** harness work counts only when that week's build shows it on the estate.
 
 ## 5. What Changed, and Why
 
