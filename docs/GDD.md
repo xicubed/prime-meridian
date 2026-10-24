@@ -206,7 +206,7 @@ There is no XP. Progression belongs to **you**: your street cred, and your loado
 4. **The jump program.** Your twin shows you the hardline (the phone booth) and the one rule that matters: *"When real life calls, you go."* The phone rings with your first pretend chore, you jack out, and you jack back in.
 5. **Free your mind.** The white space dissolves into your estate: half-barren, with only the buildings for the programs you loaded. Your twin steps back: *"I can open the door. Walking through it is your part."*
 
-Every program loads instantly as a pretend version (§4.6), so the Construct works for anyone with no accounts. When you want the real thing, the same program asks for a login and goes live. You can come back to the Construct any time to load more, and when a task needs a program you don't have, your twin asks for it right there (*"I need a program for this one."* *"Loading."*). These are original lines drafted by the Writer; the film scenes are only the beat sheet. The Construct is v1 onboarding, built in week 5 on top of the week-4 loop (§4.8).
+Every program loads instantly as a pretend version (§4.6), so the Construct works for anyone with no accounts. When you want the real thing, the same program asks for a login and goes live. You can come back to the Construct any time to load more, and when a task needs a program you don't have, your twin asks for it right there (*"I need a program for this one."* *"Loading."*). These are original lines drafted by the Writer; the film scenes are only the beat sheet. The Construct is v1 onboarding, built the week of Nov 16 on top of the MVP loop (§4.8).
 
 ### 2.8 New players: from zero accounts to your own
 
@@ -285,7 +285,7 @@ No TypeScript.
 - **Characters are active ragdolls:** a skeleton of rigid bodies whose joint motors try to follow an animation pose, plus a balance controller that keeps the center of mass over the feet. When a push or a bad step overwhelms the motors, the body physically stumbles, recovers, or falls and gets back up, and no two falls look alike.
 - **Flora swims physically:** a spine of linked segments with buoyancy and water drag, a tail that pushes off the water, and the snap as a real lunge.
 - **Stylized look, real motion.** The figures stay medium-poly; the movement is what's realistic (the combination games like *Rain World* and *Exanima* use).
-- **Staged:** from week 2, every character moves through one *motion controller* interface (world state says "go there", the controller decides how the body gets there), so the MVP's simple waypoint movement can be swapped for physics without touching game logic. Flora is the first physical character, then the agents. **In the MVP, movement is kinematic (scripted paths) and "!" is a static marker;** the walking "!" and physics come after the MVP.
+- **Staged:** from the first build week, every character moves through one *motion controller* interface (world state says "go there", the controller decides how the body gets there), so the MVP's simple waypoint movement can be swapped for physics without touching game logic. Flora is the first physical character, then the agents. **In the MVP, movement is kinematic (scripted paths) and "!" is a static marker;** the walking "!" and physics come after the MVP.
 
 ### 4.2 Agent roles: the dev crew
 
@@ -408,20 +408,21 @@ An agent can only do as much harm as its permissions allow, and these agents rea
 
 ### 4.8 Scope and milestones
 
-The course runs Tue/Thu: one milestone per week, with agents doing most of the build between classes. After the MVP the game ships publicly as it's built, one life chapter per week, with weekly patch notes as the dev log.
+**Who builds it: one person.** Michael (the Director) directs a crew of five agents (§4.2) in the evenings and around the Tue/Thu classes; the agents build between sessions, and he approves every change. The course ends **Nov 24, 2026**, so four build weeks remain after this draft. The first weeks went to the scaffold and two GDD drafts with a review board, and nothing past the scaffold is built yet, so the MVP is the whole plan for the course.
 
-| Week | Milestone | Done when |
+| Week of | Milestone | Done when |
 |---|---|---|
-| 1 | **GDD + scaffold** | shadow-cljs builds and a cube spins in the browser *(done)* |
-| 2 | **World v0 + pretend connections** | the estate with lobby, canal, mailbox, and one workshop; three mock workers on scripted paths through the motion-controller interface; a static "!" over whoever needs you; camera; HUD |
-| 3 | **Bridge spike + event schema** | the four events written down and working: real agent statuses on the characters; Flora reads her real worm count; `ask_player` and `chore-done` end to end (the snap); stalled state |
-| 4 | **The whole loop** | talk → answer → approve a blueprint → the world changes; jack in and out; closing time and night-shift orders, with the juice meter for choosing frontier desks |
-| 5 | **Questions walk to you + street cred + the Construct** | agents walk to you with "!" and resume on your answer; the estate flourishes or overgrows with your declared habits; a new player gets through the Construct's first five minutes on sample connections only |
-| 6 | **The first life chapter** | household chores with owners; one chapter that can be won |
-| 7 | **Physical motion** *(stretch)* | Rapier in; Flora swims and snaps physically; one agent walks as an active ragdoll that can stumble and recover |
-| 8+ | **One life chapter per week** | gym, business, mail…; all agents physical; the river; sound; the public demo build on lotect.com |
+| Oct 12 | **GDD + scaffold** | shadow-cljs builds and a cube spins in the browser, with a live HUD *(done)* |
+| Oct 19 | **Reviews + final GDD** | the review board on draft 1, class feedback, this draft *(done)* |
+| Oct 26 | **Estate v0 on sample connections** | lobby, canal, mailbox, and one workshop; three mock workers on scripted paths through the motion-controller interface; a static "!" over whoever needs you; camera; HUD |
+| Nov 2 | **Bridge + the snap** | the four events written down and working as JSON over the websocket; your own agent's real status on its character; Flora's worm count; `ask_player` and `chore-done` end to end (the snap); stalled state |
+| Nov 9 | **The whole loop (MVP)** | talk → answer → approve a blueprint → the world changes; jack in and out; closing time; the juice meter (estimated) |
+| Nov 16 | **The Construct + demo build** | a new player gets through the first five minutes on sample connections only; a demo build for class |
+| Nov 23 | **Final presentation (Nov 24)** | buffer, then the demo |
 
-**MVP = weeks 1–4, and it closes the full loop** (the review board's top finding on the first draft). Deferred past the MVP, in writing: the walking "!", progression, real connectors beyond your own agent, and physics. The river and other showpiece visuals stay out of the MVP; Flora's snap is its signature moment.
+**The MVP closes the full loop by the week of Nov 9** (the review board's top finding on the first draft). **Deferred past Nov 24, in writing:** the walking "!", street cred, life chapters, night-shift orders, real connectors beyond your own agent, Pepper, physics (active ragdolls, Flora's physical swim), the river and other showpiece visuals, and sound. Flora's snap is the MVP's signature moment. After the course the game ships publicly as it's built, one life chapter per week, with weekly patch notes as the dev log.
+
+**Why one person can do it:** the MVP has one real connection (your own agent) and runs everything else on sample data; each week's milestone is one thing you can see; and v1 staffs five agents, not fifteen. **The constraints that set the pace** are Michael's evenings and the plan's usage caps, which is why every task runs in a short, task-scoped session.
 
 **The cut line against building the harness instead of the game** (classmates' top worry): harness work counts only when the same week's build shows it on the estate, and every milestone's "done when" is something you can see on screen.
 
@@ -435,7 +436,7 @@ Medium-poly, flat-shaded, warm palette, soft shadows: a diorama you'd keep on a 
 
 | Risk | Mitigation |
 |---|---|
-| **Building the harness instead of the game** (raised by classmates) | the harness is the game, but each week's harness work must show on the estate (§4.8); the loop closes on mock agents in week 4 before any real connector |
+| **Building the harness instead of the game** (raised by classmates) | the harness is the game, but each week's harness work must show on the estate (§4.8); the loop closes on mock agents by the week of Nov 9, before any real connector |
 | **Approval fatigue:** a habituated player approves a bad change with the same click | grouped approvals, reads never ask, one-line summaries; approvals per task are tracked and meant to fall (§1) |
 | **Audience:** it reads as a gamified agent manager, not a traditional game | said plainly in §1; the novice path (§2.8) opens it to anyone who wants a personal agent, coders or not |
 | **Scope creep:** mirroring a life is bottomless | one life chapter per week after the MVP; the MVP has four live sources (agents, Flora, mailbox, one repo) |
@@ -455,7 +456,7 @@ Medium-poly, flat-shaded, warm palette, soft shadows: a diorama you'd keep on a 
 - **A. Wellness game or productivity tool?** A wellness game that happens to run your work. Closing time is a nudge you set yourself; staying late is staged in-world, never silent (§2.3).
 - **B. Can the game suggest raising an agent's autonomy?** No agent can start a trust change. The board shows each agent's track record; any suggestion comes from game code on the board, never as a "!" (§2.1).
 - **C. What does "needing the game less" measure?** Both halves together: fewer "!"s and approvals per task, and fewer hours jacked in with chores still done in person (§1).
-- **D. The Construct.** v1 onboarding, week 5, one curated first program (your own agent), original lines (§2.7).
+- **D. The Construct.** v1 onboarding, the week of Nov 16, one curated first program (your own agent), original lines (§2.7).
 - **E. A second player.** You are the Oracle of your own estate; the novice path takes you from zero accounts to your own (§2.8).
 - **F. Approval fatigue.** Grouped approvals, reads never ask, one-line summaries, and approvals per task meant to fall (§2.1).
 
@@ -483,7 +484,7 @@ Six reviewer agents (systems design, narrative, player psychology, feasibility, 
 
 | What the crew flagged | What changed | Where |
 |---|---|---|
-| The 4-week MVP didn't contain the game: no "!", no jack-out, no progression | MVP re-cut so weeks 1–4 close the full loop on mock agents; what's deferred is written down | §4.8 |
+| The 4-week MVP didn't contain the game: no "!", no jack-out, no progression | MVP re-cut so it closes the full loop on mock agents; what's deferred is written down | §4.8 |
 | A "!" could be forged, and the game's rewards wear approvals down | "!" only through `ask_player`, a source on every event, unknown processes refused; grouped approvals, reads never ask | §3.1, §2.1 |
 | The bridge carries the whole design and had no spec | four events written as data, localhost with a pairing code, a stalled state, keycards that time out | §3.1, §4.7 |
 | A dead pet's twin would keep saying "I'm hungry" | memorial mode: only you move a pet there, its chores stop counting, your twin says so truthfully | §2.5 |
@@ -493,7 +494,7 @@ Six reviewer agents (systems design, narrative, player psychology, feasibility, 
 | *Escalated:* wellness game or productivity tool; lock or nudge | a wellness game that runs your work; closing time is a nudge you set, overridden only in-world | §1, §2.3 |
 | *Escalated:* can the game suggest more autonomy | no agent can start a trust change; track records on the board; suggestions never arrive as a "!" | §2.1 |
 | *Escalated:* what "needing the game less" measures | both: fewer "!"s per task and fewer hours jacked in, with a target curve | §1 |
-| *Escalated:* the Construct now or later | v1 onboarding in week 5, one curated first program, original lines | §2.7 |
+| *Escalated:* the Construct now or later | v1 onboarding the week of Nov 16, one curated first program, original lines | §2.7 |
 
 ### 8.2 Humans: classmates
 
@@ -503,7 +504,7 @@ The first draft went to the class Discord feedback thread. The multi-agent board
 |---|---|---|
 | Jaime | How hard is setup for a less technical player? Is connecting apps the hardest part? | the novice path: zero accounts to start, your twin runs each connection as a quest (§2.8) |
 | David | "Play it less" is a developer's goal, not a gamer's; it reads as a gamified agent-management harness more than a video game | says plainly who it's for and who it isn't, and that it isn't only for coders (§1) |
-| David | Show AI usage in the game so you don't have to check it in a browser | the juice meter, in the week-4 MVP (§2.1, §4.8) |
+| David | Show AI usage in the game so you don't have to check it in a browser | the juice meter, in the MVP (§2.1, §4.8) |
 | David | Anything that adds time to real work is a cost: feeding things, chores, a learning curve | the game never adds work (pillar 5, §2.1) |
 | Dylan, echoing Joshua | "This guitar is a terrible saxophone": the harness may get built before the game | the top risk now, with a cut line: harness work counts only when it shows on the estate (§4.8, §6) |
 
@@ -513,4 +514,5 @@ The first draft went to the class Discord feedback thread. The multi-agent board
 - **The time curve is the long-term win:** maybe ten hours a week in the first month, two a year later (§1, pillar 6).
 - **Everyone's twin is different,** so the installer won't cover every case; the twin onboards itself (§2.8).
 - **Direct the agents in the world.** If you have to go back to a terminal to tell them anything, the view is just a screensaver (pillar 4).
+- **The schedule is re-dated to the course's end (Nov 24).** Nothing past the scaffold is built yet, so the MVP is the plan, and everything after it is deferred in writing (§4.8).
 - **Later: the house itself,** with the doorbell ringing at the estate's gate (§7.8).

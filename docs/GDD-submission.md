@@ -70,7 +70,7 @@ Think of the Matrix, TRON, and the OASIS, with one difference: **the OASIS keeps
 ### Signature moments
 
 1. **The snap.** You mark Flora fed. A worm drops from the dock, Flora shoots up from the weeds, *snap*, a swirl of mud, the hungry bubble pops, and the worm jar shows one fewer.
-2. **"I know kung fu."** Agent skills, tools, and MCP servers are Neo's training programs: a skill (know-how), a tool (an ability), or an MCP server (a live line into a real service: mail, GitHub, Blender) loads in seconds, and suddenly your twin can do what it couldn't a moment ago. You load one, your eyes snap open, your twin gains the tool, and its building rises on the estate.
+2. **"I know kung fu."** Skills, tools, and MCP servers are Neo's training programs: you load one, your eyes snap open, your twin can suddenly do what it couldn't a moment ago, and its building rises on the estate.
 
 ### A day is one round
 
@@ -90,7 +90,7 @@ The code has no idea what an axolotl is. Creatures, chores, and businesses are *
  :chores [{:id :feed :every "2d" :at "17:00" :who :me :consumes [:stock 1]}]}
 ```
 
-The same code path runs a horse in a barn with a hay counter. Pets can also be **virtual** (kept around with no needs) or **memorial**: every dog you've ever had can still lie in the sun on the porch, needing nothing. When a live pet dies, only you move it to memorial: its chores stop counting toward your day, and your twin says so kindly and truthfully. A `:personality` line in your own words ("barked at every truck, followed me room to room") becomes how it behaves, turned into behavior settings once, not per frame. You're only jacked out for **your** chores; household members are never agents... in v1. **Someday it goes multiplayer:** each person in the house brings their own twin, and the twins meet, trade chores, and negotiate the shared calendar ("our humans are both free Thursday"), with every human approving.
+The same code path runs a horse in a barn with a hay counter. Pets can also be **virtual** (kept around with no needs) or **memorial**: every dog you've ever had can still lie in the sun on the porch, needing nothing. When a live pet dies, only you move it to memorial: its chores stop counting toward your day, and your twin says so kindly and truthfully. You're only jacked out for **your** chores; household members are never agents... in v1. **Someday it goes multiplayer:** each person in the house brings their own twin, and the twins meet, trade chores, and negotiate the shared calendar ("our humans are both free Thursday"), with every human approving.
 
 ### Progression: no XP
 
@@ -99,7 +99,7 @@ The same code path runs a horse in a barn with a hay counter. Pets can also be *
 
 ### The first hour: the Construct
 
-Neo's first day out of the pod. White screen. Your digital twin steps out of nowhere, playing the Morpheus part: *"This is the white room. Nothing in here is real yet."* A rack of programs scrolls past like the film's weapons racks, but your first one is chosen for you: **your own agent**, the red pill that makes the game real. It slams in and your eyes snap open (*"Felt that? That's me, the real me, plugged in."* *"Prove it."* *"Watch."*). The rest of the rack (mail, GitHub, Blender) loads later from a vetted list, each starting as its sample version. Then the sparring match: your twin hands a worker a practice job ("make that rock rounder"), the worker (wearing the sample badge, so even this "!" is honest) runs to you, you answer, a blueprint appears, you approve, and the rock changes. **Five minutes in, you've played the whole game.** The phone rings with a pretend chore; you jack out and back in. The white dissolves into your half-barren estate: *"I can open the door. Walking through it is your part."* Original lines (the film is only the beat sheet), built in week 5. ([full Construct](https://github.com/xicubed/prime-meridian/blob/main/docs/GDD.md#27-the-first-hour-the-construct))
+Neo's first day out of the pod. White screen. Your digital twin steps out of nowhere, playing the Morpheus part: *"This is the white room. Nothing in here is real yet."* A rack of programs scrolls past like the film's weapons racks, but your first one is chosen for you: **your own agent**, the red pill that makes the game real. It slams in and your eyes snap open (*"Felt that? That's me, the real me, plugged in."* *"Prove it."* *"Watch."*). The rest of the rack (mail, GitHub, Blender) loads later from a vetted list, each starting as its sample version. Then the sparring match: your twin hands a worker a practice job ("make that rock rounder"), the worker (wearing the sample badge, so even this "!" is honest) runs to you, you answer, a blueprint appears, you approve, and the rock changes. **Five minutes in, you've played the whole game.** The phone rings with a pretend chore; you jack out and back in. The white dissolves into your half-barren estate: *"I can open the door. Walking through it is your part."* Original lines (the film is only the beat sheet), built the week of Nov 16. ([full Construct](https://github.com/xicubed/prime-meridian/blob/main/docs/GDD.md#27-the-first-hour-the-construct))
 
 ### New players: zero accounts to your own
 
@@ -148,7 +148,7 @@ The agents that **build** the game. Each is a persistent persona on a fresh, tas
 | **Asset Scraper** | Fetches free models and sounds for the crew. | the files plus a license manifest, one entry per asset with source and license (EDN) |
 | **Business Manager (Pepper)** | Keeps the company ready to sell the game: payments, store page, policies. | the release checklist and store-page copy (Markdown), and a read-only sales summary |
 
-**One wow: your digital twin (Hal).** You load a program and watch your twin carry it out into the half-barren estate, which gains the building that goes with it. Ask it for a nicer river, it hands the job to the Environment Artist, and the water changes in front of you. **v1 staffs five:** the Hero, Lead Architect, Gameplay Engineer, Environment Artist, QA. The rest join when their milestone needs them.
+**One wow: your digital twin (Hal).** You load a program and watch your twin carry it out into the half-barren estate, which gains the building that goes with it. **v1 staffs five:** the Hero, Lead Architect, Gameplay Engineer, Environment Artist, QA. The rest join when their milestone needs them.
 
 ### Token budget
 
@@ -168,15 +168,13 @@ Claude Opus 5.5 API list prices ($4 / $20 per million input / output tokens). Ta
 
 **My biggest constraint is agent latency, because** real agents take seconds to minutes to answer and a game has to feel alive every frame. So the world never waits on a model: characters animate thinking, you can walk away, replies arrive as events, and progress shows step by step.
 
-**Limits are part of the world.** Every multi-agent setup hits caps, rate limits, and quotas, so agents stay ahead of them: one nearing a limit parks its step, says so ("almost out of juice, parking this at step 3"), hands back its keycards, and sits down to rest. It bows out gracefully instead of failing. The bridge shows each login's usage as the juice meter (estimated from the tokens it sees in v1).
+**Limits are part of the world.** Every multi-agent setup hits caps and quotas, so an agent nearing one parks its step, says so ("almost out of juice, parking this at step 3"), hands back its keycards, and rests: it bows out gracefully instead of failing. The bridge shows each login's usage as the juice meter (estimated from the tokens it sees in v1).
 
 **API constraints:** **Claude plans:** usage caps per window → few frontier desks, a local night crew, short sessions · **Gmail:** OAuth and rate quotas → the Clerk reads on a schedule, never per frame · **SMS / iMessage:** carrier registration covers opted-in people only, and iMessage has no API → the bot texts only the player; a local watcher on the Mac · **Stripe:** live keys move money → read-only for Pepper · **Model output:** non-deterministic → blueprints, keycards, and the QA gate catch a bad path before it's real.
 
-**The test drive is also the test rig.** Every connection ships with a sample version, so the MVP is buildable, demoable, and gradable **without a single real account**, testing burns no quotas, and the red team attacks only pretend services. The swap is literal: connect Gmail and the sample inbox `me@acme.com` fills with your real mail.
+### Scope (one person, through Nov 24)
 
-### Scope (7 weeks)
-
-**Week 1** GDD + scaffold *(done)* · **2** estate v0, sample connections, three mock workers, a static "!" over whoever needs you, HUD · **3** bridge spike on the written event schema: real statuses, Flora's real worm count, **the snap** end to end · **4** **the whole loop:** talk → answer → approve → the world changes, plus jack in/out, closing time, and the juice meter · **5** "!" walks to you; street cred; the Construct · **6** first life chapter · **7** physical motion (stretch). **MVP = weeks 1–4, and it closes the full loop.** Deferred in writing: walking "!", progression, real connectors beyond your own agent, physics. **Cut line:** harness work counts only when that week's build shows it on the estate.
+**One person** (Michael) directs five agents in the evenings and around the Tue/Thu classes. The course ends **Nov 24** and nothing past the scaffold is built yet, so the MVP is the plan. **Done:** GDD + scaffold; two drafts and a review board · **Week of Oct 26:** estate v0 on sample connections (so the MVP is buildable, demoable, and gradable **without a single real account**, and testing burns no quotas): three mock workers on scripted paths, a static "!", HUD · **Nov 2:** bridge + **the snap**: the four events working, your agent's real status, Flora's worm count, stalled state · **Nov 9: the whole loop (MVP):** talk → answer → approve → the world changes, jack in/out, closing time, the juice meter · **Nov 16:** the Construct + demo build · **Nov 24:** final presentation. **Deferred past Nov 24, in writing:** walking "!", street cred, life chapters, real connectors beyond your own agent, physics. **The constraints that set the pace:** his evenings and the plan's usage caps. **Cut line:** harness work counts only when that week's build shows it on the estate.
 
 ## 5. What Changed, and Why
 
@@ -184,7 +182,7 @@ The first draft ([`gdd-draft-1`](https://github.com/xicubed/prime-meridian/blob/
 
 **The crew (agent stress test).** Six reviewer agents (systems, narrative, player psychology, feasibility, adversarial QA, business) reviewed the draft, cross-examined each other, and a moderator synthesized **31 findings, 11 BLOCKING** ([synthesis](https://github.com/xicubed/prime-meridian/blob/main/docs/reviews/2026-10-17-draft1/SYNTHESIS.md)). Fixed right after the board: the MVP re-cut to close the whole loop · a forgeable "!" (now `ask_player` only, with a source on every event) · the unspecified bridge (four events, a stalled state, keycards that time out) · a dead pet still saying "I'm hungry" (memorial mode) · double-counted chores · ragdolls in the MVP (kinematic first). The board escalated five questions, decided here:
 
-**Lock or nudge?** A wellness game that runs your work; closing time is a nudge you set, staged in-world · **Can the game suggest more autonomy?** No agent can start a trust change; track records on the board, never a "!" · **What does "needing the game less" measure?** Both: fewer "!"s per task *and* fewer hours jacked in · **Only the author is designed for:** you're the Oracle of your own estate; the novice path · **The Construct now or later?** v1 onboarding in week 5, one curated first program, original lines.
+**Lock or nudge?** A wellness game that runs your work; closing time is a nudge you set, staged in-world · **Can the game suggest more autonomy?** No agent can start a trust change; track records on the board, never a "!" · **What does "needing the game less" measure?** Both: fewer "!"s per task *and* fewer hours jacked in · **Only the author is designed for:** you're the Oracle of your own estate; the novice path · **The Construct now or later?** v1 onboarding the week of Nov 16, one curated first program, original lines.
 
 **Humans (the class Discord).** The agents caught safety and scope problems; the humans caught who the game is *for*.
 
@@ -192,8 +190,8 @@ The first draft ([`gdd-draft-1`](https://github.com/xicubed/prime-meridian/blob/
 |---|---|---|
 | Jaime | How hard is setup for a less technical player? | the novice path: zero accounts to start, your twin runs each connection as a quest |
 | David | "Play it less" is a developer's goal; it reads as a gamified agent manager | says plainly who it's for and who it isn't, and that it isn't only for coders |
-| David | Show AI usage in the game, not in a browser | the juice meter, in the week-4 MVP |
+| David | Show AI usage in the game, not in a browser | the juice meter, in the MVP |
 | David | Anything that adds time to real work is a cost | pillar 4: it never adds work |
 | Dylan, echoing Joshua | "This guitar is a terrible saxophone": the harness may get built before the game | a cut line in the scope: harness work counts only when it shows on the estate |
 
-**My own calls.** The harness is the game: I like getting wrapped up in it, so I made it the game · the time curve (ten hours a week to two) is the long-term win · everyone's twin is different, so it onboards itself · direct the agents in the world, or the view is just a screensaver.
+**My own calls.** The harness is the game: I like getting wrapped up in it, so I made it the game · the time curve (ten hours a week to two) is the long-term win · everyone's twin is different, so it onboards itself · direct the agents in the world, or the view is just a screensaver · the schedule is re-dated to Nov 24: nothing past the scaffold is built, so the MVP is the plan.
