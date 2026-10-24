@@ -303,25 +303,25 @@ Director, the Oracle (Michael, human): vision, approves every change
  └─ Business Manager (Pepper): release, pricing, storefront, payments
 ```
 
-Each agent's development role in one sentence:
+Each agent's development role in one sentence, and what it produces in what format:
 
-| Agent | Development role |
-|---|---|
-| **The Hero or Heroine** (Hal) ★ | Your twin and the star of the digital world: takes your requests as quests, splits them into small tasks on the board, and leads the right crew member into each one. |
-| **Lead Architect** | Decides how the pieces fit together (world-state shape, the bridge's message contract) whenever a change touches more than one area. |
-| **Game Designer** | Turns a feature idea into rules and estate content written into this document. |
-| **Writer** | Writes Hal's voice, the status bubbles, and mirror lines like "2 worms left!". |
-| **Engine Engineer** | Extends the three.js wrapper, camera, lighting, and the physics world (Rapier, active ragdolls, balance) and keeps the frame rate steady. |
-| **Gameplay Engineer** | Codes world rules, movement, and interactions such as agents walking over to you with "!". |
-| **Bridge Engineer** | Connects real data sources and agent sessions to the world so statuses match reality. |
-| **Environment Artist** | Reshapes and re-lights the estate (river, rocks, time of day) when you ask in-game, so you watch that spot change. |
-| **Character Artist** | Builds and animates the figures and poses, starting with Flora's snap (working with a human 3D artist on the axolotl). |
-| **Tech Artist** | Imports and slims down purchased 3D kits so they look rich without dropping the frame rate. |
-| **Sound Designer** | Places positional audio, like the river getting louder as you walk toward it. |
-| **QA Tester** | Runs the build (zero warnings), checks the live HUD numbers, and blocks any change that fails. |
-| **Red Team ("Cypher")** | Tries to turn the crew before anyone else can (bait mail with hidden instructions, poisoned tools), using pretend connections only, and files every hole it finds as a task and then a regression test. |
-| **Asset Scraper** | Fetches free models, sounds, and references and records each one's source and license. |
-| **Business Manager** (Pepper) | Keeps the company ready to sell the game: payments account, store page, policies, release checklist. |
+| Agent | Development role, in one sentence | Produces (format) |
+|---|---|---|
+| **The Hero or Heroine (Hal) ★ one wow** | Your twin, the star of the digital world: takes your requests as quests, splits them into tasks, and leads the right crew member into each one. | task cards in `TASKS.md` (Markdown), merges each crew branch into `main`, and the daily dev log `docs/session-<date>.md` |
+| **Lead Architect** | Decides how the pieces fit together whenever a change touches more than one area. | the world-state shape and the bridge event schema (EDN), and short decision notes in the GDD (Markdown) |
+| **Game Designer** | Turns a feature idea into rules and estate content. | GDD sections (Markdown) and estate data: rooms, mirrors, chores (`resources/estate.edn`) |
+| **Writer** | Writes your twin's voice, the status bubbles, and lines like "2 worms left!". | line tables keyed by event (EDN), plus the Construct script (Markdown) |
+| **Engine Engineer** | Extends the three.js wrapper, camera, lighting, and physics, and keeps the frame rate steady. | ClojureScript in the one wrapper namespace (`pm.three`), compiling with 0 warnings |
+| **Gameplay Engineer** | Codes world rules, movement, and interactions like agents walking over with "!". | pure ClojureScript functions in `pm.world` with unit tests |
+| **Bridge Engineer** | Connects real data and agent sessions so statuses match reality. | the Babashka bridge (`bridge.clj`) and the sample (pretend) connections, speaking the four events as JSON over a websocket |
+| **Environment Artist** | Reshapes and re-lights the estate when you ask in-game, so you watch that spot change. | shader and scene changes (ClojureScript / TSL) shown as a blueprint with before/after screenshots |
+| **Character Artist** | Builds and animates the figures, starting with Flora's snap (with a human 3D artist). | rigged characters (GLB) and motion settings per character (EDN) |
+| **Tech Artist** | Slims purchased 3D kits so they look rich without dropping the frame rate. | decimated, level-of-detail models (GLB) and a triangle and frame-time report (Markdown) |
+| **Sound Designer** | Places positional audio, like the river getting louder as you walk toward it. | sound emitters placed in the estate (EDN) and audio loops (OGG) with their licenses |
+| **QA Tester** | Runs the build, checks the live HUD, and blocks any change that fails. | a pass/fail gate note on every change (Markdown): compile warnings, HUD readout, what it checked |
+| **Red Team ("Cypher")** | Tries to turn the crew first (bait mail, poisoned tools) against pretend connections only. | each hole found as a task in `TASKS.md`, then a regression test |
+| **Asset Scraper** | Fetches free models and sounds for the crew. | the files plus a license manifest, one entry per asset with source and license (EDN) |
+| **Business Manager (Pepper)** | Keeps the company ready to sell the game: payments, store page, policies. | the release checklist and store-page copy (Markdown), and a read-only sales summary |
 
 **One wow agent: your digital twin (Hal).** It's the character you see most and the reason the world grows: load a program ("I know kung fu") and watch your twin carry it out into the half-barren estate, which gains the building that goes with it. Ask it for a nicer river and it hands the job to the Environment Artist, and you watch the water change in front of you: the purest form of the core loop.
 
