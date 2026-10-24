@@ -8,13 +8,13 @@ Legend: `[ ]` open · `[~] name` claimed · `[x] #PR` or `[x] <date>` done. Top-
 
 ## Second draft (Assignment 2, due about a week after Oct 20; confirm the date from the assignment PDF)
 Plan of record: [`docs/session-2026-10-17.md`](docs/session-2026-10-17.md) §7. Gold standard first (`docs/GDD.md`), then re-condense `docs/GDD-submission.md` (≤ 6 pages).
-- [ ] D-1 Save the Assignment 2 PDF to `assets/private/course/`; gap-check the draft against its rubric.
-- [ ] D-2 Michael decides open questions A–F (GDD §7); decisions go into the body, the rest stay leans.
-- [ ] D-3 Michael rewrites the design pillars in his own voice; the Writer drafts original Construct lines (no film quotes).
-- [ ] D-4 Revise `GDD.md` from the review board's multi-agent findings (forged "!", approval fatigue, stalled agents, curated MCP set, sample-to-real); answer or explain the standard-game findings in one line each.
-- [ ] D-5 Re-condense `GDD-submission.md`; render the PDF into `docs/`.
+- [~] D-1 (assignment text pasted in chat; the "Final_GDD - ELVTR" Google Doc still to fetch) Save the Assignment 2 PDF to `assets/private/course/`; gap-check the draft against its rubric.
+- [~] D-2 (leans written in as decisions Oct 23, pending Michael's veto) Michael decides open questions A–F (GDD §7); decisions go into the body, the rest stay leans.
+- [~] D-3 (Hal drafted pillars from Michael's Discord wording; Writer's original Construct lines in §2.7) Michael rewrites the design pillars in his own voice; the Writer drafts original Construct lines (no film quotes).
+- [x] 2026-10-23 D-4 Revise `GDD.md` from the review board's multi-agent findings (forged "!", approval fatigue, stalled agents, curated MCP set, sample-to-real); answer or explain the standard-game findings in one line each.
+- [~] D-5 (6 pages; PDF in assets/private/course/ until sign-off) Re-condense `GDD-submission.md`; render the PDF into `docs/`.
 - [ ] D-6 Rerun the review kit Rounds 1–4 on the new submission; archive to `docs/reviews/<date>-draft2/`; report BLOCKING 11 → ?.
-- [ ] D-7 Post the draft in the class Discord feedback thread for human feedback.
+- [x] 2026-10-19 D-7 Post the draft in the class Discord feedback thread for human feedback.
 - [ ] D-8 Diff vs `gdd-draft-1` as a section table; tag `gdd-draft-2`; submit.
 
 ## Week 2 — World v0 (estate + mock agents)
