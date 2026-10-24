@@ -420,7 +420,7 @@ An agent can only do as much harm as its permissions allow, and these agents rea
 | Nov 16 | **The Construct + demo build** | a new player gets through the first five minutes on sample connections only; a demo build for class |
 | Nov 23 | **Final presentation (Nov 24)** | buffer, then the demo |
 
-**The MVP closes the full loop by the week of Nov 9** (the review board's top finding on the first draft). **Deferred past Nov 24, in writing:** the walking "!", street cred, life chapters, night-shift orders, real connectors beyond your own agent, Pepper, physics (active ragdolls, Flora's physical swim), the river and other showpiece visuals, and sound. Flora's snap is the MVP's signature moment. After the course the game ships publicly as it's built, one life chapter per week, with weekly patch notes as the dev log.
+**The MVP closes the full loop by the week of Nov 9** (the review board's top finding on the first draft, and the grader's: "protect the four-week core"). **Demo mode is the primary path:** every milestone runs on sample connections, so the full loop is always playable with zero accounts. **Deferred past Nov 24, in writing:** the walking "!", street cred, life chapters, night-shift orders, real connectors beyond your own agent, Pepper, physics (active ragdolls, Flora's physical swim), the river and other showpiece visuals, and sound. Flora's snap is the MVP's signature moment. After the course the game ships publicly as it's built, one life chapter per week, with weekly patch notes as the dev log.
 
 **Why one person can do it:** the MVP has one real connection (your own agent) and runs everything else on sample data; each week's milestone is one thing you can see; and v1 staffs five agents, not fifteen. **The constraints that set the pace** are Michael's evenings and the plan's usage caps, which is why every task runs in a short, task-scoped session.
 
@@ -476,7 +476,16 @@ Medium-poly, flat-shaded, warm palette, soft shadows: a diorama you'd keep on a 
 
 ## 8. What changed in the final draft, and why
 
-The first draft (tag [`gdd-draft-1`](https://github.com/xicubed/prime-meridian/blob/gdd-draft-1/docs/GDD.md)) went through three reviews: an agent stress test, human feedback, and the author's own read. The full line diff is `git diff gdd-draft-1 -- docs/GDD.md`.
+The first draft (tag [`gdd-draft-1`](https://github.com/xicubed/prime-meridian/blob/gdd-draft-1/docs/GDD.md)) scored 10/10, and feedback came from four places: the grader, an agent stress test, classmates, and the author's own read. The full line diff is `git diff gdd-draft-1 -- docs/GDD.md`.
+
+### 8.0 The grader (Assignment 1)
+
+> "For the next draft, the whole job is scope discipline: hold the MVP to weeks 1 to 4, resist pulling physics or new life chapters in early, and keep demo mode (pretend connections) the primary path so the full loop is always playable with zero accounts. The vision is huge; protect the four-week core."
+
+- **The four-week core holds.** The MVP is the same three build milestones plus the scaffold (estate → bridge and the snap → the whole loop), re-dated to the weeks of Oct 26 through Nov 9 because nothing past the scaffold is built yet (§4.8).
+- **Nothing pulled in early.** Physics, life chapters, street cred, and the walking "!" are deferred past Nov 24 in writing.
+- **Demo mode is the primary path.** Every milestone runs on sample connections; your own agent is the only real one, so the full loop is always playable with zero accounts.
+- **What this draft adds stays small or after the core:** the juice meter is an estimate from data the bridge already has; the Construct comes after the MVP and runs on sample connections only.
 
 ### 8.1 The crew: the agent stress test
 
