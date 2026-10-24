@@ -5,8 +5,8 @@
 
 > "What is even real anymore? Gamifying the agents, a game for all and none."
 
-![Blue hour on the estate: the creek and the cottage](screen-01.jpg)
-*Blue hour on the estate: the creek and the cottage (work in progress). Scene: [Hiroshi's Island](https://3ditions.drop3.app/watch/hiroshis-island/) by 3DITIONS (Pixel Palms / Cocotofy LLC), used under license.*
+![The estate running inside the harness: Hermes's chat on the left, the game in its preview pane on the right](screen-01-harness.jpg)
+*The game running inside the harness (work in progress): Hermes, the author's agent, on the left; the estate at blue hour, the creek and the cottage, in its preview pane on the right. Scene: [Hiroshi's Island](https://3ditions.drop3.app/watch/hiroshis-island/) by 3DITIONS (Pixel Palms / Cocotofy LLC), used under license.*
 
 ## 1. Executive Summary
 
@@ -69,7 +69,7 @@ Think of the Matrix, TRON, and the OASIS, with one difference: **the OASIS keeps
 
 ### Signature moments
 
-1. **The snap.** You mark Flora fed. A worm drops from the dock, Flora shoots up from the weeds, *snap*, a swirl of mud, the hungry bubble pops, and the worm jar shows one fewer.
+1. **The snap.** You mark Flora fed. A worm drops from the dock, Flora shoots up from the weeds, *snap*, a swirl of mud, the hungry bubble pops, and the worm jar shows one fewer. Days later you're driving and a message reads out "Feed Flora! Nightcrawlers left after this one: 15."
 2. **"I know kung fu."** Skills, tools, and MCP servers are Neo's training programs: you load one, your eyes snap open, your twin can suddenly do what it couldn't a moment ago, and its building rises on the estate.
 
 ### A day is one round

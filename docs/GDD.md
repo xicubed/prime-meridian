@@ -6,8 +6,8 @@
 
 ---
 
-![Blue hour on the estate: the creek and the cottage](screen-01.jpg)
-*Blue hour on the estate: the creek and the cottage (work in progress). Scene: [Hiroshi's Island](https://3ditions.drop3.app/watch/hiroshis-island/) by 3DITIONS (Pixel Palms / Cocotofy LLC), used under license.*
+![The estate running inside the harness: Hermes's chat on the left, the game in its preview pane on the right](screen-01-harness.jpg)
+*The game running inside the harness (work in progress): Hermes, the author's agent, on the left; the estate at blue hour, the creek and the cottage, in its preview pane on the right. Scene: [Hiroshi's Island](https://3ditions.drop3.app/watch/hiroshis-island/) by 3DITIONS (Pixel Palms / Cocotofy LLC), used under license.*
 
 ## 1. Executive Summary
 
@@ -109,7 +109,7 @@
 
 **Signature moments**
 
-1. **The snap.** You mark Flora fed, a worm drops from the dock, Flora shoots up from the weeds, *snap*, a swirl of mud, the hungry bubble pops, and the worm jar shows one fewer.
+1. **The snap.** You mark Flora fed, a worm drops from the dock, Flora shoots up from the weeds, *snap*, a swirl of mud, the hungry bubble pops, and the worm jar shows one fewer. Days later you're driving and a message reads out "Feed Flora! Nightcrawlers left after this one: 15."
 2. **"I know kung fu."** Agent skills, tools, and MCP servers are Neo's training programs: a skill (know-how), a tool (an ability), or an MCP server (a live line into a real service: mail, GitHub, Blender) loads in seconds, and suddenly your twin can do what it couldn't a moment ago. You load one, your eyes snap open, your twin gains the tool, and its building rises on the estate (§2.6, §2.7).
 3. **A blueprint appears.** Scaffolding rises as a worker builds what you asked for; at breakfast it's waiting for your approval.
 4. **Closing time.** Last call, the estate goes to night, the workshop lights stay on.
