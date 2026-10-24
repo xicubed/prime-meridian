@@ -208,6 +208,10 @@ There is no XP. Progression belongs to **you**: your street cred, and your loado
 
 Every program loads instantly as a pretend version (§4.6), so the Construct works for anyone with no accounts. When you want the real thing, the same program asks for a login and goes live. You can come back to the Construct any time to load more, and when a task needs a program you don't have, your twin asks for it right there (*"I need a program for this one."* *"Loading."*). These are original lines drafted by the Writer; the film scenes are only the beat sheet. The Construct is v1 onboarding, built the week of Nov 16 on top of the MVP loop (§4.8).
 
+**The installer is a conversation.** The Construct ships as a **Hermes onboarding skill**, written the way Hermes writes its own first-run setup: numbered beats, one choice card at a time, then a hand-off. Your own agent checks your machine, installs only what's missing (with your OK), launches the white room on sample connections, plays Morpheus through the sparring match, and ends on one card of real connections, each a quest it runs while you click the consent screens. No two machines or twins are alike, so there's no one-size installer; your agent adapts to yours.
+
+**Stress-tested by players who don't exist yet.** Before a human tries it, a board of simulated new players runs the Construct the way the review board ran this document: a non-coder, a developer who hates overhead, someone with no Mac, someone with no agent at all. Each writes a friction report, they cross-examine each other, and a moderator keeps the real friction and drops the "I hate computers" noise.
+
 ### 2.8 New players: from zero accounts to your own
 
 A classmate's first question was how hard setup is for someone less technical. The answer is that setup is part of play, and your twin does the hard parts.
@@ -523,5 +527,6 @@ The first draft went to the class Discord feedback thread. The multi-agent board
 - **The time curve is the long-term win:** maybe ten hours a week in the first month, two a year later (§1, pillar 6).
 - **Everyone's twin is different,** so the installer won't cover every case; the twin onboards itself (§2.8).
 - **Direct the agents in the world.** If you have to go back to a terminal to tell them anything, the view is just a screensaver (pillar 4).
+- **The installer is a conversation.** The Construct ships as a Hermes onboarding skill, so your own agent installs the game and walks you in; a board of simulated new players stress-tests it before any human does (§2.7).
 - **The schedule is re-dated to the course's end (Nov 24).** Nothing past the scaffold is built yet, so the MVP is the plan, and everything after it is deferred in writing (§4.8).
 - **Later: the house itself,** with the doorbell ringing at the estate's gate (§7.8).
