@@ -17,6 +17,13 @@ Plan of record: [`docs/session-2026-10-17.md`](docs/session-2026-10-17.md) §7. 
 - [x] 2026-10-19 D-7 Post the draft in the class Discord feedback thread for human feedback.
 - [x] 2026-10-24 D-8 (tagged and pushed; Michael submits) Diff vs `gdd-draft-1` as a section table; tag `gdd-draft-2`; submit.
 
+## Crew + kit (Assignment 3, due Nov 1)
+- [x] 2026-10-31 C-1 Agent crew: `.crew/` roster, role cards, quests, rounds, gate; `crew/README.md` with the Mermaid diagram; run logs in `crew/runs/`.
+- [x] 2026-10-31 C-2 Feed-Flora loop (crew round): `resources/estate.edn` (Flora + Juniper), `pm.world` rules, 32 tests, HUD + F key.
+- [x] 2026-10-31 C-3 The kit is the world: `pm.kit` loads the local kit copy (`public/kit/`, gitignored) into the game page; `pm.brook` spatial brook in CLJS; scaffold fallback.
+- [ ] C-4 `pm.three` builds objects with the kit's THREE when the kit is present (one three.js per page). First step of W2-7.
+- [ ] C-5 Submit Assignment 3: repo link to `crew/README.md` + crew-up link.
+
 ## Week 2 — World v0 (estate + mock agents)
 > Rewrite these from the re-cut MVP (GDD §4.8) before starting: no XP or tank; add the static "!", the motion-controller interface with kinematic paths, and the four bridge events as mock data.
 - [ ] W2-0 Rewrite the W2 tasks below from the current GDD (one evening, do first).
