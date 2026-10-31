@@ -329,7 +329,7 @@ Each agent's development role in one sentence, and what it produces in what form
 
 **One wow agent: your digital twin (Hal).** It's the character you see most and the reason the world grows: load a program ("I know kung fu") and watch your twin carry it out into the half-barren estate, which gains the building that goes with it. Ask it for a nicer river and it hands the job to the Environment Artist, and you watch the water change in front of you: the purest form of the core loop.
 
-**Staffing for the semester.** v1 staffs five: the Hero (Hal), Lead Architect, Gameplay Engineer, Environment Artist, and QA. The other roles are personas that join when their milestone needs them. When several agents work at once, each gets its own copy of the code (a git worktree), and Hal merges their work.
+**Staffing for the semester.** v1 staffs five: the Hero (Hal), Lead Architect, Gameplay Engineer, Environment Artist, and QA. The other roles are personas that join when their milestone needs them. When several agents work at once they share one copy of the code, because the game has one world (separate copies would fork it into a multiverse); each owns different files, and nothing goes live until the Director approves. How the crew runs today: `crew/README.md`.
 
 **Tiers (who thinks, who grinds)**
 

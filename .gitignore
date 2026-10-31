@@ -19,3 +19,6 @@ public/js/
 .nrepl-port
 assets/private/
 .DS_Store
+/out/
+.claude/settings.local.json
+/public/kit/

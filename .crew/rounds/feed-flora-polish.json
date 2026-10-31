@@ -1,0 +1,45 @@
+{
+  "round": "feed-flora-polish",
+  "quest": ".crew/quests/feed-flora-polish.md",
+  "runDir": "crew/runs",
+  "gate": "bash .crew/gate.sh",
+  "fix": {
+    "who": "un-automate-monde",
+    "max": 2
+  },
+  "timeoutMinutes": 20,
+  "steps": [
+    {
+      "id": "build",
+      "who": [
+        "un-automate-monde",
+        "le-testeur"
+      ],
+      "prompt": {
+        "un-automate-monde": "New round: read {quest}. Apply the findings it assigns to the builder, in src/pm/world.cljs only. Run .crew/gate.sh before replying.",
+        "le-testeur": "New round: read {quest}. Apply the finding it assigns to the tester, in test/pm/world_test.cljs only. Don't remove or weaken any test."
+      }
+    },
+    {
+      "id": "gate",
+      "who": [
+        "le-coureur"
+      ],
+      "verify": true,
+      "prompt": "Run the gate (.crew/gate.sh) and write the gate note to {run}/gate-note.md as your role card says.",
+      "expect": [
+        "{run}/gate-note.md"
+      ]
+    },
+    {
+      "id": "review",
+      "who": [
+        "le-critique"
+      ],
+      "prompt": "Review the polish round: diff src/pm/world.cljs and test/pm/world_test.cljs against the previous round's copies in crew/runs/feed-flora-20261031-1250/output/ (e.g. diff -u crew/runs/feed-flora-20261031-1250/output/src/pm/world.cljs src/pm/world.cljs), against {quest}. Check behavior is unchanged and nothing else was touched. Write the review to {run}/review.md.",
+      "expect": [
+        "{run}/review.md"
+      ]
+    }
+  ]
+}

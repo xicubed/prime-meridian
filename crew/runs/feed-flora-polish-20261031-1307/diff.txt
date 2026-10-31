@@ -1,0 +1,113 @@
+diff --git a/.gitignore b/.gitignore
+index e6bf27e..09f75e7 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -19,3 +19,5 @@ public/js/
+ .nrepl-port
+ assets/private/
+ .DS_Store
++/out/
++.claude/settings.local.json
+diff --git a/AGENTS.md b/AGENTS.md
+index 7424c66..903b3e3 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -32,7 +32,7 @@ A change is not done until `compile app` reports **0 warnings** and the page run
+ - Work on `main`. Commit as you go (small commits, clear messages); **push once at the end of the day**. The day's push includes `docs/session-<date>.md`, Hal's daily blog post: what was built, what was decided, what's open.
+ - Each commit's author shows who did it: Michael, or Hal (hal-niner).
+ - Never force-push or rewrite pushed history. Branches and PRs are only for risky or experimental work, and only when Michael asks for one.
+-- **When more than one agent works at once** (the crew, GDD §10d), each gets its own `git worktree` on a branch (`../pm-<agent>`, branch `crew/<agent>/<task>`) so they never share a working tree. Hal merges finished worktree branches into `main` locally and removes the worktree; the end-of-day push is unchanged. Until then, single-agent days stay on `main`.
++- **When the crew works at once** (GDD §4.2, `crew/README.md`), they share this one working tree on `main` (`"checkout": "shared"` in `.crew/crew.json`): the game has one world, and copies per agent would fork it. Parallel work stays safe because each member owns different files (the spec says which). Nothing is committed until Hal has run the gate and Michael approves; that commit is what "goes live". (Per-agent worktrees remain available as `"checkout": "worktree"` for risky work.)
+ - Before the push, the build gate must pass (`compile app` → 0 warnings) if any code changed.
+ - Do not commit `public/js/`, `node_modules/`, `.shadow-cljs/` (gitignored).
+ 
+diff --git a/docs/GDD.md b/docs/GDD.md
+index eb883b9..7080f6d 100644
+--- a/docs/GDD.md
++++ b/docs/GDD.md
+@@ -329,7 +329,7 @@ Each agent's development role in one sentence, and what it produces in what form
+ 
+ **One wow agent: your digital twin (Hal).** It's the character you see most and the reason the world grows: load a program ("I know kung fu") and watch your twin carry it out into the half-barren estate, which gains the building that goes with it. Ask it for a nicer river and it hands the job to the Environment Artist, and you watch the water change in front of you: the purest form of the core loop.
+ 
+-**Staffing for the semester.** v1 staffs five: the Hero (Hal), Lead Architect, Gameplay Engineer, Environment Artist, and QA. The other roles are personas that join when their milestone needs them. When several agents work at once, each gets its own copy of the code (a git worktree), and Hal merges their work.
++**Staffing for the semester.** v1 staffs five: the Hero (Hal), Lead Architect, Gameplay Engineer, Environment Artist, and QA. The other roles are personas that join when their milestone needs them. When several agents work at once they share one copy of the code, because the game has one world (separate copies would fork it into a multiverse); each owns different files, and nothing goes live until the Director approves. How the crew runs today: `crew/README.md`.
+ 
+ **Tiers (who thinks, who grinds)**
+ 
+diff --git a/shadow-cljs.edn b/shadow-cljs.edn
+index 2255eec..10ab0ee 100644
+--- a/shadow-cljs.edn
++++ b/shadow-cljs.edn
+@@ -1,4 +1,4 @@
+-{:source-paths ["src"]
++{:source-paths ["src" "test" "resources"]
+  :dependencies []
+  :dev-http {8080 "public"}
+  :builds
+@@ -6,4 +6,9 @@
+         :output-dir "public/js"
+         :asset-path "/js"
+         :modules {:main {:init-fn pm.core/init!}}
+-        :devtools {:after-load pm.core/reload!}}}}
++        :devtools {:after-load pm.core/reload!}}
++  ;; Unit tests for the pure namespaces (pm.world, ...): *-test namespaces under test/.
++  :test {:target    :node-test
++         :output-to "out/test.js"
++         :ns-regexp "-test$"
++         :autorun   false}}}
+diff --git a/src/pm/core.cljs b/src/pm/core.cljs
+index 5183ea0..141057a 100644
+--- a/src/pm/core.cljs
++++ b/src/pm/core.cljs
+@@ -3,9 +3,10 @@
+    World state lives in one atom; the render loop reads it. Hot reload keeps the
+    renderer and rebuilds the scene."
+   (:require [pm.three :as t]
+-            [pm.audio :as audio]))
++            [pm.audio :as audio]
++            [pm.world :as world]))
+ 
+-(defonce !world (atom {:t 0 :spin 0.6}))
++(defonce !world (atom (merge {:t 0 :spin 0.6} (world/load-estate world/estate-edn))))
+ 
+ (defonce !gfx (atom nil)) ; {:renderer :scene :camera :cube}
+ 
+@@ -34,13 +35,21 @@
+ 
+ (defonce !backend (atom "init…"))
+ 
++(defn- hud-mirrors-suffix []
++  (let [w @!world]
++    (apply str
++      (for [id (get-in w [:hud :mirrors])
++            :let [line (world/status-line w id (js/Date.now))]
++            :when line]
++        (str " · " line)))))
++
+ (defn frame [now]
+   (let [dt (if-let [l @!last] (/ (- now l) 1000) 0)]
+     (reset! !last now)
+     (tick! (min dt 0.1))
+     (when (zero? (mod (swap! !frames inc) 30))
+       (hud! (str "Prime Meridian · week 1 scaffold · " @!backend " · frame " @!frames
+-                 " · t=" (.toFixed (:t @!world) 1) "s")))
++                 " · t=" (.toFixed (:t @!world) 1) "s" (hud-mirrors-suffix))))
+     (js/requestAnimationFrame frame)))
+ 
+ (defonce !brook-on (atom false))
+@@ -78,8 +87,15 @@
+                   (audio/set-param! k v)
+                   (when (= k :flow) (audio/set-file-volume! v))))))))
+ 
++(defn on-key! [^js e]
++  (when-not (or (.-repeat e) (.-ctrlKey e) (.-metaKey e) (.-altKey e))
++    (when-let [ev (world/key-event @!world (.-key e) (js/Date.now))]
++      (swap! !world world/chore-done ev)
++      (js/console.log (pr-str (last (:log @!world)))))))
++
+ (defn init! []
+   (wire-brook-ui!)
++  (.addEventListener js/window "keydown" (fn [^js e] (on-key! e)))
+   (let [renderer (t/renderer)
+         camera   (t/camera)
+         {:keys [scene cube]} (build-scene!)]

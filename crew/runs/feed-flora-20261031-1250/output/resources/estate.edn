@@ -1,0 +1,16 @@
+{:hud {:mirrors [:flora]                 ; mirrors whose status-line goes on the HUD, in order
+       :keys    {"f" [:flora :feed]}}    ; lower-case key -> [mirror-id chore-id]
+ :mirrors
+ [{:id :flora :name "Flora" :kind :creature :model :axolotl :home :canal
+   :state  {:source :sample :stock 15 :last-fed nil}
+   :rules  [{:when [:due? :feed]  :say  "I'm hungry"}
+            {:when [:<= :stock 2] :sign "Worms left: {stock}"}]
+   :chores [{:id :feed :every "2d" :at "17:00" :who :me
+             :consumes [:stock 1] :done-at :last-fed}]}
+
+  {:id :juniper :name "Juniper" :kind :creature :model :horse :home :barn
+   :state  {:source :sample :bales 6 :last-hayed nil}
+   :rules  [{:when [:due? :hay]   :say  "Hay, please?"}
+            {:when [:<= :bales 3] :sign "Bales left: {bales}"}]
+   :chores [{:id :hay :every "12h" :at "07:00" :who :me
+             :consumes [:bales 1] :done-at :last-hayed}]}]}

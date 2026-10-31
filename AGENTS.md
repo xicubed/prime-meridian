@@ -12,11 +12,13 @@ Prime Meridian: a 3D management game where the characters are real AI agents. De
 - Licensed kit lives in `assets/private/` (gitignored, never commit): `kit/source/src/*.ts` is readable reference for water (`water.ts`, `cozy/bounded-concept-water.ts`), wind (`cozy/vegetation-wind.ts`), daylight presets (`daylight.ts`, `time-transition.ts`), DSLR camera (`cozy/photo-camera.ts`). License: one commercial project (this one). Port ideas and code into CLJS; do not copy the GLB into the repo.
 - **Babashka** for scripts and (later) the bridge server. No TypeScript, ever.
 - World state is one atom (`pm.core/!world`). Render reads it; nothing else writes to the scene directly.
+- **The estate is the kit.** `pm.kit` boots the kit's built player from `/kit/` inside our page (`public/index.html` sets `<base href="/kit/">`, so every game URL must be absolute: `/js/...`, `/assets/...`) and hands back `window.hiroshi` = {THREE scene camera rig renderer}. Game objects go into that scene, built with **the kit's THREE** (one three.js instance per page). The kit forces WebGL2 (`forceWebGL: true`). Without `public/kit/` (a public clone) the week-1 scaffold runs instead.
 
 ## Build / run / check
 ```bash
 export PATH="/opt/homebrew/opt/openjdk@21/bin:/opt/homebrew/bin:$PATH" JAVA_HOME=/opt/homebrew/opt/openjdk@21
 npm install
+rsync -a --delete assets/private/kit/dist/ public/kit/   # the world: the licensed kit build (gitignored; once, and after a kit update)
 npx shadow-cljs compile app      # must finish with "0 warnings"
 npx shadow-cljs watch app        # dev server on http://localhost:8080 with hot reload
 ```
@@ -32,7 +34,7 @@ A change is not done until `compile app` reports **0 warnings** and the page run
 - Work on `main`. Commit as you go (small commits, clear messages); **push once at the end of the day**. The day's push includes `docs/session-<date>.md`, Hal's daily blog post: what was built, what was decided, what's open.
 - Each commit's author shows who did it: Michael, or Hal (hal-niner).
 - Never force-push or rewrite pushed history. Branches and PRs are only for risky or experimental work, and only when Michael asks for one.
-- **When more than one agent works at once** (the crew, GDD §10d), each gets its own `git worktree` on a branch (`../pm-<agent>`, branch `crew/<agent>/<task>`) so they never share a working tree. Hal merges finished worktree branches into `main` locally and removes the worktree; the end-of-day push is unchanged. Until then, single-agent days stay on `main`.
+- **When the crew works at once** (GDD §4.2, `crew/README.md`), they share this one working tree on `main` (`"checkout": "shared"` in `.crew/crew.json`): the game has one world, and copies per agent would fork it. Parallel work stays safe because each member owns different files (the spec says which). Nothing is committed until Hal has run the gate and Michael approves; that commit is what "goes live". (Per-agent worktrees remain available as `"checkout": "worktree"` for risky work.)
 - Before the push, the build gate must pass (`compile app` → 0 warnings) if any code changed.
 - Do not commit `public/js/`, `node_modules/`, `.shadow-cljs/` (gitignored).
 

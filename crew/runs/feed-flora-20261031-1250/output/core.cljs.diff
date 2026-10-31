@@ -1,0 +1,56 @@
+diff --git a/src/pm/core.cljs b/src/pm/core.cljs
+index 5183ea0..141057a 100644
+--- a/src/pm/core.cljs
++++ b/src/pm/core.cljs
+@@ -3,9 +3,10 @@
+    World state lives in one atom; the render loop reads it. Hot reload keeps the
+    renderer and rebuilds the scene."
+   (:require [pm.three :as t]
+-            [pm.audio :as audio]))
++            [pm.audio :as audio]
++            [pm.world :as world]))
+ 
+-(defonce !world (atom {:t 0 :spin 0.6}))
++(defonce !world (atom (merge {:t 0 :spin 0.6} (world/load-estate world/estate-edn))))
+ 
+ (defonce !gfx (atom nil)) ; {:renderer :scene :camera :cube}
+ 
+@@ -34,13 +35,21 @@
+ 
+ (defonce !backend (atom "init…"))
+ 
++(defn- hud-mirrors-suffix []
++  (let [w @!world]
++    (apply str
++      (for [id (get-in w [:hud :mirrors])
++            :let [line (world/status-line w id (js/Date.now))]
++            :when line]
++        (str " · " line)))))
++
+ (defn frame [now]
+   (let [dt (if-let [l @!last] (/ (- now l) 1000) 0)]
+     (reset! !last now)
+     (tick! (min dt 0.1))
+     (when (zero? (mod (swap! !frames inc) 30))
+       (hud! (str "Prime Meridian · week 1 scaffold · " @!backend " · frame " @!frames
+-                 " · t=" (.toFixed (:t @!world) 1) "s")))
++                 " · t=" (.toFixed (:t @!world) 1) "s" (hud-mirrors-suffix))))
+     (js/requestAnimationFrame frame)))
+ 
+ (defonce !brook-on (atom false))
+@@ -78,8 +87,15 @@
+                   (audio/set-param! k v)
+                   (when (= k :flow) (audio/set-file-volume! v))))))))
+ 
++(defn on-key! [^js e]
++  (when-not (or (.-repeat e) (.-ctrlKey e) (.-metaKey e) (.-altKey e))
++    (when-let [ev (world/key-event @!world (.-key e) (js/Date.now))]
++      (swap! !world world/chore-done ev)
++      (js/console.log (pr-str (last (:log @!world)))))))
++
+ (defn init! []
+   (wire-brook-ui!)
++  (.addEventListener js/window "keydown" (fn [^js e] (on-key! e)))
+   (let [renderer (t/renderer)
+         camera   (t/camera)
+         {:keys [scene cube]} (build-scene!)]
