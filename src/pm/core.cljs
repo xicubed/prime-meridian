@@ -42,11 +42,14 @@
 
 (defn- hud-mirrors-suffix []
   (let [w @!world]
-    (apply str
-      (for [id (get-in w [:hud :mirrors])
-            :let [line (world/status-line w id (js/Date.now))]
-            :when line]
-        (str " · " line)))))
+    (str
+      (apply str
+        (for [id (get-in w [:hud :mirrors])
+              :let [line (world/status-line w id (js/Date.now))]
+              :when line]
+          (str " · " line)))
+      (when-let [h (kit/handle)]
+        (when-let [b (brook/status h)] (str " · " b))))))
 
 (defn frame [now]
   (let [dt (if-let [l @!last] (/ (- now l) 1000) 0)]
@@ -112,7 +115,7 @@
         (.stopPropagation e)
         (if (brook/playing?)
           (do (brook/stop!) (set! (.-textContent btn) "▶ brook"))
-          (do (brook/play! h) (set! (.-textContent btn) "■ brook"))))))
+          (do (brook/play! h (:sounds @!world)) (set! (.-textContent btn) "■ brook"))))))
   (when-let [el (js/document.getElementById "brook-flow")]
     (set! (.-value el) "0.33")
     (.addEventListener el "input"
