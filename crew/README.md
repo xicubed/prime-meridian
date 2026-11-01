@@ -54,34 +54,25 @@ The Director (Michael, the human) approves every change: nothing reaches
 
 ```mermaid
 flowchart TD
-    M(["Michael<br/>Director · human"]) -- "quest (.crew/quests/*.md)" --> H
+    Q[/"Quest from Michael<br/>.crew/quests/*.md"/] --> A
 
-    subgraph Herdr["Herdr workspace 'crew' (one pane per agent, one shared working tree)"]
-        A["un-architecte<br/>Lead Architect · Opus"]
-        B["un-automate-monde<br/>builder · Sonnet"]
-        T["le-testeur<br/>tester · Sonnet"]
-        R["le-coureur<br/>runner / QA gate · Haiku"]
-        C["le-critique<br/>critic · Hermes"]
+    subgraph crew["Herdr workspace 'crew' · each step started and checked by Hal (crew-round)"]
+        A["① un-architecte · architect · Opus<br/>reads the quest + GDD → spec.md"]
+        B["② un-automate-monde · builder · Sonnet<br/>spec → game code (src/pm/*.cljs, estate.edn)"]
+        T["② le-testeur · tester · Sonnet<br/>spec → tests (test/pm/*_test.cljs)"]
+        G{"③ le-coureur · runner · Haiku<br/>gate.sh: 0 warnings, tests pass"}
+        C["④ le-critique · critic · Hermes<br/>diff → review.md"]
+        A -- "spec.md" --> B
+        A -- "spec.md" --> T
+        B -- "code" --> G
+        T -- "tests" --> G
+        G -- "FAIL: errors (≤ 2 fix rounds)" --> B
+        G -- "PASS" --> C
     end
 
-    H["hal — Hal, the Hero<br/>manager · Hermes desktop<br/>runs crew-up + crew-round"]
-
-    H -- "1 · prompt: quest" --> A
-    A -- "spec.md" --> RUN[("crew/runs/ROUND-STAMP/<br/>spec · replies · gate · review · log")]
-    H -- "2 · prompt: spec (in parallel)" --> B
-    H -- "2 · prompt: spec (in parallel)" --> T
-    B -- "world.cljs · estate.edn · core.cljs" --> WT[("shared working tree")]
-    T -- "world_test.cljs" --> WT
-    H -- "3 · prompt: run the gate" --> R
-    R -- "gate-note.md" --> RUN
-    WT --> G{"gate.sh, run by Hal itself<br/>0 warnings · tests pass"}
-    G -- "FAIL: gate output (≤ 2 fix rounds)" --> B
-    G -- "PASS" --> H
-    H -- "4 · prompt: review the diff" --> C
-    C -- "review.md" --> RUN
-    RUN --> H
-    H -- "diff + log for approval" --> M
-    M -- "approve" --> MAIN[("main: the live world")]
+    C -- "review.md" --> H["Hal · manager (Hermes desktop)<br/>reads every file, re-runs the gate,<br/>writes the round log"]
+    H -- "diff + log" --> M(["Michael approves"])
+    M --> MAIN[("main: the live game world")]
 ```
 
 Data flows down as specs and prompts and comes back up as files: every
