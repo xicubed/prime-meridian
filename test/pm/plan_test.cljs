@@ -66,24 +66,24 @@
   (is (= [[:flora :body] [:flora :jar] [:juniper :body]] (mapv :key P0)))
   (is (= {:key [:flora :body] :mirror :flora :item :body
           :look {:shape :capsule :size [0.5 0.16 0.16] :color :pink}
-          :at [-0.5 2.4 -27.0] :label :say :text "I'm hungry"}
+          :at [-0.27 1.56 -15.7] :label :say :text "I'm hungry"}
          (dissoc (nth P0 0) :center :label-at)))
   (is (= {:key [:flora :jar] :mirror :flora :item :jar
           :look {:shape :cylinder :size [0.22 0.3 0.22] :color :glass}
-          :at [1.8 2.6 -27.0] :label :sign :text "Worms: 15"}
+          :at [1.4 1.81 -15.7] :label :sign :text "Worms: 15"}
          (dissoc (nth P0 1) :center :label-at)))
   (is (= {:key [:juniper :body] :mirror :juniper :item :body
-          :look {:shape :box :size [2.0 1.6 0.6] :color :brown}
-          :at [7.0 1.45 11.0] :label :say :text "Hay, please?"}
+          :look {:shape :box :size [0.6 1.6 2.0] :color :brown}
+          :at [-5.0 2.5 -10.0] :label :say :text "Hay, please?"}
          (dissoc (nth P0 2) :center :label-at))))
 
 (deftest t04-plan-positions
-  (is (near? [-0.5 2.48 -27.0] (:center (nth P0 0))))
-  (is (near? [-0.5 2.86 -27.0] (:label-at (nth P0 0))))
-  (is (near? [1.8 2.75 -27.0] (:center (nth P0 1))))
-  (is (near? [1.8 3.2 -27.0] (:label-at (nth P0 1))))
-  (is (near? [7.0 2.25 11.0] (:center (nth P0 2))))
-  (is (near? [7.0 3.35 11.0] (:label-at (nth P0 2)))))
+  (is (near? [-0.27 1.64 -15.7] (:center (nth P0 0))))
+  (is (near? [-0.27 2.02 -15.7] (:label-at (nth P0 0))))
+  (is (near? [1.4 1.96 -15.7] (:center (nth P0 1))))
+  (is (near? [1.4 2.41 -15.7] (:label-at (nth P0 1))))
+  (is (near? [-5.0 3.3 -10.0] (:center (nth P0 2))))
+  (is (near? [-5.0 4.4 -10.0] (:label-at (nth P0 2)))))
 
 (deftest t05-positions-dont-follow-state
   (is (= (map (juxt :key :at :center :label-at) P0)

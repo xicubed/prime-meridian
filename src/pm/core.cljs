@@ -9,7 +9,8 @@
             [pm.brook :as brook]
             [pm.kit :as kit]
             [pm.scene :as scene]
-            [pm.world :as world]))
+            [pm.world :as world]
+            [clojure.string]))
 
 (defonce !world (atom (merge {:t 0 :spin 0.6} (world/load-estate world/estate-edn))))
 
@@ -39,6 +40,7 @@
     (set! (.-textContent el) text)))
 
 (defonce !backend (atom "init…"))
+(defonce !probe (atom nil)) ; ?probe=x,z;x,z → ground heights in the HUD
 (defonce !mode (atom "loading")) ; "estate" (kit) or "scaffold"
 
 (defn- hud-mirrors-suffix []
@@ -50,6 +52,7 @@
               :when line]
           (str " · " line)))
       (when-let [s (scene/summary)] (str " · " s))
+      (when-let [p @!probe] (str " · " p))
       (when-let [h (kit/handle)]
         (when-let [b (brook/status h)] (str " · " b))))))
 
@@ -124,6 +127,22 @@
     (.addEventListener el "input"
       (fn [^js e] (brook/set-flow! (js/parseFloat (.. e -target -value)))))))
 
+(defn- probe!
+  "Dev aid: `?probe=x,z;x,z` prints what's under each point (first 5 hits,
+   top down from 40 m) in the HUD, so placements can be checked as text."
+  [^js h]
+  (when-let [q (.get (js/URLSearchParams. (.. js/window -location -search)) "probe")]
+    (reset! !probe
+            (str "probe "
+                 (clojure.string/join
+                  " | "
+                  (for [pt (clojure.string/split q #";")
+                        :let [[x z] (map js/parseFloat (clojure.string/split pt #","))]]
+                    (str x "," z ": "
+                         (clojure.string/join
+                          ", " (for [[y n] (t/drop-ray (.-scene h) (.-camera h) x z 40 5)]
+                                 (str y " " n))))))))))
+
 (defn start-kit!
   "The kit's scene is live: show the game's layer on top of it."
   [^js h]
@@ -133,6 +152,7 @@
   (wire-kit-brook-ui! h)
   (t/use-three! (.-THREE h))
   (scene/mount! (.-scene h) @!world (js/Date.now))
+  (probe! h)
   (js/requestAnimationFrame frame))
 
 (defn start-scaffold! []

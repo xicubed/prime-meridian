@@ -24,9 +24,9 @@
             {:when [:<= :stock 2] :sign "Worms left: {stock}"}]
    :chores [{:id :feed :every "2d" :at "17:00" :who :me
              :consumes [:stock 1] :done-at :last-fed}]
-   :placed [{:id :body :at [-0.5 2.4 -27.0] :label :say       ; in the creek by the stone canal, at the water surface
+   :placed [{:id :body :at [-0.27 1.56 -15.7] :label :say     ; :at is the item's base. In the open creek between cascades 1 and 2, at the surface (gravel bed 0.85)
              :look {:shape :capsule :size [0.5 0.16 0.16] :color :pink}}  ; 2x real size so you can see her
-            {:id :jar  :at [1.8 2.6 -27.0]  :label :sign :idle "Worms: {stock}"   ; on the bank
+            {:id :jar  :at [1.4 1.81 -15.7] :label :sign :idle "Worms: {stock}"   ; on the bank rocks (top 1.81)
              :look {:shape :cylinder :size [0.22 0.3 0.22] :color :glass}}]}
 
   {:id :juniper :name "Juniper" :kind :creature :model :horse :home :barn
@@ -35,5 +35,5 @@
             {:when [:<= :bales 3] :sign "Bales left: {bales}"}]
    :chores [{:id :hay :every "12h" :at "07:00" :who :me
              :consumes [:bales 1] :done-at :last-hayed}]
-   :placed [{:id :body :at [7.0 1.45 11.0] :label :say        ; in the meadow by the flowers
-             :look {:shape :box :size [2.0 1.6 0.6] :color :brown}}]}]}
+   :placed [{:id :body :at [-5.0 2.5 -10.0] :label :say       ; open grass on the creek's west bank (terrain 2.5), side-on to the creek
+             :look {:shape :box :size [0.6 1.6 2.0] :color :brown}}]}]}

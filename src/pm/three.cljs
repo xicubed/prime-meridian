@@ -220,3 +220,23 @@
     (set! (.-userData s) #js {:canvas canvas :texture tex :paper paper :ink ink})
     (set-label-text! s text)
     s))
+
+(defn drop-ray
+  "Cast a ray straight down at (x, z) from height `from` through `root` and
+   return the first `n` hits as [[y name] ...] (y rounded to cm). Sprites need
+   the camera to be hit-tested, so it's required. A verification tool: lets
+   the agent learn ground heights without seeing the canvas."
+  [^js root ^js camera x z from n]
+  (let [T @!three
+        ^js rc (new (.-Raycaster T)
+                    (new (.-Vector3 T) x from z)
+                    (new (.-Vector3 T) 0 -1 0))]
+    (set! (.-camera rc) camera)
+    (->> (.intersectObject rc root true)
+         (map (fn [^js hit]
+                (let [^js o (.-object hit) ^js m (.-material o)]
+                  [(/ (js/Math.round (* 100 (.. hit -point -y))) 100)
+                   (str (or (not-empty (.-name o)) (.-type o))
+                        (when (and m (not-empty (.-name m))) (str "/" (.-name m))))])))
+         (take n)
+         vec)))
