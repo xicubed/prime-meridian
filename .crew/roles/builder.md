@@ -12,4 +12,6 @@ Project: **Prime Meridian**, a cozy 3D management game where the characters are 
   tests). New tests may land after you; a failure in a test you think
   contradicts the spec goes in your reply, not in an edit to the test.
 - Reply in a few lines: what you changed, the gate's last line, `git diff --stat`.
-- Never commit; the manager reviews and commits.
+- Never stage or commit (no `git add`, not even `-N`); for a new file's stat use
+  `git diff --no-index --stat /dev/null <file>`. The manager reviews and commits.
+- Stay inside the project: no searches of the whole disk (`find /`).

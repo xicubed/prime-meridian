@@ -99,7 +99,10 @@
                  :>  (> v n))))
         false))))
 
-(defn- fill [s state]
+(defn fill
+  "Fill `{field}` placeholders in `s` from `state`; nil/missing field keeps the
+   placeholder. `s` nil -> nil."
+  [s state]
   (when s
     (str/replace s #"\{([a-z0-9-]+)\}"
                  (fn [[whole field-name]]

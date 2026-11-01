@@ -21,7 +21,8 @@ Plan of record: [`docs/session-2026-10-17.md`](docs/session-2026-10-17.md) §7. 
 - [x] 2026-10-31 C-1 Agent crew: `.crew/` roster, role cards, quests, rounds, gate; `crew/README.md` with the Mermaid diagram; run logs in `crew/runs/`.
 - [x] 2026-10-31 C-2 Feed-Flora loop (crew round): `resources/estate.edn` (Flora + Juniper), `pm.world` rules, 32 tests, HUD + F key.
 - [x] 2026-10-31 C-3 The kit is the world: `pm.kit` loads the local kit copy (`public/kit/`, gitignored) into the game page; `pm.brook` spatial brook in CLJS; scaffold fallback.
-- [ ] C-4 `pm.three` builds objects with the kit's THREE when the kit is present (one three.js per page). First step of W2-7.
+- [x] 2026-10-31 C-4 `pm.three` builds objects with the kit's THREE when the kit is present (one three.js per page). First step of W2-7.
+- [x] 2026-10-31 C-6 Mirrors v0 (crew round `mirrors-v0`): stand-ins for Flora, her worm jar and Juniper placed in the kit's world from `:placed` data, with bubble/sign labels from their rules; pure `pm.plan` (22 tests); `pm.scene` builds once, updates labels only.
 - [ ] C-5 Submit Assignment 3: repo link to `crew/README.md` + crew-up link.
 
 ## Week 2 — World v0 (estate + mock agents)

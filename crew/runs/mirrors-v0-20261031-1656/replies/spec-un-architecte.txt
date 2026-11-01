@@ -1,0 +1,27 @@
+    because the GDD already uses it that
+    way. Positions go on a new :placed list
+    on each mirror, and the jar is Flora's
+    second placed item.
+  - The jar shows its count all the time
+    ("Worms: 15"), through a new optional
+    :idle text. Otherwise Flora's sign only
+    appears at 2 worms or fewer, and
+    pressing F at 15 wouldn't change the jar
+    at all. At 2 or fewer her sign rule
+    takes over ("Worms left: 2").
+  - The HUD readout reads scene: mirrors 2 ·
+    items 3 · labels 3/3 at start and
+    labels 2/3 after pressing F.
+
+  The GDD §2.5 should get a line on :placed
+  and :idle; I've left that to you as a
+  follow-up.
+
+  done-5178
+
+✻ Worked for 5m 22s · done 5:01 PM
+
+────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

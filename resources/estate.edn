@@ -23,11 +23,17 @@
    :rules  [{:when [:due? :feed]  :say  "I'm hungry"}
             {:when [:<= :stock 2] :sign "Worms left: {stock}"}]
    :chores [{:id :feed :every "2d" :at "17:00" :who :me
-             :consumes [:stock 1] :done-at :last-fed}]}
+             :consumes [:stock 1] :done-at :last-fed}]
+   :placed [{:id :body :at [-0.5 2.4 -27.0] :label :say       ; in the creek by the stone canal, at the water surface
+             :look {:shape :capsule :size [0.5 0.16 0.16] :color :pink}}  ; 2x real size so you can see her
+            {:id :jar  :at [1.8 2.6 -27.0]  :label :sign :idle "Worms: {stock}"   ; on the bank
+             :look {:shape :cylinder :size [0.22 0.3 0.22] :color :glass}}]}
 
   {:id :juniper :name "Juniper" :kind :creature :model :horse :home :barn
    :state  {:source :sample :bales 6 :last-hayed nil}
    :rules  [{:when [:due? :hay]   :say  "Hay, please?"}
             {:when [:<= :bales 3] :sign "Bales left: {bales}"}]
    :chores [{:id :hay :every "12h" :at "07:00" :who :me
-             :consumes [:bales 1] :done-at :last-hayed}]}]}
+             :consumes [:bales 1] :done-at :last-hayed}]
+   :placed [{:id :body :at [7.0 1.45 11.0] :label :say        ; in the meadow by the flowers
+             :look {:shape :box :size [2.0 1.6 0.6] :color :brown}}]}]}

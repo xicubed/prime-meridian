@@ -8,6 +8,7 @@
             [pm.audio :as audio]
             [pm.brook :as brook]
             [pm.kit :as kit]
+            [pm.scene :as scene]
             [pm.world :as world]))
 
 (defonce !world (atom (merge {:t 0 :spin 0.6} (world/load-estate world/estate-edn))))
@@ -48,6 +49,7 @@
               :let [line (world/status-line w id (js/Date.now))]
               :when line]
           (str " · " line)))
+      (when-let [s (scene/summary)] (str " · " s))
       (when-let [h (kit/handle)]
         (when-let [b (brook/status h)] (str " · " b))))))
 
@@ -55,6 +57,7 @@
   (let [dt (if-let [l @!last] (/ (- now l) 1000) 0)]
     (reset! !last now)
     (tick! (min dt 0.1))
+    (scene/update! @!world (js/Date.now))
     (when (zero? (mod (swap! !frames inc) 30))
       (hud! (str "Prime Meridian · " @!mode " · " @!backend " · frame " @!frames
                  " · t=" (.toFixed (:t @!world) 1) "s" (hud-mirrors-suffix))))
@@ -123,11 +126,13 @@
 
 (defn start-kit!
   "The kit's scene is live: show the game's layer on top of it."
-  [h]
+  [^js h]
   (reset! !mode "estate")
   (reset! !backend (kit/backend-name h))
   (js/console.log "Prime Meridian: running on the kit's estate," @!backend)
   (wire-kit-brook-ui! h)
+  (t/use-three! (.-THREE h))
+  (scene/mount! (.-scene h) @!world (js/Date.now))
   (js/requestAnimationFrame frame))
 
 (defn start-scaffold! []

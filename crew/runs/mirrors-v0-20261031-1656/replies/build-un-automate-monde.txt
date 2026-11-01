@@ -1,0 +1,27 @@
+    hud-mirrors-suffix (summary slotted
+    between mirror status lines and brook).
+
+  Gate: GATE: PASS — 0 warnings; Ran 54
+  tests containing 222 assertions. (includes
+  the tester's plan_test.cljs, all
+  passing).
+
+  git diff --stat:
+  resources/estate.edn   |  10 +++-
+  src/pm/core.cljs       |   7 ++-
+  src/pm/three.cljs      | 154 +++++++++++++
+  ++++++++++++++++++++++++++++++++----
+  src/pm/world.cljs      |   5 +-
+  plus new src/pm/plan.cljs and
+  src/pm/scene.cljs. (.crew/roles/*.md show
+  as modified but I didn't touch them —
+  pre-existing from the crew tooling.)
+
+  done-4743
+
+✻ Cooked for 5m 5s · done 5:06 PM
+
+────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

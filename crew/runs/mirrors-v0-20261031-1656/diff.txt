@@ -1,0 +1,314 @@
+diff --git a/.crew/roles/builder.md b/.crew/roles/builder.md
+index 51794ea..5be83d6 100644
+--- a/.crew/roles/builder.md
++++ b/.crew/roles/builder.md
+@@ -12,4 +12,6 @@ Project: **Prime Meridian**, a cozy 3D management game where the characters are
+   tests). New tests may land after you; a failure in a test you think
+   contradicts the spec goes in your reply, not in an edit to the test.
+ - Reply in a few lines: what you changed, the gate's last line, `git diff --stat`.
+-- Never commit; the manager reviews and commits.
++- Never stage or commit (no `git add`, not even `-N`); for a new file's stat use
++  `git diff --no-index --stat /dev/null <file>`. The manager reviews and commits.
++- Stay inside the project: no searches of the whole disk (`find /`).
+diff --git a/.crew/roles/tester.md b/.crew/roles/tester.md
+index 17bf25a..db150e4 100644
+--- a/.crew/roles/tester.md
++++ b/.crew/roles/tester.md
+@@ -13,4 +13,6 @@ Project: **Prime Meridian**, a cozy 3D management game where the characters are
+ - Only ADD tests unless the spec names an existing assertion to change.
+ - Actually edit the file. Reply with `git diff --stat <test file>` and the
+   list of tests you added; a plan is not a reply.
++- Never stage or commit (no `git add`, not even `-N`). For a new file's stat use
++  `git diff --no-index --stat /dev/null <file>`.
+ - Never commit.
+diff --git a/resources/estate.edn b/resources/estate.edn
+index 2f395d7..a4fa7c5 100644
+--- a/resources/estate.edn
++++ b/resources/estate.edn
+@@ -23,11 +23,17 @@
+    :rules  [{:when [:due? :feed]  :say  "I'm hungry"}
+             {:when [:<= :stock 2] :sign "Worms left: {stock}"}]
+    :chores [{:id :feed :every "2d" :at "17:00" :who :me
+-             :consumes [:stock 1] :done-at :last-fed}]}
++             :consumes [:stock 1] :done-at :last-fed}]
++   :placed [{:id :body :at [-0.5 2.4 -27.0] :label :say       ; in the creek by the stone canal, at the water surface
++             :look {:shape :capsule :size [0.5 0.16 0.16] :color :pink}}  ; 2x real size so you can see her
++            {:id :jar  :at [1.8 2.6 -27.0]  :label :sign :idle "Worms: {stock}"   ; on the bank
++             :look {:shape :cylinder :size [0.22 0.3 0.22] :color :glass}}]}
+ 
+   {:id :juniper :name "Juniper" :kind :creature :model :horse :home :barn
+    :state  {:source :sample :bales 6 :last-hayed nil}
+    :rules  [{:when [:due? :hay]   :say  "Hay, please?"}
+             {:when [:<= :bales 3] :sign "Bales left: {bales}"}]
+    :chores [{:id :hay :every "12h" :at "07:00" :who :me
+-             :consumes [:bales 1] :done-at :last-hayed}]}]}
++             :consumes [:bales 1] :done-at :last-hayed}]
++   :placed [{:id :body :at [7.0 1.45 11.0] :label :say        ; in the meadow by the flowers
++             :look {:shape :box :size [2.0 1.6 0.6] :color :brown}}]}]}
+diff --git a/src/pm/core.cljs b/src/pm/core.cljs
+index f590ad7..6b45790 100644
+--- a/src/pm/core.cljs
++++ b/src/pm/core.cljs
+@@ -8,6 +8,7 @@
+             [pm.audio :as audio]
+             [pm.brook :as brook]
+             [pm.kit :as kit]
++            [pm.scene :as scene]
+             [pm.world :as world]))
+ 
+ (defonce !world (atom (merge {:t 0 :spin 0.6} (world/load-estate world/estate-edn))))
+@@ -48,6 +49,7 @@
+               :let [line (world/status-line w id (js/Date.now))]
+               :when line]
+           (str " · " line)))
++      (when-let [s (scene/summary)] (str " · " s))
+       (when-let [h (kit/handle)]
+         (when-let [b (brook/status h)] (str " · " b))))))
+ 
+@@ -55,6 +57,7 @@
+   (let [dt (if-let [l @!last] (/ (- now l) 1000) 0)]
+     (reset! !last now)
+     (tick! (min dt 0.1))
++    (scene/update! @!world (js/Date.now))
+     (when (zero? (mod (swap! !frames inc) 30))
+       (hud! (str "Prime Meridian · " @!mode " · " @!backend " · frame " @!frames
+                  " · t=" (.toFixed (:t @!world) 1) "s" (hud-mirrors-suffix))))
+@@ -123,11 +126,13 @@
+ 
+ (defn start-kit!
+   "The kit's scene is live: show the game's layer on top of it."
+-  [h]
++  [^js h]
+   (reset! !mode "estate")
+   (reset! !backend (kit/backend-name h))
+   (js/console.log "Prime Meridian: running on the kit's estate," @!backend)
+   (wire-kit-brook-ui! h)
++  (t/use-three! (.-THREE h))
++  (scene/mount! (.-scene h) @!world (js/Date.now))
+   (js/requestAnimationFrame frame))
+ 
+ (defn start-scaffold! []
+diff --git a/src/pm/three.cljs b/src/pm/three.cljs
+index 99deb3d..6eb3556 100644
+--- a/src/pm/three.cljs
++++ b/src/pm/three.cljs
+@@ -6,14 +6,35 @@
+    browser has it and falls back to WebGL2 on its own. Initialization is async —
+    call `init-renderer!` and start rendering in its callback. Materials from
+    `three/webgpu` are the same classes as classic three (MeshStandardMaterial etc.),
+-   plus TSL node materials become available for water/wind later."
++   plus TSL node materials become available for water/wind later.
++
++   The kit's scene is built with the kit's own THREE, not this npm module — two
++   three.js copies on one page break materials. `use-three!` points every
++   constructor below at whichever THREE is current; `defonce` keeps that choice
++   across hot reloads."
+   (:require ["three/webgpu" :as THREE]))
+ 
++(defonce ^:private !three (atom THREE))
++
++(defn three
++  "The THREE currently in use: the kit's, if `use-three!` was called with one,
++   else this wrapper's own npm `three/webgpu`."
++  []
++  @!three)
++
++(defn use-three!
++  "Switch every constructor in this wrapper to `T`, or back to the npm module
++   when `T` is nil. Returns the now-current THREE."
++  [T]
++  (reset! !three (or T THREE)))
++
+ (defn renderer
+   "Create (but do not yet initialize) a WebGPU/WebGL2 renderer attached to document.body.
+    Call `init-renderer!` before the first render."
+   []
+-  (let [^js r (THREE/WebGPURenderer. #js {:antialias true})]
++  (let [^js T (three)
++        ^js Renderer (.-WebGPURenderer T)
++        ^js r (Renderer. #js {:antialias true})]
+     (.setPixelRatio r (min 2 js/window.devicePixelRatio))
+     (.setSize r js/window.innerWidth js/window.innerHeight)
+     (set! (.-enabled (.-shadowMap r)) true)
+@@ -33,14 +54,19 @@
+ (defn scene
+   ([] (scene 0x1b1f2a))
+   ([bg-color]
+-   (let [^js s (THREE/Scene.)]
+-     (set! (.-background s) (THREE/Color. bg-color))
++   (let [^js T (three)
++         ^js Scene (.-Scene T)
++         ^js Color (.-Color T)
++         ^js s (Scene.)]
++     (set! (.-background s) (Color. bg-color))
+      s)))
+ 
+ (defn camera
+   "Perspective camera looking at the origin from a diorama angle."
+   []
+-  (let [^js c (THREE/PerspectiveCamera. 45 (/ js/window.innerWidth js/window.innerHeight) 0.1 200)]
++  (let [^js T (three)
++        ^js Camera (.-PerspectiveCamera T)
++        ^js c (Camera. 45 (/ js/window.innerWidth js/window.innerHeight) 0.1 200)]
+     (.set (.-position c) 6 6 10)
+     (.lookAt c 0 0 0)
+     c))
+@@ -48,8 +74,11 @@
+ (defn lights
+   "Warm key + soft fill. Returns a seq of lights to add to the scene."
+   []
+-  (let [^js sun (THREE/DirectionalLight. 0xfff1d6 2.2)
+-        ^js sky (THREE/HemisphereLight. 0xbcd8ff 0x3a2d22 0.8)]
++  (let [^js T (three)
++        ^js Directional (.-DirectionalLight T)
++        ^js Hemisphere (.-HemisphereLight T)
++        ^js sun (Directional. 0xfff1d6 2.2)
++        ^js sky (Hemisphere. 0xbcd8ff 0x3a2d22 0.8)]
+     (.set (.-position sun) 5 10 6)
+     (set! (.-castShadow sun) true)
+     [sun sky]))
+@@ -58,8 +87,12 @@
+   "Flat-shaded box mesh. Opts: :size [w h d], :color, :pos [x y z]."
+   [{:keys [size color pos] :or {size [1 1 1] color 0xe07a5f pos [0 0 0]}}]
+   (let [[w h d] size [x y z] pos
+-        ^js m (THREE/Mesh. (THREE/BoxGeometry. w h d)
+-                       (THREE/MeshStandardMaterial. #js {:color color :flatShading true}))]
++        ^js T (three)
++        ^js Mesh (.-Mesh T)
++        ^js BoxGeometry (.-BoxGeometry T)
++        ^js StandardMaterial (.-MeshStandardMaterial T)
++        ^js m (Mesh. (BoxGeometry. w h d)
++                     (StandardMaterial. #js {:color color :flatShading true}))]
+     (.set (.-position m) x y z)
+     (set! (.-castShadow m) true)
+     (set! (.-receiveShadow m) true)
+@@ -67,8 +100,12 @@
+ 
+ (defn ground
+   [{:keys [size color] :or {size 20 color 0x81b29a}}]
+-  (let [^js m (THREE/Mesh. (THREE/PlaneGeometry. size size)
+-                       (THREE/MeshStandardMaterial. #js {:color color}))]
++  (let [^js T (three)
++        ^js Mesh (.-Mesh T)
++        ^js PlaneGeometry (.-PlaneGeometry T)
++        ^js StandardMaterial (.-MeshStandardMaterial T)
++        ^js m (Mesh. (PlaneGeometry. size size)
++                     (StandardMaterial. #js {:color color}))]
+     (set! (.-x (.-rotation m)) (/ (- js/Math.PI) 2))
+     (set! (.-receiveShadow m) true)
+     m))
+@@ -88,3 +125,98 @@
+ 
+ (defn render! [^js renderer scene camera]
+   (.render renderer scene camera))
++
++(defn group
++  "A THREE.Group. Opts: :name (string), :pos [x y z] (default [0 0 0])."
++  [{:keys [name pos] :or {pos [0 0 0]}}]
++  (let [^js T (three)
++        ^js Group (.-Group T)
++        ^js g (Group.)
++        [x y z] pos]
++    (when name (set! (.-name g) name))
++    (.set (.-position g) x y z)
++    g))
++
++(defn stand-in
++  "Flat-shaded placeholder mesh. :shape in #{:box :cylinder :capsule}, :size
++   [sx sy sz] metres, :color an int, :pos [x y z] the mesh's centre."
++  [{:keys [shape size color pos]}]
++  (let [[sx sy sz] size [x y z] pos
++        ^js T (three)
++        ^js Mesh (.-Mesh T)
++        ^js BoxGeometry (.-BoxGeometry T)
++        ^js CylinderGeometry (.-CylinderGeometry T)
++        ^js CapsuleGeometry (.-CapsuleGeometry T)
++        ^js StandardMaterial (.-MeshStandardMaterial T)
++        ^js geom (case shape
++                   :cylinder (CylinderGeometry. (/ sx 2) (/ sx 2) sy 16)
++                   :capsule  (CapsuleGeometry. (/ sy 2) (max 0 (- sx sy)) 4 8)
++                   (BoxGeometry. sx sy sz))
++        ^js m (Mesh. geom (StandardMaterial. #js {:color color :flatShading true}))]
++    (.set (.-position m) x y z)
++    (when (= shape :capsule)
++      (set! (.-z (.-rotation m)) (/ js/Math.PI 2)))
++    (set! (.-castShadow m) true)
++    (set! (.-receiveShadow m) true)
++    m))
++
++(defn- hex->css [n]
++  (str "#" (.padStart (.toString (bit-and n 0xffffff) 16) 6 "0")))
++
++(defn set-label-text!
++  "Redraw `sprite`'s canvas with `text` (a rounded paper rectangle with the
++   text centred in ink), or hide the sprite when `text` is empty/nil. Never
++   makes a new texture or canvas."
++  [^js sprite text]
++  (let [^js data   (.-userData sprite)
++        ^js canvas (.-canvas data)
++        ^js ctx    (.getContext canvas "2d")
++        ^js tex    (.-texture data)
++        w          (.-width canvas)
++        h          (.-height canvas)
++        paper      (hex->css (.-paper data))
++        ink        (hex->css (.-ink data))]
++    (if (or (nil? text) (= text ""))
++      (set! (.-visible sprite) false)
++      (do
++        (.clearRect ctx 0 0 w h)
++        (.beginPath ctx)
++        (set! (.-fillStyle ctx) paper)
++        (.roundRect ctx 0 0 w h 24)
++        (.fill ctx)
++        (set! (.-fillStyle ctx) ink)
++        (set! (.-textAlign ctx) "center")
++        (set! (.-textBaseline ctx) "middle")
++        (loop [size 56]
++          (set! (.-font ctx) (str "bold " size "px sans-serif"))
++          (if (and (> size 12) (> (.-width (.measureText ctx text)) 472))
++            (recur (dec size))
++            nil))
++        (.fillText ctx text (/ w 2) (/ h 2))
++        (set! (.-visible sprite) true)
++        (set! (.-needsUpdate tex) true)))
++    sprite))
++
++(defn label
++  "A Sprite that always faces the camera, showing `text` on a rounded-rect
++   paper background. Opts: :text (default \"\"), :height metres (default 0.3),
++   :paper :ink ints, :pos [x y z]."
++  [{:keys [text height paper ink pos] :or {text "" height 0.3}}]
++  (let [[x y z] pos
++        width      (* 4 height)
++        ^js T      (three)
++        ^js Sprite (.-Sprite T)
++        ^js SpriteMaterial (.-SpriteMaterial T)
++        ^js CanvasTexture (.-CanvasTexture T)
++        ^js canvas (js/document.createElement "canvas")
++        _          (set! (.-width canvas) 512)
++        _          (set! (.-height canvas) 128)
++        ^js tex    (CanvasTexture. canvas)
++        _          (set! (.-colorSpace tex) (.-SRGBColorSpace T))
++        ^js mat    (SpriteMaterial. #js {:map tex :transparent true :depthWrite false})
++        ^js s      (Sprite. mat)]
++    (.set (.-scale s) width height 1)
++    (.set (.-position s) x y z)
++    (set! (.-userData s) #js {:canvas canvas :texture tex :paper paper :ink ink})
++    (set-label-text! s text)
++    s))
+diff --git a/src/pm/world.cljs b/src/pm/world.cljs
+index 7671d32..a210906 100644
+--- a/src/pm/world.cljs
++++ b/src/pm/world.cljs
+@@ -99,7 +99,10 @@
+                  :>  (> v n))))
+         false))))
+ 
+-(defn- fill [s state]
++(defn fill
++  "Fill `{field}` placeholders in `s` from `state`; nil/missing field keeps the
++   placeholder. `s` nil -> nil."
++  [s state]
+   (when s
+     (str/replace s #"\{([a-z0-9-]+)\}"
+                  (fn [[whole field-name]]

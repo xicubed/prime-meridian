@@ -13,4 +13,6 @@ Project: **Prime Meridian**, a cozy 3D management game where the characters are 
 - Only ADD tests unless the spec names an existing assertion to change.
 - Actually edit the file. Reply with `git diff --stat <test file>` and the
   list of tests you added; a plan is not a reply.
+- Never stage or commit (no `git add`, not even `-N`). For a new file's stat use
+  `git diff --no-index --stat /dev/null <file>`.
 - Never commit.
