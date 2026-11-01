@@ -106,18 +106,44 @@ goes live until the Director approves the commit.
 
 ## Run it
 
+### Coming back the next day
+
+The crew lives in Herdr panes, so bring Herdr up first, then the crew:
+
+1. **Start Herdr** in a terminal: `herdr`, then detach with `Ctrl+Space d`
+   (it keeps running in the background). If Herdr never stopped, yesterday's
+   panes are still there, and step 2 skips members already running.
+2. **Either tell Hal** in the Hermes desktop chat: "bring up the crew" (or
+   just give him the next quest; he starts the crew if it isn't up), **or do
+   it by hand**:
+
 ```bash
-herdr                                   # once: start Herdr (the panes live here)
 cd ~/src/prime-meridian
-~/src/crew-up/plugins/crew-up/bin/crew-up                       # start the crew
+~/src/crew-up/plugins/crew-up/bin/crew-up              # start every enabled member of .crew/crew.json
+~/src/crew-up/plugins/crew-up/bin/crew-up --only le-critique   # or just some of them
+```
+
+3. **Run a round** (Hal normally does this, and answers the members'
+   permission prompts):
+
+```bash
 ~/src/crew-up/plugins/crew-up/bin/crew-round .crew/rounds/feed-flora.json
 cat crew/runs/feed-flora-*/log.md      # what happened, step by step
 bash .crew/gate.sh                     # the same gate, by hand
 ```
 
+A new piece of work is a quest (`.crew/quests/<name>.md`) plus a round file
+(`.crew/rounds/<name>.json`, copy an existing one). Nothing the crew does is
+committed until Hal reviews it and Michael approves.
+
+**To stop:** close the `crew` workspace in Herdr (or quit Herdr). Members
+don't carry memory between restarts; each one rereads its role card, and the
+round's spec and log are in `crew/runs/`.
+
 Needs Herdr ≥ 0.9, Claude Code logged in, `jq`, the JDK and Node from
-`AGENTS.md`, and for the Hermes members a Hermes profile named `crew`
-(see crew-up's README, "Hermes").
+`AGENTS.md`, a clone of [crew-up](https://github.com/xicubed/crew-up) at
+`~/src/crew-up` (`git pull` it to update), and for the Hermes members a
+Hermes profile named `crew` (see crew-up's README, "Hermes").
 
 ## Runs
 
