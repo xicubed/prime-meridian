@@ -14,6 +14,14 @@ is (GDD §2.5). Output of that round: `resources/estate.edn`,
 `src/pm/world.cljs`, `test/pm/world_test.cljs`, the F-key and HUD hook in
 `src/pm/core.cljs`, plus the round's spec, gate note and review.
 
+> **Use it in your own project.** The crew machinery isn't specific to this
+> game: it's [**crew-up**](https://github.com/xicubed/crew-up), an MIT-licensed
+> Claude Code plugin (also usable from Hermes or any agent that can drive
+> [Herdr](https://herdr.dev)). Install it, run `/crew-setup` to pick your roster,
+> add a gate script and a quest, and `crew-round` runs the same
+> architect → builder ∥ tester → gate → critic loop on your code. This folder
+> and [`.crew/`](../.crew/) are a working example of one project's setup.
+
 ## The crew
 
 **Naming.** French names, after Claude Monet, the manager in

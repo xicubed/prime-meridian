@@ -6,7 +6,7 @@ A cozy 3D management game where the characters are real AI agents doing real wor
 
 - **Design**: [docs/GDD.md](docs/GDD.md)
 - **Stack**: ClojureScript (shadow-cljs) + three.js, Babashka bridge, Hermes agents. No TypeScript.
-- **Agent crew** (Assignment 3): [crew/README.md](crew/README.md): five AI agents that build the game, with a Mermaid diagram of roles and data flow.
+- **Agent crew** (Assignment 3): [crew/README.md](crew/README.md): five AI agents that build the game, with a Mermaid diagram of roles and data flow. The crew runs on [crew-up](https://github.com/xicubed/crew-up), an MIT-licensed plugin you can use in your own projects.
 - **Status**: the purchased island kit is the world (loaded locally, not in this repo); Flora's feeding loop and stand-ins are built by the crew.
 
 ## Run
