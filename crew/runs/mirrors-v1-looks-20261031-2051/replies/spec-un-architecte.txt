@@ -1,0 +1,27 @@
+    about 2.25 m nose to tail, and turns
+    side-on with :yaw 90.
+  - Label height ignores part rotation. A
+    part's top is measured as if it weren't
+    rotated, which keeps every expected value
+    checkable by hand. The gills and the
+    horse's neck are the only rotated parts,
+    and they're small enough that the label
+    lands close.
+  - Old looks are lenient, parts are strict.
+    A one-shape look with a bad shape or size
+    falls back to defaults, as in v0. A part
+    with any bad field is dropped, and if
+    none survive the item gets the default
+    stand-in.
+  - GDD: §2.5 should get a line on looks and
+    the display-scale rule. As last round,
+    I've left that to you as a follow-up.
+
+  done-7155
+
+✻ Baked for 5m 54s · done 8:57 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

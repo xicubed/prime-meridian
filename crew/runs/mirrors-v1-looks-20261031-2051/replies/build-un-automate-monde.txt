@@ -1,0 +1,27 @@
+    one item group per plan item
+    (positioned/yawed) holding its stand-in
+    parts, with the label sprite still added
+    to root in world space.
+
+  Gate: GATE: PASS — 0 warnings; Ran 66 tests
+  containing 305 assertions. (tester's
+  rewritten/expanded plan_test.cljs, all
+  passing).
+
+  git diff --stat:
+  resources/estate.edn   |  54 +++++++++++--
+  src/pm/plan.cljs       | 111
+  ++++++++++++++++++++------
+  src/pm/scene.cljs      |  26 +++---
+  src/pm/three.cljs      |  33 +++++---
+  test/pm/plan_test.cljs | 210 ++++++++++++++
+  ++++++++++++++++++++++++++++-------
+
+  done-9351
+
+✻ Sautéed for 3m 32s · done 9:01 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

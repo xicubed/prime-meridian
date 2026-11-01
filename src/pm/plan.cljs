@@ -19,21 +19,82 @@
         (w/fill idle state)
         ""))))
 
-(defn- normalize-shape [shape]
-  (if (#{:box :cylinder :capsule} shape) shape :box))
+(def shapes
+  "Valid part shapes."
+  #{:box :cylinder :capsule :sphere :cone})
 
-(defn- normalize-size [size]
-  (if (and (vector? size) (= 3 (count size)) (every? #(and (number? %) (pos? %)) size))
-    (vec size)
-    [0.5 0.5 0.5]))
+(def default-part
+  "The look's fallback when no part survives normalization."
+  {:shape :box :size [0.5 0.5 0.5] :at [0 0.25 0] :rot [0 0 0] :color :stand-in})
+
+(defn radians
+  "Degrees to radians, for `pm.scene` (the plan itself stays in degrees)."
+  [deg]
+  (* deg (/ js/Math.PI 180)))
+
+(defn- valid-shape? [shape]
+  (contains? shapes shape))
+
+(defn- valid-size? [size]
+  (and (vector? size) (= 3 (count size)) (every? #(and (number? %) (pos? %)) size)))
+
+(defn- valid-vec3? [v]
+  (and (vector? v) (= 3 (count v)) (every? number? v)))
 
 (defn- normalize-color [color]
   (if (keyword? color) color :stand-in))
 
-(defn- normalize-look [look]
-  {:shape (normalize-shape (:shape look))
-   :size  (normalize-size (:size look))
-   :color (normalize-color (:color look))})
+(defn- single-shape-part
+  "A single-shape look (no `:parts` key) is one part on the base; any `:at`/
+   `:rot` on the look itself are ignored."
+  [look]
+  (let [shape (if (valid-shape? (:shape look)) (:shape look) :box)
+        size  (if (valid-size? (:size look)) (vec (:size look)) [0.5 0.5 0.5])
+        sy    (second size)]
+    {:shape shape :size size :at [0 (/ sy 2) 0] :rot [0 0 0]
+     :color (normalize-color (:color look))}))
+
+(defn- valid-part? [part]
+  (and (map? part)
+       (valid-shape? (:shape part))
+       (valid-size? (:size part))
+       (or (nil? (:at part)) (valid-vec3? (:at part)))
+       (or (nil? (:rot part)) (valid-vec3? (:rot part)))))
+
+(defn- normalize-part [part]
+  (let [size (vec (:size part))
+        sy   (second size)
+        at   (if (:at part) (vec (:at part)) [0 (/ sy 2) 0])
+        rot  (if (:rot part) (vec (:rot part)) [0 0 0])]
+    {:shape (:shape part) :size size :at at :rot rot
+     :color (normalize-color (:color part))}))
+
+(defn- raw-parts [look]
+  (if (contains? look :parts)
+    (let [candidates (:parts look)]
+      (if (sequential? candidates)
+        (let [valid (filterv valid-part? candidates)]
+          (if (seq valid) (mapv normalize-part valid) [default-part]))
+        [default-part]))
+    [(single-shape-part look)]))
+
+(defn look-parts
+  "Normalized parts for `look`, scaled by `scale` (size and offset; `:rot` is
+   not scaled). Always a non-empty vector."
+  [look scale]
+  (let [s (if (and (number? scale) (pos? scale)) scale 1)]
+    (mapv (fn [part]
+            (-> part
+                (update :size (fn [sz] (mapv #(* s %) sz)))
+                (update :at   (fn [a]  (mapv #(* s %) a)))))
+          (raw-parts look))))
+
+(defn parts-top
+  "Highest point (in the item's own frame, ignoring :rot) any part reaches."
+  [parts]
+  (if (seq parts)
+    (apply max (map (fn [{[_ dy _] :at [_ sy _] :size}] (+ dy (/ sy 2))) parts))
+    0))
 
 (defn- valid-at? [at]
   (and (vector? at) (= 3 (count at)) (every? number? at)))
@@ -52,21 +113,23 @@
             (fn [idx item]
               (let [at (:at item)]
                 (when (valid-at? at)
-                  (let [item-id  (or (:id item) idx)
-                        [x y z]  at
-                        look     (normalize-look (:look item))
-                        [_ h _]  (:size look)
-                        label    (:label item)
-                        base     {:key    [mirror-id item-id]
-                                  :mirror mirror-id
-                                  :item   item-id
-                                  :look   look
-                                  :at     at
-                                  :center [x (+ y (/ h 2)) z]}]
+                  (let [item-id (or (:id item) idx)
+                        [x y z] at
+                        parts   (look-parts (:look item) (:scale item))
+                        top     (parts-top parts)
+                        yaw     (if (number? (:yaw item)) (:yaw item) 0)
+                        label   (:label item)
+                        base    {:key    [mirror-id item-id]
+                                 :mirror mirror-id
+                                 :item   item-id
+                                 :at     at
+                                 :yaw    yaw
+                                 :parts  parts
+                                 :center [x (+ y (/ top 2)) z]}]
                     (if (#{:say :sign} label)
                       (assoc base
                              :label label
-                             :label-at [x (+ y h label-lift) z]
+                             :label-at [x (+ y top label-lift) z]
                              :text (label-text markers label (:idle item) state))
                       base)))))
             (:placed mirror))))
@@ -92,7 +155,9 @@
 (defn plan-summary [plan]
   (let [mirrors  (count (distinct (map :mirror plan)))
         items    (count plan)
+        parts-n  (reduce + 0 (map (comp count :parts) plan))
         labelled (filter :label plan)
         l        (count labelled)
         s        (count (remove #(= "" (:text %)) labelled))]
-    (str "scene: mirrors " mirrors " · items " items " · labels " s "/" l)))
+    (str "scene: mirrors " mirrors " · items " items " · parts " parts-n
+         " · labels " s "/" l)))

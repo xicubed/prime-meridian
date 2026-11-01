@@ -1,0 +1,27 @@
+  t22-summary.
+
+  Added shared fixtures: part-near?, span,
+  part-of, toy-edn, Q, PQ.
+
+  Added new tests: t23-constants,
+  t24-single-shape-back-compat,
+  t25-parts-normalized,
+  t26-invalid-parts-dropped, t27-scale,
+  t28-parts-top-and-label,
+  t29-yaw-passed-through, t30-toy-plan,
+  t31-flora-look, t32-jar-look,
+  t33-juniper-look, t34-same-code-both-looks.
+
+  Kept unchanged: t01, t02, t05–t14, t16,
+  t19, t20, t21. File now has 34 deftests
+  total, matching the spec's count. I touched
+  only test/pm/plan_test.cljs.
+
+  done-7620
+
+✻ Churned for 2m 49s · done 9:00 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

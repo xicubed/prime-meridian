@@ -1,0 +1,595 @@
+diff --git a/resources/estate.edn b/resources/estate.edn
+index 8ddb983..49b531a 100644
+--- a/resources/estate.edn
++++ b/resources/estate.edn
+@@ -17,6 +17,13 @@
+             [-1.91 0.37  -7.1 1.0]    ; cascade 3
+             [-2.49 0.01  -4.2 0.8]    ; mouth into the pool
+             [ 0.30 0.00   4.5 0.25]]}] ; the pool (still water)
++ ;; Display scale (standing rule): creatures and crew are drawn big enough to
++ ;; see from the kit's camera views without zooming in, about the size of a
++ ;; mid-size rock (~1 m). Real size doesn't matter; proportions do. Author a
++ ;; look at real proportions and set the item's :scale to reach display size.
++ ;; Look parts: {:shape :size [sx sy sz] :at [dx dy dz] :rot [rx ry rz] :color};
++ ;; :at is the part's centre from the item's base (+x forward, y up), :rot in
++ ;; degrees. :yaw (degrees about y) turns the item; +90 points +x at world -z.
+  :mirrors
+  [{:id :flora :name "Flora" :kind :creature :model :axolotl :home :canal
+    :state  {:source :sample :stock 15 :last-fed nil}
+@@ -24,10 +31,31 @@
+             {:when [:<= :stock 2] :sign "Worms left: {stock}"}]
+    :chores [{:id :feed :every "2d" :at "17:00" :who :me
+              :consumes [:stock 1] :done-at :last-fed}]
+-   :placed [{:id :body :at [-0.27 1.56 -15.7] :label :say     ; :at is the item's base. In the open creek between cascades 1 and 2, at the surface (gravel bed 0.85)
+-             :look {:shape :capsule :size [0.5 0.16 0.16] :color :pink}}  ; 2x real size so you can see her
+-            {:id :jar  :at [1.4 1.81 -15.7] :label :sign :idle "Worms: {stock}"   ; on the bank rocks (top 1.81)
+-             :look {:shape :cylinder :size [0.22 0.3 0.22] :color :glass}}]}
++   ;; Flora's :placed
++   :placed [{:id :body :at [-0.27 1.42 -15.7] :scale 4 :yaw 90 :label :say   ; real axolotl, 0.26 m nose to tail, drawn ~1 m; facing upstream (-z); back at the surface (~1.55)
++             :look {:parts
++                    [{:shape :capsule :size [0.12 0.032 0.04]  :at [0.02 0.016 0]   :color :pink}   ; body
++                     {:shape :sphere  :size [0.05 0.03 0.056]  :at [0.1 0.017 0]    :color :pink}   ; head, wider than the body
++                     {:shape :box     :size [0.09 0.024 0.006] :at [-0.085 0.016 0] :color :pink}   ; tail, flattened sideways
++                     ;; gills: three stalks a side, behind the head, fanning up and back
++                     {:shape :cone :size [0.006 0.024 0.006] :at [0.082 0.036  0.022] :rot [ 30 0 35] :color :gill}
++                     {:shape :cone :size [0.006 0.024 0.006] :at [0.086 0.031  0.027] :rot [ 55 0 25] :color :gill}
++                     {:shape :cone :size [0.006 0.024 0.006] :at [0.09  0.026  0.029] :rot [ 80 0 15] :color :gill}
++                     {:shape :cone :size [0.006 0.024 0.006] :at [0.082 0.036 -0.022] :rot [-30 0 35] :color :gill}
++                     {:shape :cone :size [0.006 0.024 0.006] :at [0.086 0.031 -0.027] :rot [-55 0 25] :color :gill}
++                     {:shape :cone :size [0.006 0.024 0.006] :at [0.09  0.026 -0.029] :rot [-80 0 15] :color :gill}
++                     ;; legs: four stubs, splayed out and down
++                     {:shape :cylinder :size [0.008 0.016 0.008] :at [ 0.06 0.006  0.022] :rot [-60 0 0] :color :pink}
++                     {:shape :cylinder :size [0.008 0.016 0.008] :at [ 0.06 0.006 -0.022] :rot [ 60 0 0] :color :pink}
++                     {:shape :cylinder :size [0.008 0.016 0.008] :at [-0.03 0.006  0.022] :rot [-60 0 0] :color :pink}
++                     {:shape :cylinder :size [0.008 0.016 0.008] :at [-0.03 0.006 -0.022] :rot [ 60 0 0] :color :pink}
++                     ;; eyes
++                     {:shape :sphere :size [0.008 0.008 0.008] :at [0.112 0.026  0.021] :color :eye}
++                     {:shape :sphere :size [0.008 0.008 0.008] :at [0.112 0.026 -0.021] :color :eye}]}}
++            {:id :jar :at [1.4 1.81 -15.7] :scale 4 :label :sign :idle "Worms: {stock}"   ; on the bank rocks (top 1.81); real jar 0.124 m, drawn ~0.5 m
++             :look {:parts
++                    [{:shape :cylinder :size [0.08 0.11 0.08]   :at [0 0.055 0] :color :glass}  ; jar
++                     {:shape :cylinder :size [0.088 0.014 0.088] :at [0 0.117 0] :color :tin}]}}]} ; lid
+ 
+   {:id :juniper :name "Juniper" :kind :creature :model :horse :home :barn
+    :state  {:source :sample :bales 6 :last-hayed nil}
+@@ -35,5 +63,19 @@
+             {:when [:<= :bales 3] :sign "Bales left: {bales}"}]
+    :chores [{:id :hay :every "12h" :at "07:00" :who :me
+              :consumes [:bales 1] :done-at :last-hayed}]
+-   :placed [{:id :body :at [-5.0 2.5 -10.0] :label :say       ; open grass on the creek's west bank (terrain 2.5), side-on to the creek
+-             :look {:shape :box :size [0.6 1.6 2.0] :color :brown}}]}]}
++   ;; Juniper's :placed
++   :placed [{:id :body :at [-5.0 2.5 -10.0] :yaw 90 :label :say   ; west bank; long axis along world z, side-on to the creek camera
++             :look {:parts
++                    [{:shape :capsule  :size [1.3 0.62 0.6]   :at [0 1.2 0]                     :color :brown}  ; barrel
++                     {:shape :box      :size [0.3 0.8 0.32]   :at [0.72 1.62 0]  :rot [0 0 -35] :color :brown}  ; neck, leaning forward
++                     {:shape :box      :size [0.55 0.26 0.24] :at [1.1 1.9 0]    :rot [0 0 -35] :color :brown}  ; head, nose down
++                     {:shape :cone     :size [0.06 0.14 0.05] :at [0.95 2.12  0.07]             :color :brown}  ; ears
++                     {:shape :cone     :size [0.06 0.14 0.05] :at [0.95 2.12 -0.07]             :color :brown}
++                     {:shape :sphere   :size [0.05 0.05 0.05] :at [1.15 1.98  0.12]             :color :eye}
++                     {:shape :sphere   :size [0.05 0.05 0.05] :at [1.15 1.98 -0.12]             :color :eye}
++                     {:shape :box      :size [0.08 0.75 0.06] :at [0.62 1.68 0]  :rot [0 0 -35] :color :mane}   ; mane, along the neck
++                     {:shape :cylinder :size [0.1 0.7 0.1]    :at [-0.82 1.1 0]  :rot [0 0 -20] :color :mane}   ; tail
++                     {:shape :cylinder :size [0.14 0.95 0.14] :at [ 0.48 0.475  0.18]           :color :brown}  ; legs
++                     {:shape :cylinder :size [0.14 0.95 0.14] :at [ 0.48 0.475 -0.18]           :color :brown}
++                     {:shape :cylinder :size [0.14 0.95 0.14] :at [-0.48 0.475  0.18]           :color :brown}
++                     {:shape :cylinder :size [0.14 0.95 0.14] :at [-0.48 0.475 -0.18]           :color :brown}]}}]}]}
+diff --git a/src/pm/plan.cljs b/src/pm/plan.cljs
+index f1f0777..ca5a365 100644
+--- a/src/pm/plan.cljs
++++ b/src/pm/plan.cljs
+@@ -19,21 +19,82 @@
+         (w/fill idle state)
+         ""))))
+ 
+-(defn- normalize-shape [shape]
+-  (if (#{:box :cylinder :capsule} shape) shape :box))
++(def shapes
++  "Valid part shapes."
++  #{:box :cylinder :capsule :sphere :cone})
+ 
+-(defn- normalize-size [size]
+-  (if (and (vector? size) (= 3 (count size)) (every? #(and (number? %) (pos? %)) size))
+-    (vec size)
+-    [0.5 0.5 0.5]))
++(def default-part
++  "The look's fallback when no part survives normalization."
++  {:shape :box :size [0.5 0.5 0.5] :at [0 0.25 0] :rot [0 0 0] :color :stand-in})
++
++(defn radians
++  "Degrees to radians, for `pm.scene` (the plan itself stays in degrees)."
++  [deg]
++  (* deg (/ js/Math.PI 180)))
++
++(defn- valid-shape? [shape]
++  (contains? shapes shape))
++
++(defn- valid-size? [size]
++  (and (vector? size) (= 3 (count size)) (every? #(and (number? %) (pos? %)) size)))
++
++(defn- valid-vec3? [v]
++  (and (vector? v) (= 3 (count v)) (every? number? v)))
+ 
+ (defn- normalize-color [color]
+   (if (keyword? color) color :stand-in))
+ 
+-(defn- normalize-look [look]
+-  {:shape (normalize-shape (:shape look))
+-   :size  (normalize-size (:size look))
+-   :color (normalize-color (:color look))})
++(defn- single-shape-part
++  "A single-shape look (no `:parts` key) is one part on the base; any `:at`/
++   `:rot` on the look itself are ignored."
++  [look]
++  (let [shape (if (valid-shape? (:shape look)) (:shape look) :box)
++        size  (if (valid-size? (:size look)) (vec (:size look)) [0.5 0.5 0.5])
++        sy    (second size)]
++    {:shape shape :size size :at [0 (/ sy 2) 0] :rot [0 0 0]
++     :color (normalize-color (:color look))}))
++
++(defn- valid-part? [part]
++  (and (map? part)
++       (valid-shape? (:shape part))
++       (valid-size? (:size part))
++       (or (nil? (:at part)) (valid-vec3? (:at part)))
++       (or (nil? (:rot part)) (valid-vec3? (:rot part)))))
++
++(defn- normalize-part [part]
++  (let [size (vec (:size part))
++        sy   (second size)
++        at   (if (:at part) (vec (:at part)) [0 (/ sy 2) 0])
++        rot  (if (:rot part) (vec (:rot part)) [0 0 0])]
++    {:shape (:shape part) :size size :at at :rot rot
++     :color (normalize-color (:color part))}))
++
++(defn- raw-parts [look]
++  (if (contains? look :parts)
++    (let [candidates (:parts look)]
++      (if (sequential? candidates)
++        (let [valid (filterv valid-part? candidates)]
++          (if (seq valid) (mapv normalize-part valid) [default-part]))
++        [default-part]))
++    [(single-shape-part look)]))
++
++(defn look-parts
++  "Normalized parts for `look`, scaled by `scale` (size and offset; `:rot` is
++   not scaled). Always a non-empty vector."
++  [look scale]
++  (let [s (if (and (number? scale) (pos? scale)) scale 1)]
++    (mapv (fn [part]
++            (-> part
++                (update :size (fn [sz] (mapv #(* s %) sz)))
++                (update :at   (fn [a]  (mapv #(* s %) a)))))
++          (raw-parts look))))
++
++(defn parts-top
++  "Highest point (in the item's own frame, ignoring :rot) any part reaches."
++  [parts]
++  (if (seq parts)
++    (apply max (map (fn [{[_ dy _] :at [_ sy _] :size}] (+ dy (/ sy 2))) parts))
++    0))
+ 
+ (defn- valid-at? [at]
+   (and (vector? at) (= 3 (count at)) (every? number? at)))
+@@ -52,21 +113,23 @@
+             (fn [idx item]
+               (let [at (:at item)]
+                 (when (valid-at? at)
+-                  (let [item-id  (or (:id item) idx)
+-                        [x y z]  at
+-                        look     (normalize-look (:look item))
+-                        [_ h _]  (:size look)
+-                        label    (:label item)
+-                        base     {:key    [mirror-id item-id]
+-                                  :mirror mirror-id
+-                                  :item   item-id
+-                                  :look   look
+-                                  :at     at
+-                                  :center [x (+ y (/ h 2)) z]}]
++                  (let [item-id (or (:id item) idx)
++                        [x y z] at
++                        parts   (look-parts (:look item) (:scale item))
++                        top     (parts-top parts)
++                        yaw     (if (number? (:yaw item)) (:yaw item) 0)
++                        label   (:label item)
++                        base    {:key    [mirror-id item-id]
++                                 :mirror mirror-id
++                                 :item   item-id
++                                 :at     at
++                                 :yaw    yaw
++                                 :parts  parts
++                                 :center [x (+ y (/ top 2)) z]}]
+                     (if (#{:say :sign} label)
+                       (assoc base
+                              :label label
+-                             :label-at [x (+ y h label-lift) z]
++                             :label-at [x (+ y top label-lift) z]
+                              :text (label-text markers label (:idle item) state))
+                       base)))))
+             (:placed mirror))))
+@@ -92,7 +155,9 @@
+ (defn plan-summary [plan]
+   (let [mirrors  (count (distinct (map :mirror plan)))
+         items    (count plan)
++        parts-n  (reduce + 0 (map (comp count :parts) plan))
+         labelled (filter :label plan)
+         l        (count labelled)
+         s        (count (remove #(= "" (:text %)) labelled))]
+-    (str "scene: mirrors " mirrors " · items " items " · labels " s "/" l)))
++    (str "scene: mirrors " mirrors " · items " items " · parts " parts-n
++         " · labels " s "/" l)))
+diff --git a/src/pm/scene.cljs b/src/pm/scene.cljs
+index cd7ea35..bae3913 100644
+--- a/src/pm/scene.cljs
++++ b/src/pm/scene.cljs
+@@ -12,6 +12,10 @@
+    :glass        0xbfe3dc
+    :gold         0xe3c46b
+    :moss         0x7a9a5a
++   :gill         0xe0678f
++   :eye          0x1e1a1c
++   :mane         0x3b2a1e
++   :tin          0x9a9184
+    :stand-in     0xb8b0a6
+    :bubble-paper 0xfffaf0
+    :bubble-ink   0x3a2d22
+@@ -36,15 +40,19 @@
+      :pos    pos}))
+ 
+ (defn- mount-item! [root item]
+-  (let [{:keys [look center]} item
+-        ^js mesh (t/stand-in {:shape (:shape look)
+-                               :size  (:size look)
+-                               :color (color (:color look))
+-                               :pos   center})]
+-    (set! (.-name mesh) (pr-str (:key item)))
+-    (t/add! root mesh)
+-    (when (:label item)
+-      (let [sprite (t/label (label-opts (:label item) (:label-at item) (:text item)))]
++  (let [{:keys [key at yaw parts label label-at text]} item
++        ^js item-group (t/group {:name (pr-str key) :pos at :rot [0 (p/radians yaw) 0]})]
++    (doseq [[i part] (map-indexed vector parts)]
++      (let [^js mesh (t/stand-in {:shape (:shape part)
++                                  :size  (:size part)
++                                  :color (color (:color part))
++                                  :pos   (:at part)
++                                  :rot   (mapv p/radians (:rot part))})]
++        (set! (.-name mesh) (str (pr-str key) "/" i))
++        (t/add! item-group mesh)))
++    (t/add! root item-group)
++    (when label
++      (let [sprite (t/label (label-opts label label-at text))]
+         (t/add! root sprite)
+         sprite))))
+ 
+diff --git a/src/pm/three.cljs b/src/pm/three.cljs
+index 608891c..c793b94 100644
+--- a/src/pm/three.cljs
++++ b/src/pm/three.cljs
+@@ -127,35 +127,46 @@
+   (.render renderer scene camera))
+ 
+ (defn group
+-  "A THREE.Group. Opts: :name (string), :pos [x y z] (default [0 0 0])."
+-  [{:keys [name pos] :or {pos [0 0 0]}}]
++  "A THREE.Group. Opts: :name (string), :pos [x y z] (default [0 0 0]),
++   :rot [rx ry rz] in radians (default [0 0 0])."
++  [{:keys [name pos rot] :or {pos [0 0 0] rot [0 0 0]}}]
+   (let [^js T (three)
+         ^js Group (.-Group T)
+         ^js g (Group.)
+-        [x y z] pos]
++        [x y z] pos
++        [rx ry rz] rot]
+     (when name (set! (.-name g) name))
+     (.set (.-position g) x y z)
++    (.set (.-rotation g) rx ry rz)
+     g))
+ 
+ (defn stand-in
+-  "Flat-shaded placeholder mesh. :shape in #{:box :cylinder :capsule}, :size
+-   [sx sy sz] metres, :color an int, :pos [x y z] the mesh's centre."
+-  [{:keys [shape size color pos]}]
+-  (let [[sx sy sz] size [x y z] pos
++  "Flat-shaded placeholder mesh. :shape in pm.plan/shapes, :size [sx sy sz]
++   metres, :color an int, :pos [x y z] the mesh's centre (parent frame),
++   :rot [rx ry rz] in radians (default [0 0 0]), Euler XYZ."
++  [{:keys [shape size color pos rot] :or {rot [0 0 0]}}]
++  (let [[sx sy sz] size [x y z] pos [rx ry rz] rot
+         ^js T (three)
+         ^js Mesh (.-Mesh T)
+         ^js BoxGeometry (.-BoxGeometry T)
++        ^js SphereGeometry (.-SphereGeometry T)
+         ^js CylinderGeometry (.-CylinderGeometry T)
++        ^js ConeGeometry (.-ConeGeometry T)
+         ^js CapsuleGeometry (.-CapsuleGeometry T)
+         ^js StandardMaterial (.-MeshStandardMaterial T)
+         ^js geom (case shape
+-                   :cylinder (CylinderGeometry. (/ sx 2) (/ sx 2) sy 16)
+-                   :capsule  (CapsuleGeometry. (/ sy 2) (max 0 (- sx sy)) 4 8)
++                   :sphere   (SphereGeometry. 0.5 12 8)
++                   :cylinder (CylinderGeometry. 0.5 0.5 1 12)
++                   :cone     (ConeGeometry. 0.5 1 12)
++                   :capsule  (let [^js g (CapsuleGeometry. (/ sy 2) (max 0 (- sx sy)) 4 8)]
++                               (.rotateZ g (/ js/Math.PI 2))
++                               g)
+                    (BoxGeometry. sx sy sz))
+         ^js m (Mesh. geom (StandardMaterial. #js {:color color :flatShading true}))]
++    (when (#{:sphere :cylinder :cone} shape)
++      (.set (.-scale m) sx sy sz))
+     (.set (.-position m) x y z)
+-    (when (= shape :capsule)
+-      (set! (.-z (.-rotation m)) (/ js/Math.PI 2)))
++    (.set (.-rotation m) rx ry rz)
+     (set! (.-castShadow m) true)
+     (set! (.-receiveShadow m) true)
+     m))
+diff --git a/test/pm/plan_test.cljs b/test/pm/plan_test.cljs
+index 2224c3b..75a4366 100644
+--- a/test/pm/plan_test.cljs
++++ b/test/pm/plan_test.cljs
+@@ -36,6 +36,34 @@
+ (def O (w/load-estate odd-edn))
+ (def P0 (p/scene-plan W T0))
+ 
++(defn part-near? [p q]
++  (and (= (dissoc p :size :at) (dissoc q :size :at))
++       (near? (:size p) (:size q)) (near? (:at p) (:at q))))
++(defn span [parts]   ; x extent in the item frame, ignoring :rot
++  (- (apply max (map (fn [{[dx] :at [sx] :size}] (+ dx (/ sx 2))) parts))
++     (apply min (map (fn [{[dx] :at [sx] :size}] (- dx (/ sx 2))) parts))))
++(defn part-of [plan k i] (get-in (by-key plan) [k :parts i]))
++(def toy-edn
++  (pr-str {:mirrors [{:id :toy :state {}
++                      :placed [{:id :a :at [1 0 2] :scale 2 :yaw 45 :label :say :idle "hello"
++                                :look {:parts [{:shape :box :size [1 1 1] :at [0 0.5 0] :color :pink}
++                                               {:shape :sphere :size [0.5 0.5 0.5] :at [0.5 1.25 0]
++                                                :rot [0 90 0] :color :eye}]}}
++                               {:id :b :at [0 0 0] :scale 0 :yaw "north"
++                                :look {:parts [{:shape :star :size [1 1 1]}
++                                               {:shape :box :size [1 0 1]}
++                                               {:shape :box :size [1 1]}
++                                               {:shape :box :size [1 1 1] :at [0 1]}
++                                               {:shape :box :size [1 1 1] :rot "up"}
++                                               "box"
++                                               {:shape :cone :size [0.2 0.6 0.2]}]}}
++                               {:id :c :at [0 0 0] :scale 3 :look {:parts []}}
++                               {:id :d :at [0 0 0] :scale -1 :look {:parts :none :shape :sphere}}
++                               {:id :e :at [0 0 0]
++                                :look {:shape :sphere :size [1 2 3] :color :gill :rot [1 2 3] :at [9 9 9]}}]}]}))
++(def Q  (w/load-estate toy-edn))
++(def PQ (p/scene-plan Q 0))
++
+ ;; Data
+ 
+ (deftest t01-estate-placed
+@@ -65,25 +93,23 @@
+ (deftest t03-plan-order-and-shape
+   (is (= [[:flora :body] [:flora :jar] [:juniper :body]] (mapv :key P0)))
+   (is (= {:key [:flora :body] :mirror :flora :item :body
+-          :look {:shape :capsule :size [0.5 0.16 0.16] :color :pink}
+-          :at [-0.27 1.56 -15.7] :label :say :text "I'm hungry"}
+-         (dissoc (nth P0 0) :center :label-at)))
++          :at [-0.27 1.42 -15.7] :yaw 90 :label :say :text "I'm hungry"}
++         (dissoc (nth P0 0) :center :label-at :parts)))
+   (is (= {:key [:flora :jar] :mirror :flora :item :jar
+-          :look {:shape :cylinder :size [0.22 0.3 0.22] :color :glass}
+-          :at [1.4 1.81 -15.7] :label :sign :text "Worms: 15"}
+-         (dissoc (nth P0 1) :center :label-at)))
++          :at [1.4 1.81 -15.7] :yaw 0 :label :sign :text "Worms: 15"}
++         (dissoc (nth P0 1) :center :label-at :parts)))
+   (is (= {:key [:juniper :body] :mirror :juniper :item :body
+-          :look {:shape :box :size [0.6 1.6 2.0] :color :brown}
+-          :at [-5.0 2.5 -10.0] :label :say :text "Hay, please?"}
+-         (dissoc (nth P0 2) :center :label-at))))
++          :at [-5.0 2.5 -10.0] :yaw 90 :label :say :text "Hay, please?"}
++         (dissoc (nth P0 2) :center :label-at :parts)))
++  (is (= false (contains? (nth P0 0) :look))))
+ 
+ (deftest t04-plan-positions
+-  (is (near? [-0.27 1.64 -15.7] (:center (nth P0 0))))
+-  (is (near? [-0.27 2.02 -15.7] (:label-at (nth P0 0))))
+-  (is (near? [1.4 1.96 -15.7] (:center (nth P0 1))))
+-  (is (near? [1.4 2.41 -15.7] (:label-at (nth P0 1))))
+-  (is (near? [-5.0 3.3 -10.0] (:center (nth P0 2))))
+-  (is (near? [-5.0 4.4 -10.0] (:label-at (nth P0 2)))))
++  (is (near? [-0.27 1.516 -15.7] (:center (nth P0 0))))
++  (is (near? [-0.27 1.912 -15.7] (:label-at (nth P0 0))))
++  (is (near? [1.4 2.058 -15.7] (:center (nth P0 1))))
++  (is (near? [1.4 2.606 -15.7] (:label-at (nth P0 1))))
++  (is (near? [-5.0 3.595 -10.0] (:center (nth P0 2))))
++  (is (near? [-5.0 4.99 -10.0] (:label-at (nth P0 2)))))
+ 
+ (deftest t05-positions-dont-follow-state
+   (is (= (map (juxt :key :at :center :label-at) P0)
+@@ -151,7 +177,8 @@
+   (let [item (get (by-key (p/scene-plan WJ T0)) [:juniper :bales])]
+     (is (near? [9.0 1.7 11.0] (:center item)))
+     (is (near? [9.0 2.25 11.0] (:label-at item)))
+-    (is (= {:shape :box :size [1.0 0.5 0.5] :color :gold} (:look item)))))
++    (is (= [{:shape :box :size [1.0 0.5 0.5] :at [0 0.25 0] :rot [0 0 0] :color :gold}] (:parts item)))
++    (is (= 0 (:yaw item)))))
+ 
+ (deftest t16-juniper-hay-cycle
+   (let [WJ4 (reduce w/chore-done WJ (for [k (range 4)] (ev :juniper :hay (+ T0 (* k 43200000)) :key)))]
+@@ -175,7 +202,7 @@
+            (mapv :key (p/scene-plan WP T0))))
+     (is (= "I'm hungry" (get (texts WP T0) [:pet :body])))
+     (is (= "Worms: 15" (get (texts WP T0) [:pet :jar])))
+-    (is (= "scene: mirrors 3 · items 5 · labels 5/5" (p/plan-summary (p/scene-plan WP T0))))))
++    (is (= "scene: mirrors 3 · items 5 · parts 47 · labels 5/5" (p/plan-summary (p/scene-plan WP T0))))))
+ 
+ ;; scene-plan: edges
+ 
+@@ -183,14 +210,16 @@
+   (let [PO (p/scene-plan O 0)
+         BO (by-key PO)]
+     (is (= [[:alpha :x] [:alpha :y] [:zed 0] [:zed :b] [:zed :c] [:zed :d]] (mapv :key PO)))
+-    (is (= #{:key :mirror :item :look :at :center} (set (keys (BO [:zed 0])))))
++    (is (= #{:key :mirror :item :at :yaw :parts :center} (set (keys (BO [:zed 0])))))
+     (is (= 0 (:item (BO [:zed 0]))))
+-    (is (= {:shape :box :size [0.5 0.5 0.5] :color :stand-in} (:look (BO [:zed 0]))))
++    (is (= [p/default-part] (:parts (BO [:zed 0]))))
+     (is (near? [0 0.25 0] (:center (BO [:zed 0]))))
+-    (is (= {:shape :box :size [0.5 0.5 0.5] :color :stand-in} (:look (BO [:zed :b]))))
++    (is (= [{:shape :cone :size [0.5 0.5 0.5] :at [0 0.25 0] :rot [0 0 0] :color :stand-in}]
++           (:parts (BO [:zed :b]))))
+     (is (= false (contains? (BO [:zed :b]) :label)))
+     (is (near? [1 2.25 3] (:center (BO [:zed :b]))))
+-    (is (= {:shape :cylinder :size [2 4 2] :color :moss} (:look (BO [:zed :c]))))
++    (is (= [{:shape :cylinder :size [2 4 2] :at [0 2 0] :rot [0 0 0] :color :moss}]
++           (:parts (BO [:zed :c]))))
+     (is (near? [0 3 0] (:center (BO [:zed :c]))))
+     (is (near? [0 5.3 0] (:label-at (BO [:zed :c]))))
+     (is (= "hi · there" (:text (BO [:zed :c]))))
+@@ -198,7 +227,8 @@
+     (is (= "n 1" (:text (BO [:zed :d]))))
+     (is (near? [0 0.8 0] (:label-at (BO [:zed :d]))))
+     (is (= "k=2" (:text (BO [:alpha :x]))))
+-    (is (= "" (:text (BO [:alpha :y]))))))
++    (is (= "" (:text (BO [:alpha :y]))))
++    (is (every? #(= 0 (:yaw %)) PO))))
+ 
+ (deftest t19-empty-worlds
+   (is (= [] (p/scene-plan {} T0)))
+@@ -230,10 +260,134 @@
+ ;; plan-summary
+ 
+ (deftest t22-summary
+-  (is (= "scene: mirrors 2 · items 3 · labels 3/3" (p/plan-summary P0)))
+-  (is (= "scene: mirrors 2 · items 3 · labels 2/3" (p/plan-summary (p/scene-plan W1 (+ T0 1000)))))
+-  (is (= "scene: mirrors 2 · items 3 · labels 2/3"
++  (is (= "scene: mirrors 2 · items 3 · parts 30 · labels 3/3" (p/plan-summary P0)))
++  (is (= "scene: mirrors 2 · items 3 · parts 30 · labels 2/3" (p/plan-summary (p/scene-plan W1 (+ T0 1000)))))
++  (is (= "scene: mirrors 2 · items 3 · parts 30 · labels 2/3"
+          (p/plan-summary (p/scene-plan (w/chore-done W hay) (+ T0 1000)))))
+-  (is (= "scene: mirrors 2 · items 4 · labels 4/4" (p/plan-summary (p/scene-plan WJ T0))))
+-  (is (= "scene: mirrors 2 · items 6 · labels 3/4" (p/plan-summary (p/scene-plan O 0))))
+-  (is (= "scene: mirrors 0 · items 0 · labels 0/0" (p/plan-summary []))))
++  (is (= "scene: mirrors 2 · items 4 · parts 31 · labels 4/4" (p/plan-summary (p/scene-plan WJ T0))))
++  (is (= "scene: mirrors 2 · items 6 · parts 6 · labels 3/4" (p/plan-summary (p/scene-plan O 0))))
++  (is (= "scene: mirrors 0 · items 0 · parts 0 · labels 0/0" (p/plan-summary []))))
++
++;; v1: looks become parts
++
++(deftest t23-constants
++  (is (= #{:box :cylinder :capsule :sphere :cone} p/shapes))
++  (is (= {:shape :box :size [0.5 0.5 0.5] :at [0 0.25 0] :rot [0 0 0] :color :stand-in} p/default-part))
++  (is (= 0 (p/radians 0)))
++  (is (near? [(p/radians 90) (p/radians 180) (p/radians -90)]
++             [1.5707963267948966 js/Math.PI -1.5707963267948966])))
++
++(deftest t24-single-shape-back-compat
++  (is (= [p/default-part] (p/look-parts nil 1)))
++  (is (= [p/default-part] (p/look-parts {} 1)))
++  (is (= [{:shape :box :size [1 2 3] :at [0 1 0] :rot [0 0 0] :color :pink}]
++         (p/look-parts {:shape :box :size [1 2 3] :color :pink} 1)))
++  (is (= [p/default-part] (p/look-parts {:shape :star :size [1 2] :color "red"} 1)))
++  (is (= [{:shape :sphere :size [1 2 3] :at [0 1 0] :rot [0 0 0] :color :stand-in}]
++         (p/look-parts {:shape :sphere :size [1 2 3] :at [9 9 9] :rot [1 2 3]} 1)))
++  (is (= 0.3 (p/parts-top (p/look-parts {:shape :cylinder :size [0.22 0.3 0.22] :color :glass} 1)))))
++
++(deftest t25-parts-normalized
++  (is (= [{:shape :cone :size [1 2 1] :at [0 1 0] :rot [0 0 0] :color :stand-in}
++          {:shape :box :size [1 1 1] :at [1 2 3] :rot [10 20 30] :color :eye}]
++         (p/look-parts {:parts [{:shape :cone :size [1 2 1]}
++                                 {:shape :box :size [1 1 1] :at [1 2 3] :rot [10 20 30] :color :eye :name "x"}]} 1)))
++  (is (= [{:shape :sphere :size [1 1 1] :at [0 0.5 0] :rot [0 0 0] :color :stand-in}]
++         (p/look-parts {:parts (list {:shape :sphere :size [1 1 1]})} 1))))
++
++(deftest t26-invalid-parts-dropped
++  (is (= [{:shape :cone :size [0.2 0.6 0.2] :at [0 0.3 0] :rot [0 0 0] :color :stand-in}]
++         (:parts (get (by-key PQ) [:toy :b]))))
++  (is (= [{:shape :box :size [1.5 1.5 1.5] :at [0 0.75 0] :rot [0 0 0] :color :stand-in}]
++         (:parts (get (by-key PQ) [:toy :c]))))
++  (is (= [p/default-part] (:parts (get (by-key PQ) [:toy :d]))))
++  (is (= [{:shape :box :size [1 1 1] :at [0 0.5 0] :rot [0 0 0] :color :stand-in}]
++         (p/look-parts {:parts [{:shape :box}]} 2))))
++
++(deftest t27-scale
++  (is (= [{:shape :box :size [2 4 6] :at [0 2 0] :rot [0 0 0] :color :pink}]
++         (p/look-parts {:shape :box :size [1 2 3] :color :pink} 2)))
++  (is (= [{:shape :cone :size [0.5 0.5 0.5] :at [0.5 1 1.5] :rot [10 20 30] :color :stand-in}]
++         (p/look-parts {:parts [{:shape :cone :size [1 1 1] :at [1 2 3] :rot [10 20 30]}]} 0.5)))
++  (doseq [s [0 -1 "2" nil]]
++    (is (= [{:shape :box :size [1 1 1] :at [0 0.5 0] :rot [0 0 0] :color :stand-in}]
++           (p/look-parts {:shape :box :size [1 1 1]} s)))))
++
++(deftest t28-parts-top-and-label
++  (is (= 3.5 (p/parts-top [{:size [1 2 1] :at [0 1 0]} {:size [1 1 1] :at [0 3 0]}])))
++  (is (= 0 (p/parts-top [])))
++  (is (= -1.5 (p/parts-top [{:size [1 1 1] :at [0 -2 0]}])))
++  (let [A (get (by-key PQ) [:toy :a])]
++    (is (= [{:shape :box :size [2 2 2] :at [0 1 0] :rot [0 0 0] :color :pink}
++            {:shape :sphere :size [1 1 1] :at [1 2.5 0] :rot [0 90 0] :color :eye}]
++           (:parts A)))
++    (is (= 3 (p/parts-top (:parts A))))
++    (is (= [1 1.5 2] (:center A)))
++    (is (near? [1 3.3 2] (:label-at A)))
++    (is (= "hello" (:text A)))))
++
++(deftest t29-yaw-passed-through
++  (is (= 45 (:yaw (get (by-key PQ) [:toy :a]))))
++  (is (= 0 (:yaw (get (by-key PQ) [:toy :b]))))
++  (is (= 0 (:yaw (get (by-key PQ) [:toy :e]))))
++  (is (= [90 0 90] (mapv :yaw P0)))
++  (is (= [1 1.5 2]
++         (:center (get (by-key (p/scene-plan (assoc-in Q [:mirrors :toy :placed 0 :yaw] -30) 0)) [:toy :a])))))
++
++(deftest t30-toy-plan
++  (is (= [[:toy :a] [:toy :b] [:toy :c] [:toy :d] [:toy :e]] (mapv :key PQ)))
++  (is (= [{:shape :sphere :size [1 2 3] :at [0 1 0] :rot [0 0 0] :color :gill}]
++         (:parts (get (by-key PQ) [:toy :e]))))
++  (is (near? [0 0.3 0] (:center (get (by-key PQ) [:toy :b]))))
++  (is (near? [0 0.75 0] (:center (get (by-key PQ) [:toy :c]))))
++  (is (near? [0 0.25 0] (:center (get (by-key PQ) [:toy :d]))))
++  (is (near? [0 1 0] (:center (get (by-key PQ) [:toy :e]))))
++  (is (= #{:key :mirror :item :at :yaw :parts :center} (set (keys (get (by-key PQ) [:toy :b])))))
++  (is (= "scene: mirrors 1 · items 5 · parts 6 · labels 1/1" (p/plan-summary PQ))))
++
++(deftest t31-flora-look
++  (let [FP (:parts (nth P0 0))]
++    (is (= 15 (count FP)))
++    (is (= {:pink 7 :gill 6 :eye 2} (frequencies (map :color FP))))
++    (is (= {:capsule 1 :sphere 3 :box 1 :cone 6 :cylinder 4} (frequencies (map :shape FP))))
++    (is (part-near? (nth FP 0) {:shape :capsule :size [0.48 0.128 0.16] :at [0.08 0.064 0] :rot [0 0 0] :color :pink}))
++    (is (part-near? (nth FP 1) {:shape :sphere :size [0.2 0.12 0.224] :at [0.4 0.068 0] :rot [0 0 0] :color :pink}))
++    (is (part-near? (nth FP 2) {:shape :box :size [0.36 0.096 0.024] :at [-0.34 0.064 0] :rot [0 0 0] :color :pink}))
++    (is (part-near? (nth FP 3) {:shape :cone :size [0.024 0.096 0.024] :at [0.328 0.144 0.088] :rot [30 0 35] :color :gill}))
++    (is (part-near? (nth FP 8) {:shape :cone :size [0.024 0.096 0.024] :at [0.36 0.104 -0.116] :rot [-80 0 15] :color :gill}))
++    (is (near? [(span FP)] [1.02]))
++    (is (near? [(p/parts-top FP)] [0.192]))
++    (is (near? [(+ 1.42 (p/parts-top [(nth FP 0)]))] [1.548]))
++    (is (every? (fn [{[_ dy] :at [_ sy] :size}] (> (+ 1.42 dy (/ sy 2)) 1.55))
++                (filter #(= :gill (:color %)) FP)))))
++
++(deftest t32-jar-look
++  (let [JP (:parts (nth P0 1))]
++    (is (= 2 (count JP)))
++    (is (= [:glass :tin] (mapv :color JP)))
++    (is (part-near? (nth JP 0) {:shape :cylinder :size [0.32 0.44 0.32] :at [0 0.22 0] :rot [0 0 0] :color :glass}))
++    (is (part-near? (nth JP 1) {:shape :cylinder :size [0.352 0.056 0.352] :at [0 0.468 0] :rot [0 0 0] :color :tin}))
++    (is (near? [(p/parts-top JP)] [0.496]))))
++
++(deftest t33-juniper-look
++  (let [HP (:parts (nth P0 2))]
++    (is (= 13 (count HP)))
++    (is (= {:brown 9 :eye 2 :mane 2} (frequencies (map :color HP))))
++    (is (= {:capsule 1 :box 3 :cone 2 :sphere 2 :cylinder 5} (frequencies (map :shape HP))))
++    (is (= {:shape :capsule :size [1.3 0.62 0.6] :at [0 1.2 0] :rot [0 0 0] :color :brown} (nth HP 0)))
++    (is (= {:shape :box :size [0.55 0.26 0.24] :at [1.1 1.9 0] :rot [0 0 -35] :color :brown} (nth HP 2)))
++    (is (= {:shape :cylinder :size [0.1 0.7 0.1] :at [-0.82 1.1 0] :rot [0 0 -20] :color :mane} (nth HP 8)))
++    (is (near? [(p/parts-top HP)] [2.19]))
++    (is (near? [(span HP)] [2.245]))
++    (doseq [i (range 9 13)]
++      (let [leg (nth HP i)]
++        (is (= [0.14 0.95 0.14] (:size leg)))
++        (is (= 0.475 (second (:at leg))))))))
++
++(deftest t34-same-code-both-looks
++  (let [WS (assoc-in W [:mirrors :flora :placed 0 :look] (get-in W [:mirrors :juniper :placed 0 :look]))
++        FS (:parts (nth (p/scene-plan WS T0) 0))]
++    (is (= 13 (count FS)))
++    (is (part-near? (nth FS 0) {:shape :capsule :size [5.2 2.48 2.4] :at [0 4.8 0] :rot [0 0 0] :color :brown}))
++    (is (near? [(p/parts-top FS)] [8.76]))
++    (is (= (nth P0 2) (nth (p/scene-plan WS T0) 2)))))

@@ -127,35 +127,46 @@
   (.render renderer scene camera))
 
 (defn group
-  "A THREE.Group. Opts: :name (string), :pos [x y z] (default [0 0 0])."
-  [{:keys [name pos] :or {pos [0 0 0]}}]
+  "A THREE.Group. Opts: :name (string), :pos [x y z] (default [0 0 0]),
+   :rot [rx ry rz] in radians (default [0 0 0])."
+  [{:keys [name pos rot] :or {pos [0 0 0] rot [0 0 0]}}]
   (let [^js T (three)
         ^js Group (.-Group T)
         ^js g (Group.)
-        [x y z] pos]
+        [x y z] pos
+        [rx ry rz] rot]
     (when name (set! (.-name g) name))
     (.set (.-position g) x y z)
+    (.set (.-rotation g) rx ry rz)
     g))
 
 (defn stand-in
-  "Flat-shaded placeholder mesh. :shape in #{:box :cylinder :capsule}, :size
-   [sx sy sz] metres, :color an int, :pos [x y z] the mesh's centre."
-  [{:keys [shape size color pos]}]
-  (let [[sx sy sz] size [x y z] pos
+  "Flat-shaded placeholder mesh. :shape in pm.plan/shapes, :size [sx sy sz]
+   metres, :color an int, :pos [x y z] the mesh's centre (parent frame),
+   :rot [rx ry rz] in radians (default [0 0 0]), Euler XYZ."
+  [{:keys [shape size color pos rot] :or {rot [0 0 0]}}]
+  (let [[sx sy sz] size [x y z] pos [rx ry rz] rot
         ^js T (three)
         ^js Mesh (.-Mesh T)
         ^js BoxGeometry (.-BoxGeometry T)
+        ^js SphereGeometry (.-SphereGeometry T)
         ^js CylinderGeometry (.-CylinderGeometry T)
+        ^js ConeGeometry (.-ConeGeometry T)
         ^js CapsuleGeometry (.-CapsuleGeometry T)
         ^js StandardMaterial (.-MeshStandardMaterial T)
         ^js geom (case shape
-                   :cylinder (CylinderGeometry. (/ sx 2) (/ sx 2) sy 16)
-                   :capsule  (CapsuleGeometry. (/ sy 2) (max 0 (- sx sy)) 4 8)
+                   :sphere   (SphereGeometry. 0.5 12 8)
+                   :cylinder (CylinderGeometry. 0.5 0.5 1 12)
+                   :cone     (ConeGeometry. 0.5 1 12)
+                   :capsule  (let [^js g (CapsuleGeometry. (/ sy 2) (max 0 (- sx sy)) 4 8)]
+                               (.rotateZ g (/ js/Math.PI 2))
+                               g)
                    (BoxGeometry. sx sy sz))
         ^js m (Mesh. geom (StandardMaterial. #js {:color color :flatShading true}))]
+    (when (#{:sphere :cylinder :cone} shape)
+      (.set (.-scale m) sx sy sz))
     (.set (.-position m) x y z)
-    (when (= shape :capsule)
-      (set! (.-z (.-rotation m)) (/ js/Math.PI 2)))
+    (.set (.-rotation m) rx ry rz)
     (set! (.-castShadow m) true)
     (set! (.-receiveShadow m) true)
     m))

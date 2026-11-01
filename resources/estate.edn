@@ -17,6 +17,13 @@
             [-1.91 0.37  -7.1 1.0]    ; cascade 3
             [-2.49 0.01  -4.2 0.8]    ; mouth into the pool
             [ 0.30 0.00   4.5 0.25]]}] ; the pool (still water)
+ ;; Display scale (standing rule): creatures and crew are drawn big enough to
+ ;; see from the kit's camera views without zooming in, about the size of a
+ ;; mid-size rock (~1 m). Real size doesn't matter; proportions do. Author a
+ ;; look at real proportions and set the item's :scale to reach display size.
+ ;; Look parts: {:shape :size [sx sy sz] :at [dx dy dz] :rot [rx ry rz] :color};
+ ;; :at is the part's centre from the item's base (+x forward, y up), :rot in
+ ;; degrees. :yaw (degrees about y) turns the item; +90 points +x at world -z.
  :mirrors
  [{:id :flora :name "Flora" :kind :creature :model :axolotl :home :canal
    :state  {:source :sample :stock 15 :last-fed nil}
@@ -24,10 +31,31 @@
             {:when [:<= :stock 2] :sign "Worms left: {stock}"}]
    :chores [{:id :feed :every "2d" :at "17:00" :who :me
              :consumes [:stock 1] :done-at :last-fed}]
-   :placed [{:id :body :at [-0.27 1.56 -15.7] :label :say     ; :at is the item's base. In the open creek between cascades 1 and 2, at the surface (gravel bed 0.85)
-             :look {:shape :capsule :size [0.5 0.16 0.16] :color :pink}}  ; 2x real size so you can see her
-            {:id :jar  :at [1.4 1.81 -15.7] :label :sign :idle "Worms: {stock}"   ; on the bank rocks (top 1.81)
-             :look {:shape :cylinder :size [0.22 0.3 0.22] :color :glass}}]}
+   ;; Flora's :placed
+   :placed [{:id :body :at [-0.9 1.6 -15.7] :scale 6 :yaw 0 :label :say   ; real axolotl, 0.26 m nose to tail, drawn ~1.5 m (a mid-size rock); in open water, clear of the foreground rock; side-on to the creek camera, facing her jar; resting on the surface (~1.55) so the water shader doesn't hide her
+             :look {:parts
+                    [{:shape :capsule :size [0.12 0.032 0.04]  :at [0.02 0.016 0]   :color :pink}   ; body
+                     {:shape :sphere  :size [0.05 0.03 0.056]  :at [0.1 0.017 0]    :color :pink}   ; head, wider than the body
+                     {:shape :box     :size [0.09 0.024 0.006] :at [-0.085 0.016 0] :color :pink}   ; tail, flattened sideways
+                     ;; gills: three stalks a side, behind the head, fanning up and back
+                     {:shape :cone :size [0.006 0.024 0.006] :at [0.082 0.036  0.022] :rot [ 30 0 35] :color :gill}
+                     {:shape :cone :size [0.006 0.024 0.006] :at [0.086 0.031  0.027] :rot [ 55 0 25] :color :gill}
+                     {:shape :cone :size [0.006 0.024 0.006] :at [0.09  0.026  0.029] :rot [ 80 0 15] :color :gill}
+                     {:shape :cone :size [0.006 0.024 0.006] :at [0.082 0.036 -0.022] :rot [-30 0 35] :color :gill}
+                     {:shape :cone :size [0.006 0.024 0.006] :at [0.086 0.031 -0.027] :rot [-55 0 25] :color :gill}
+                     {:shape :cone :size [0.006 0.024 0.006] :at [0.09  0.026 -0.029] :rot [-80 0 15] :color :gill}
+                     ;; legs: four stubs, splayed out and down
+                     {:shape :cylinder :size [0.008 0.016 0.008] :at [ 0.06 0.006  0.022] :rot [-60 0 0] :color :pink}
+                     {:shape :cylinder :size [0.008 0.016 0.008] :at [ 0.06 0.006 -0.022] :rot [ 60 0 0] :color :pink}
+                     {:shape :cylinder :size [0.008 0.016 0.008] :at [-0.03 0.006  0.022] :rot [-60 0 0] :color :pink}
+                     {:shape :cylinder :size [0.008 0.016 0.008] :at [-0.03 0.006 -0.022] :rot [ 60 0 0] :color :pink}
+                     ;; eyes
+                     {:shape :sphere :size [0.008 0.008 0.008] :at [0.112 0.026  0.021] :color :eye}
+                     {:shape :sphere :size [0.008 0.008 0.008] :at [0.112 0.026 -0.021] :color :eye}]}}
+            {:id :jar :at [1.4 1.81 -15.7] :scale 4 :label :sign :idle "Worms: {stock}"   ; on the bank rocks (top 1.81); real jar 0.124 m, drawn ~0.5 m
+             :look {:parts
+                    [{:shape :cylinder :size [0.08 0.11 0.08]   :at [0 0.055 0] :color :glass}  ; jar
+                     {:shape :cylinder :size [0.088 0.014 0.088] :at [0 0.117 0] :color :tin}]}}]} ; lid
 
   {:id :juniper :name "Juniper" :kind :creature :model :horse :home :barn
    :state  {:source :sample :bales 6 :last-hayed nil}
@@ -35,5 +63,19 @@
             {:when [:<= :bales 3] :sign "Bales left: {bales}"}]
    :chores [{:id :hay :every "12h" :at "07:00" :who :me
              :consumes [:bales 1] :done-at :last-hayed}]
-   :placed [{:id :body :at [-5.0 2.5 -10.0] :label :say       ; open grass on the creek's west bank (terrain 2.5), side-on to the creek
-             :look {:shape :box :size [0.6 1.6 2.0] :color :brown}}]}]}
+   ;; Juniper's :placed
+   :placed [{:id :body :at [-5.0 2.5 -10.0] :yaw 90 :label :say   ; west bank; long axis along world z, side-on to the creek camera
+             :look {:parts
+                    [{:shape :capsule  :size [1.3 0.62 0.6]   :at [0 1.2 0]                     :color :brown}  ; barrel
+                     {:shape :box      :size [0.3 0.8 0.32]   :at [0.72 1.62 0]  :rot [0 0 -35] :color :brown}  ; neck, leaning forward
+                     {:shape :box      :size [0.55 0.26 0.24] :at [1.1 1.9 0]    :rot [0 0 -35] :color :brown}  ; head, nose down
+                     {:shape :cone     :size [0.06 0.14 0.05] :at [0.95 2.12  0.07]             :color :brown}  ; ears
+                     {:shape :cone     :size [0.06 0.14 0.05] :at [0.95 2.12 -0.07]             :color :brown}
+                     {:shape :sphere   :size [0.05 0.05 0.05] :at [1.15 1.98  0.12]             :color :eye}
+                     {:shape :sphere   :size [0.05 0.05 0.05] :at [1.15 1.98 -0.12]             :color :eye}
+                     {:shape :box      :size [0.08 0.75 0.06] :at [0.62 1.68 0]  :rot [0 0 -35] :color :mane}   ; mane, along the neck
+                     {:shape :cylinder :size [0.1 0.7 0.1]    :at [-0.82 1.1 0]  :rot [0 0 -20] :color :mane}   ; tail
+                     {:shape :cylinder :size [0.14 0.95 0.14] :at [ 0.48 0.475  0.18]           :color :brown}  ; legs
+                     {:shape :cylinder :size [0.14 0.95 0.14] :at [ 0.48 0.475 -0.18]           :color :brown}
+                     {:shape :cylinder :size [0.14 0.95 0.14] :at [-0.48 0.475  0.18]           :color :brown}
+                     {:shape :cylinder :size [0.14 0.95 0.14] :at [-0.48 0.475 -0.18]           :color :brown}]}}]}]}

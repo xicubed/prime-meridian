@@ -7,11 +7,15 @@
 
 (def palette
   "The only hex literals. A look colour not in this map -> :stand-in."
-  {:pink         0xf2a7c3
+  {:pink         0xff9ec4
    :brown        0x8a5a3b
    :glass        0xbfe3dc
    :gold         0xe3c46b
    :moss         0x7a9a5a
+   :gill         0xe0678f
+   :eye          0x1e1a1c
+   :mane         0x3b2a1e
+   :tin          0x9a9184
    :stand-in     0xb8b0a6
    :bubble-paper 0xfffaf0
    :bubble-ink   0x3a2d22
@@ -36,15 +40,19 @@
      :pos    pos}))
 
 (defn- mount-item! [root item]
-  (let [{:keys [look center]} item
-        ^js mesh (t/stand-in {:shape (:shape look)
-                               :size  (:size look)
-                               :color (color (:color look))
-                               :pos   center})]
-    (set! (.-name mesh) (pr-str (:key item)))
-    (t/add! root mesh)
-    (when (:label item)
-      (let [sprite (t/label (label-opts (:label item) (:label-at item) (:text item)))]
+  (let [{:keys [key at yaw parts label label-at text]} item
+        ^js item-group (t/group {:name (pr-str key) :pos at :rot [0 (p/radians yaw) 0]})]
+    (doseq [[i part] (map-indexed vector parts)]
+      (let [^js mesh (t/stand-in {:shape (:shape part)
+                                  :size  (:size part)
+                                  :color (color (:color part))
+                                  :pos   (:at part)
+                                  :rot   (mapv p/radians (:rot part))})]
+        (set! (.-name mesh) (str (pr-str key) "/" i))
+        (t/add! item-group mesh)))
+    (t/add! root item-group)
+    (when label
+      (let [sprite (t/label (label-opts label label-at text))]
         (t/add! root sprite)
         sprite))))
 
