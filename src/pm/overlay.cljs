@@ -85,6 +85,34 @@
               (assoc world' :state-as-of a :state-cached? true)
               world)))))))
 
+(defn play-of
+  "What the player did in the game to mirrors Hal doesn't keep (sample ones,
+   e.g. a horse fed with a key): their state wherever it differs from the
+   sample `estate`, so a reload doesn't undo it. nil when nothing differs."
+  [world estate]
+  (let [ms (for [[id m] (:mirrors world)
+                 :when (not= :hal (get-in m [:state :source]))
+                 :let [s  (dissoc (:state m) :source)
+                       s0 (dissoc (get-in estate [:mirrors id :state]) :source)]
+                 :when (not= s s0)]
+             [id {:state s}])]
+    (when (seq ms) {:mirrors (into {} ms)})))
+
+(defn apply-play
+  "Lay what `play-of` saved back over a freshly loaded world: same field
+   rules as Hal's file, never over a mirror Hal keeps, never touching :source."
+  [world play]
+  (if-not (and (map? play) (map? (:mirrors play)))
+    world
+    (reduce (fn [w [id entry]]
+              (let [m (get-in w [:mirrors id])]
+                (if (and m (not= :hal (get-in m [:state :source]))
+                         (map? entry) (map? (:state entry)))
+                  (update-in w [:mirrors id :state] merge
+                             (into {} (filter (fn [[k v]] (accept? m k v)) (:state entry))))
+                  w)))
+            world (:mirrors play))))
+
 (defn source-tag
   ([source]
    (cond

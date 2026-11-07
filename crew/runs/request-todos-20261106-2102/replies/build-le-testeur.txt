@@ -1,0 +1,27 @@
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ grep -c "^(deftest"
+ │ test/pm/requests_test.cljs
+ │ bb -e '
+ │ (require (quote [clojure.java.io :as
+ │ io]))
+ │ (with-open [r (java.io.PushbackReader.
+ │ (io/reader
+ │ "test/pm/requests_test.cljs"))]
+ │   (loop [n 0]
+ │     (let [f (try (read r false :eof)
+ │ (catch Exception e (println "PARSE
+ │ ERROR:" (.getMessage e)) :err))]
+ │       (if (or (= f :eof) (= f :err))
+ │         (println "forms read:" n)
+ │         (recur (inc n))))))'
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: bb -e ' *
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend

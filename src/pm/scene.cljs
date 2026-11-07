@@ -89,3 +89,9 @@
 (defn summary []
   (when-let [{:keys [plan]} @!mounted]
     (p/plan-summary plan)))
+
+(defn mounted-root []
+  (:root @!mounted))
+
+(defn current-plan []
+  (:plan @!mounted))

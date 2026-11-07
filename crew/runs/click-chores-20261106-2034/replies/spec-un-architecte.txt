@@ -1,0 +1,29 @@
+      7 - **Click.** Clicking a creature (any of its meshes, e.g. Flora's jar) does its
+         first due chore through the existing `chore-done`, with `:via :click`. If noth
+     … +546 lines (~33 KB)
+
+⏺ The click-chores spec is written to crew/runs/click-chores-20261106-2034/spec.md. The public
+  functions are:
+  - pm.world: new event-id, last-done-at, next-due, undo-chore and redo-chore. chore-done now
+    records :id, :prev-at and :consumed on counted entries, and key-event is removed.
+  - New pm.chores: chore-at-click, click, untick, tick.
+  - New pm.pick: click?, ndc, key-of-name, pick-mirror, clickable?, plus click-max-px and
+    click-max-ms.
+  - pm.talk: new chore-record, add-chore, entry, set-done and chore-label. save-text and
+    restore now keep checkbox entries.
+  - Others: pm.content/hal-events gains :chore-not-due and :chore-undone; pm.three/pick-names
+    is new; pm.scene gets mounted-root and current-plan; pm.ui/render-panel! draws checkbox
+    rows.
+
+  There are 28 new test cases in chores_test. Removing the chore keys deletes 4 key tests and
+  edits about a dozen key-event calls and expected values in the existing tests, which leaves
+  151. The round ends at 179 tests.
+
+  done-4884
+
+✻ Churned for 7m 8s · done 8:41 PM
+                                                      ✔ Update installed · /restart to apply
+──────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+──────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

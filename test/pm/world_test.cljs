@@ -1,11 +1,12 @@
 (ns pm.world-test
   (:require [cljs.test :refer [deftest is]]
-            [pm.world :as w]))
+            [pm.world :as w]
+            [pm.fixtures :as fx]))
 
 (def T0 1800000000000)
 (def D2  172800000)   ; "2d"
 (def H12  43200000)   ; "12h"
-(def W   (w/load-estate w/estate-edn))
+(def W   (assoc (w/load-estate w/estate-edn) :lines fx/lines-v0))
 (defn ev [m c at via] {:event :chore-done :mirror m :chore c :at at :via via :who :me})
 (def fed  (ev :flora :feed T0 :key))
 (def hay  (ev :juniper :hay T0 :key))
@@ -51,7 +52,7 @@
 (deftest t03-load-real-estate
   (is (= #{:flora :juniper} (set (keys (:mirrors W)))))
   (is (= [] (:log W)))
-  (is (= {:mirrors [:flora] :keys {"f" [:flora :feed]}} (:hud W)))
+  (is (= {:mirrors [:flora]} (:hud W)))
   (is (= {:source :sample :stock 15 :last-fed nil} (get-in W [:mirrors :flora :state])))
   (is (= {:source :sample :bales 6 :last-hayed nil} (get-in W [:mirrors :juniper :state])))
   (is (= :juniper (get-in W [:mirrors :juniper :id]))))
@@ -109,7 +110,7 @@
 (deftest t11-feed-flora
   (is (= 14 (get-in W1 [:mirrors :flora :state :stock])))
   (is (= 1800000000000 (get-in W1 [:mirrors :flora :state :last-fed])))
-  (is (= [(assoc fed :result :counted)] (:log W1)))
+  (is (= [(assoc fed :result :counted :id "flora/feed@1800000000000" :prev-at nil :consumed [:stock 1])] (:log W1)))
   (is (= (get-in W [:mirrors :juniper]) (get-in W1 [:mirrors :juniper]))))
 
 (deftest t12-one-per-window
@@ -235,26 +236,3 @@
   (is (= "rock" (w/status-line (w/load-estate "{:mirrors [{:id :rock}]}") :rock T0)))
   (is (nil? (w/status-line W :rex T0))))
 
-;; key-event
-
-(deftest t30-key-f
-  (is (= {:event :chore-done :mirror :flora :chore :feed :at 1800000000000 :via :key :who :me}
-         (w/key-event W "f" T0)))
-  (is (= {:event :chore-done :mirror :flora :chore :feed :at 1800000000000 :via :key :who :me}
-         (w/key-event W "F" T0)))
-  (is (nil? (w/key-event W "g" T0)))
-  (is (nil? (w/key-event W nil T0)))
-  (is (nil? (w/key-event F "f" T0))))
-
-(deftest t31-key-second-mirror
-  (let [WH (assoc-in W [:hud :keys "h"] [:juniper :hay])]
-    (is (= hay (w/key-event WH "H" T0)))
-    (is (= 5 (get-in (w/chore-done WH (w/key-event WH "H" T0)) [:mirrors :juniper :state :bales])))))
-
-(deftest t32-key-end-to-end
-  (let [K (w/chore-done W (w/key-event W "F" T0))]
-    (is (= 14 (get-in K [:mirrors :flora :state :stock])))
-    (let [r (w/chore-done K (w/key-event K "f" (+ T0 5000)))]
-      (is (= 14 (get-in r [:mirrors :flora :state :stock])))
-      (is (= :not-due (:reason (last (:log r)))))
-      (is (= :key (:via (last (:log r))))))))

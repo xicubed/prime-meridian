@@ -1,0 +1,29 @@
+         ommitted (125 tests pass).
+       6
+       7 Whenever Hal or a creature says a new line:
+       8 - it goes into a **talk log** (pure `pm.talk`, in the world atom at `:talk`);
+     … +518 lines
+
+⏺ The talk-captions spec is written to crew/runs/talk-captions-20261106-1946/spec.md. The
+  public functions are:
+  - pm.talk, the pure talk log:
+    - logging and captions: caption-ms, say-text, append, observe, caption, caption-text;
+    - panel and keys: unread, badge-text, open-panel, close-panel, toggle-panel, toggle-voice,
+      close-key?, clock-text;
+    - voices and storage: voice-for, save-text, restore;
+    - data defs: empty-talk, cap, default-voice, hal-name and the caption timing values.
+  - pm.ui, the page and speech layer: speech?, speak!, stop-speech!, show-caption!,
+    hide-caption!, set-badge!, render-panel!, set-panel-open!, set-voice-button!,
+    hide-voice-button!.
+
+  There are 26 new test cases in test/pm/talk_test.cljs. The 125 existing tests are left as
+  they are, so the round ends at 151.
+
+  done-9705
+
+✻ Worked for 6m 15s · done 7:52 PM
+                                                      ✔ Update installed · /restart to apply
+──────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+──────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

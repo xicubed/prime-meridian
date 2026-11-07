@@ -232,6 +232,28 @@
     (set-label-text! s text)
     s))
 
+(defn pick-names
+  "Raycast from `camera` through NDC [x y] against `root`: a vector, nearest
+   hit first, of each hit's name chain (object, then parents up to and
+   including root, skipping blank names). Never throws."
+  [^js root ^js camera [x y]]
+  (try
+    (let [^js T (three)
+          ^js Raycaster (.-Raycaster T)
+          ^js Vector2 (.-Vector2 T)
+          ^js rc (Raycaster.)]
+      (.setFromCamera rc (Vector2. x y) camera)
+      (vec
+        (for [^js hit (.intersectObject rc root true)]
+          (loop [^js o (.-object hit) chain []]
+            (if (nil? o)
+              chain
+              (let [chain' (if (not-empty (.-name o)) (conj chain (.-name o)) chain)]
+                (if (identical? o root)
+                  chain'
+                  (recur (.-parent o) chain'))))))))
+    (catch :default _ [])))
+
 (defn drop-ray
   "Cast a ray straight down at (x, z) from height `from` through `root` and
    return the first `n` hits as [[y name] ...] (y rounded to cm). Sprites need

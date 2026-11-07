@@ -1,0 +1,29 @@
+※ recap: Ran Prime Meridian's gate five times for different crew rounds; all passed with 0
+  warnings and growing test coverage from 84 to 179 tests. Next: wait for the next crew round.
+  (disable recaps in /config)
+
+❯ Run the gate (.crew/gate.sh) and write the gate note to
+  crew/runs/request-todos-20261106-2102/gate-note.md as your role card says.
+
+  When you have completely finished, end your reply with a line containing only this:
+  done-4629
+
+  Ran 1 shell command
+
+⏺ Write(crew/runs/request-todos-20261106-2102/gate-note.md)
+  ⎿  Wrote 4 lines to crew/runs/request-todos-20261106-2102/gate-note.md
+      1 PASS
+      2
+      3 Compile: 0 warnings
+      4 Tests: Ran 202 tests containing 1240 assertions. 0 failures, 0 errors.
+
+⏺ PASS
+
+  done-4629
+
+✻ Worked for 8s · done 9:28 PM
+
+──────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+──────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

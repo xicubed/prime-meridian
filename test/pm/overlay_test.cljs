@@ -1,11 +1,13 @@
 (ns pm.overlay-test
   (:require [cljs.test :refer [deftest is]]
             [pm.world :as w]
-            [pm.overlay :as o]))
+            [pm.overlay :as o]
+            [pm.fixtures :as fx]
+            [cljs.reader :as reader]))
 
 (def A 1794013200000)                 ; Fri 2026-11-06 17:00 PST
 (def D2 172800000)                    ; "2d"
-(def W  (w/load-estate w/estate-edn))
+(def W  (assoc (w/load-estate w/estate-edn) :lines fx/lines-v0))
 (defn ev [m c at via] {:event :chore-done :mirror m :chore c :at at :via via :who :me})
 (def HF {:as-of A :mirrors {:flora {:state {:stock 37 :last-fed A}}}})
 (def W2 (o/apply-file W HF))
@@ -303,3 +305,26 @@
     (let [CP (o/apply-cache WP (o/cache-of RP))]
       (is (= (o/hud-line CP :pet (+ A 1000)) "Pet (Hal, cached) · stock 37"))
       (is (= (o/hud-line CP :flora A) "Flora (sample) · stock 15 · I'm hungry")))))
+
+;; In-game play on sample mirrors survives a reload (Michael: "2 Juniper's hay messages")
+
+(deftest t40-play-survives-a-reload
+  (let [W0  (w/load-estate w/estate-edn)
+        at  1794013200000
+        fed (w/chore-done W0 {:event :chore-done :mirror :juniper :chore :hay :at at :via :key :who :me})
+        p   (o/play-of fed W0)]
+    (is (nil? (o/play-of W0 W0)))
+    (is (= [:juniper] (keys (:mirrors p))))
+    (is (= at (get-in p [:mirrors :juniper :state :last-hayed])))
+    (let [R (o/apply-play W0 (reader/read-string (pr-str p)))]
+      (is (= (get-in fed [:mirrors :juniper :state]) (get-in R [:mirrors :juniper :state])))
+      ;; fed already: the same key a minute later doesn't count again
+      (is (not= :counted (:result (peek (:log (w/chore-done R {:event :chore-done :mirror :juniper :chore :hay
+                                                                :at (+ at 60000) :via :key :who :me}))))))))
+  (let [W0 (w/load-estate w/estate-edn)
+        WH (assoc-in W0 [:mirrors :flora :state :source] :hal)]
+    ;; never over a mirror Hal keeps, never invents fields, garbage is ignored
+    (is (= WH (o/apply-play WH {:mirrors {:flora {:state {:stock 1}}}})))
+    (is (= W0 (o/apply-play W0 {:mirrors {:juniper {:state {:oats 3}}}})))
+    (is (= W0 (o/apply-play W0 "garbage")))
+    (is (nil? (o/play-of WH W0)))))

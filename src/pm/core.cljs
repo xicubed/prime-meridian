@@ -7,9 +7,14 @@
   (:require [pm.three :as t]
             [pm.audio :as audio]
             [pm.brook :as brook]
+            [pm.chores :as chores]
+            [pm.content :as content]
             [pm.kit :as kit]
             [pm.overlay :as overlay]
+            [pm.pick :as pick]
             [pm.scene :as scene]
+            [pm.talk :as talk]
+            [pm.ui :as ui]
             [pm.world :as world]
             [clojure.string]))
 
@@ -56,6 +61,23 @@
     (when-let [c (overlay/parse-file text)]
       (swap! !world overlay/apply-cache c))))
 
+(def play-key "pm.play.v1")
+(defonce ^:private !play-text (atom nil))
+(def ^:private sample-estate (world/load-estate world/estate-edn))
+
+(defn- restore-play! []
+  (let [text (try (.getItem js/localStorage play-key) (catch :default _ nil))]
+    (reset! !play-text text)
+    (when-let [p (overlay/parse-file text)]
+      (swap! !world overlay/apply-play p))))
+
+(defn- on-play-change! [_ _ old new]
+  (when-not (identical? (:mirrors old) (:mirrors new))
+    (let [text (pr-str (overlay/play-of new sample-estate))]
+      (when (not= text @!play-text)
+        (reset! !play-text text)
+        (try (.setItem js/localStorage play-key text) (catch :default _ nil))))))
+
 (defn- on-world-change! [_ _ old new]
   (when-not (and (identical? (:mirrors old) (:mirrors new))
                  (= (:state-as-of old) (:state-as-of new)))
@@ -64,6 +86,37 @@
         (when (not= text @!cache-text)
           (reset! !cache-text text)
           (write-cache! text))))))
+
+(def talk-key "pm.talk.v1")
+(defonce ^:private !talk-text (atom nil))
+
+(defn- read-talk []
+  (try (.getItem js/localStorage talk-key) (catch :default _ nil)))
+
+(defn- write-talk! [text]
+  (try (.setItem js/localStorage talk-key text) (catch :default _ nil)))
+
+(defn- fresh-start!
+  "Testing aid: `?fresh` in the URL forgets the talk history and what was done
+   to sample creatures in this browser. Hal's state (and its cache) and the
+   voice setting are kept."
+  []
+  (when (.has (js/URLSearchParams. (.-search js/location)) "fresh")
+    (try (.removeItem js/localStorage talk-key)
+         (.removeItem js/localStorage play-key)
+         (catch :default _ nil))))
+
+(defn- restore-talk! []
+  (let [text (read-talk)]
+    (reset! !talk-text text)
+    (swap! !world assoc :talk (talk/restore text))))
+
+(defn- on-talk-change! [_ _ old new]
+  (when-not (identical? (:talk old) (:talk new))
+    (let [text (talk/save-text (:talk new))]
+      (when (not= text @!talk-text)
+        (reset! !talk-text text)
+        (write-talk! text)))))
 
 (defn build-scene! []
   (let [scene (t/scene)
@@ -93,23 +146,86 @@
 (defonce !mode (atom "loading")) ; "estate" (kit) or "scaffold"
 
 (defn- hud-mirrors-suffix []
-  (let [w @!world]
+  (let [w   @!world
+        now (js/Date.now)]
     (str
       (apply str
         (for [id (get-in w [:hud :mirrors])
-              :let [line (overlay/hud-line w id (js/Date.now))]
+              :let [line (overlay/hud-line w id now)]
               :when line]
           (str " · " line)))
+      (when-let [m (content/mail-line content/sample-inbox)] (str " · " m))
       (when-let [s (scene/summary)] (str " · " s))
       (when-let [p @!probe] (str " · " p))
       (when-let [h (kit/handle)]
         (when-let [b (brook/status h)] (str " · " b))))))
+
+(defonce ^:private !talk-ui (atom {:shown nil :badge nil :listed nil :listed-n nil}))
+
+(defn- tz-offset-min []
+  (- (.getTimezoneOffset (js/Date.))))
+
+(defn- offset-of [at]
+  (- (.getTimezoneOffset (js/Date. at))))
+
+(defonce ^:private !spoken (atom nil)) ; :n of the last line the browser actually started saying
+
+(defn- say-entry!
+  "Speak a talk entry once: a line that already started playing isn't said again."
+  [e]
+  (when (and e (not= (:n e) @!spoken))
+    (ui/speak! (:text e) (talk/voice-for @!world e) #(reset! !spoken (:n e)))))
+
+(defn- label-of [e]
+  (talk/box-label e (offset-of (or (:at (:chore e)) (:at e)))
+                  (world/chore-past @!world (:mirror e) (talk/box-chore e))))
+
+(defn- pick! [entry]
+  (when (:voice? (:talk @!world))
+    (ui/stop-speech!)
+    (ui/speak! (:text entry) (talk/voice-for @!world entry))))
+
+(defn- on-check [e checked?]
+  (swap! !world (fn [w] (if checked?
+                          (chores/tick w content/hal-lines (:n e) (js/Date.now) (tz-offset-min))
+                          (chores/untick w content/hal-lines (:n e) (js/Date.now)))))
+  (swap! !talk-ui assoc :listed nil))
+
+(defn- talk-tick! [now]
+  (let [t  (:talk @!world)
+        t' (talk/observe t @!world now)]
+    (when-not (identical? t' t)
+      (swap! !world assoc :talk t'))
+    (let [e (talk/caption t' now)]
+      (cond
+        (and (some? e) (not= (:n e) (:shown @!talk-ui)))
+        (do
+          (ui/show-caption! e)
+          (when (:voice? t')
+            (say-entry! e))
+          (swap! !talk-ui assoc :shown (:n e)))
+
+        (and (nil? e) (some? (:shown @!talk-ui)))
+        (do
+          (ui/hide-caption!)
+          (swap! !talk-ui assoc :shown nil))))
+    (let [badge (talk/badge-text t')]
+      (when (not= badge (:badge @!talk-ui))
+        (ui/set-badge! badge)
+        (swap! !talk-ui assoc :badge badge)))
+    (if (:open? t')
+      (when-not (identical? (:entries t') (:listed @!talk-ui))
+        (let [keep-scroll? (= (:n t') (:listed-n @!talk-ui))]
+          (ui/render-panel! (:entries t') offset-of label-of pick! on-check keep-scroll?)
+          (swap! !talk-ui assoc :listed (:entries t') :listed-n (:n t'))))
+      (swap! !talk-ui assoc :listed nil :listed-n nil))))
 
 (defn frame [now]
   (let [dt (if-let [l @!last] (/ (- now l) 1000) 0)]
     (reset! !last now)
     (tick! (min dt 0.1))
     (scene/update! @!world (js/Date.now))
+    (talk-tick! (js/Date.now))
     (when (zero? (mod (swap! !frames inc) 30))
       (hud! (str "Prime Meridian · " @!mode " · " @!backend " · frame " @!frames
                  " · t=" (.toFixed (:t @!world) 1) "s" (hud-mirrors-suffix))))
@@ -150,13 +266,6 @@
                   (audio/set-param! k v)
                   (when (= k :flow) (audio/set-file-volume! v))))))))
 
-(defn on-key! [^js e]
-  (when-not (or (.-repeat e) (.-ctrlKey e) (.-metaKey e) (.-altKey e)
-                (some-> (.-target e) .-tagName #{"INPUT" "TEXTAREA" "SELECT"}))
-    (when-let [ev (world/key-event @!world (.-key e) (js/Date.now))]
-      (swap! !world world/chore-done ev)
-      (js/console.log (pr-str (last (:log @!world)))))))
-
 (defn wire-kit-brook-ui!
   "With the kit: the brook is the recorded loop placed on the kit's water
    (pm.brook). Flow sets the pitch; synth/depth only apply to the scaffold."
@@ -175,6 +284,106 @@
     (set! (.-value el) "0.33")
     (.addEventListener el "input"
       (fn [^js e] (brook/set-flow! (js/parseFloat (.. e -target -value)))))))
+
+(defn- wire-pointer!
+  "Click a creature to do its first due chore (through pm.chores); never
+   interferes with the kit's own camera drag."
+  [^js h]
+  (let [^js canvas  (.. h -renderer -domElement)
+        !press      (atom nil)
+        !cursor     (atom nil)
+        !last-hover (atom 0)
+        pick-at     (fn [^js e]
+                      (let [^js rect (.getBoundingClientRect canvas)
+                            rect-m   {:left (.-left rect) :top (.-top rect)
+                                      :width (.-width rect) :height (.-height rect)}
+                            xy       (pick/ndc (.-clientX e) (.-clientY e) rect-m)]
+                        (when xy
+                          (pick/pick-mirror (scene/current-plan)
+                                             (t/pick-names (scene/mounted-root) (.-camera h) xy)))))]
+    (.addEventListener canvas "pointerdown"
+      (fn [^js e]
+        (when (and (.-isPrimary e) (zero? (.-button e)))
+          (reset! !press {:x (.-clientX e) :y (.-clientY e) :t (.-timeStamp e)})))
+      #js {:passive true})
+    (.addEventListener js/window "pointerup"
+      (fn [^js e]
+        (when-let [down @!press]
+          (reset! !press nil)
+          (let [up {:x (.-clientX e) :y (.-clientY e) :t (.-timeStamp e)}]
+            (when (pick/click? down up)
+              (let [m (pick-at e)]
+                (when (pick/clickable? @!world m)
+                  (swap! !world chores/click content/hal-lines m (js/Date.now) (tz-offset-min))
+                  (js/console.log (pr-str (peek (:log @!world))))))))))
+      #js {:capture true :passive true})
+    (.addEventListener canvas "pointermove"
+      (fn [^js e]
+        (when (zero? (.-buttons e))
+          (let [now (js/Date.now)]
+            (when (>= (- now @!last-hover) 50)
+              (reset! !last-hover now)
+              (let [m (pick-at e)]
+                (if (pick/clickable? @!world m)
+                  (do
+                    (when (nil? @!cursor) (reset! !cursor (.. canvas -style -cursor)))
+                    (set! (.. canvas -style -cursor) "pointer"))
+                  (when-let [prev @!cursor]
+                    (set! (.. canvas -style -cursor) prev)
+                    (reset! !cursor nil)))))))))))
+
+(def ^:private voice-key "pm.voice")
+
+(defn- save-voice! [on?]
+  (try (.setItem js/localStorage voice-key (if on? "1" "0")) (catch :default _ nil)))
+
+(defn- saved-voice? []
+  (try (= "1" (.getItem js/localStorage voice-key)) (catch :default _ false)))
+
+(defn- arm-voice!
+  "Voice was left on last time, but browsers won't speak before the player's
+   first click or key on the page: at that moment, say the caption on screen
+   if it never got to play. Never repeats a line that was already heard."
+  []
+  (let [armed (atom false)
+        go    (fn [^js e]
+                (when-not (or @armed
+                              (= "voice-toggle" (some-> (.-target e) .-id)))
+                  (reset! armed true)
+                  (when (:voice? (:talk @!world))
+                    (js/setTimeout
+                      #(say-entry! (talk/caption (:talk @!world) (js/Date.now)))
+                      50))))]
+    (.addEventListener js/window "pointerdown" go #js {:capture true :once true})
+    (.addEventListener js/window "keydown" go #js {:capture true :once true})))
+
+(defn- wire-talk-ui! []
+  (if-not (ui/speech?)
+    (ui/hide-voice-button!)
+    (when-let [^js btn (js/document.getElementById "voice-toggle")]
+      (when (saved-voice?)
+        (swap! !world update :talk (fn [t] (assoc (or t talk/empty-talk) :voice? true)))
+        (ui/set-voice-button! true)
+        (arm-voice!))
+      (.addEventListener btn "click"
+        (fn [^js e]
+          (.stopPropagation e)
+          (swap! !world update :talk talk/toggle-voice)
+          (let [on? (:voice? (:talk @!world))]
+            (ui/set-voice-button! on?)
+            (save-voice! on?)
+            (if on?
+              (ui/speak! "Voice on." (talk/voice-for @!world {:kind :hal}))
+              (ui/stop-speech!)))))))
+  (when-let [^js btn (js/document.getElementById "talk-toggle")]
+    (.addEventListener btn "click"
+      (fn [^js e]
+        (.stopPropagation e)
+        (swap! !world update :talk talk/toggle-panel)
+        (ui/set-panel-open! (:open? (:talk @!world)))))))
+
+(defn- jack-in! []
+  (swap! !world content/hal-say content/hal-lines :jack-in {} (js/Date.now)))
 
 (defn- probe!
   "Dev aid: `?probe=x,z;x,z` prints what's under each point (first 5 hits,
@@ -201,7 +410,9 @@
   (wire-kit-brook-ui! h)
   (t/use-three! (.-THREE h))
   (scene/mount! (.-scene h) @!world (js/Date.now))
+  (wire-pointer! h)
   (probe! h)
+  (jack-in!)
   (js/requestAnimationFrame frame))
 
 (defn start-scaffold! []
@@ -216,13 +427,26 @@
                       (fn [backend]
                         (reset! !backend backend)
                         (js/console.log "Prime Meridian: renderer ready on" backend)
+                        (jack-in!)
                         (js/requestAnimationFrame frame)))))
 
 (defn init! []
   ;; Capture phase: the kit's own controls handle keys too and may stop them.
-  (.addEventListener js/window "keydown" (fn [^js e] (on-key! e)) true)
+  (.addEventListener js/window "keydown"
+    (fn [^js e]
+      (when (talk/close-key? (.-key e) (:open? (:talk @!world)) (some-> (.-target e) .-tagName))
+        (.preventDefault e) (.stopPropagation e)
+        (swap! !world update :talk talk/close-panel)
+        (ui/set-panel-open! false)))
+    true)
+  (fresh-start!)
+  (restore-talk!)
+  (wire-talk-ui!)
+  (add-watch !world ::talk-cache on-talk-change!)
+  (restore-play!)
   (restore-cache!)
   (add-watch !world ::state-cache on-world-change!)
+  (add-watch !world ::play-cache on-play-change!)
   (start-state-poll!)
   (kit/load! start-kit! start-scaffold!))
 

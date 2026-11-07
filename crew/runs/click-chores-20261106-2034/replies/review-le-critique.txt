@@ -1,0 +1,266 @@
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/content-in-game-20261106-1852/review.md. Gate re-verified independently (0 warnings, 125 tests/733 assertions). Confirmed resources/content/.edn untouched by mtime (predate the round's start by minutes), boundary table respected (8 files, builder/tester split matches exactly), no mirror names in any src/.cljs (grep clean — only resources/estate.edn data has them), per-day/no-per-frame-flicker seeding verified via t16 and the seed formula having no wall-clock read inside pm.world/pm.content, string rules confirmed still working alongside keyword rules via the generic :fern mixed-rule test, and the coverage tests (t19/t20/t28) directly exercise simulated broken regenerations (dissoc'd keys, emptied variants, bad types) and catch each one. No findings.
+
+done-8141
+────────────────────────────────────────
+
+─ 2m58s · edited 1 file · read 7 files · ran 7 commands · searched 3 paths · 7:07 PM
+
+
+────────────────────────────────────────
+❯ Review the round's changes against crew/runs/talk-captions-20261106-1946/spec.md and .crew/quests/talk-captions.md: git diff for edited files, and read the new files (git status lists them). Check in particular: the talk log is pure and tested; a line is logged once, not per frame; speech only after a click and stops on toggle off; keys typed into inputs and the kit's own keys aren't broken; storage failures silent; no npm deps; nothing names a mirror in code; resources/content untouched. Write the review to crew/runs/talk-captions-20261106-1946/review.md.
+
+When you have completely finished, end your reply with a line containing only this: done-7562
+────────────────────────────────────────
+
+💻 $ git status + 1 command  0.6s
+📖 Read spec.md
+📖 Read talk-captions.md
+📖 Read log.md  1.7s
+📖 Read gate-note.md  1.7s
+🔎 Find *  1.7s
+💻 $ git diff -- test/pm/overlay_test.cljs test/pm/plan_test.cljs test/pm/world_test.cljs  0.3s
+💻 $ git diff -- src/pm/core.cljs  0.3s
+💻 $ git diff -- resources/estate.edn README.md public/index.html  0.3s
+📖 Read talk.cljs
+📖 Read ui.cljs
+📖 Read talk_test.cljs
+💻 $ bash .crew/gate.sh  4.0s
+💻 $ grep -n "flora\|juniper\|:stock\b\|bales\|worms" -ri src/pm/talk.cljs src/pm/ui.cljs src/pm/core.cljs + 2 commands  0.4s
+✗ $ git diff --stat + 1 command  0.3s [exit 1]
+
+────────────────────────────────────────
+☤ Hermes
+Confirmed: 9 files changed matches boundary table (world.cljs/plan.cljs are entirely this round's inherited diff from content-in-game, untouched further here), no "three" reference in pm.ui/pm.talk. Now writing the review.
+────────────────────────────────────────
+
+✍️ Write crew/runs/talk-captions-20261106-1946/review.md
+│ crew/runs/talk-captions-20261106-1946/review.md
+│ @@ -0,0 +1,101 @@
+│ +# Review: talk-captions
+│ +
+│ +Reviewed against `crew/runs/talk-captions-20261106-1946/spec.md` and
+│ +`.crew/quests/talk-captions.md`, using `git diff` for the 9 modified tracked files and
+│ +reading all new files `git status` lists.
+│ +
+│ +## Scope note
+│ +
+│ +This round stacks, uncommitted, on top of `content-in-game` in the same shared tree (`log.md`'s
+│ +`spec` step already shows the 8-file/64-insertion state from that round before `build` starts).
+│ +`test/pm/world_test.cljs`, `plan_test.cljs`, `overlay_test.cljs` are in `git status` as modified,
+│ +but I diffed them against the content-in-game round's own diff (byte-for-byte identical) — no
+│ +further change landed on them this round, consistent with this round's boundary table ("must not
+│ +touch... the existing tests"). `resources/estate.edn`, `README.md`, `src/pm/core.cljs` likewise
+│ +carry content-in-game's hunks plus this round's own additions, isolated below by re-running
+│ +`git diff` and checking each hunk against this round's scope only.
+│ +
+│ +## Conformance
+│ +
+│ +- **Gate verified independently**: `bash .crew/gate.sh` → 0 warnings (`:app`, `:test`),
+│ +  `Ran 151 tests containing 922 assertions. 0 failures, 0 errors.` Matches `gate-note.md`
+│ +  exactly (125 existing + 26 new in `talk-test`).
+│ +- **Boundary table**: `git diff --stat` shows exactly 9 tracked files; the three new files
+│ +  (`src/pm/talk.cljs`, `src/pm/ui.cljs`, `test/pm/talk_test.cljs`) plus the builder-allowed
+│ +  edits to `core.cljs`, `public/index.html` (`<style>`/markup only — `<base href="/kit/">` line
+│ +  untouched), `resources/estate.edn` (only `:voices` and Juniper's `:voice` added), and one more
+│ +  README sentence. No test file other than the new `talk_test.cljs` changed this round.
+│ +- **`pm.talk` purity and tested**: requires only `cljs.reader`, `clojure.string`, `pm.world` —
+│ +  no atoms, no `js/Date`, no DOM calls anywhere in the file (confirmed by reading it end to
+│ +  end). All 23 public functions/defs hand-traced against the spec table match signature-for-
+│ +  signature, including edge handling (`nil` talk treated as `empty-talk` everywhere via
+│ +  `(or talk empty-talk)`, `append`'s identical-value return on a validation failure, `caption-
+│ +  ms`'s clamp order, `restore`'s counter/cap logic). 26 new tests in `talk_test.cljs` exercise
+│ +  every function, both mirrors, a generic code-unnamed mirror (`:fern`), and the content round's
+│ +  real `hal-say`/`hal-on-chore` wiring.
+│ +- **A line is logged once, not per frame**: `observe` returns the input `talk` itself
+│ +  (`identical?`) when nothing changed — `t07-logged-once-not-per-frame` drives 60 simulated
+│ +  16 ms frames through an unchanged Hal line and asserts `identical?` holds throughout, and that
+│ +  a fresh run over the same 60 frames produces exactly 3 entries (not 60). The dedupe keys
+│ +  (`:last-hal [text until]`, `:last-say` per mirror) are compared before any `append`, so a
+│ +  value re-derived every frame from `(:hal world)`/`markers` is only appended on its first
+│ +  sighting, and a changed `:until` (a repeated line) is correctly treated as a new utterance
+│ +  (`t08`).
+│ +- **Speech only after a click, stops on toggle-off**: `:voice?` starts `false` in `empty-talk`
+│ +  and the *only* place that flips it is `wire-talk-ui!`'s `#voice-toggle` click handler
+│ +  (`swap! !world update :talk talk/toggle-voice`) — `talk-tick!`'s automatic
+│ +  `(ui/speak! ...)` for a new caption is gated by `(:voice? t')`, so it can never fire before
+│ +  that first click. The same click handler calls `(ui/stop-speech!)` on the turn-off branch, and
+│ +  `pick!` (a history-row click) calls `stop-speech!` before speaking again, so a mid-line click
+│ +  cuts the previous utterance. `ui/speak!`/`stop-speech!` are the only two functions touching
+│ +  `speechSynthesis`, both wrapped in `try/catch`.
+│ +- **Keys typed into inputs and the kit's own keys aren't broken**: `close-key?` requires
+│ +  `open?` true and the target tag to not be `"INPUT"`/`"TEXTAREA"`/`"SELECT"` (`t18` covers all
+│ +  three plus a closed-panel Escape, which must fall through). `init!`'s keydown handler only
+│ +  intercepts (`preventDefault`/`stopPropagation`) when `close-key?` is true; otherwise it calls
+│ +  the pre-existing `on-key! e` unchanged — so with the panel closed, or a key typed into a form
+│ +  field, or any non-Escape key, the event reaches `on-key!` (and therefore the kit's own
+│ +  listeners downstream) exactly as before this round.
+│ +- **Storage failures silent**: `read-talk`/`write-talk!` are `try/catch :default _ nil`
+│ +  wrappers, the same pattern as the existing `read-cache`/`write-cache!`; `restore-talk!`'s
+│ +  `talk/restore` never throws (parses in its own try/catch and falls back to `empty-talk`
+│ +  on anything invalid, per `t23-restore-garbage`).
+│ +- **No npm deps**: `git diff --stat -- package.json package-lock.json` is empty — no change to
+│ +  either file. `pm.ui` touches only global browser APIs (`speechSynthesis`,
+│ +  `SpeechSynthesisUtterance`, `document`) and requires only `pm.talk`; no `three` reference in
+│ +  `pm.ui` or `pm.talk` (`grep -i three` on both returns nothing).
+│ +- **No mirror named in code**: `grep -ri "flora|juniper|stock|bales|worms"` over
+│ +  `src/pm/talk.cljs`, `src/pm/ui.cljs`, `src/pm/core.cljs` returns nothing. `"Hal"` appears only
+│ +  as `tk/hal-name`, the twin's name, not a mirror id — matching the quest's explicit carve-out.
+│ +  The mirror ids/voices live in `resources/estate.edn` (data), not code.
+│ +- **`resources/content/*.edn` untouched**: `stat` shows mtimes of 18:46–18:51 PST, unchanged
+│ +  from the content-in-game review and still well before this round's 19:46 start — confirms no
+│ +  write during this round either.
+│ +- **Core wiring matches spec section 5 point-by-point**: `hud-mirrors-suffix` now emits only
+│ +  `content/mail-line`, dropping the old `content/hud-segments` call (Hal's text is off the
+│ +  status line, per the quest); the talk-cache watch (`on-talk-change!`) skips unless `:talk`
+│ +  changed, mirroring the existing state-cache watch's pattern; `talk-tick!` runs right after
+│ +  `scene/update!` in `frame` and implements all four of its sub-steps (observe-and-swap,
+│ … omitted 23 diff line(s) across 1 additional file(s)/section(s)
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/talk-captions-20261106-1946/review.md. Gate re-verified independently (0 warnings, 151 tests/922 assertions). Confirmed the three pre-existing modified test files carry zero additional changes this round (byte-identical to content-in-game's diff), resources/content/*.edn untouched by mtime, no npm-dep changes, no mirror names in any .cljs source, and traced the once-per-line dedupe, click-gated speech/stop, and input/kit-key passthrough each to a specific test and code path. No findings.
+
+done-7562
+────────────────────────────────────────
+
+─ 3m47s · edited 1 file · read 7 files · ran 6 commands · searched 1 path · 8:03 PM
+  💾 Self-improvement review: Skill 'crew-round-review' patched
+
+
+────────────────────────────────────────
+❯ Review the round's changes against crew/runs/click-chores-20261106-2034/spec.md and .crew/quests/click-chores.md: git diff for edited files, and read the new files (git status lists them). Check in particular: undo restores the exact previous done-time and stock; redo only when due; a drag is not a click and the kit's camera still works; picking maps meshes to mirrors from data, no mirror names in code; checkboxes are real inputs; the chore keys are gone; resources/content untouched; pure logic is tested. Write the review to crew/runs/click-chores-20261106-2034/review.md.
+
+When you have completely finished, end your reply with a line containing only this: done-9435
+────────────────────────────────────────
+
+💻 $ git status + 1 command  0.7s
+📖 Read spec.md
+📖 Read click-chores.md
+📖 Read log.md  2.5s
+📖 Read gate-note.md  2.5s
+🔎 Find *  2.5s
+✗ Find *  2.5s [[Errno 3] No such process]
+📖 Read build-le-testeur.txt
+📖 Read build-un-automate-monde.txt
+📖 Read request-todos.md
+💻 $ git diff -- src/pm/overlay.cljs  0.3s
+💻 $ stat -f "%Sm %N" src/pm/overlay.cljs src/pm/plan.cljs src/pm/world.cljs src/pm/scene.cljs src/pm/three.cljs src/pm/core.cljs src/pm/chores.cljs src/pm/pick.cljs src/pm/talk.cljs src/pm/content.cljs test/pm/overlay_test.cljs test/pm/plan_test.cljs test/pm/world_test.cljs test/pm/content_test.cljs test/pm/talk_test.cljs test/pm/chores_test.cljs resources/estate.edn public/index.html README.md  0.3s
+💻 $ git diff -- src/pm/world.cljs  0.3s
+💻 $ git diff -- src/pm/three.cljs src/pm/scene.cljs  0.3s
+💻 $ git diff -- resources/estate.edn README.md public/index.html  0.3s
+📖 Read index.html
+💻 $ git diff -- src/pm/content.cljs  0.3s
+💻 $ git diff -- src/pm/talk.cljs  0.3s
+💻 $ git diff -- src/pm/core.cljs  0.3s
+📖 Read content.cljs
+📖 Read talk.cljs
+📖 Read chores.cljs
+📖 Read pick.cljs
+💻 $ git diff -- test/pm/world_test.cljs test/pm/plan_test.cljs  0.3s
+📖 Read chores_test.cljs
+💻 $ diff -u <(echo) <(echo) + 1 command  0.5s
+✗ $ grep -n "key-event" test/pm/talk_test.cljs test/pm/content_test.cljs  0.3s [exit 1]
+💻 $ bash .crew/gate.sh  4.3s
+💻 $ grep -c "deftest" test/pm/world_test.cljs test/pm/plan_test.cljs test/pm/content_test.cljs test/pm/talk_test.cljs test/pm/overlay_test.cljs test/pm/chores_test.cljs + 4 commands  0.4s
+🔎 Find hal-lines-2026110620*  0.7s
+💻 $ grep -c "^(deftest " test/pm/world_test.cljs test/pm/plan_test.cljs test/pm/content_test.cljs test/pm/talk_test.cljs test/pm/overlay_test.cljs test/pm/chores_test.cljs  0.3s
+🔎 Find hal-lines*  2.3s
+📖 Read ui.cljs
+✗ $ grep -n "t40\|g-hay\|\"g\"\|:hud :keys\|key-event" test/pm/world_test.cljs resources/estate.edn src/pm/world.cljs src/pm/core.cljs  0.3s [exit 1]
+✍️ Write crew/runs/click-chores-20261106-2034/review.md
+│ crew/runs/click-chores-20261106-2034/review.md
+│ @@ -0,0 +1,107 @@
+│ +# Review: click-chores
+│ +
+│ +Reviewed against `crew/runs/click-chores-20261106-2034/spec.md` and
+│ +`.crew/quests/click-chores.md`, using `git diff` for tracked files, full reads of all new files,
+│ +and `stat` mtimes to separate this round's work from earlier uncommitted rounds sharing the tree.
+│ +
+│ +## Scope note (stacked, uncommitted rounds)
+│ +
+│ +This round builds on content-in-game, talk-captions, and two further uncommitted rounds not
+│ +under review here that added a "play cache" (`pm.overlay/play-of`/`apply-play`, referenced by
+│ +this round's own tests) and a voice-persistence feature (`pm.voice` localStorage key,
+│ +`arm-voice!`, the `speak!` 3-arg start callback, the 🔇/🔊 icon pair) — both visible in the
+│ +diff but outside this round's boundary table and spec text. I isolated click-chores' own work
+│ +by `stat` mtime: `src/pm/overlay.cljs` and `src/pm/plan.cljs` (both "must not touch" for this
+│ +round) last changed at 20:14 and 19:03 respectively — before this round's 20:34 start — and
+│ +`test/pm/overlay_test.cljs` likewise at 20:14, matching its own §7.1 instruction of **no edit**.
+│ +Every file this round was allowed to touch (`world.cljs`, `content.cljs`, `talk.cljs`,
+│ +`three.cljs`, `scene.cljs`, `core.cljs`, `ui.cljs`, `estate.edn`, `index.html`, `README.md`, and
+│ +the other four test files) has an mtime inside the build window (20:41:39–20:53:06), confirmed
+│ +against `git diff`/full reads below. `resources/content/hal-lines.edn`'s mtime (20:31:41) traces
+│ +to a real content-pipeline run, `content/runs/hal-lines-20261106-2029/`, that finished at 20:31 —
+│ +before this round even started — regenerating the two new Hal events the quest says already
+│ +exist there; not a crew edit.
+│ +
+│ +## Conformance
+│ +
+│ +- **Gate verified independently**: `bash .crew/gate.sh` → 0 warnings, `Ran 179 tests containing
+│ +  1107 assertions. 0 failures, 0 errors.` Matches `gate-note.md` exactly. Exact `(deftest ` counts
+│ +  per file: world 29, plan 34, content 28, talk 28, overlay 32 (unchanged), chores 28 — summing
+│ +  to 179, matching the spec's "151 existing + 28 new chores" tally precisely.
+│ +- **Boundary table**: builder's files match the allowed set (`world.cljs`, new `chores.cljs`/
+│ +  `pick.cljs`, `talk.cljs`, `content.cljs` (only `hal-events` changed — confirmed by reading the
+│ +  file: identical to the content-in-game version except the `hal-events` map), `three.cljs` (one
+│ +  new fn, `pick-names`), `scene.cljs` (two new getters, `mounted-root`/`current-plan`, nothing
+│ +  else touched), `core.cljs`, `index.html` (style rules + the three `li.chore` rules — no markup
+│ +  change; `<base>` untouched), `resources/estate.edn` (only `:hud :keys` removed, confirmed by
+│ +  diff), one README sentence. Tester's files match exactly: new `chores_test.cljs`, plus the
+│ +  E1–E5 edits (confirmed line-by-line against the diff) with **no existing assertion changed**
+│ +  (`t03`'s `:hud` value and `t11`'s log shape are updated because the spec changed, not loosened).
+│ +- **Undo restores the exact previous done-time and stock**: `pm.world/undo-chore` restores
+│ +  `prev-at` to the chore's `:done-at` state field (or the generic `:done` map when the chore has
+│ +  none) and adds the recorded `:consumed` delta back onto the state field — both read straight
+│ +  from the record, not recomputed. `chores_test.cljs` t10 confirms a full round trip returns the
+│ +  mirror's state to byte-identical equality with the pre-click world
+│ +  (`(= (get-in U [:mirrors :juniper]) (get-in W [:mirrors :juniper]))`); t13 covers the guard
+│ +  that refuses to undo when the chore's done-time no longer matches the record (`:not-current`,
+│ +  e.g. a later click or Hal's file changed it since); t14 covers a zero-stock chore (no bale
+│ +  invented back) and a chore with no `:done-at` (the generic `:done` map, correctly emptied by
+│ +  `dissoc` rather than left with a stale key).
+│ +- **Redo only when due**: `pm.chores/tick` calls `w/redo-chore`, which is just `chore-done` with
+│ +  `:via :tick` — so it goes through the exact same `due?` gate as a click or key press; when not
+│ +  due it falls through to the same `:chore-not-due` branch as `click`, and the box is never
+│ +  reset to done (confirmed: `tick` only calls `tk/set-done ... true ...` inside the `:counted`
+│ +  branch). `t11` (ticking when due redoes it, new `:id`/`:prev-at` on the fresh record) and `t12`
+│ +  (ticking right after a same-day re-click leaves the box unticked, `:hal` gets the
+│ +  `:chore-not-due` line, `:log` gains an `:ignored` entry) both pass.
+│ +- **A drag is not a click; the kit's camera still works**: `pm.pick/click?` requires
+│ +  `dx²+dy² < 36` (strict) and `0 ≤ dt < 400` — `t23` hand-checks the boundary cases (`36` px² and
+│ +  `400` ms excluded, `399` ms and `5` px included). `wire-pointer!` in `core.cljs` never calls
+│ +  `preventDefault`/`stopPropagation` anywhere in its `pointerdown`/`pointerup`/`pointermove`
+│ +  handlers (confirmed by reading the whole function), so the kit's own camera-drag listeners on
+│ +  the same canvas/window still see every event untouched.
+│ +- **Picking maps meshes to mirrors from data, no mirror names in code**: `pm.pick/pick-mirror`
+│ +  builds its lookup from `(:key item) -> (:mirror item)` over the live scene plan — a data
+│ +  structure — and never references a mirror id or name as a literal. `grep -ri
+│ +  "flora|juniper|stock|bales|worms"` over every touched/new `.cljs` source file
+│ +  (`chores.cljs`, `pick.cljs`, `world.cljs`, `talk.cljs`, `content.cljs`, `core.cljs`,
+│ +  `three.cljs`, `scene.cljs`, `ui.cljs`) returns nothing; the ids live only in
+│ +  `resources/estate.edn` (data) and the test files (explicitly allowed).
+│ +- **Checkboxes are real inputs**: `pm.ui/render-chore-row!` creates an actual
+│ +  `<input type="checkbox">` (not a styled span/div) inside a `<label>`, sets `.checked` from
+│ +  `:done?`, and wires a native `change` event to `on-check` — so Space toggles it natively with
+│ +  no extra JS, and it's a real form control for a screen reader/keyboard user. `.time` and
+│ +  `.text` (via `tk/chore-label`) are set with `textContent`, matching the no-`innerHTML`-for-
+│ +  entry-data rule from the talk-captions round.
+│ +- **The chore keys are gone**: `pm.world/key-event` is deleted; `pm.core/on-key!` is deleted;
+│ +  the capture-phase keydown listener now only has an Escape branch with no `else` (so every
+│ +  other key, including F and G, reaches the kit untouched — nothing calls `on-key!` any more);
+│ … omitted 29 diff line(s) across 1 additional file(s)/section(s)
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/click-chores-20261106-2034/review.md. Gate re-verified independently (0 warnings, 179 tests/1107 assertions). This round stacks on two additional uncommitted, unreviewed rounds (a play cache and voice persistence) — I separated click-chores' own work from theirs via mtime analysis and confirmed overlay.cljs/plan.cljs/overlay_test.cljs genuinely untouched. Verified undo's exact restoration, redo's due-gate reuse, the drag-vs-click thresholds with no preventDefault/stopPropagation in the pointer handlers, data-driven mesh-to-mirror picking, real checkbox inputs, full removal of the F/G key path, resources/content/*.edn untouched (traced the one suspicious mtime to a legitimate pre-round content-pipeline run), and thorough test coverage of all new pure logic. No findings — one icon detail checked out as pre-existing and correct, not a defect.
+
+done-9435
+────────────────────────────────────────
+
+─ 8m34s · edited 1 file · read 14 files · ran 14 commands · searched 3 paths · 9:02 PM
+──────────────────────────────────────────────────────── Review real-state-v0 round changes ─
+crew ❯ Ask anything, or type / for commands…
+─────────────────────────────────────────────────────────────────────────────────────────────
+ ☤ claude-sonnet-5 · ~329K/1M · [███░░░░░░░] ~33% · ◎ 91.5% · ◷ 27.0s · ↑ 94 t/s · 3h 28m...

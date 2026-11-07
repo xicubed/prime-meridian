@@ -1,10 +1,11 @@
 (ns pm.plan-test
   (:require [cljs.test :refer [deftest is]]
             [pm.world :as w]
-            [pm.plan :as p]))
+            [pm.plan :as p]
+            [pm.fixtures :as fx]))
 
 (def T0 1800000000000)
-(def W  (w/load-estate w/estate-edn))
+(def W  (assoc (w/load-estate w/estate-edn) :lines fx/lines-v0))
 (defn ev [m c at via] {:event :chore-done :mirror m :chore c :at at :via via :who :me})
 (def fed (ev :flora :feed T0 :key))
 (def hay (ev :juniper :hay T0 :key))
@@ -149,11 +150,11 @@
   (let [N (update-in W [:mirrors :flora :state] dissoc :stock)]
     (is (= "Worms: {stock}" (get (texts N T0) [:flora :jar])))))
 
-(deftest t12-key-f-end-to-end
-  (let [K (w/chore-done W (w/key-event W "F" T0))]
+(deftest t12-feed-end-to-end
+  (let [K (w/chore-done W fed)]
     (is (= {[:flora :body] "" [:flora :jar] "Worms: 14" [:juniper :body] "Hay, please?"}
            (texts K (+ T0 5000))))
-    (let [K2 (w/chore-done K (w/key-event K "f" (+ T0 5000)))]
+    (let [K2 (w/chore-done K (ev :flora :feed (+ T0 5000) :key))]
       (is (= (texts K (+ T0 5000)) (texts K2 (+ T0 6000)))))))
 
 ;; Juniper: the second mirror, same code
@@ -197,7 +198,8 @@
       (is (= "" (get after [:juniper :body]))))))
 
 (deftest t17-renamed-copy
-  (let [WP (assoc-in W [:mirrors :pet] (assoc (get-in W [:mirrors :flora]) :id :pet))]
+  (let [WP (-> W (assoc-in [:mirrors :pet] (assoc (get-in W [:mirrors :flora]) :id :pet))
+                 (assoc-in [:lines :mirrors :pet] (get-in W [:lines :mirrors :flora])))]
     (is (= [[:flora :body] [:flora :jar] [:juniper :body] [:pet :body] [:pet :jar]]
            (mapv :key (p/scene-plan WP T0))))
     (is (= "I'm hungry" (get (texts WP T0) [:pet :body])))
@@ -249,7 +251,7 @@
     (is (= T (p/label-changes nil P0)))
     (is (= {} (p/label-changes T P0)))
     (is (= {} (p/label-changes (assoc T [:gone 0] "x") P0)))
-    (let [K (w/chore-done W (w/key-event W "F" T0))
+    (let [K (w/chore-done W fed)
           PK (p/scene-plan K (+ T0 5000))]
       (is (= {[:flora :body] "" [:flora :jar] "Worms: 14"} (p/label-changes T PK))))
     (is (= {[:flora :body] "" [:flora :jar] "Worms left: 2"}

@@ -1,0 +1,29 @@
+※ recap: You've run the QA gate four times today for different crew rounds; all passed with
+  zero warnings and increasing test coverage. Continue running gates and writing notes as the
+  crew requests. (disable recaps in /config)
+
+❯ Run the gate (.crew/gate.sh) and write the gate note to
+  crew/runs/click-chores-20261106-2034/gate-note.md as your role card says.
+
+  When you have completely finished, end your reply with a line containing only this:
+  done-2196
+
+  Ran 1 shell command
+
+⏺ Write(crew/runs/click-chores-20261106-2034/gate-note.md)
+  ⎿  Wrote 4 lines to crew/runs/click-chores-20261106-2034/gate-note.md
+      1 PASS
+      2
+      3 Compile: 0 warnings
+      4 Tests: Ran 179 tests containing 1107 assertions. 0 failures, 0 errors.
+
+⏺ PASS
+
+  done-2196
+
+✻ Worked for 8s · done 8:53 PM
+
+──────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+──────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

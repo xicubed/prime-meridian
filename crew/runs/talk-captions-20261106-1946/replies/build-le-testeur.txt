@@ -1,0 +1,27 @@
+  t10-juniper-bubble-changes,
+  t11-day-rollover-both-mirrors,
+  t12-generic-mirror, t13-caption-schedule,
+  t14-caption-text, t15-unread-open-close,
+  t16-badge-cap, t17-toggles, t18-close-key,
+  t19-clock-text, t20-voices-from-estate,
+  t21-voice-validation,
+  t22-save-restore-roundtrip,
+  t23-restore-garbage,
+  t24-restore-drops-bad-entries,
+  t25-restore-counters-and-cap,
+  t26-end-to-end-with-hal-lines.
+
+  These depend on src/pm/talk.cljs (builder's
+  new namespace) and the estate's new
+  :voices/Juniper :voice keys, so they'll
+  fail until that lands — expected, per the
+  parallel-build setup.
+
+  done-3269
+
+✻ Brewed for 1m 21s · done 7:53 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

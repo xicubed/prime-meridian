@@ -1,0 +1,399 @@
+         +t"></span></div>
+      60 +  <button id="talk-toggle" t
+         +itle="What was said">💭<span
+         + id="talk-badge"></span></bu
+         +tton>
+      61 +  <div id="talk-panel" hidde
+         +n><ol id="talk-list"></ol></
+         +div>
+      62    <script src="/js/main.js">
+          </script>
+      63  </body>
+      64  </html>
+
+⏺ Now let's update pm.core.cljs.
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 2 lines
+      11              [pm.kit :as kit]
+      12              [pm.overlay :as
+          overlay]
+      13              [pm.scene :as sc
+          ene]
+      14 +            [pm.talk :as tal
+         +k]
+      15 +            [pm.ui :as ui]
+      16              [pm.world :as wo
+          rld]
+      17              [clojure.string]
+          ))
+      18
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 1 line, removed 1 line
+      104                :let [line (o
+           verlay/hud-line w id now)]
+      105                :when line]
+      106            (str " · " line))
+           )
+      107 -      (apply str (for [s (c
+          -ontent/hud-segments w conte
+          -nt/sample-inbox now)] (str
+          -" · " s)))
+      107 +      (when-let [m (content
+          +/mail-line content/sample-i
+          +nbox)] (str " · " m))
+      108        (when-let [s (scene/s
+           ummary)] (str " · " s))
+      109        (when-let [p @!probe]
+            (str " · " p))
+      110        (when-let [h (kit/han
+           dle)]
+
+⏺ Now add talk storage (key, atoms,
+  read/write/restore, watch) after the
+  existing cache block.
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 21 lines
+      68            (reset! !cache-tex
+          t text)
+      69            (write-cache! text
+          ))))))
+      70
+      71 +(def talk-key "pm.talk.v1")
+      72 +(defonce ^:private !talk-tex
+         +t (atom nil))
+      73 +
+      74 +(defn- read-talk []
+      75 +  (try (.getItem js/localSto
+         +rage talk-key) (catch :defau
+         +lt _ nil)))
+      76 +
+      77 +(defn- write-talk! [text]
+      78 +  (try (.setItem js/localSto
+         +rage talk-key text) (catch :
+         +default _ nil)))
+      79 +
+      80 +(defn- restore-talk! []
+      81 +  (let [text (read-talk)]
+      82 +    (reset! !talk-text text)
+      83 +    (swap! !world assoc :tal
+         +k (talk/restore text))))
+      84 +
+      85 +(defn- on-talk-change! [_ _
+         +old new]
+      86 +  (when-not (identical? (:ta
+         +lk old) (:talk new))
+      87 +    (let [text (talk/save-te
+         +xt (:talk new))]
+      88 +      (when (not= text @!tal
+         +k-text)
+      89 +        (reset! !talk-text t
+         +ext)
+      90 +        (write-talk! text)))
+         +))
+      91 +
+      92  (defn build-scene! []
+      93    (let [scene (t/scene)
+      94          cube  (t/box {:size
+          [1.5 1.5 1.5] :color 0xe07a5
+          f :pos [0 0.75 0]})]
+
+⏺ Now add the !talk-ui atom, offset-of,
+  pick!, talk-tick!, and wire wire-talk-ui!.
+  Let's add them before frame.
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 40 lines
+      131        (when-let [h (kit/han
+           dle)]
+      132          (when-let [b (brook
+           /status h)] (str " · " b)))
+           )))
+      133
+      134 +(defonce ^:private !talk-ui
+          + (atom {:shown nil :badge n
+          +il :listed nil}))
+      135 +
+      136 +(defn- offset-of [at]
+      137 +  (- (.getTimezoneOffset (j
+          +s/Date. at))))
+      138 +
+      139 +(defn- pick! [entry]
+      140 +  (when (:voice? (:talk @!w
+          +orld))
+      141 +    (ui/stop-speech!)
+      142 +    (ui/speak! (:text entry
+          +) (talk/voice-for @!world e
+          +ntry))))
+      143 +
+      144 +(defn- talk-tick! [now]
+      145 +  (let [t  (:talk @!world)
+      146 +        t' (talk/observe t
+          +@!world now)]
+      147 +    (when-not (identical? t
+          +' t)
+      148 +      (swap! !world assoc :
+          +talk t'))
+      149 +    (let [e (talk/caption t
+          +' now)]
+      150 +      (cond
+      151 +        (and (some? e) (not
+          += (:n e) (:shown @!talk-ui)
+          +))
+      152 +        (do
+      153 +          (ui/show-caption!
+          + e)
+      154 +          (when (:voice? t'
+          +)
+      155 +            (ui/speak! (:te
+          +xt e) (talk/voice-for @!wor
+          +ld e)))
+      156 +          (swap! !talk-ui a
+          +ssoc :shown (:n e)))
+      157 +
+      158 +        (and (nil? e) (some
+          +? (:shown @!talk-ui)))
+      159 +        (do
+      160 +          (ui/hide-caption!
+          +)
+      161 +          (swap! !talk-ui a
+          +ssoc :shown nil))))
+      162 +    (let [badge (talk/badge
+          +-text t')]
+      163 +      (when (not= badge (:b
+          +adge @!talk-ui))
+      164 +        (ui/set-badge! badg
+          +e)
+      165 +        (swap! !talk-ui ass
+          +oc :badge badge)))
+      166 +    (if (:open? t')
+      167 +      (let [key [(:n t') tr
+          +ue]]
+      168 +        (when (not= key (:l
+          +isted @!talk-ui))
+      169 +          (ui/render-panel!
+          + (:entries t') offset-of pi
+          +ck!)
+      170 +          (swap! !talk-ui a
+          +ssoc :listed key)))
+      171 +      (swap! !talk-ui assoc
+          + :listed nil))))
+      172 +
+      173  (defn frame [now]
+      174    (let [dt (if-let [l @!las
+           t] (/ (- now l) 1000) 0)]
+      175      (reset! !last now)
+      176      (tick! (min dt 0.1))
+      177      (scene/update! @!world
+           (js/Date.now))
+      178 +    (talk-tick! (js/Date.no
+          +w))
+      179      (when (zero? (mod (swap
+           ! !frames inc) 30))
+      180        (hud! (str "Prime Mer
+           idian · " @!mode " · " @!ba
+           ckend " · frame " @!frames
+      181                   " · t=" (.
+           toFixed (:t @!world) 1) "s"
+            (hud-mirrors-suffix))))
+
+⏺ Now add wire-talk-ui! and update init!'s
+  keydown listener + ordering.
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 20 lines
+      242      (.addEventListener el "
+           input"
+      243        (fn [^js e] (brook/se
+           t-flow! (js/parseFloat (..
+           e -target -value)))))))
+      244
+      245 +(defn- wire-talk-ui! []
+      246 +  (if-not (ui/speech?)
+      247 +    (ui/hide-voice-button!)
+      248 +    (when-let [^js btn (js/
+          +document.getElementById "vo
+          +ice-toggle")]
+      249 +      (.addEventListener bt
+          +n "click"
+      250 +        (fn [^js e]
+      251 +          (.stopPropagation
+          + e)
+      252 +          (swap! !world upd
+          +ate :talk talk/toggle-voice
+          +)
+      253 +          (let [on? (:voice
+          +? (:talk @!world))]
+      254 +            (ui/set-voice-b
+          +utton! on?)
+      255 +            (if on?
+      256 +              (ui/speak! "V
+          +oice on." (talk/voice-for @
+          +!world {:kind :hal}))
+      257 +              (ui/stop-spee
+          +ch!)))))))
+      258 +  (when-let [^js btn (js/do
+          +cument.getElementById "talk
+          +-toggle")]
+      259 +    (.addEventListener btn
+          +"click"
+      260 +      (fn [^js e]
+      261 +        (.stopPropagation e
+          +)
+      262 +        (swap! !world updat
+          +e :talk talk/toggle-panel)
+      263 +        (ui/set-panel-open!
+          + (:open? (:talk @!world))))
+          +)))
+      264 +
+      265  (defn- jack-in! []
+      266    (swap! !world content/hal
+           -say content/hal-lines :jac
+           k-in {} (js/Date.now)))
+      267
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 11 lines, removed 1 line
+      311
+      312  (defn init! []
+      313    ;; Capture phase: the kit
+           's own controls handle keys
+            too and may stop them.
+      314 -  (.addEventListener js/win
+          -dow "keydown" (fn [^js e] (
+          -on-key! e)) true)
+      314 +  (.addEventListener js/win
+          +dow "keydown"
+      315 +    (fn [^js e]
+      316 +      (if (talk/close-key?
+          +(.-key e) (:open? (:talk @!
+          +world)) (some-> (.-target e
+          +) .-tagName))
+      317 +        (do (.preventDefaul
+          +t e) (.stopPropagation e)
+      318 +            (swap! !world u
+          +pdate :talk talk/close-pane
+          +l)
+      319 +            (ui/set-panel-o
+          +pen! false))
+      320 +        (on-key! e)))
+      321 +    true)
+      322 +  (restore-talk!)
+      323 +  (wire-talk-ui!)
+      324 +  (add-watch !world ::talk-
+          +cache on-talk-change!)
+      325    (restore-cache!)
+      326    (add-watch !world ::state
+           -cache on-world-change!)
+      327    (start-state-poll!)
+
+⏺ Now the README sentence.
+
+⏺ Update(README.md)
+  ⎿  Added 3 lines, removed 1 line
+      26  the browser's `localStorage`
+           under `pm.state.v1`, so if
+          the file is missing on the n
+          ext
+      27  start the HUD shows that sta
+          te as `Flora (Hal, cached)`
+          until the file is back; a ne
+          wer
+      28  file always wins. The game r
+          eads Hal's lines, the creatu
+          res' lines and the sample in
+          box
+      29 -from `resources/content/*.ed
+         -n`, generated by `bb content
+         -`; never hand-edited.
+      29 +from `resources/content/*.ed
+         +n`, generated by `bb content
+         +`; never hand-edited. Captio
+         +ns show
+      30 +what Hal and the creatures s
+         +ay; 🔊 reads them aloud with
+         + the browser's speech; 💭 sc
+         +rolls
+      31 +back (kept in `localStorage`
+         + under `pm.talk.v1`, last 10
+         +0 lines).
+      32
+      33  Built by Michael Lopez with
+          Hal Niner (bot). Course proj
+          ect, fall 2026.
+
+⏺ Now let's run the gate.
+
+  Ran 1 shell command
+
+⏺ Gate passes: 0 warnings, 151 tests / 922
+  assertions green — matches the spec's
+  expected total (125 existing + 26 new talk
+  tests).
+
+  Ran 1 shell command
+
+⏺ Gate passes: 0 warnings, 151 tests / 922
+  assertions green (26 new pm.talk-test
+  cases, all 125 prior tests unchanged).
+
+  Changes:
+  - src/pm/talk.cljs (new): the pure talk log
+    — append, observe, caption/caption-text,
+    unread/badge-text, panel/voice toggles,
+    close-key?, clock-text, voice-for,
+    save-text/restore.
+  - src/pm/ui.cljs (new): DOM/speech side
+    effects — speech?, speak!/stop-speech!,
+    show-caption!/hide-caption!, set-badge!,
+    render-panel!, set-panel-open!,
+    set-voice-button!/hide-voice-button!.
+  - src/pm/core.cljs: requires pm.talk/pm.ui;
+    HUD status line drops Hal: (now just
+    mail-line); added pm.talk.v1 storage
+    (read-talk/write-talk!/restore-talk!/on-t
+    alk-change! watch); !talk-ui, talk-tick!
+    (wired into frame), pick!, offset-of;
+    wire-talk-ui! for
+    #voice-toggle/#talk-toggle; init!'s
+    capture-phase keydown now handles Escape
+    via talk/close-key? before falling
+    through to on-key!; new init! ordering
+    per spec.
+  - resources/estate.edn: added top-level
+    :voices and Juniper's :voice override.
+  - public/index.html: added #voice-toggle
+    button, the caption/talk-panel markup,
+    and their styles.
+  - README.md: added the one sentence about
+    captions/🔊/💭.
+
+  done-2021
+
+✻ Brewed for 6m 36s · done 7:59 PM
+
+─────────────────────────────────────────────
+ We recommend compacting earlier
+
+   Each message re-sends the whole
+   conversation, so long conversations use
+   up your plan's usage limits faster.
+   With your current settings, Claude Code
+   autocompacts (replaces older messages
+   with a summary) at 1m tokens (default
+   via auto setting). Compacting earlier
+   can reduce usage, but it happens more
+   often, and some details can be lost
+   each time.
+
+   Want to autocompact at 400k tokens
+   instead? Your model doesn't change.
+   Switch back any time with /autocompact.
+
+     Keep auto (1m tokens)
+     Autocompact at ‹ 400k › tokens
+
+   ↑/↓ choose · ←/→ change size · enter
+   confirm · esc not now

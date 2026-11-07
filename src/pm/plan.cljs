@@ -127,10 +127,12 @@
                                  :parts  parts
                                  :center [x (+ y (/ top 2)) z]}]
                     (if (#{:say :sign} label)
-                      (assoc base
-                             :label label
-                             :label-at [x (+ y top label-lift) z]
-                             :text (label-text markers label (:idle item) state))
+                      (let [idle (:idle item)
+                            idle (if (keyword? idle) (w/line-for world mirror-id idle now) idle)]
+                        (assoc base
+                               :label label
+                               :label-at [x (+ y top label-lift) z]
+                               :text (label-text markers label idle state)))
                       base)))))
             (:placed mirror))))
       (sort (keys (:mirrors world))))))

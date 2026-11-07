@@ -43,6 +43,7 @@ Plan of record: [`docs/session-2026-10-17.md`](docs/session-2026-10-17.md) §7. 
 - [ ] W2-8 HUD: agent list on the left with name + status dot; clicking one centers the camera on it.
 
 ## Week 3 — Bridge v0 (real state)
+- [ ] W3-0 The crew in the game (Michael, Nov 6): each real crew member (Herdr workspace `crew`: architect, builder, tester, runner, critic) is an avatar on the estate, its status from `herdr agent get` (working / idle / done / blocked). A member waiting at a permission prompt is **blocked** and wears the GDD's red "!" (§1 opening, §3.1 `ask_player`); clicking it shows the prompt and answers it (Yes / No), like `herdr agent send-keys`. Source: Herdr's API through the bridge (W3-1), not mock timers. This is the GDD's "snap", and tonight it would have saved three stuck rounds.
 - [ ] W3-1 `bb` script `bridge.clj`: websocket server that pushes `world-state` JSON on change. Sources: `~/.hermes/state/worms.json`, Hermes cron job list (`hermes cron list --json` or state db), Gmail unread count via the google-workspace script.
 - [ ] W3-2 `pm.bridge`: client connects, merges incoming state into `!world`; reconnects with backoff.
 - [ ] W3-3 Map Hermes jobs/sessions → agents with real statuses (scheduled/running/ok/error).

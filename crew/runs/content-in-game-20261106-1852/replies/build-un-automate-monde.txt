@@ -1,0 +1,27 @@
+    to keywords; added the comment line
+    above :mirrors.
+  - src/pm/core.cljs: requires pm.content;
+    added jack-in! (wired into start-kit! and
+    start-scaffold!'s renderer callback);
+    on-key! now runs content/hal-on-chore
+    after chore-done; hud-mirrors-suffix
+    appends content/hud-segments.
+  - README.md: added the one sentence about
+    resources/content/*.edn.
+
+   README.md            |  3 ++-
+   resources/estate.edn  | 11 ++++++-----
+   src/pm/core.cljs      | 14 +++++++++++---
+   src/pm/plan.cljs      | 10 ++++++----
+   src/pm/world.cljs     | 46 +++++++++++++++
+  +++++++++++++------------------
+   src/pm/content.cljs   | (new, 130 lines)
+
+  done-6089
+
+✻ Sautéed for 3m 29s · done 7:04 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

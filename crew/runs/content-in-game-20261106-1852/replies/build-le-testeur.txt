@@ -1,0 +1,27 @@
+  t14-status-and-hud-lines,
+  t15-scene-labels-keyword-idle,
+  t16-no-per-frame-flicker,
+  t17-string-and-keyword-rules-mixed,
+  t18-real-lines-both-mirrors,
+  t19-coverage-mirror-lines,
+  t20-coverage-hal-lines, t21-hal-jack-in,
+  t22-hal-say-edges, t23-hal-after-f-flora,
+  t24-hal-after-chore-others, t25-mail-toy,
+  t26-mail-real-file, t27-hud-segments,
+  t28-coverage-catches-a-broken-regeneration.
+
+  No existing assertions changed; only the W
+  binding and WP binding (per spec's E2b)
+  were touched. These will fail until
+  pm.content, pm.world/line-for, and the
+  estate.edn keyword rules land from the
+  builder.
+
+  done-6428
+
+✻ Worked for 2m 17s · done 7:03 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

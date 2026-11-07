@@ -1,0 +1,29 @@
+       4
+       5 The three generated files reach the screen:
+       6 - Flora's and Juniper's bubbles and signs come from `mirror-lines.edn`, picked
+          by day.
+       7 - Hal greets the player at start and speaks after a counted chore.
+       8 - The HUD shows the pretend mailbox.
+     … +488 lines
+
+⏺ I've written the spec to crew/runs/content-in-game-20261106-1852/spec.md. The public
+  functions are:
+  - New, in pm.content: parse, fill, placeholders, day-number, name-code, line, used-lines,
+    missing-lines, missing-hal, hal-say, hal-text, hal-segment, hal-on-chore, mail-counts,
+    mail-line, hud-segments, plus the data defs hal-lines, mirror-lines, sample-inbox,
+    hal-events and hal-ms.
+  - New, in pm.world: line-for.
+  - Changed: pm.world/markers and pm.plan/scene-plan now resolve keyword lines, and
+    pm.world/fill hands its work to pm.content/fill.
+
+  There are 28 new test cases in the new content_test. The 97 existing tests get setup-only
+  edits and none of their expected values change, so the round ends at 125 tests.
+
+  done-6146
+
+✻ Baked for 8m 45s · done 7:01 PM
+                                                      ✔ Update installed · /restart to apply
+──────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+──────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

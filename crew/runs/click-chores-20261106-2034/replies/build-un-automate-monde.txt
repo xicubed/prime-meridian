@@ -1,0 +1,27 @@
+  - src/pm/ui.cljs: render-panel! now takes
+    on-check/keep-scroll? and renders chore
+    rows as checkboxes (other rows
+    unchanged).
+  - src/pm/core.cljs: requires
+    pm.chores/pm.pick; removed on-key!;
+    keydown listener now only handles Escape;
+    added wire-pointer! (click/hover
+    picking, wired in start-kit!), on-check,
+    tz-offset-min; talk-tick!'s panel
+    re-render now tracks rendered :entries/:n
+    for keep-scroll?.
+  - resources/estate.edn: removed :hud :keys
+    (and its comment).
+  - public/index.html: added the li.chore
+    checkbox styles.
+  - README.md: added the one sentence about
+    clicking/unticking and F/G being gone.
+
+  done-4547
+
+✻ Baked for 11m 25s · done 8:53 PM
+                      1% until auto-compact
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

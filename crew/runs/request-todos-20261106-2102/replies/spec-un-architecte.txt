@@ -1,0 +1,29 @@
+
+❯ New quest: read .crew/quests/request-todos.md (and the GDD sections and code it cites).
+  Write the spec to crew/runs/request-todos-20261106-2102/spec.md following your role card,
+  with numbered test cases and hand-checked expected values. Reply when it's written.
+
+  When you have completely finished, end your reply with a line containing only this:
+  done-5718
+
+  Reading request-todos quest and repo state
+  ⎿  $ cat src/pm/chores.cljs; echo ----; sed -n 1,400p src/pm/talk.cljs | grep -n "" | sed -n
+     1,400p | awk 'NR<=400' > /dev/null; cat src/pm/talk.cljs
+
+──────────────────────────────────────────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose "switch to auto mode" below
+ Read current chores and talk namespaces
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ cat src/pm/chores.cljs; echo ----; sed -n 1,400p src/pm/talk.cljs | grep -n "" | sed -n
+ │ 1,400p | awk 'NR<=400' > /dev/null; cat src/pm/talk.cljs
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: awk 'NR<=400'
+   3. Yes, and switch to auto mode · auto mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend

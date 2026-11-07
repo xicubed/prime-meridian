@@ -1,5 +1,6 @@
-{:hud {:mirrors [:flora]                 ; mirrors whose status-line goes on the HUD, in order
-       :keys    {"f" [:flora :feed]}}    ; lower-case key -> [mirror-id chore-id]
+{:hud {:mirrors [:flora]}                 ; mirrors whose status-line goes on the HUD, in order
+ :voices {:hal      {:rate 1.0 :pitch 0.9 :lang "en-US"}   ; Hal: even, a little low
+          :creature {:rate 1.1 :pitch 1.6 :lang "en-US"}}  ; creatures: higher, quicker
  ;; Sounds placed in the world. Each point is an emitter [x y z gain] in the
  ;; kit's world metres: along the creek's centerline at its water surface,
  ;; loudest at the three cascades, a quiet one over the still pool.
@@ -24,13 +25,14 @@
  ;; Look parts: {:shape :size [sx sy sz] :at [dx dy dz] :rot [rx ry rz] :color};
  ;; :at is the part's centre from the item's base (+x forward, y up), :rot in
  ;; degrees. :yaw (degrees about y) turns the item; +90 points +x at world -z.
+ ;; :say/:sign/:idle: a string filled from :state, or a keyword naming this mirror's line in resources/content/mirror-lines.edn
  :mirrors
  [{:id :flora :name "Flora" :kind :creature :model :axolotl :home :canal
    :state  {:source :sample :stock 15 :last-fed nil}
-   :rules  [{:when [:due? :feed]  :say  "I'm hungry"}
-            {:when [:<= :stock 2] :sign "Worms left: {stock}"}]
+   :rules  [{:when [:due? :feed]  :say  :hungry}
+            {:when [:<= :stock 2] :sign :low}]
    :chores [{:id :feed :every "2d" :at "17:00" :who :me
-             :consumes [:stock 1] :done-at :last-fed}]
+             :consumes [:stock 1] :done-at :last-fed :past "fed"}]
    ;; Flora's :placed
    :placed [{:id :body :at [-0.9 1.6 -15.7] :scale 6 :yaw 0 :label :say   ; real axolotl, 0.26 m nose to tail, drawn ~1.5 m (a mid-size rock); in open water, clear of the foreground rock; side-on to the creek camera, facing her jar; resting on the surface (~1.55) so the water shader doesn't hide her
              :look {:parts
@@ -52,17 +54,18 @@
                      ;; eyes
                      {:shape :sphere :size [0.008 0.008 0.008] :at [0.112 0.026  0.021] :color :eye}
                      {:shape :sphere :size [0.008 0.008 0.008] :at [0.112 0.026 -0.021] :color :eye}]}}
-            {:id :jar :at [1.4 1.81 -15.7] :scale 4 :label :sign :idle "Worms: {stock}"   ; on the bank rocks (top 1.81); real jar 0.124 m, drawn ~0.5 m
+            {:id :jar :at [1.4 1.81 -15.7] :scale 4 :label :sign :idle :stock-sign   ; on the bank rocks (top 1.81); real jar 0.124 m, drawn ~0.5 m
              :look {:parts
                     [{:shape :cylinder :size [0.08 0.11 0.08]   :at [0 0.055 0] :color :glass}  ; jar
                      {:shape :cylinder :size [0.088 0.014 0.088] :at [0 0.117 0] :color :tin}]}}]} ; lid
 
   {:id :juniper :name "Juniper" :kind :creature :model :horse :home :barn
+   :voice  {:rate 0.9 :pitch 0.8}   ; a horse sounds lower
    :state  {:source :sample :bales 6 :last-hayed nil}
-   :rules  [{:when [:due? :hay]   :say  "Hay, please?"}
-            {:when [:<= :bales 3] :sign "Bales left: {bales}"}]
+   :rules  [{:when [:due? :hay]   :say  :hungry}
+            {:when [:<= :bales 3] :sign :low}]
    :chores [{:id :hay :every "12h" :at "07:00" :who :me
-             :consumes [:bales 1] :done-at :last-hayed}]
+             :consumes [:bales 1] :done-at :last-hayed :past "fed"}]
    ;; Juniper's :placed
    :placed [{:id :body :at [-5.0 2.5 -10.0] :yaw 90 :label :say   ; west bank; long axis along world z, side-on to the creek camera
              :look {:parts
