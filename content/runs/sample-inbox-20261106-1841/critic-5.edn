@@ -1,0 +1,43 @@
+{:verdict :revise
+ :sounds-like-game "Mostly: the brief's \"one word from you and they're back to work,\" the leash on the hook, \"text the booth when she's fed,\" and Pepper drafting while you sign all feel like the estate, but several lines read as generic work mail, there's no Matrix/TRON shorthand, and two lines credit a brand-new player with things they never did."
+ :findings
+ [{:severity :blocker
+   :where ":chore-1 :body \"the count you reported\"; :blueprint-1 :body \"like you asked\""
+   :issue "This is a day-one demo inbox. The new player has reported no worm count and asked for no checkout change. These lines present pretend sample state as the player's own history, which is the fake-passed-off-as-real the twin rule forbids. In demo mode the counterpart must be clearly pretend."
+   :gdd "§3 (twin rule), §1 pillar 1, §2.8, §4.6"
+   :fix "Drop the false attribution. For example: \"Flora's feed is due and the sample jar's at 2 worms.\" And: \"Checkout now shows order totals before the final click, per the sample estate's open task.\""}
+  {:severity :minor
+   :where ":question-1 :body \"Sitting with a card over my head\""
+   :issue "A blocked worker stands under a red \"!\", not a card. Cards are what Hal pins on the notice board, so this muddles the one signal the player most needs to read."
+   :gdd "§1 (executive summary, core loop), §3.1"
+   :fix "\"I'm sitting under a \\\"!\\\" until you answer.\""}
+  {:severity :minor
+   :where ":question-1 and :question-2"
+   :issue "Both questions are the same shape: an A-or-B look pick about the estate itself. Pike's question is close to the GDD's own rocks example. Neither shows a worker asking about a real task in a project workshop. Changes to the game's own code are also the author's to approve, not the player's, so the questions shouldn't be about the game's code."
+   :gdd "§2.4 (workshops are repos), §2.8 (the author is Oracle only for the game itself)"
+   :fix "Keep one estate-look question. Rewrite the other as a repo question, e.g. Sable on field-notes: \"Should a deleted tag disappear from old notes too, or stay as history?\""}
+  {:severity :minor
+   :where ":bait-1 :from \"accounts@acme.com\""
+   :issue "The bait comes from the same domain as hal@acme.com and clerk@acme.com, and the :clerk-note never names the sender as a red flag. That teaches the player that a trusted-looking acme.com sender can be bait, without teaching them how to spot it."
+   :gdd "§3.2 (reader with no keys), §3.1 (game notices use a channel no agent can reach)"
+   :fix "Send it from a lookalike domain such as \"accounts@acme-secure.example\". Add to the :clerk-note: \"sender isn't acme.com.\""}
+  {:severity :minor
+   :where ":clerk-1 :body"
+   :issue "The ask was counts plus one-line summaries. The triage gives counts only. \"2 questions pinned at desks\" is also off, since questions aren't pinned; Hal pins cards to the board."
+   :gdd "§3.1 (Clerk: a count plus a short triage summary), §3.2"
+   :fix "Keep the counts. Add one-liners, e.g. \"Pike: rocks round or jagged. Pepper: refund needs your signature. Flagged: password-bait, held.\" Change \"pinned at desks\" to \"waiting at desks.\""}
+  {:severity :minor
+   :where ":brief-1 :body"
+   :issue "The brief is meant to cover what waits for approval, but it leaves out Pepper's refund folder, which is the one item touching money and another person."
+   :gdd "§3.1 (morning brief), §3.2"
+   :fix "Add: \"Pepper has a refund in the front-office folder waiting on your signature.\""}
+  {:severity :minor
+   :where ":blueprint-1 \"Give it a look and say go whenever you're ready\"; :pepper-1 \"A customer refund request came through the ledger overnight.\"; :chore-2 \"Keeper check: Leash is still on the hook\""
+   :issue "Generic office-mail voice with no wry estate or jack-in flavor. In :chore-2, \"Keeper check:\" repeats the subject, and \"Leash\" is capitalized mid-sentence."
+   :gdd "§1 (the cast, film references as shorthand), §2.4"
+   :fix "Add small warm or wry touches in original wording. For example: \"Blueprint's on the shelf; say the word and it ships.\" \"Biscuit's leash is still on the hook by the porch door, and he's noticed. Walk's due around midday; I'll hold the estate while you're out.\""}
+  {:severity :minor
+   :where ":from addresses"
+   :issue "Hal and the Clerk use @acme.com, while workers and Pepper use @estate.acme.com, with no reason given. It reads as inconsistent."
+   :gdd "§4.6"
+   :fix "Put all estate characters on one domain, e.g. @estate.acme.com. Reserve plain acme.com, or nothing, for outside senders."}]}

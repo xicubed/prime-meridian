@@ -1,0 +1,72 @@
+{:verdict :revise
+ :sounds-like-game "Mostly: Hal is warm, brief, never shames, and keeps sending the player back to real life. But the voice is plain more often than wry, has almost no Matrix/TRON shorthand, and slips into a terminal-log register on :morning-brief and :blueprint-ready."
+ :findings [{:severity :blocker
+             :where ":jack-out-appointment, \"{event} at {leave-at}. Go, I'll hold the fort.\""
+             :issue "This line says the event starts at {leave-at}. {leave-at} is the departure time, with travel already included (game at 6, leave by 5:35). The line would tell the player their kid's game starts at 5:35."
+             :gdd "§2.3"
+             :fix "Keep {leave-at} as the leave time: \"Leave at {leave-at} and you make {event}. I'll hold the fort.\""}
+            {:severity :blocker
+             :where ":coming-back, \"{chore}: done. That one's back on the board.\""
+             :issue "\"Back on the board\" reads as if the chore is due again. The event says it counted toward street cred. Pillar 1 says the world only shows true state, so this line misreports the chore."
+             :gdd "§1 pillar 1, §2.3 Coming back in, §2.6"
+             :fix "\"{chore}: done, and it counted. Here's what changed while you were out.\""}
+            {:severity :minor
+             :where ":agent-stalled, \"{agent} went quiet — cap must've run out.\""
+             :issue "Hal guesses the cause. The cap is only one reason the bridge marks an agent stalled, and the game's rule is that the world doesn't guess. None of the variants mentions that the keycards came back, and that is the reassuring part."
+             :gdd "§2.1 Reading the estate (Unknown), §3.1"
+             :fix "State only what's known: \"{agent} stopped reporting. Desk's free, keycards are back.\" One variant could add when the juice refills."}
+            {:severity :minor
+             :where ":morning-brief (all), e.g. \"Morning card's pinned. Items: {count}.\" / \"Card's up on the board. Count: {count}.\""
+             :issue "Generic and log-like. These are the status column the game exists to replace. All four lines say the same thing in a different order."
+             :gdd "§1 Why a game, not a terminal?, §3.1 morning brief"
+             :fix "Vary what each line does: \"Morning. {count} things on the card, nothing on fire.\" / \"Pinned it at 8:15 like always: {count} for today.\" / \"Brief's on the board. Coffee first, then {count} items.\""}
+            {:severity :minor
+             :where ":blueprint-ready (all)"
+             :issue "The same \"waiting: {count}\" line four times. \"Last night's work\" is wrong when blueprints came from daytime work. None of the lines uses the GDD's grouped tray or before/after."
+             :gdd "§2.1 Approve, §2.3 step 4"
+             :fix "\"{count} blueprints on one tray. Before and after for each.\" / \"The shelf's got {count} ghosts waiting to be real.\" Keep \"last night\" for the jack-in context only."}
+            {:severity :minor
+             :where ":chore-done (all)"
+             :issue "Five rewordings of \"{name}'s {chore}, done.\" The brief asked for variants that each say something different."
+             :gdd "§2.1 Mark a chore done, §2.6"
+             :fix "Give each line its own beat: one on the estate flourishing, one on {name} by name (\"{name}'s happier now.\"), one plain confirmation, one that says it counts once for this window."}
+            {:severity :minor
+             :where ":next-small-step, \"Pick one thing, and I'll handle the rest.\" / \"Just the next small step today.\""
+             :issue "The GDD says Hal offers the smallest next step. Several lines hand the choice back to the player or promise to \"handle the rest,\" which overreaches, since some of the rest needs the human. None of the lines names a step."
+             :gdd "§2.6 Street cred, §3.2"
+             :fix "Have Hal propose one concrete step, and ask the content team for a {step} slot: \"Nothing's ruined. Smallest step: {step}. Want it?\""}
+            {:severity :minor
+             :where ":memorial-moved, \"Moved {name} to memorial.\" / \"{name}'s moved to memorial now.\" / \"I've set {name} a place in memorial.\""
+             :issue "These read as clerical log lines for a pet who died. \"I've set\" also credits Hal with something the player did. None of them reassures the player that memorial creatures show no needs, so no more reminders will come."
+             :gdd "§3 The twin rule (memorial exception)"
+             :fix "\"{name} has a quiet spot now. No more reminders, just the spot.\" / \"I'll keep {name}'s place tidy.\""}
+            {:severity :minor
+             :where ":stay-late, \"Okay. The estate stays up with you.\""
+             :issue "When the player stays, the estate stays at night. \"Stays up\" could be read as the estate staying lit or awake."
+             :gdd "§2.3 step 5"
+             :fix "\"Okay. Estate stays dark; I'll sit up with you.\""}
+            {:severity :minor
+             :where ":closing-time"
+             :issue "Only one variant frames bedtime as the player's own rule. The GDD's wording is \"you asked me to send you home.\" Without that, the other three read as a timer firing."
+             :gdd "§2.3 step 5"
+             :fix "Add or swap in: \"{bedtime}. You asked me to send you home, so: goodnight.\""}
+            {:severity :minor
+             :where ":coach-habit, \"You said {goal} for {habit}.\" / \"Your own words: {goal}, for {habit}.\""
+             :issue "If {goal} is the player's own wording (\"three workouts a week\"), the lines render as \"three workouts a week for workout.\" None of them ends on the GDD's small, concrete ask (\"One today?\")."
+             :gdd "§3.2, §2.6"
+             :fix "Lead with {goal} alone and end on one small ask: \"You said {goal}. One today?\" / \"{goal}, your words. Want to fit one in?\""}
+            {:severity :minor
+             :where ":weekly-card"
+             :issue "Three of the four lines say \"not a score.\" Repeating it sounds defensive. None states a trend direction, and the GDD's two-sided measure (agents need you less, you live more) never appears."
+             :gdd "§1 Win / loss (long-term win)"
+             :fix "Drop the disclaimers and show the trend: \"{hours} in this week, fewer \\\"!\\\"s than last. More you out there.\""}
+            {:severity :minor
+             :where ":program-needed, \"I don't have {program} yet for this task.\""
+             :issue "The line states the gap but never asks. The GDD's twin asks to load the program right then."
+             :gdd "§2.6 Your loadout, §2.7"
+             :fix "\"Need a program for this one: {program}. Load it?\""}
+            {:severity :minor
+             :where "voice overall, e.g. :program-loaded, :jack-in, \"I'll hold the fort\""
+             :issue "Little of the GDD's Matrix/TRON shorthand. Loading a program is meant to be the eyes-snap-open moment, and these lines treat it as a status update. A few lines are stock phrases."
+             :gdd "§1 The cast, §2.6, §2.7"
+             :fix "Add original shorthand without film quotes: \"{program}'s in. Felt that? There goes the {building}.\" / \"Grid's lit. You're in.\""}]}

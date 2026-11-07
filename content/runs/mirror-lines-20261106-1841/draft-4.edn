@@ -1,0 +1,91 @@
+{:mirrors
+ {:flora
+  {:hungry
+   ["I'm hungry"
+    "Any worms going?"
+    "Feeding time, right?"
+    "Is it five already?"
+    "Worms would be nice"],
+   :fed
+   ["Mm, worms"
+    "That hit the spot"
+    "Thanks for the worms"
+    "Much better"
+    "Full now"],
+   :low
+   ["Worms left: {stock}"
+    "Low worms: {stock}"
+    "Worms running low: {stock}"
+    "Jar running low: {stock}"
+    "Low: {stock} left"],
+   :stock-sign
+   ["Worms: {stock}"
+    "Worm jar: {stock}"
+    "Jar count: {stock}"
+    "Worms in jar: {stock}"
+    "Worm stock: {stock}"]},
+  :juniper
+  {:hungry
+   ["Hay, please?"
+    "Any hay going?"
+    "Hay time?"
+    "Hungry for hay"
+    "Feels like hay time"],
+   :fed
+   ["Mm, hay"
+    "That's the stuff"
+    "Thanks for the hay"
+    "Good hay, that"
+    "Satisfied now"],
+   :low
+   ["Bales left: {bales}"
+    "Low bales: {bales}"
+    "Hay running low: {bales}"
+    "Barn running low: {bales}"
+    "Low: {bales} left"],
+   :stock-sign
+   ["Bales: {bales}"
+    "Hay bales: {bales}"
+    "Bale count: {bales}"
+    "Hay stock: {bales}"
+    "Bales in barn: {bales}"]},
+  :biscuit
+  {:walk-due
+   ["Walk time?"
+    "Leash is right there"
+    "Ready for a walk"
+    "Time for a walk?"
+    "Walk, please?"],
+   :walked
+   ["That was a good one"
+    "Tail's still wagging"
+    "Good walk"
+    "Needed that"
+    "Back and happy"],
+   :porch
+   ["Just watching the yard"
+    "Guarding the porch"
+    "Napping in the sun"
+    "Keeping an eye out"
+    "Resting up"]}},
+ :modes
+ {:memorial
+  {:plaque
+   ["{name}, {years}"
+    "In memory of {name}, {years}"
+    "{name} — {years}"
+    "Remembered here: {name}, {years}"
+    "{name} rested here, {years}"],
+   :hal-note
+   ["{name}'s moved to memorial. No needs, no chores — just a place to remember them."
+    "I'm sorry about {name}. Their chores are off your list now, and their spot stays theirs."
+    "{name}'s in memorial now. No needs anymore — just a spot to remember them."
+    "You've moved {name} to memorial. Their chores are off your list now, and their spot stays theirs."
+    "{name}'s a memorial now — no needs left, just a place to remember them here."]},
+  :virtual
+  {:idle
+   ["{name}'s just here for company"
+    "{name} naps in the sun"
+    "{name}'s keeping you company"
+    "{name} watches the yard"
+    "Just {name}, enjoying the day"]}}}

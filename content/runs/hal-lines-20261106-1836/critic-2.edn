@@ -1,0 +1,93 @@
+{:verdict :revise
+ :sounds-like-game "Mostly yes: Hal reads as a warm, unhurried companion who sends you back to life and never nags, but the lines need more of the game's own texture (blueprints, desks, juice, loadout, jacking out) and less generic assistant phrasing, and several lines claim things Hal cannot know."
+ :findings
+ [{:severity :blocker
+   :where ":coming-back \"{chore}'s counted. Nothing here moved while you were gone.\""
+   :issue "This contradicts the GDD. On coming back you see what changed while you were out, and agents keep working with the game closed. Hal would be lying about the world state."
+   :gdd "§2.3 step 3 (Coming back in); §2.1 (The game never adds work: agents work the same with the game closed)"
+   :fix "Point to what changed instead: \"{chore}'s counted. A couple of things moved while you were out.\""}
+  {:severity :blocker
+   :where ":morning-brief \"Pinned {count} items overnight. Take a look when you can.\""
+   :issue "The morning brief is an errand Hal runs at 8:15, not overnight. Overnight results arrive as blueprints, not brief items."
+   :gdd "§3.1 (morning brief: Hal pins the day's card on the notice board at 8:15)"
+   :fix "\"Pinned {count} on the board. Take a look when you can.\""}
+  {:severity :blocker
+   :where ":morning-brief \"{count} on the card today. Nothing urgent, just ready.\""
+   :issue "Hal asserts that nothing is urgent whatever the card holds. The brief draws on calendar, mail, and reminders, so it can hold today's appointment or a deadline. A twin shows only what the real state says."
+   :gdd "§3 (twin rule); §1 pillar 1 (Real, not simulated); §2.1 Unknown status (it doesn't guess)"
+   :fix "Drop the urgency claim: \"{count} on the card today. Start wherever you like.\""}
+  {:severity :blocker
+   :where ":agent-stalled \"...Nothing lost, just paused.\" and \"...Desk's free, work's saved.\""
+   :issue "A stalled agent is one that stopped reporting. The bridge doesn't know whether its work survived, so Hal can't promise that. A false all-clear erodes trust the same way a wrong \"!\" does."
+   :gdd "§3.1 (bridge marks an agent stalled when it stops reporting); §2.1 Unknown (the bridge can't tell, so it doesn't guess); §3 (twin rule)"
+   :fix "Say only what is known: the desk is freed and the keycards came back. For example: \"{agent} ran out of juice. Desk's free and its keycards are back.\""}
+  {:severity :blocker
+   :where ":program-loaded \"{program}: live. The {building} is yours to walk into.\""
+   :issue "Every program first loads as a pretend version and goes live only after a login. In demo mode or the Construct, calling it \"live\" passes a sample off as real."
+   :gdd "§2.7 (every program loads instantly as a pretend version; the real thing asks for a login and goes live); §3 (in demo mode the counterpart is clearly pretend, never a fake passed off as real)"
+   :fix "Drop \"live\", or write a separate sample variant: \"{program}'s loaded (sample for now). The {building} is yours to walk into.\""}
+  {:severity :blocker
+   :where ":last-call \"Last call. 10:15...\" and \"10:15 — last chance...\"; :closing-time \"10:30. The estate goes quiet now. Goodnight.\""
+   :issue "Bedtime is declared data. 10:30 is only the default, and a night-shift nurse closes at 9 am. Hard-coded clock times will be wrong for any player who changed bedtime, and \"Goodnight\" at 9 am reads oddly."
+   :gdd "§2.3 step 5 (Bedtime is declared data, `{:bedtime \"22:30\"}`)"
+   :fix "Use a {time} placeholder or a relative phrase (\"Quarter till close\"). Keep closing lines time-of-day neutral, or add a {greeting} slot."}
+  {:severity :minor
+   :where ":closing-time (all lines)"
+   :issue "No variant frames closing as the player's own rule. That framing is what keeps it from feeling like a lock."
+   :gdd "§2.3 step 5 (\"you asked me to send you home\"; a rule you set, not a lock)"
+   :fix "Add one in Hal's own words: \"You asked me to send you home at this hour. Here's the door. Goodnight.\""}
+  {:severity :minor
+   :where ":coming-back (all lines)"
+   :issue "On return, the GDD has Hal offer the next small step. None of these lines do, so the beat goes unused."
+   :gdd "§2.3 step 3 (Hal offers the next small step)"
+   :fix "Make one or two variants end on an offer: \"Noted: {chore}. Welcome back in. Want the next small thing?\""}
+  {:severity :minor
+   :where ":next-small-step \"Pick one thing and I'll start there.\" / \"Just tell me where to start again.\""
+   :issue "The GDD has Hal offer the smallest step. These lines hand the choosing back to the player, which adds a little work at a low moment."
+   :gdd "§2.6 (Hal offers the smallest next step); §1 pillar 5"
+   :fix "Add a {step} slot and offer it: \"Nothing's broken, just quiet. {step}? That's all it takes.\""}
+  {:severity :minor
+   :where ":jack-in \"You're in. The estate's been quiet without you.\""
+   :issue "It contradicts the overnight crew working while you're away, and it mildly guilt-trips by implying the world stalls without you."
+   :gdd "§2.3 steps 1 and 4 (you see what changed overnight; the night crew works)"
+   :fix "\"You're in. The night crew left a few things on the shelf.\""}
+  {:severity :minor
+   :where ":stay-late \"Alright. Staying's your call, not mine to make twice.\" / \"Fair enough. The estate stays up with you.\""
+   :issue "The first line is garbled. The second suggests the estate wakes back up, when the GDD keeps it at night."
+   :gdd "§2.3 step 5 (if you stay, the estate stays at night)"
+   :fix "\"Alright, your call. I asked; I won't again.\" / \"Fair enough. Night stays on; I'm here.\""}
+  {:severity :minor
+   :where ":chore-done \"Marked: {chore} for {name}. Good timing.\" and \"{name}'s {chore}: logged. That one counts.\""
+   :issue "\"Good timing\" is wrong when the chore was overdue. \"That one counts\" is wrong for a duplicate report in the same due window, since only one report counts."
+   :gdd "§2.1 (Mark a chore done: only one counts per due window); §2.3 (Pressure ceiling: overdue state)"
+   :fix "Drop the timing judgment. Make sure duplicate reports get their own line (\"Already had that one. Still counts once.\")."}
+  {:severity :minor
+   :where ":program-needed \"{program} would get this done. Should I ask for it?\""
+   :issue "It's unclear who Hal would ask. The GDD has the twin ask the player to load it."
+   :gdd "§2.6 (your twin asks you to load it right then)"
+   :fix "\"{program} would get this done. Load it?\""}
+  {:severity :minor
+   :where ":weekly-card (all lines)"
+   :issue "All five lines are the same shape reworded ({hours} plus \"trend\"). There's also no trend slot, so Hal can't name the direction the card exists to show."
+   :gdd "§1 Win/loss (long-term win; the weekly card shows the trend, never as a score)"
+   :fix "Add a {trend} slot (\"down from last week\") and vary the angle: one line on hours, one on fewer \"!\"s per task, one sending the player out (\"That's time back for Biscuit.\")."}
+  {:severity :minor
+   :where ":coach-habit \"You set {goal} for {habit}. I'm just asking, not counting.\""
+   :issue "Habits kept feed street cred, so \"not counting\" is slightly untrue. Otherwise the set uses the player's own words and is close to the GDD's line."
+   :gdd "§2.6 (street cred tracks habits you declared); §3.2 (coach uses your own goals and words)"
+   :fix "\"You set {goal} for {habit}. Just checking in, no score.\""}
+  {:severity :minor
+   :where ":memorial-moved \"{name} has a place now, apart from the rest.\""
+   :issue "\"Apart from the rest\" reads cold for a grief moment. The rest of the set is fine and correctly implies no needs."
+   :gdd "§3 (memorial creatures show no needs); §1 voice (warm)"
+   :fix "\"{name} has a quiet place now. Come by whenever.\""}
+  {:severity :minor
+   :where "generic lines: :chore-done \"Got it — {name}'s {chore} is done.\", \"{name}'s set. Thanks for handling that.\"; :jack-in \"Lights are up. Ready when you are.\"; :blueprint-ready \"{count} blueprints up. Take a look whenever.\"; :jack-out-creature \"I'll hold the fort.\""
+   :issue "These could come from any assistant, and \"Thanks for handling that\" leans butler. Light Matrix/TRON shorthand (jack, juice, loadout, hardline) appears almost nowhere, and \"I'll keep the lights on\" repeats across keys."
+   :gdd "§1 (cast: you're Neo; the twin is your body in the digital world)"
+   :fix "Ground a few in the estate's own vocabulary: \"Hardline's clear. {name}'s fed, and the world knows.\" / \"Jacked in. The shelf's got a stack for you.\""}
+  {:severity :minor
+   :where ":morning-brief, :blueprint-ready ({count})"
+   :issue "Plural nouns break at a count of 1 (\"1 blueprints\", \"1 things\")."
+   :gdd "§2.1 (approvals come grouped, so small counts are common)"
+   :fix "Add count-of-one variants, or phrase lines so they read for any count (\"The shelf has {count} waiting.\")."}]}

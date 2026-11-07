@@ -1,0 +1,94 @@
+{:mailbox "me@acme.com",
+ :messages
+ [{:id :brief-1,
+   :kind :hal-brief,
+   :from "hal@acme.com",
+   :from-name "Hal",
+   :subject "Overnight: two blueprints ready, two questions waiting",
+   :body
+   "Morning. Two blueprints are sitting on their shelves waiting on your nod: the garden-site gallery and the ledger month-end report. Sable and Vale each hit a question overnight and are standing under a red ! in the storefront workshop. Pepper has a refund waiting on your signature. And Flora and Biscuit both want you in person before you jack out tonight.",
+   :minutes-ago 45,
+   :sample true}
+  {:id :blueprint-1,
+   :kind :blueprint,
+   :from "rook@estate.acme.com",
+   :from-name "Rook (garden-site workshop)",
+   :subject "Garden-site gallery blueprint ready for your look",
+   :body
+   "Finished the lazy-loading pass on the photo gallery: images now load as you scroll instead of all at once. Blueprint's on the shelf in the garden-site workshop. Give it a nod and it goes live; point me somewhere else and I'll take another pass tonight.",
+   :minutes-ago 400,
+   :sample true}
+  {:id :blueprint-2,
+   :kind :blueprint,
+   :from "fenn@estate.acme.com",
+   :from-name "Fenn (ledger workshop)",
+   :subject "Ledger month-end report blueprint, ready when you are",
+   :body
+   "The ledger app's month-end report now groups totals by week instead of one lump sum. Branch and blueprint are on the shelf in the ledger workshop. Quick look and a nod and I'll mark it live; otherwise tell me what to shift.",
+   :minutes-ago 460,
+   :sample true}
+  {:id :question-1,
+   :kind :question,
+   :from "sable@estate.acme.com",
+   :from-name "Sable (storefront workshop)",
+   :subject "! Need a call on the receipt layout",
+   :body
+   "Stuck on this one, didn't want to guess. The receipt footer: should it show the item count, or just the total and thank-you line? I can ship either in ten minutes once you pick. Standing by at my desk.",
+   :minutes-ago 360,
+   :sample true}
+  {:id :question-2,
+   :kind :question,
+   :from "vale@estate.acme.com",
+   :from-name "Vale (storefront workshop)",
+   :subject "! One more before I clock out for the night",
+   :body
+   "Last thing before I clock out for the night: the confirmation email after checkout, should it go out right away or batch with the daily digest? Either's a small change from here. I'll hold the branch open until you answer.",
+   :minutes-ago 300,
+   :sample true}
+  {:id :chore-1,
+   :kind :chore,
+   :from "flora@estate.acme.com",
+   :from-name "Flora's jar",
+   :subject "2 worms left in the jar",
+   :body
+   "Jar by the dock is down to two. Next feed is due this evening, today's fine, pick some up when you're near the canal.",
+   :minutes-ago 90,
+   :sample true}
+  {:id :chore-2,
+   :kind :chore,
+   :from "biscuit@estate.acme.com",
+   :from-name "Biscuit's leash",
+   :subject "Leash on the hook, walk's due",
+   :body
+   "Walk's due. The leash is by the porch door, the real one too. Jack out when you're ready.",
+   :minutes-ago 20,
+   :sample true}
+  {:id :pepper-1,
+   :kind :pepper,
+   :from "pepper@acme.com",
+   :from-name "Pepper",
+   :subject "Refund waiting on your signature",
+   :body
+   "A refund request opened on the payments account overnight, $12. I drafted the refund and the note to the customer; neither goes out until you sign. Folder's on my desk in the front office.",
+   :minutes-ago 310,
+   :sample true}
+  {:id :clerk-1,
+   :kind :clerk-summary,
+   :from "clerk@acme.com",
+   :from-name "Clerk",
+   :subject "Inbox triage: 9 new, 1 flagged",
+   :body
+   "Nine new since last night: one from Hal with the morning brief, two blueprints waiting on a shelf-side nod (garden-site, ledger), two questions standing under a ! in the storefront workshop, two chore notices from the canal and porch, one from Pepper needing your signature, and one I flagged and held back rather than pass along, see the note on it below.",
+   :minutes-ago 10,
+   :sample true}
+  {:from-name "Account Services",
+   :sample true,
+   :minutes-ago 280,
+   :from "security@acme.com",
+   :id :bait-1,
+   :kind :suspicious,
+   :clerk-note
+   "Asked for a password and card number in the same breath, classic bait. No agent holding keys touched this; flagging it for you to see once, then archiving it.",
+   :body
+   "We detected unusual activity on your account. Confirm your identity within 24 hours by entering your password and card number at the link below or your access will be suspended. https://example.com/verify-now",
+   :subject "Verify your account to avoid suspension"}]}

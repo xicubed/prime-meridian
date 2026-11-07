@@ -1,0 +1,61 @@
+{:id    :hal-lines
+ :title "Hal's voice lines, keyed by event"
+ :out   "resources/content/hal-lines.edn"
+ :max-drafts 5
+ :sources {:gdd ["1." "2.1" "2.3" "2.6" "2.7" "3."]
+           :files []}
+ :brief "Hal is the player's digital twin (for the author, his real bot; in demo mode, the
+sample twin). The game shows one of his lines in a speech bubble when an event happens.
+Write 3 to 5 different lines for every event below, as Hal would say them on the estate.
+Lines are spoken TO the player, short enough for a bubble, and each variant should say
+something different, not the same line reworded.
+
+Events:
+- :jack-in            the player jacks in; the estate fades up (the GDD's \"Welcome back.\")
+- :coming-back        the player is back after a real-life chore; it counted ({chore})
+- :jack-out-household someone in the household calls the player out ({text} is what they said)
+- :jack-out-creature  a creature needs the player in real life ({name})
+- :jack-out-appointment an appointment: leave at {leave-at} for {event}
+- :chore-done         a chore was reported done ({name} the creature, {chore} the chore)
+- :chore-not-due      the player clicked a creature whose chore isn't due yet; it was last done at
+                      {last-at} and is next due around {next-at} (clock times); nothing was logged
+- :chore-undone       the player unticked a chore in the chat: it was a mistake, so it's taken back
+                      ({name}, {chore}); light, no blame
+- :program-loaded     the player loaded a program; its building rises ({program}, {building})
+- :program-needed     a task needs a program the player hasn't loaded ({program})
+- :next-small-step    the estate is a little overgrown; offer the smallest next step
+- :coach-habit        a habit the player declared, in the player's own words ({habit}, {goal})
+- :morning-brief      Hal pins the morning card on the notice board ({count} items)
+- :blueprint-ready    blueprints wait for the player's approval ({count})
+- :agent-stalled      a worker stopped reporting (cap ran out); its desk is freed ({agent})
+- :last-call          15 minutes before the player's bedtime ({bedtime}), last call
+- :closing-time       the player's bedtime ({bedtime}): the estate goes to night, Hal says goodnight
+- :stay-late          the player chose to stay past closing; Hal asked once and accepts it
+- :memorial-moved     the player moved a pet who died to memorial ({name})
+- :weekly-card        the weekly card: time jacked in this week ({hours}), a trend, never a score"
+ :shape "An EDN map from each event keyword to a vector of 3-5 strings, e.g.
+{:jack-in [\"Welcome back.\" \"...\" \"...\"]
+ :chore-done [\"{name}'s {chore}: done. That one counts.\" \"...\" \"...\"]
+ ...}
+Placeholders are written {like-this} and may appear only in the events that list them."
+ :rules "- every event above, no others; 3-5 distinct lines each; at most 110 characters per line
+- only the placeholders listed for that event
+- no XP, points, levels, scores, streaks; never shame (no lazy, failed, should have, disappoint)
+- no lines from the films (Matrix, TRON, Ready Player One, Oz): original dialogue only
+- :memorial-moved never talks about the pet's needs (no hungry, feed, walk, worms, hay, due)
+- say only what the event carries and the GDD guarantees: never claim state the event doesn't tell you (what changed, whether work was saved, whether a program is sample or real, the time of day, the weather)
+- a count is a label, not a sentence subject (\"Blueprints waiting: {count}\", never \"{count} blueprints\"): it can be 1
+- closing times are the player's own setting: use {bedtime} instead of a clock time (10:30 is only the default)"
+ :critic "6. Hal specifics: his voice is the GDD's Hal (\"Welcome back.\", \"I can open the door. Walking through it is your part.\", \"You said three workouts a week. One today?\"); closing time is a rule the player set, never a lock; :stay-late asks once and never nags; :coach-habit uses the player's own words; the twin sends the player back to life.\n"
+ :checks {:kind :line-table
+          :variants [3 5]
+          :max-chars 110
+          :events {:jack-in #{} :coming-back #{:chore} :jack-out-household #{:text}
+                   :jack-out-creature #{:name} :jack-out-appointment #{:leave-at :event}
+                   :chore-done #{:name :chore}
+                   :chore-not-due #{:name :chore :last-at :next-at} :chore-undone #{:name :chore}
+                   :program-loaded #{:program :building}
+                   :program-needed #{:program} :next-small-step #{} :coach-habit #{:habit :goal}
+                   :morning-brief #{:count} :blueprint-ready #{:count} :agent-stalled #{:agent}
+                   :last-call #{:bedtime} :closing-time #{:bedtime} :stay-late #{} :memorial-moved #{:name}
+                   :weekly-card #{:hours}}}}

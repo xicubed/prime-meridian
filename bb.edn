@@ -1,0 +1,3 @@
+{:tasks
+ {content {:doc  "Generate game content from the GDD: bb content <request>|all [--dry-run]"
+           :task (apply shell "bb" "content/pipeline.clj" *command-line-args*)}}}

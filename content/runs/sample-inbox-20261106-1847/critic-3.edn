@@ -1,0 +1,38 @@
+{:verdict :pass
+ :sounds-like-game "Partly: the estate is there (shelves, desks, the worm jar, the front office, the reader with no keys) and the facts and guardrails hold, but most lines read like a plain work inbox, with none of the warm, wry Matrix/TRON-tinted voice and nothing that walks a first-day player back out to life."
+ :findings
+ [{:severity :minor
+   :where ":clerk-1 :subject and :body"
+   :issue "The count can be read two ways. The subject 'Inbox triage: 9 messages, 1 held back' can mean 9 including the held one or 9 plus 1. The body lists 8 and then 'One more'. A count is the Clerk's whole output, so it must be unambiguous. The body is also counts by category, not the one-line summaries the brief asked for."
+   :gdd "§3.1 Clerk (a count plus a short triage summary), §3.2 reader with no keys"
+   :fix "Subject: 'Inbox triage: 8 waiting, 1 held back'. In the body, give one line per item, e.g. 'Finch: garden-club homepage, waiting on your yes', 'Sable (!): metric or imperial?'. Keep the held-back line as it is."}
+  {:severity :minor
+   :where ":blueprint-1 vs :question-2"
+   :issue "The two garden-club items overlap. Finch's finished homepage already includes 'header, event list, and a contact section'. Briar is 'Building the events list now' and waiting 'before I lock in the layout'. That reads as two workers on one task, and Finch's layout as both finished and not finished."
+   :gdd "§3.1 Worker (one per task), §2.4 Workshops (desks are open tasks)"
+   :fix "Give Briar a separate task, e.g. the garden-club events page or the RSVP form. Or drop 'event list' from Finch's blueprint and have Briar's question be the only open events work."}
+  {:severity :minor
+   :where ":brief-1 :body"
+   :issue "The brief reads as a list of counts, and it drops two things the GDD gives the morning brief. It has no calendar or reminder line, though the notice board holds the calendar and reminders. It has no first-day welcome and no nudge back to real life. 'Two blueprints landed on the shelves overnight' also sits oddly with timestamps that put them at roughly 6:50 and 7:40 if the brief is the 8:15 errand."
+   :gdd "§2.4 Notice board, §3.1 morning brief (calendar, mail, reminders), §1 pillar 6"
+   :fix "Open with a light first-day line from Hal, e.g. 'Morning. Your first day on the estate, and the crew didn't wait for you.' Add one sample calendar or reminder item. Say 'landed this morning' instead of 'overnight', or move the blueprints earlier. Close with a real-life pointer: Flora's worms and Biscuit's leash are the parts only you can do."}
+  {:severity :minor
+   :where ":question-1, :question-2, :pepper-1, :chore-2 (voice)"
+   :issue "Several lines are generic office mail: 'Quick question: recipe app units, metric or imperial?', 'Building the events list now.', 'The rest of the ledger is caught up.', 'Biscuit's chore list shows his walk is due.' The game is about embodiment, but nothing places the sender on the estate or ties the mail to the red '!'. Each line could come from any project tool."
+   :gdd "§1 Design pillars 3-4 (spatial over textual, tell them in the world), §3.1 ask_player"
+   :fix "Ground each line in the place. Sable's question could mention that the red '!' is over Sable's desk in the recipe-app workshop and that you can answer here or walk over. Pepper could say there's a folder on her front-office desk. Hal's Biscuit note can stay factual but add a companion touch, e.g. 'Biscuit's walk shows due. The leash is by the porch door.' Keep it to what the mirror's state says."}
+  {:severity :minor
+   :where ":pepper-1"
+   :issue "Paying a hosting invoice is an outgoing bill. That fits the payments account and the front office awkwardly, since the front office covers what sold and what's owed. It also ties Pepper's business to a garden-club repo that a worker owns. It is still correctly an approval: Pepper prepares, you sign."
+   :gdd "§2.4 Front office (Stripe), §3.2 Pepper reads, drafts, and reminds; you sign"
+   :fix "Use something that is clearly the sample business's, e.g. 'a refund request from a sample customer is drafted; it needs your signature'. Or keep the invoice but call it the sample business's own bill and drop the garden-club tie."}
+  {:severity :minor
+   :where ":chore-1, :chore-2 (demo framing)"
+   :issue "On day one in demo mode, Flora and Biscuit are sample mirrors. Only the :sample flag says so. A new player with no axolotl could read 'Biscuit: walk due' as a real request."
+   :gdd "§3 twin rule (in demo mode the counterpart is a clearly pretend connection), §2.8 Zero accounts to start"
+   :fix "Make sure the UI renders :sample visibly. Or add a short in-voice tag the first time, e.g. 'Sample estate: Flora's jar: 2 worms left. Feeding shows due.'"}
+  {:severity :minor
+   :where ":from addresses"
+   :issue "Hal, Pepper and the Clerk send from estate.acme.com, while workers send from acme.com, the same domain as the bait's billing@acme.com. The split looks accidental, and it blurs the one place where a sender's domain could teach something."
+   :gdd "§4.6 pretend inbox me@acme.com"
+   :fix "Put every crew sender on estate.acme.com, including the workers, e.g. marlow@estate.acme.com. Leave the bait on plain acme.com so the Clerk's flag has a visible tell."}]}

@@ -1,0 +1,43 @@
+{:verdict :revise
+ :sounds-like-game "Partly: the rules are right (Hal's errands state only due and stock, workers wait on ask_player, Pepper reads the payments account, the Clerk holds the bait back from keyed agents), but most lines read like a generic project-management inbox with none of the estate's warmth, wryness, or jack-in shorthand."
+ :findings
+ [{:severity :blocker
+   :where ":brief-1 :subject and :body"
+   :issue "Hal's card misstates what is in the inbox. It says 'a blueprint ready', but :blueprint-1 (95 min) and :blueprint-2 (130 min) both arrived before the brief (45 min). It says 'a question waiting', but there are two. It reports Pepper's invoice 10 minutes before :pepper-1 (35 min) exists. A twin shows only what its counterpart's real state says, and the first card a new player reads should not miscount the estate."
+   :gdd "§3 (twin rule), §1 pillar 1, §3.1 (morning brief: calendar, mail, reminders → one short summary)"
+   :fix "Make the card match the state at its timestamp, e.g. 'Two blueprints on the shelves (garden-club homepage, recipe search), one question waiting at a recipe-app desk, Flora's jar at 2, Biscuit's walk due.' Move :pepper-1 earlier than the brief, or drop the invoice line from the brief."}
+  {:severity :minor
+   :where ":brief-1 :body"
+   :issue "The ask was for 'what changed overnight, what waits for approval'. The card is a flat to-do list with nothing overnight in it: no night-crew lights, no stack of blueprints at breakfast, no pointer to today's calendar on the notice board. It reads like a butler's checklist, not a companion's morning card."
+   :gdd "§1 (opening: night shift, stack of blueprints), §2.4 (notice board holds calendar and reminders), §3.1 (night crew)"
+   :fix "Open with one warm, wry line about the night shift and point to the board, e.g. 'Lights were on in both workshops overnight. Two blueprints made it to the shelves; today's calendar is pinned on the board.' Then list what waits on you."}
+  {:severity :minor
+   :where ":blueprint-1 :body vs :question-2 :body"
+   :issue "Finch says the finished garden-club homepage already includes 'an event list'. Briar is 'building the events list now' and asks how it should behave. The same repo contradicts itself, which muddles the example of the loop."
+   :gdd "§2.4 (desks are open tasks; shelves fill as work lands)"
+   :fix "Drop the event list from Finch's layout (header, gallery, contact), or give Briar a separate events page."}
+  {:severity :minor
+   :where ":clerk-1 :body"
+   :issue "The Clerk gives category counts only. The brief asked for counts plus one-line summaries, so the triage has nothing a player could act on from the mailbox click."
+   :gdd "§3.1 (Clerk: a count plus a short triage summary), §3.2"
+   :fix "Keep the count line, then add one short line per item, e.g. 'Sable (recipe app): metric or imperial? Waiting.' and 'Held back: 1, asks for a password and card number.'"}
+  {:severity :minor
+   :where ":question-1 :subject, :blueprint-2 :body, :pepper-1 :body"
+   :issue "Generic lines: 'Quick question: recipe app units, metric or imperial?', 'ready whenever you want to approve it', 'The rest of the ledger is caught up.' These could come from any ticket tracker. The four workers also sound alike, so the crew personas add no variety."
+   :gdd "§1 (cast and feeling: programs in a world, the human they turn to)"
+   :fix "Give each worker one small trait. For example, Sable could write 'Holding the converter at my desk with a red ! over my head until you pick: grams or cups?' Marlow could note the search page now finds 'anything with basil in under twenty minutes.'"}
+  {:severity :minor
+   :where ":blueprint-1, :blueprint-2, :question-1, :question-2 :from"
+   :issue "Workers send from worker-*@acme.com, while Hal, Pepper, and the Clerk send from @estate.acme.com. Estate characters using the same domain as the outside world (billing@acme.com) blurs what the Clerk is supposed to distinguish."
+   :gdd "§3.2 (reader with no keys; untrusted content is separate), §4.6"
+   :fix "Use worker-finch@estate.acme.com and so on, so only outside mail, including the bait, comes from plain acme.com."}
+  {:severity :minor
+   :where ":chore-2 and the inbox as a whole"
+   :issue "Nothing in the inbox sends the player back to real life. Biscuit's walk is the natural place for the reverse loop, but it is just a status line."
+   :gdd "§1 (reverse loop; pillar 6)"
+   :fix "Keep the state facts and add a gentle nudge in Hal's voice, e.g. 'Biscuit's walk is due. The leash is by the porch door; the estate will keep while you're out.' Do not describe what the dog is doing."}
+  {:severity :minor
+   :where ":pepper-1 :body"
+   :issue "'Ready for your signature' leaves unclear whether this is a bill to pay (a purchase) or an invoice to send (a message to another person). Both need approval, but the player should know which they are signing."
+   :gdd "§3.2 (purchases and messages to other people need your approval; Pepper drafts, you sign)"
+   :fix "Make it explicit, e.g. 'Hosting bill for the garden-club site, $12, drafted from the payments account. Nothing is paid until you sign.'"}]}

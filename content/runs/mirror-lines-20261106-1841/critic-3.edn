@@ -1,0 +1,43 @@
+{:verdict :revise
+ :sounds-like-game "Mostly: the creature bubbles are light, the counts match the jar, and nothing guilts or escalates. But the voice is plain rather than wry, and the memorial notes from Hal read like a ticket being closed instead of a companion speaking at a sad moment (§1 cast, §2.5)."
+ :findings
+ [{:severity :blocker
+   :where ":modes :memorial :hal-note, line 2 'Done — {name}'s a memorial now. Nothing to track, just memory.'"
+   :issue "Hal answers a pet's death with 'Done' and 'Nothing to track'. That is butler task-confirmation, not the kind, truthful note §2.5 requires. It should not ship for a grief moment."
+   :gdd "§2.5 (memorial: your twin says so kindly and truthfully), §1 cast (twin is a companion)"
+   :fix "Replace with something like 'I'm sorry about {name}. Their chores are off your list, and the sunny spot stays theirs.'"}
+  {:severity :minor
+   :where ":modes :memorial :hal-note, all five"
+   :issue "None of the notes acknowledges the loss. Lines 1, 3 and 5 are the same sentence reworded ('no needs... just a place/spot to remember them'). Calling the pet 'a memorial' also turns it into an object. Line 4 is the strongest because it states the true consequence (§2.5: chores stop counting)."
+   :gdd "§2.5"
+   :fix "Keep line 4. Write four distinct notes, each kind and truthful. Example: 'I'm sorry. {name}'s chores won't come up again.' Another: '{name} can still nap on the porch. Nothing's needed from you.' Another: 'I've stopped {name}'s reminders. The spot's still theirs.' Avoid '{name}'s a memorial'."}
+  {:severity :minor
+   :where ":modes :memorial :plaque '{name} rested here, {years}'"
+   :issue "This reads as a burial claim, or as if the pet lived at this spot during those years. Neither may be true, and plaques must be truthful."
+   :gdd "§2.5, §3 twin rule"
+   :fix "Use a line like 'For {name}, {years}' or '{name}, {years}. Still here in the sun.'"}
+  {:severity :minor
+   :where ":flora :hungry 'Is it five already?'"
+   :issue "This is true only around 17:00. The due state stays on, steady, until Flora is fed (pressure ceiling), so at 9 pm or the next day the line is false."
+   :gdd "§2.3 pressure ceiling, §2.5 Flora chore :at 17:00"
+   :fix "Use a time-free line, e.g. 'Worm o'clock?' or 'Saving room for a worm'."}
+  {:severity :minor
+   :where ":flora :low 'Worms running low', 'Jar running low'; :juniper :low 'Hay running low', 'Barn running low'"
+   :issue "The low sign also shows at 0, where 'running low' is untrue. Pillar 1 says the sign is the count the player reported."
+   :gdd "§1 pillar 1, estate.edn rules (:<= :stock 2, :<= :bales 3)"
+   :fix "Prefer count-first wording that holds at zero, like 'Worms left: {stock}' or 'Restock soon: {stock}', or let the game pick an 'empty' variant at 0."}
+  {:severity :minor
+   :where ":modes :virtual :idle, all lines"
+   :issue "These are written as third-person captions ('{name} naps in the sun'), while every other bubble is in the creature's voice. Virtual mode applies to any creature, so 'watches the yard' and 'naps in the sun' fail for an axolotl in a canal. '{name}'s just here for company' breaks the frame by explaining the mode inside the world."
+   :gdd "§2.5 (virtual: any creature, no needs)"
+   :fix "Make the lines species- and place-neutral and in the creature's voice, with no needs. Examples: 'Nice day for it', 'Just hanging out', 'Glad you're here'. Keep {name} only where it reads naturally."}
+  {:severity :minor
+   :where ":juniper :fed 'Satisfied now', 'That's the stuff'; :juniper :hungry 'Hungry for hay'; :biscuit :porch 'Resting up'"
+   :issue "These are generic filler with none of the game's warmth or wryness. 'Hungry for hay' also restates the key."
+   :gdd "§1 (cozy, warm tone)"
+   :fix "Give Juniper a horse's personality and keep it light, e.g. 'Crunchy. Approved.' or 'Ears up for hay'. For Biscuit, try 'Tracking a squirrel. Professionally.'"}
+  {:severity :minor
+   :where ":flora :stock-sign and :juniper :stock-sign"
+   :issue "The five lines are near-synonyms ('Worm jar', 'Jar count', 'Worm stock'). Plain labels are right for hand-lettered signs, but the variety is thin."
+   :gdd "§2.4 (canal worm jar)"
+   :fix "Keep 2 or 3 plain ones and add one with hand-lettered charm, e.g. 'Flora's worms: {stock}' or 'Juniper's hay: {bales}'."}]}

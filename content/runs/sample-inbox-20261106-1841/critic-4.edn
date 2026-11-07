@@ -1,0 +1,58 @@
+{:verdict :revise
+ :sounds-like-game "Mostly: Hal's brief, Reed's approval line and the Clerk's flagged bait carry the warm, real-not-simulated loop well, but a few lines invent a live pet's behavior or mislabel the '!', several bodies read as generic workplace mail, and there is no Matrix/TRON flavor anywhere."
+ :findings
+ [{:severity :blocker
+   :where ":chore-1 :body \"Flora's been circling the jar this morning.\""
+   :issue "The keeper reads only a mirror's state and chores and emits events like due :feed and stock 2. It cannot observe a live animal's behavior. Inventing what Flora did breaks the twin rule: a twin shows only what its counterpart's real state says."
+   :gdd "§3, §3.1"
+   :fix "Report only state, e.g. 'Keeper check: Flora's feed is due and the jar's at 2 worms, the count you reported. Worth a restock before tonight. Text the booth when she's fed. — Hal'"}
+  {:severity :blocker
+   :where ":blueprint-1 (Reed's canal ripple shader), :blueprint-2 (Marigold's desk organizer)"
+   :issue "Both blueprints change the game's own code: a shader, and a game tool. On a new player's estate the author is the Oracle for the game itself. The player approves work on their own estate, where each workshop is one of their repos. Asking a new player to approve game-code changes teaches the wrong approval line. It also leaves no example of a workshop doing the player's own project work."
+   :gdd "§2.8, §2.4, §3.1"
+   :fix "Point at least Marigold's blueprint at a sample workshop repo, e.g. the acme.com site or a sample project. Then either point Reed's at one too, or have Reed say the shader goes to the game's Oracle and only the canal preview is the player's to look at."}
+  {:severity :blocker
+   :where ":brief-1 (:minutes-ago 45) vs :question-1 (:minutes-ago 15)"
+   :issue "The brief says Pike is waiting under a '!', but Pike's question arrives 30 minutes after the brief. The inbox's own timeline contradicts itself."
+   :gdd "§3.1"
+   :fix "Move :question-1 to before the brief, e.g. :minutes-ago 70. Or drop Pike from the brief and let his question be the fresh '!' that the Clerk counts."}
+  {:severity :minor
+   :where ":question-1 :body \"Sitting with a card over my head until you answer.\""
+   :issue "Cards are what Hal pins on the notice board. What floats over a waiting worker is the red '!'. This line teaches the wrong visual cue."
+   :gdd "§1, §3.1"
+   :fix "'Sitting at my desk under a \"!\" until you pick.'"}
+  {:severity :minor
+   :where ":brief-1"
+   :issue "The brief is meant to cover what waits for approval, but it leaves out Pepper's refund and note. The 8:15 errand is also not anchored: :minutes-ago is relative, so the brief can appear at any clock time."
+   :gdd "§3.1"
+   :fix "Add 'Pepper has a refund and a note in the front-office folder for your signature.' Also give the brief a fixed send time (08:15), or a rule that the game derives it."}
+  {:severity :minor
+   :where ":clerk-1 :body"
+   :issue "The Clerk gives category counts only. The request asked for counts plus one-line summaries."
+   :gdd "§3.1, §3.2"
+   :fix "After the counts, add one line per item, e.g. 'Pike: rocks round or jagged?', 'Pepper: refund needs your signature', 'Flagged: fake verify-your-password mail, don't click.'"}
+  {:severity :minor
+   :where ":chore-1, :chore-2 :body"
+   :issue "Each body repeats the subject's 'Keeper check:' prefix. Neither says how to close the loop in real life, which the reverse loop is supposed to teach."
+   :gdd "§1 (reverse loop), §3.1 (phone booth)"
+   :fix "Drop the repeated prefix and end each with how to report back, e.g. 'Back from the walk? Text the booth \"walked\" and the leash goes back on the hook.'"}
+  {:severity :minor
+   :where ":blueprint-1 :body \"like you asked\""
+   :issue "On day one a new player hasn't asked for anything. The line implies a history they don't have."
+   :gdd "§2.8"
+   :fix "'Hal passed along a note that the dock felt choppy, so new ripples settle slower there.'"}
+  {:severity :minor
+   :where ":question-2 :body; :pepper-1 :body"
+   :issue "These read as generic office mail: 'Either works, just need a pick before I move on.' and 'A customer refund request came through the ledger overnight.' The front-office 'welcome button' also doesn't match what the front office is (business: sales, money owed, signatures)."
+   :gdd "§1 (pillars), §2.4"
+   :fix "Give Sable a real estate or workshop choice with some personality. Let Pepper sound like herself: 'Refund's drafted and so is the note to them. I don't send either until you sign. Folder's on my desk.'"}
+  {:severity :minor
+   :where ":from addresses"
+   :issue "Senders mix hal@acme.com and clerk@acme.com with reed@, pepper@ and others at estate.acme.com. There's no visible rule for which agents get which domain."
+   :gdd "§4.6"
+   :fix "Pick one convention, e.g. every estate character at estate.acme.com. Keep the bait at plain acme.com so it reads as an outside spoof."}
+  {:severity :minor
+   :where "whole inbox (voice)"
+   :issue "There is no Matrix/TRON shorthand anywhere, e.g. jacking in, programs, the grid."
+   :gdd "§1 (cast, film-reference note)"
+   :fix "Add one light touch in original words, e.g. end Hal's brief with 'Jack in when you've had your coffee.' Don't use the films' lines."}]}

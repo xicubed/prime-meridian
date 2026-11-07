@@ -1,0 +1,43 @@
+{:verdict :revise
+ :sounds-like-game "Partly: the lines are gentle and never shame or escalate, which fits the pressure ceiling, but most are generic pet-sim filler with none of the game's wry Matrix/TRON warmth, Juniper's set is Flora's set with the noun swapped, and two lines state facts the real state may not support."
+ :findings
+ [{:severity :blocker
+   :where ":flora :hungry \"My jar's looking empty\""
+   :issue "The bubble fires when feeding is due, not when stock is low. The sample estate starts with 15 worms, so Flora would claim an empty jar while the jar's own sign reads \"Worms: 15\". The bubble and the sign would contradict each other, and the bubble would state something the reported count doesn't say."
+   :gdd "§1 pillar 1 (real, not simulated); §3 twin rule (a twin shows only what its counterpart's real state says)"
+   :fix "Replace it with a line about the feeding being due, not the stock, e.g. \"Is it five already?\" (feeding is at 17:00). Leave stock talk to the :low sign."}
+  {:severity :blocker
+   :where ":modes :memorial :hal-note \"Done — {name}'s on the porch now as a memorial...\" (also the \"in the sun\" / \"sunny spot\" lines)"
+   :issue "The memorial note is a template for any creature, but it puts every memorial pet on the porch. A memorial Flora stays at the canal, so for her the line is false. The sun lines carry the same assumption, which is softer but still wrong for a creature that lives in water."
+   :gdd "§2.5 (memorial mode for any creature; each mirror has its own :home); §3 twin rule"
+   :fix "Drop the location, or use the creature's own home through a placeholder Hal can fill truthfully, e.g. \"{name} will always have a spot here.\" Keep \"sun\" out of the template, or limit it to land creatures."}
+  {:severity :minor
+   :where ":modes :memorial :hal-note (all five)"
+   :issue "All five lines are the same sentence reworded (moved to memorial / no needs / just a place to remember). None of them acknowledges the loss itself. \"Nothing left to track, just memory\" and \"Nothing to track now\" talk about a pet's death in task-tracker terms, which reads cold. \"Done —\" sounds like a butler closing a ticket rather than a companion."
+   :gdd "§2.5 (your twin says so kindly and truthfully); §3.2 (twin as companion)"
+   :fix "Vary the shape and lead with care, then state the truthful change. For example: \"I'm sorry. {name} won't ask for anything now, and those chores won't count against your day.\" Or: \"{name} has a quiet place on the estate. I took the chores off your list.\" Drop the \"tracking\" language."}
+  {:severity :minor
+   :where ":juniper :hungry / :fed / :low vs :flora"
+   :issue "Juniper's lines are Flora's with the noun swapped: \"Mm, worms\"/\"Mm, hay\", \"Thanks for the worms\"/\"Thanks for the hay\", \"Any worms going?\"/\"Any hay going?\", and identical :low templates. A horse fed twice a day at 07:00 should sound different from an axolotl fed every two days."
+   :gdd "§2.5 (each creature is its own mirror); usefulness"
+   :fix "Give Juniper horse-specific lines tied to the 12-hour, 07:00 rhythm, e.g. a whicker at the stall door, \"Morning hay?\", or \"Half a day already?\". Keep the :low sign format consistent across creatures, since it's a label, but make the bubbles distinct."}
+  {:severity :minor
+   :where ":flora :fed \"Much better\" \"Full now\"; :juniper :fed \"That's the stuff\" \"Satisfied now\"; :biscuit :walked \"Good walk\"; :biscuit :porch \"Resting up\""
+   :issue "These are generic lines that could come from any pet game. None of them has the wry tone or the jacked-in TRON flavor the game is going for."
+   :gdd "§1 (tone, cast: you're Neo)"
+   :fix "Swap in one or two lines per key with character, while keeping the film references as shorthand rather than quoted lines. For example, Flora after feeding: \"Worm received. Rebooting smile.\" Biscuit back from the walk: \"Every tree checked. Report filed.\""}
+  {:severity :minor
+   :where ":modes :virtual :idle \"{name} naps in the sun\" \"{name} watches the yard\" \"{name}'s just here for company\""
+   :issue "Three problems. First, these are third-person narration in a speech bubble, while every other bubble speaks as the creature. Second, \"watches the yard\" and \"naps in the sun\" repeat Biscuit's :porch lines and don't fit a virtual water creature. Third, \"just here for company\" breaks the fiction by naming the mode. They do correctly carry no needs."
+   :gdd "§2.5 (virtual mode for any creature; no needs)"
+   :fix "Write needless, home-neutral lines in the creature's voice, e.g. \"Nice day for it.\" or \"Just hanging out.\" Use no hunger, chore, or call-out wording."}
+  {:severity :minor
+   :where ":modes :memorial :plaque \"{name}, {years}\" vs \"{name} — {years}\"; \"{name} rested here, {years}\""
+   :issue "The first two lines are the same plaque apart from punctuation. \"Rested here\" is ambiguous: it can read as a burial claim, or as if the pet lived on this estate during those years."
+   :gdd "§2.5 (memorial is kind and truthful)"
+   :fix "Keep one of the two plain formats. Replace \"rested here\" with a warm line in the player's register, not the pet's voice, e.g. \"{name}, {years}. Still the best spot on the estate.\""}
+  {:severity :minor
+   :where ":flora :stock-sign / :juniper :stock-sign"
+   :issue "Five synonyms for one label is low-value variety. The game will show one sign on the jar or hay pile, and rotating between near-identical labels adds no meaning. The counts themselves are correct and come from player-reported state."
+   :gdd "§1 pillar 1; usefulness"
+   :fix "Keep two or three variants at most, ideally with a hand-lettered feel, e.g. \"Worms: {stock}\" or \"{stock} worms (count 'em)\". Don't spend lines on rewordings."}]}

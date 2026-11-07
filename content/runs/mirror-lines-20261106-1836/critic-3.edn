@@ -1,0 +1,53 @@
+{:verdict :revise
+ :sounds-like-game "Mostly: the creature bubbles are light and warm, and the signs read like a hand-lettered jar label, but much of it is stock pet-app copy with little of Prime Meridian's wry edge, and Hal's memorial note sounds like a settings confirmation rather than a companion."
+ :findings
+ [{:severity :blocker
+   :where ":flora :low \"Only {stock} worms left\", \"{stock} worms — restock soon\", \"Running low: {stock} worms\"; :juniper :low \"Only {bales} bales left\", \"{bales} bales — order more\", \"Running low: {bales} bales\""
+   :issue "The :low sign shows whenever the count is 2 or fewer (estate.edn rule [:<= :stock 2]), so it will regularly display 1 and 0. These lines would read \"Only 1 worms left\", \"1 bales — order more\", and \"Only 0 worms left\". That is broken text on the one sign that has to be read at a glance. The GDD's own sign avoids this with a label form."
+   :gdd "§2.5, §1 pillar 3 (spatial over textual)"
+   :fix "Put the noun before the count, e.g. \"Worms left: {stock}\", \"Bales left: {bales}\", \"Jar: {stock} left\". Or the keeper could provide plural-aware variants, plus an :empty line for 0 (\"Jar's empty\")."}
+  {:severity :blocker
+   :where ":modes :memorial :hal-note (all five)"
+   :issue "The GDD says that when a pet moves to memorial, its chores stop counting toward \"your own chores done\", and the twin says so kindly and truthfully. Only the last line hints at this (\"nothing more asked of them\"). None of them tells the player plainly that the reminders have stopped. They also open with clerical wording (\"You've moved {name} to memorial\") instead of kindness, so Hal sounds like a butler logging a change, not a companion. \"Just their sunny spot now, remembered\" is also awkward."
+   :gdd "§2.5 (memorial mode), §3.2 (your agent as coach, never cold), §3 twin rule"
+   :fix "Lead with care, then state the fact plainly. For example: \"I'm sorry about {name}. No more feeding reminders; {name} stays on the estate.\" / \"{name}'s chores are off your list now. Their spot is still theirs.\" / \"I'll stop the reminders for {name}. They're still here, whenever you want to visit.\""}
+  {:severity :minor
+   :where ":modes :memorial :hal-note \"Their sunny spot stays theirs\", \"in their favorite spot in the sun\"; :plaque \"{name} rests here, {years}.\""
+   :issue "These lines state things that may not be true. Not every memorial pet's personality names a sunny spot; that is Rex's example, not a rule. \"Rests here\" implies the pet is buried on the estate. The twin should say only what is real."
+   :gdd "§2.5 (personality, memorial), §3 twin rule"
+   :fix "Say \"their spot\" without specifying sun unless the personality says so. Change the plaque to \"{name}, {years}. Remembered here.\""}
+  {:severity :minor
+   :where ":juniper :hungry \"I'm famished\""
+   :issue "The overdue state is one steady state that never escalates. \"Famished\" reads as a step up from hungry and leans toward guilt. The other hungry lines stay gentle."
+   :gdd "§2.3 pressure ceiling"
+   :fix "Replace with something steady and light: \"Breakfast bell?\" or \"Bit peckish over here\"."}
+  {:severity :minor
+   :where ":flora :fed \"Yum, more please... later\"; :juniper :fed \"Good hay today\""
+   :issue "Flora asking for more right after being fed blurs the every-2-days schedule. \"Good hay today\" claims the hay's quality, which the game has no data for."
+   :gdd "§1 pillar 1 (real, not simulated), §2.5"
+   :fix "Replace with \"See you in two days\" (wry, and true to the chore) and \"Thanks, that'll do me till tonight\" (true to the 12-hour cycle)."}
+  {:severity :minor
+   :where ":juniper :low \"{bales} bales — order more\"; :flora :low \"{stock} worms — restock soon\""
+   :issue "A sign giving orders to buy reads like a directive and puts purchase pressure on the player. Purchases are the player's decision, and an agent may only draft them for approval."
+   :gdd "§3.2"
+   :fix "Keep the sign a plain count. Leave any restock suggestion to Hal or a card on the board, offered for approval."}
+  {:severity :minor
+   :where ":biscuit :porch \"Just chilling here\", \"Watching the birds\", \"Good spot for a nap\"; :modes :virtual :idle \"{name} is enjoying the sun\""
+   :issue "These are generic, and they assume daylight. The estate goes to night at closing, so a sun or bird line at night would be untrue. \"Just chilling here\" could fit any app."
+   :gdd "§2.3 (closing time / night), §1 voice"
+   :fix "Use time-neutral lines with some personality: \"On porch duty\", \"Keeping an eye on the mailbox\", \"One ear up\"."}
+  {:severity :minor
+   :where ":modes :virtual :idle \"{name}, here simply for company\""
+   :issue "This describes the game mechanic (virtual = company) instead of being a bubble. The virtual lines are also in third person while every other bubble is first person, which is inconsistent within :say."
+   :gdd "§2.5 (virtual mode)"
+   :fix "Pick one voice for bubbles, e.g. first person and need-free: \"Just hanging out\", \"Nice here, isn't it?\". Drop the mechanic-describing line."}
+  {:severity :minor
+   :where ":flora :stock-sign, :juniper :stock-sign"
+   :issue "There is little real variety: \"Worms: {stock}\", \"Worm jar: {stock}\", and \"Jar count: {stock}\" are the same label reworded. That suits a sign, but five near-duplicates add little."
+   :gdd "§2.5"
+   :fix "Keep 3: the GDD's \"Worms: {stock}\" plus one or two with hand-lettered charm (\"Worm jar — {stock}\", \"Flora's pantry: {stock}\")."}
+  {:severity :minor
+   :where ":flora :fed \"Full and happy\"; :juniper :fed \"That was tasty\", \"Thanks for the hay\"; :biscuit :walked \"Great walk!\""
+   :issue "Generic thank-you lines. They are pleasant but carry none of the game's wry warmth."
+   :gdd "§1 (tone)"
+   :fix "Swap one or two per creature for something specific to the animal: Flora \"Gills fluffed, belly full\"; Juniper \"Munching. Do not disturb\"; Biscuit \"Smelled every single post\"."}]}

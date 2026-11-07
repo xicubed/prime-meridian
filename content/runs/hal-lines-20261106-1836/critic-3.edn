@@ -1,0 +1,93 @@
+{:verdict :revise
+ :sounds-like-game "Mostly yes: Hal is warm, brief, and consistently sends the player back to real life without shaming, but the Matrix/TRON flavor is thin, and a few lines claim state the event doesn't carry, which breaks the game's 'real, not simulated' promise."
+ :findings
+ [{:severity :blocker
+   :where ":program-loaded line 4, \"{program}'s loaded (sample for now). The {building} is yours to walk into.\""
+   :issue "Says 'sample' for every load. A real login would be mislabeled as pretend. A twin may show only its counterpart's real state, and sample versus real must always be honest."
+   :gdd "§3 (twin rule), §2.7, §1 pillar 1"
+   :fix "Drop '(sample for now)', or add a {mode} slot and show a sample-only variant only when the connection really is a sample."}
+  {:severity :blocker
+   :where ":coming-back line 5, \"{chore}'s counted. A couple of things moved while you were out.\""
+   :issue "Claims 'a couple of things' changed, but the event carries only {chore}. If nothing moved, Hal is stating a fake fact. False status teaches the player to stop trusting Hal."
+   :gdd "§1 pillar 1, §2.1 (Unknown: 'doesn't guess'), §3"
+   :fix "Say only what the payload supports: \"{chore}'s counted. Here's what moved while you were out.\" Or add a {changes} count slot and show the line only when it is above zero."}
+  {:severity :minor
+   :where ":coming-back (all lines)"
+   :issue "The GDD's coming-back beat ends with Hal offering the next small step. No variant does this."
+   :gdd "§2.3 step 3"
+   :fix "Have at least two variants end on an offer, e.g. \"{chore}'s counted. Want the one small thing next?\""}
+  {:severity :minor
+   :where ":coming-back line 2, \"That's done in the world now too.\""
+   :issue "Unclear which world is meant, and the chore isn't named."
+   :gdd "§2.3"
+   :fix "\"{chore}'s done out there, and it shows in here.\""}
+  {:severity :minor
+   :where ":jack-in line 3, \"You're in. The estate's been quiet without you.\""
+   :issue "Agents work the same with the game closed, so the estate wasn't quiet. The line also guilt-pulls the player toward staying jacked in, which the game is built to avoid."
+   :gdd "§2.1 ('The game never adds work'), §1 pillar 5 and long-term win"
+   :fix "\"You're in. The crew kept busy; here's what's new.\""}
+  {:severity :minor
+   :where ":last-call line 3, \"Almost time — last chance before I walk you out.\""
+   :issue "'Last chance' makes closing sound like a lock. Closing is the player's own rule, and they can stay."
+   :gdd "§2.3 step 5"
+   :fix "\"Last call. Anything for the night crew before I walk you to the door?\" This also ties last call to the night-shift orders it exists for."}
+  {:severity :minor
+   :where ":closing-time (all lines)"
+   :issue "No variant says goodnight, and none frames closing as the rule the player set. Both are the GDD's beat for this moment."
+   :gdd "§2.3 step 5"
+   :fix "Add \"Goodnight. You asked me to send you home at this hour, so here's the door.\" and \"Goodnight. Your rule, your call; I'm just keeping it.\" Keep \"See you next round.\""}
+  {:severity :minor
+   :where ":stay-late line 3, \"Alright. Staying's your call, not mine to make twice.\""
+   :issue "The phrasing is garbled. Line 1, \"Asked once — you're staying.\", reads like a log entry, not a companion."
+   :gdd "§2.3 step 5"
+   :fix "\"Alright, you're staying. I won't bring it up again.\""}
+  {:severity :minor
+   :where ":stay-late line 1 \"I'll keep the lights on\" and line 5 \"The estate stays up with you\"; also :jack-out-household line 5"
+   :issue "If the player stays, the estate stays at night. 'Keep the lights on' and 'stays up' read as the day continuing. 'Keep the lights on' is also used twice in the set."
+   :gdd "§2.3 step 5"
+   :fix "\"Night's settled in. I'll keep you company.\" Give the household line its own image, e.g. \"I'll keep the desks warm.\""}
+  {:severity :minor
+   :where ":blueprint-ready line 3, \"approve or send back\""
+   :issue "A rejected blueprint vanishes. 'Send back' implies it returns for rework."
+   :gdd "§2.1 (Approve)"
+   :fix "\"The shelf's got {count}: keep them or wave them off.\""}
+  {:severity :minor
+   :where ":chore-done line 1, \"logged. That one counts.\""
+   :issue "Only one report counts per due window. If a duplicate report (a text after a click) also fires this event, 'counts' is false."
+   :gdd "§2.1 (Mark a chore done)"
+   :fix "Fire :chore-done only for the counted report, or add a :chore-duplicate key (\"Already had {name}'s {chore}. No double worms.\")."}
+  {:severity :minor
+   :where ":next-small-step lines 2 and 5"
+   :issue "The GDD says Hal offers the smallest next step. 'Pick one thing' and 'tell me where to start' hand that choice back to the player."
+   :gdd "§2.6, §1 (No game over)"
+   :fix "Add a {step} slot and offer it: \"Bit overgrown. Smallest step: {step}. Want it?\""}
+  {:severity :minor
+   :where ":coach-habit line 1, \"You said {habit}: {goal}. Today's one of them?\""
+   :issue "'One of them' fits only count-per-week goals. It fails for a goal like 'walk Biscuit every day'. With raw data it also renders as 'workout: 3/wk', which is not the player's own words."
+   :gdd "§3.2, §2.6"
+   :fix "Make {goal} the player's own phrase, with a fallback: \"You said {goal}. Today a good day for it?\" This stays close to the GDD's \"You said three workouts a week. One today?\""}
+  {:severity :minor
+   :where ":program-needed line 4, \"Should I ask for it?\""
+   :issue "Hal is already talking to the person who would load it, so it's unclear who he would ask."
+   :gdd "§2.6, §2.7"
+   :fix "\"{program} would get this done. Want to load it now?\""}
+  {:severity :minor
+   :where ":agent-stalled lines 3 and 5; line 4"
+   :issue "Lines 3 and 5 are the same line reworded. Line 4 promises an automatic resume the GDD doesn't describe. Line 2's 'Freed up the desk' credits Hal with the bridge's job."
+   :gdd "§3.1 (stalled), §2.1 (juice meter)"
+   :fix "Replace one with a refill-aware line: \"{agent} ran out of juice. Desk's open; the meter shows when it refills.\" Drop the promised resume."}
+  {:severity :minor
+   :where ":weekly-card (all lines)"
+   :issue "All five variants say the same thing ('{hours}, trend on the board'). The GDD's long-term win counts two measures together: fewer asks from agents and fewer hours jacked in."
+   :gdd "§1 (long-term win)"
+   :fix "Vary the angle: \"{hours} hours in, and the crew asked you less this week. Card's up.\" Or: \"Weekly card: {hours} hours. Less of me, more of everything else.\" Never praise or grade."}
+  {:severity :minor
+   :where ":memorial-moved line 2, \"{name} has a place now, apart from the rest.\"; line 4, \"Moved {name} to memorial.\""
+   :issue "'Apart from the rest' reads cold, and line 4 sounds administrative. This is a grief moment and wants Hal at his warmest. The no-needs rule is correctly kept."
+   :gdd "§3 (memorial exception), §2.5"
+   :fix "\"{name} has a quiet spot now. No chores, just {name}.\" Or: \"{name}'s place stays as long as you want it.\""}
+  {:severity :minor
+   :where "voice across keys: \"Take a look whenever.\", \"How's it going?\", \"Got it — {name}'s {chore} is done.\", \"Lights are up. Ready when you are.\""
+   :issue "These are generic assistant lines. Across the set there is very little of the estate's jack-in / program / hardline shorthand."
+   :gdd "§1 (The cast: you're Neo), §2.7"
+   :fix "Lean on the game's own vocabulary (jack in, hardline, loadout, juice, the shelf, the board) in one or two variants per key, without using film lines."}]}

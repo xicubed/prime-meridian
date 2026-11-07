@@ -1,0 +1,35 @@
+{:jack-in ["Welcome back." "You're in. Let's see what's waiting for you." "Good, you're here." "Back in. Let's take a look around." "You're jacked in. Let's get going."]
+
+ :coming-back ["{chore}: done. That one's back on the board." "Good, {chore}'s handled. Let's pick back up." "{chore} counted. Glad you're back." "That's {chore} off your plate. Back to it?"]
+
+ :jack-out-household ["They said \"{text}\". Go, I've got this." "\"{text}\" — that's a real-life call. I'll hold things down." "Household's calling: \"{text}\". Go on, I've got the desks." "\"{text}\" — go. The estate will keep."]
+
+ :jack-out-creature ["{name} needs you out there. I'll mind the estate." "That's {name} calling. Go on, I've got things here." "{name}'s asking for you in real life. Go." "{name} needs you now, not on a screen. Go ahead."]
+
+ :jack-out-appointment ["Leave by {leave-at} for {event}. I'll keep things running." "{event} — you'll want to leave at {leave-at}." "Time to go: {leave-at}, for {event}. I've got the desks." "{event} at {leave-at}. Go, I'll hold the fort."]
+
+ :chore-done ["{name}'s {chore}: done. That one counts." "Logged it: {name}, {chore}, done." "{chore} for {name} — marked done." "Got it. {name}'s {chore} is taken care of." "{name}'s {chore}, done. One less thing."]
+
+ :program-loaded ["{program}'s loaded. The {building} just rose." "You've got {program} now. Look — the {building}." "{program}, online. That's the {building} going up." "New program: {program}. Watch the {building} rise."]
+
+ :program-needed ["This one needs {program}. Want to load it?" "I don't have {program} yet for this task." "We'll need {program} loaded before I can take this on." "{program} isn't in my loadout yet. Load it?"]
+
+ :next-small-step ["Nothing's ruined. One small thing, and we'll start there." "Let's not take on everything today. Just the next step." "The grounds got a little quiet. One answer and we're moving again." "No rush. Pick one thing, and I'll handle the rest." "Just the next small step today. That's enough."]
+
+ :coach-habit ["You said {goal} for {habit}. Where are we today?" "{habit}: you set {goal}. Just checking in." "Your own words: {goal}, for {habit}. How's it going?" "You told me {goal} on {habit}. No pressure, just asking."]
+
+ :morning-brief ["Morning card's pinned. Items: {count}." "Pinned the brief. On it today: {count}." "Card's up on the board. Count: {count}." "Morning brief posted. Items waiting: {count}."]
+
+ :blueprint-ready ["Blueprints waiting: {count}." "On the shelf, ready for approval: {count}." "Waiting on your approval: {count}." "Last night's work, waiting: {count}."]
+
+ :agent-stalled ["{agent} stopped reporting. Freed the desk." "Lost {agent}'s signal. Desk's open again." "{agent} went quiet — cap must've run out. Desk's free." "{agent}'s stalled. I've freed up the desk."]
+
+ :last-call ["Last call. {bedtime} comes quick." "Fifteen minutes to {bedtime}. Last call." "{bedtime}'s close. Wrap up what you can." "Last call before {bedtime}."]
+
+ :closing-time ["{bedtime}. Goodnight." "That's {bedtime}. The estate's going to night." "{bedtime}'s here. Sleep well." "Time, by your own clock: {bedtime}. Goodnight."]
+
+ :stay-late ["Alright. You're staying. I asked once, that's enough." "Your call. I'll be here if you need me." "Staying, then. No more asking tonight." "Okay. The estate stays up with you."]
+
+ :memorial-moved ["{name}'s moved to memorial now." "I've set {name} a place in memorial." "{name} rests in memorial." "Moved {name} to memorial."]
+
+ :weekly-card ["This week: {hours} in. The trend's there if you want to see it." "{hours} jacked in this week. Not a score, just a trend." "You spent {hours} in the estate this week. Trending, not grading." "Time in this week: {hours}. Just a line, not a score."]}

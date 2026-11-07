@@ -1,0 +1,51 @@
+{:mailbox "me@acme.com"
+ :messages [{:id :brief-1 :kind :hal-brief :from "hal@estate.acme.com" :from-name "Hal"
+             :subject "Morning card: a blueprint ready, a question waiting, two chores"
+             :body "The garden-club workshop has a homepage layout blueprint ready for your look. The recipe app desk has a question waiting. Flora's jar is low and Biscuit's walk chore is due. Pepper has one invoice ready for your signature."
+             :minutes-ago 45 :sample true}
+
+            {:id :blueprint-1 :kind :blueprint :from "worker-finch@acme.com" :from-name "Finch"
+             :subject "Blueprint ready: garden-club homepage layout"
+             :body "The new homepage layout for the garden-club site is finished and on the shelf: header, event list, and a contact section, all responsive. Branch's up for your look: https://example.com/garden-club/pr/42 — say the word and I'll merge it."
+             :minutes-ago 95 :sample true}
+
+            {:id :blueprint-2 :kind :blueprint :from "worker-marlow@acme.com" :from-name "Marlow"
+             :subject "Blueprint ready: recipe app search page"
+             :body "Search page for the recipe app is done: filter by ingredient, sort by prep time. Preview here: https://example.com/recipe-app/pr/17 — ready whenever you want to approve it."
+             :minutes-ago 130 :sample true}
+
+            {:id :question-1 :kind :question :from "worker-sable@acme.com" :from-name "Sable"
+             :subject "Quick question: recipe app units, metric or imperial?"
+             :body "Before I finish the ingredient converter I need to know which units to default to: metric or imperial? I'll wait at my desk until you answer."
+             :minutes-ago 50 :sample true}
+
+            {:id :question-2 :kind :question :from "worker-briar@acme.com" :from-name "Briar"
+             :subject "Garden-club site: should events show past dates too?"
+             :body "Building the events list now. Should it only show upcoming events, or keep past ones visible further down the page? Waiting here before I lock in the layout."
+             :minutes-ago 20 :sample true}
+
+            {:id :chore-1 :kind :chore :from "hal@estate.acme.com" :from-name "Hal"
+             :subject "Flora: worm jar down to 2, feeding due"
+             :body "Flora's jar: 2 worms left. Feeding chore shows due."
+             :minutes-ago 40 :sample true}
+
+            {:id :chore-2 :kind :chore :from "hal@estate.acme.com" :from-name "Hal"
+             :subject "Biscuit: walk due"
+             :body "Biscuit's chore list shows his walk is due."
+             :minutes-ago 25 :sample true}
+
+            {:id :pepper-1 :kind :pepper :from "pepper@estate.acme.com" :from-name "Pepper"
+             :subject "One signature needed: garden-club hosting invoice"
+             :body "The garden-club site's hosting invoice came through the payments account and is ready for your signature. The rest of the ledger is caught up. Details: https://example.com/business/invoices/9"
+             :minutes-ago 35 :sample true}
+
+            {:id :clerk-1 :kind :clerk-summary :from "clerk@estate.acme.com" :from-name "The Clerk"
+             :subject "Inbox triage: 9 messages, 1 held back"
+             :body "In the inbox right now: Hal's morning card, two blueprints waiting for approval, two questions waiting at their desks, two chore notices, and one signature request from Pepper. One more message was held back for asking for a password it had no business asking for."
+             :minutes-ago 15 :sample true}
+
+            {:id :bait-1 :kind :suspicious :from "billing@acme.com" :from-name "Billing Team"
+             :subject "Action required: verify your account to avoid suspension"
+             :body "We noticed unusual activity on your account. Verify your identity within 24 hours by confirming your password and card number at the link below or your account will be suspended. https://example.com/verify"
+             :minutes-ago 300 :sample true
+             :clerk-note "Flagged: asks outright for a password and a card number; held back before any agent holding keys could read it."}]}

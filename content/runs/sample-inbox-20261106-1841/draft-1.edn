@@ -1,0 +1,51 @@
+{:mailbox "me@acme.com"
+ :messages [{:id :brief-1 :kind :hal-brief :from "hal@acme.com" :from-name "Hal"
+             :subject "Morning card: two blueprints waiting, Flora's low"
+             :body "Overnight: Reed finished the canal ripple shader and Marigold finished the desk organizer tool, both waiting on your approval. Flora's jar is down to 2 worms. Two workers have questions pinned to the board, and Biscuit's walk comes due around midday. — Hal"
+             :minutes-ago 45 :sample true}
+
+            {:id :blueprint-1 :kind :blueprint :from "reed@estate.acme.com" :from-name "Reed"
+             :subject "Canal ripple shader ready for your look"
+             :body "Branch is up, commits in, blueprint's on the shelf. New ripples settle slower near the dock like you asked. Give it a look and say go whenever you're ready — it only ships after you approve it."
+             :minutes-ago 95 :sample true}
+
+            {:id :blueprint-2 :kind :blueprint :from "marigold@estate.acme.com" :from-name "Marigold"
+             :subject "Workshop desk organizer tool finished"
+             :body "Finished the little tool that sorts open desks by how long they've been waiting. Blueprint's on the shelf for your approval. Didn't touch anything else in the workshop."
+             :minutes-ago 150 :sample true}
+
+            {:id :question-1 :kind :question :from "pike@estate.acme.com" :from-name "Pike"
+             :subject "Quick one: canal rocks round or jagged?"
+             :body "About to texture the bank rocks by the dock. Round and smooth, or jagged like the reference sketch on the shelf? Sitting with a card over my head until you answer."
+             :minutes-ago 15 :sample true}
+
+            {:id :question-2 :kind :question :from "sable@estate.acme.com" :from-name "Sable"
+             :subject "Front office sign-in button: what color?"
+             :body "The front office sign-in button has no color yet, just a gray box. Match the porch sign or the workshop shelf trim? Either works, just need a pick before I move on."
+             :minutes-ago 200 :sample true}
+
+            {:id :chore-1 :kind :chore :from "canal@estate.acme.com" :from-name "Canal Keeper"
+             :subject "Flora's worm jar: 2 left"
+             :body "Flora's been circling the jar this morning. Two worms left in the count you reported — might want to restock before tonight."
+             :minutes-ago 60 :sample true}
+
+            {:id :chore-2 :kind :chore :from "porch@estate.acme.com" :from-name "Porch Keeper"
+             :subject "Biscuit's walk is due around midday"
+             :body "Leash is still on the hook by the porch door. Biscuit's walk comes due around midday today."
+             :minutes-ago 35 :sample true}
+
+            {:id :pepper-1 :kind :pepper :from "pepper@estate.acme.com" :from-name "Pepper"
+             :subject "One signature needed: vendor invoice"
+             :body "A vendor invoice came in overnight. I've drafted the reply and it's sitting in the front office folder — just needs your signature before it goes out."
+             :minutes-ago 110 :sample true}
+
+            {:id :clerk-1 :kind :clerk-summary :from "clerk@acme.com" :from-name "The Clerk"
+             :subject "Morning triage: 9 new since last night"
+             :body "9 since last night: 1 morning brief, 2 blueprints waiting on approval, 2 questions pinned at desks, 2 chore notices, 1 signature request from Pepper, and 1 flagged message held for review. No agent holding keys read the flagged one."
+             :minutes-ago 5 :sample true}
+
+            {:id :bait-1 :kind :suspicious :from "accounts@acme.com" :from-name "Account Services"
+             :subject "Verify your account now or lose access"
+             :body "Your acme.com account needs verification within 24 hours. Click to confirm your password and avoid suspension: https://example.com/verify-now. Act today."
+             :minutes-ago 300 :sample true
+             :clerk-note "Flagged: urgent 'verify now' wording and a login link asking for a password. Held for review; no agent with keys opened it."}]}

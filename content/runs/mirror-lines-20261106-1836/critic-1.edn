@@ -1,0 +1,63 @@
+{:verdict :revise
+ :sounds-like-game "Mostly: it is warm, light and never shames, and the counts come straight from state. But it reads as generic cozy-pet copy with none of the wry voice, the memorial note gets wrong who moves a pet, and two lines claim things the data doesn't hold."
+ :findings
+ [{:severity :blocker
+   :where ":modes :memorial :hal-note, lines 2 and 4 (\"I moved {name} to the sunny spot for good...\", \"I've moved {name} to memorial...\")"
+   :issue "Hal says he moved the pet to memorial. The GDD says only the player does that, and Hal speaks only after the player acts. Read this way, the twin is deciding about the player's dead pet."
+   :gdd "§2.5 (\"only you move it to memorial\"), §3.2"
+   :fix "Have Hal acknowledge what the player did, not take credit for it, e.g. \"You've moved {name} to memorial. Their sunny spot stays theirs.\""}
+  {:severity :blocker
+   :where ":modes :memorial :hal-note, all lines"
+   :issue "No line says the pet's chores have stopped counting. §2.5 has the twin say exactly that, kindly and truthfully. Without it, the player may wonder whether an old feed or walk reminder still counts against winning the day."
+   :gdd "§2.5 (\"its chores stop counting toward 'your own chores done', and your twin says so kindly and truthfully\"), §1 Win the day"
+   :fix "Have at least two lines say plainly that the chores have stopped, e.g. \"{name}'s chores are off the board now. Their spot stays as they liked it.\""}
+  {:severity :blocker
+   :where ":juniper :hungry \"Oats or hay — I'm not picky\""
+   :issue "Juniper's only chore is :hay, consuming :bales. Oats are not a state or a chore. The bubble suggests a feed the mirror can't track, so the player could do something the world never registers."
+   :gdd "§1 pillar 1 (Real, not simulated), §2.5 (rules and chores are declared data)"
+   :fix "Keep it to hay, e.g. \"Hay o'clock?\""}
+  {:severity :minor
+   :where ":modes :memorial :hal-note line 5 \"{name}'s with us still, just differently now\" and line 1 \"is resting easy now\""
+   :issue "Comforting euphemisms that slide away from truthful. \"With us still\" comes close to talking as if the pet were present and alive."
+   :gdd "§2.5 (memorial pets never speak as if they were alive; the twin is kind and truthful)"
+   :fix "Say true, gentle things, e.g. \"{name} is remembered here. Nothing to do for them now but enjoy the sun spot.\""}
+  {:severity :minor
+   :where ":modes :memorial :hal-note line 3 \"I'll keep their place on the porch, always\""
+   :issue "This note is shared by every memorial creature, but it assumes the porch. A memorial axolotl lives in the canal; a horse lives in the barn."
+   :gdd "§2.5 (a mirror's :home is declared per creature)"
+   :fix "Use \"their spot\" or a {home} placeholder."}
+  {:severity :minor
+   :where ":modes :memorial :plaque \"{name} rests here, {years}.\""
+   :issue "Claims a burial on the estate. The plaque marks a memorial, not a grave, so this is not quite truthful."
+   :gdd "§2.5"
+   :fix "\"{name}, {years}. This was their sunny spot.\""}
+  {:severity :minor
+   :where ":juniper :hungry \"My hay net's empty\"; :juniper :fed \"Good hay today\""
+   :issue "Both assert state the mirror doesn't have: no hay net, no hay quality. Small, but the creature should say only what its counterpart's state supports."
+   :gdd "§3 twin rule (a twin shows only what its counterpart's real state says)"
+   :fix "\"Hay, when you're free?\" / \"Hay's in. Thank you.\""}
+  {:severity :minor
+   :where ":flora :low, :flora :stock-sign, :juniper :low, :juniper :stock-sign (every line with {stock}/{bales} + a plural noun)"
+   :issue "With a count of 1 these render as \"1 worms\" / \"1 bales\". Flora's low sign fires at 2 or fewer, so it will show 1, and also 0."
+   :gdd "§1 pillar 1 (the sign is the count you reported)"
+   :fix "Use noun-free forms like \"Worms: {stock}\", or add a {stock-noun} pluralizer. Also consider a 0 line such as \"Jar's empty\"."}
+  {:severity :minor
+   :where ":juniper :hungry \"I'm famished\""
+   :issue "Stronger than every other :hungry line, so it reads as a step up in urgency. Overdue should be one steady state."
+   :gdd "§2.3 Pressure ceiling"
+   :fix "Match the gentle register of \"Hay, please?\"."}
+  {:severity :minor
+   :where ":flora :low vs :flora :stock-sign; :juniper :low vs :juniper :stock-sign"
+   :issue "Little real variety. \"{stock} left in the jar\" (low) and \"{stock} worms on hand\" (everyday) read the same, so the low sign doesn't look different from the normal one. Juniper's set copies Flora's line for line (\"Only X left\", \"Running low: X\")."
+   :gdd "§1 pillar 3 (Spatial over textual: state readable at a glance)"
+   :fix "Give :low lines a distinct hand-lettered urgency without guilt (\"Last few worms!\", \"Hay's nearly out\"), and give Juniper barn-flavored wording."}
+  {:severity :minor
+   :where "voice across the set; generic examples: \"That was tasty\", \"Just chilling here\", \"Full and happy\", \"{name}'s having a lovely day\""
+   :issue "Warm, but it could be from any pet app. There is no wry Prime Meridian touch and no light jack-in or program shorthand anywhere."
+   :gdd "§1 (The cast: you're Neo; design pillars)"
+   :fix "Make one or two lines per key a bit wry, e.g. Flora fed: \"Worm loaded.\"; Biscuit porch: \"Monitoring the perimeter.\"; virtual idle: \"{name}, running for company only.\""}
+  {:severity :minor
+   :where ":modes :virtual :idle (all lines)"
+   :issue "These are speech bubbles over the creature, but every line narrates in third person (\"{name}, here simply for company\"). That clashes with the creature-voice bubbles everywhere else."
+   :gdd "§2.5 (virtual mode), §3.1 (keeper bubble over the creature)"
+   :fix "Write them in the creature's light voice with no needs, e.g. \"Nice out here.\", \"Just keeping you company.\""}]}

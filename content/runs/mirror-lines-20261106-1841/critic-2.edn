@@ -1,0 +1,43 @@
+{:verdict :revise
+ :sounds-like-game "Mostly yes: the bubbles are light and gentle, the hungry lines never guilt or escalate, and the signs track the reported counts. But many lines are interchangeable templates, and one memorial note has Hal claim an action the GDD reserves for the player."
+ :findings
+ [{:severity :blocker
+   :where ":modes :memorial :hal-note, line 4 \"I've moved {name} to memorial...\""
+   :issue "Hal says he moved the pet. The GDD says only the player can add a memorial pet or move a live pet to memorial. The twin reports what the player did; it doesn't do it. A kind note that is not truthful breaks the memorial rule."
+   :gdd "§2.5 (memorial: only you add one, only you move it), §3.2 (your agent never changes settings without you)"
+   :fix "Credit the player, for example: \"You've moved {name} to memorial. Their chores are off your list now, and the sunny spot stays theirs.\""}
+  {:severity :minor
+   :where ":modes :memorial :hal-note, line 2 \"Done — {name}'s a memorial now. Nothing to track, just memory.\""
+   :issue "\"Done\" and \"Nothing to track\" sound like a butler confirming a task, which is wrong for a pet's death. All five notes are also one sentence reworded (\"no needs... just a place to remember them\"), so there is no real variety. None of them says the GDD's truthful point that the chores stop counting toward your own chores done."
+   :gdd "§2.5 (twin says so kindly and truthfully; chores stop counting), §1 cast (twin is a companion)"
+   :fix "Drop \"Done\". Vary the notes so each does something different: acknowledge the loss (\"I'm sorry about {name}.\"), state the change (\"Their chores won't count toward your day anymore.\"), or point at what stays (\"{name} can still take the sunny spot on the porch.\")."}
+  {:severity :minor
+   :where ":modes :memorial :plaque, \"{name} rested here, {years}\""
+   :issue "This reads like a grave marker, as if the pet lived or is buried on the estate. That is not true of a virtual place, and \"rested\" is ambiguous."
+   :gdd "§2.5 (memorial lines kind and truthful), §1 pillar 1 (real, not simulated)"
+   :fix "Use something true, such as \"{name}, {years}. Always the sunniest spot.\" or \"For {name}, {years}\"."}
+  {:severity :minor
+   :where ":flora :low and :juniper :low, \"Worms running low: {stock}\", \"Jar running low: {stock}\", \"Low: {stock} left\" (and the bale versions)"
+   :issue "The :low rule fires at 2 or fewer, which includes 0. \"Running low: 0\" misreports an empty jar. The five lines are also the same label shuffled, so there is little variety."
+   :gdd "§2.5 (:rules [:<= :stock 2]), §1 pillar 1 (the sign is the count you reported)"
+   :fix "Keep lines that read true at 0, 1, and 2 (\"Worms left: {stock}\"), and swap the duplicates for hand-lettered variety that still holds the number: \"{stock} worms. Restock soon?\" or \"Down to {stock}\"."}
+  {:severity :minor
+   :where ":flora :stock-sign and :juniper :stock-sign (all five each)"
+   :issue "These are near-identical relabelings (\"Worms: / Worm jar: / Jar count: / Worms in jar: / Worm stock:\"). A hand-lettered sign could carry a little character without losing the count."
+   :gdd "§2.4 (the canal: a worm jar), §1 pillar 3 (readable at a glance)"
+   :fix "Keep two plain ones and add one or two with warmth, such as \"Flora's worms: {stock}\" or \"{bales} bales, stacked\"."}
+  {:severity :minor
+   :where ":flora :hungry \"Is it five already?\""
+   :issue "The due state persists past 17:00 and never escalates, so at 9 pm this line reads oddly. It is harmless but clock-specific."
+   :gdd "§2.3 (pressure ceiling: one steady overdue state), §2.5 (Flora :at \"17:00\")"
+   :fix "Make it time-agnostic, for example \"Worm o'clock?\"."}
+  {:severity :minor
+   :where ":fed generic lines: \"Much better\", \"Full now\", \"Satisfied now\", \"That's the stuff\", \"Good walk\", \"Resting up\"; parallel templates \"Mm, worms\"/\"Mm, hay\", \"Any worms going?\"/\"Any hay going?\""
+   :issue "These are interchangeable across any creature and give no sense of an axolotl, a horse, or a dog. Flora and Juniper are mirrored line for line."
+   :gdd "§1 (cozy, warm, wry voice), §2.5 (personality shapes behavior)"
+   :fix "Give each creature a little species flavor: Flora with gill-flutter or slow-water calm (\"*gills fluff*\", \"Back to drifting\"); Juniper with a horse's contentment (\"*happy snort*\"); Biscuit with dog energy (\"Smelled everything. Ten out of ten.\")."}
+  {:severity :minor
+   :where ":modes :virtual :idle, all five"
+   :issue "These are written as third-person narration (\"{name} naps in the sun\"), but bubbles are the creature's own voice. \"Watches the yard\" and \"naps in the sun\" also assume a land animal, which may not fit a virtual fish. The lines correctly carry no needs or chores."
+   :gdd "§2.5 (:virtual: no needs, never jacks you out; any creature)"
+   :fix "Use species-neutral first-person or wordless bubbles, such as \"Just hanging out\", \"*content*\", or \"Nice day for it\"."}]}

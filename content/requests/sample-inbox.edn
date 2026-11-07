@@ -1,0 +1,58 @@
+{:id    :sample-inbox
+ :title "The pretend inbox (me@acme.com)"
+ :out   "resources/content/sample-inbox.edn"
+ :max-drafts 5
+ :sources {:gdd ["1." "2.4" "2.8" "3." "4.6"]
+           :files []}
+ :brief "Demo mode runs every connection on its pretend version (GDD §4.6). The pretend mail
+connection is the inbox me@acme.com: the mailbox on the estate where Hal, the agents, and
+the player's chores write to the player, and the Clerk (§3.2, the reader with no keys)
+summarizes it. Write the inbox a new player finds on day one: 8 to 12 messages from the
+last 24 hours that make the estate feel alive and teach the loop by example.
+
+Include at least one of each :kind:
+- :hal-brief      Hal's morning card as mail (what changed overnight, what waits for approval)
+- :blueprint      a worker's finished blueprint waiting for the player's approval
+- :question       a worker's question (the '!' as mail): it asks via ask_player and waits
+- :chore          a chore notice from a mirror (Flora's worms, Juniper's hay, Biscuit's walk)
+- :pepper         Pepper, the business manager: something needs the player's signature
+- :clerk-summary  the Clerk's short triage of the inbox (counts and one-line summaries)
+- :suspicious     a bait message (a fake 'verify your account' style mail) that the Clerk
+                  flagged and no agent with keys ever read; it carries the Clerk's :clerk-note
+
+Everything is pretend and everyone's: generic people and business at acme.com, the sample
+estate's creatures, no real names or companies.
+
+It is a brand-new player's FIRST day in demo mode, so:
+- nothing may claim the player did, asked, reported or approved anything before today;
+- workers work on the player's own sample projects (each workshop is one of the player's repos,
+  e.g. a garden-club website or a recipe app), never on the game's own code (§2.8: the author is
+  the Oracle only for the game itself);
+- chore notices come from Hal (the keeper is his errand, §3: not a character of its own) and say
+  only what the mirror's state says (due, stock), never what the animal is doing;
+- Pepper works from the payments account and business chores, never from mail (§3.2);
+- a worker's question is a red \"!\" at its desk, raised via ask_player; the notice board holds the
+  calendar and reminders (§2.4)."
+ :shape "{:mailbox \"me@acme.com\"
+ :messages [{:id :brief-1 :kind :hal-brief :from \"hal@acme.com\" :from-name \"Hal\"
+             :subject \"...\" :body \"...\" :minutes-ago 45 :sample true}
+            {:id :bait-1 :kind :suspicious :from \"...@acme.com\" :from-name \"...\" :subject \"...\"
+             :body \"...\" :minutes-ago 300 :sample true :clerk-note \"...\"}
+            ...]}"
+ :rules "- 8-12 messages, every :kind above at least once, unique keyword :ids
+- :from ends with @acme.com or @estate.acme.com; every message has :sample true and :from-name
+- :minutes-ago between 0 and 1440; subject at most 70 characters, body at most 700
+- links only to https://example.com/...; no real people, companies or products
+- only the :suspicious message may mention passwords, card numbers or bank details
+- no XP, scores, streaks, shaming; no film lines
+- say only what the event carries and the GDD guarantees: never claim state the event doesn't tell you (what changed, whether work was saved, whether a program is sample or real, the time of day, the weather)
+- the timeline must hold: now is about 9:00 am, the brief went out at 8:15 (:minutes-ago 45), so time words in each message must match its :minutes-ago; the Clerk's counts must match the messages exactly"
+ :critic "6. Inbox specifics: purchases and messages to other people need the player's approval (Pepper drafts, the player signs); a worker's question waits for the player's answer; the Clerk returns counts and summaries only and no agent with keys reads raw untrusted mail; the brief is Hal's 8:15 errand; nothing pretends to be real (§3 twin rule).\n"
+ :checks {:kind :inbox
+          :mailbox "me@acme.com"
+          :kinds [:hal-brief :blueprint :question :chore :pepper :clerk-summary :suspicious]
+          :count-range [8 12]
+          :from-domains ["acme.com" "estate.acme.com"]
+          :banned-names ["Michael" "Lopez" "Greg" "Lotect" "Hiroshi" "xicubed" "ELVTR" "Moscow"]
+          :max-body 700
+          :max-subject 70}}

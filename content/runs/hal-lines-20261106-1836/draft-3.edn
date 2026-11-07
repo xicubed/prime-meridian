@@ -1,0 +1,108 @@
+{:last-call
+ ["Last call. Wrap what you're on."
+  "Closing's close. Anything left to say?"
+  "Almost time — last chance before I walk you out."
+  "Nearly closing. Say what needs saying."
+  "Last call. The night crew takes it from here soon."],
+ :chore-done
+ ["{name}'s {chore}: logged. That one counts."
+  "Got it — {name}'s {chore} is done."
+  "{name}'s set. Thanks for handling that."
+  "Marked: {chore} for {name}. Good timing."
+  "{name}'s {chore} is in. The world knows now."],
+ :morning-brief
+ ["Pinned the card: {count} things for today."
+  "Morning brief's up — {count} items worth a look."
+  "Board's got {count} for you this morning."
+  "{count} on the card today. Start wherever you like."
+  "Pinned {count} on the board. Take a look when you can."],
+ :blueprint-ready
+ ["{count} blueprints are waiting on your word."
+  "{count} changes ready for your eyes before they're real."
+  "The shelf's got {count} for you to approve or send back."
+  "{count} waiting. Nothing's real until you say so."
+  "{count} blueprints up. Take a look whenever."],
+ :next-small-step
+ ["Things got a little overgrown. One small step and we're back."
+  "Nothing's broken, just quiet. Pick one thing and I'll start there."
+  "The estate's resting, not ruined. Want the smallest next move?"
+  "A bit untended lately. One answer from you and it turns."
+  "No damage done. Just tell me where to start again."],
+ :jack-out-appointment
+ ["Leave by {leave-at} for {event}. I'll cover here."
+  "{event} at the other end — go by {leave-at}."
+  "You've got until {leave-at} for {event}, then go."
+  "{event}'s real. Out the door by {leave-at}."
+  "By {leave-at}, for {event}. Everything here parks."],
+ :program-loaded
+ ["{program}'s loaded. Watch the {building} rise."
+  "That's {program} on my belt now. {building}'s going up."
+  "Felt that one. {building} just broke ground."
+  "{program}'s loaded (sample for now). The {building} is yours to walk into."
+  "New tool, new building. {building}'s here because of {program}."],
+ :coming-back
+ ["Good. {chore} is logged, and it counts."
+  "That's done in the world now too."
+  "Real life first, always. {chore}'s on the books."
+  "Noted: {chore}. Welcome back in."
+  "{chore}'s counted. A couple of things moved while you were out."],
+ :jack-out-creature
+ ["{name} needs you, not me. Go."
+  "That's real. {name}'s waiting on you."
+  "{name} comes first. I'll hold the fort."
+  "Go see to {name}. This can wait."
+  "{name}'s calling. The blueprints will still be here."],
+ :stay-late
+ ["Asked once — you're staying. I'll keep the lights on."
+  "Your call to make, not mine. Settling in, then."
+  "Alright. Staying's your call, not mine to make twice."
+  "Noted. I won't ask again tonight."
+  "Fair enough. The estate stays up with you."],
+ :jack-in
+ ["Welcome back."
+  "Overnight's logged. Let's see what the crew made of it."
+  "You're in. The estate's been quiet without you."
+  "Lights are up. Ready when you are."
+  "Back online. Let's see who's waiting."],
+ :program-needed
+ ["I need {program} for this one. Want to load it?"
+  "This task wants {program}. I don't have it yet."
+  "Can't reach this without {program}. Your call."
+  "{program} would get this done. Should I ask for it?"
+  "Missing piece: {program}. Load it and I'll run with it."],
+ :weekly-card
+ ["{hours} hours in the game this week. Trend's on the board."
+  "This week: {hours} hours jacked in. No score, just a line."
+  "{hours} hours logged this week — the trend's what matters."
+  "Weekly card's up: {hours} hours. Watch the direction, not the number."
+  "{hours} hours this week. The board shows where it's heading."],
+ :closing-time
+ ["That's closing. Go rest easy."
+  "Closing time. The estate goes quiet now."
+  "Day's done. I've got the night from here."
+  "Closing time. See you next round."
+  "That's the day. Time to step away."],
+ :jack-out-household
+ ["Go. They said \"{text}\"."
+  "That's household. Everything here holds."
+  "\"{text}\" — go, I've got the desks."
+  "Nothing here outranks that. Go."
+  "Household calls, you answer. I'll keep the lights on."],
+ :coach-habit
+ ["You said {habit}: {goal}. Today's one of them?"
+  "Your words, not mine: {habit}, {goal}. How's it going?"
+  "{goal} was your line for {habit}. Still holds?"
+  "Checking in on {habit}, the way you set it: {goal}."
+  "You set {goal} for {habit}. I'm just asking, not counting."],
+ :agent-stalled
+ ["{agent} went quiet — cap's run dry. Desk's open again."
+  "{agent}'s stopped reporting. Freed up the desk for now."
+  "Lost {agent}'s signal — usage ran out. Desk's free, keycards back."
+  "{agent}'s parked. We'll pick it back up when the cap resets."
+  "{agent} stalled out on usage. Desk's free, keycards are back."],
+ :memorial-moved
+ ["{name}'s moved to memorial. Always here."
+  "{name} has a place now, apart from the rest."
+  "{name}'s settled in memorial. Visit anytime."
+  "Moved {name} to memorial. That stays."
+  "{name} rests in memorial now."]}

@@ -1,0 +1,58 @@
+{:verdict :revise
+ :sounds-like-game "Partly: the estate details (blueprint on the shelf, leash on the hook by the porch door, the jar count) place it firmly on the estate, but most lines read as plain status reports, with little of the game's warmth, wryness, or jack-in shorthand, and Hal sounds more like a ticket system than a companion."
+ :findings
+ [{:severity :blocker
+   :where ":chore-1 and :chore-2 :from / :from-name (\"Canal Keeper\" canal@estate.acme.com, \"Porch Keeper\" porch@estate.acme.com)"
+   :issue "The keeper is one of Hal's errands, not a character. These two invent new senders with their own identities, which breaks the rule that scheduled jobs running as Hal are errands and that a character needs its own account, credentials, and memory."
+   :gdd "§3 (A character means a separate identity), §3.1 (Hal's errand: keeper)"
+   :fix "Send both from hal@acme.com, with :from-name \"Hal\". Optionally tag the subject or body as the keeper errand (e.g. \"Keeper check: Flora's jar\"), and drop the canal@/porch@ addresses."}
+  {:severity :blocker
+   :where ":pepper-1 :body (\"A vendor invoice came in overnight. I've drafted the reply...\")"
+   :issue "An invoice arriving by mail is untrusted content. Pepper holds keys (the payments account), and her drafting a reply to it means she read raw mail. Agents with keys never read raw untrusted content. Pepper's input is the payments account and business chores, not the inbox."
+   :gdd "§3.2 (A reader with no keys), §3.1 (Pepper: takes the payments account and business chores)"
+   :fix "Source the item from the mock ledger or a business chore instead, e.g. \"A customer refund request came through the ledger overnight. I've drafted the refund and a short note to them; both are in the front office folder and wait on your signature.\" The rule against Pepper reading raw mail has no exception for summaries, so do not pass the Clerk's summary to Pepper either: the Clerk's output goes to you only."}
+  {:severity :blocker
+   :where ":brief-1 :body (\"Two workers have questions pinned to the board\")"
+   :issue "The notice board holds today's calendar and reminders. A worker's question is a red \"!\" at the worker's desk, raised through ask_player. The day-one inbox teaches the loop by example, so this teaches the wrong place to look. It also contradicts the Clerk's own \"2 questions pinned at desks\"."
+   :gdd "§2.4 (Notice board: calendar and reminders), §3.1 (ask_player raises \"!\"), §1 (core loop: spot who needs you (\"!\"))"
+   :fix "\"Pike and Sable are each waiting at their desks under a \"!\"; one word from you and they're back to work.\""}
+  {:severity :minor
+   :where ":question-1 :body (\"Sitting with a card over my head until you answer.\")"
+   :issue "What floats over a waiting worker is the red \"!\", not a card. Cards belong to Hal's notice board."
+   :gdd "§1, §3.1"
+   :fix "\"I'm parked at my desk under a red '!' until you pick.\""}
+  {:severity :minor
+   :where ":blueprint-1 :body (\"like you asked\"), :chore-1 :body (\"in the count you reported\")"
+   :issue "This is a new player's day one in demo mode: they asked for nothing and reported no count. Within the sample this is not a deception, but it reads oddly to someone who just arrived and blurs the pretend/real line the twin rule cares about."
+   :gdd "§3 (twin rule), §2.8 (zero accounts to start), §4.6"
+   :fix "Reword so the sample owns the history: \"settle slower near the dock, per the sample estate's night order\"; \"Two worms left in the sample jar. Restock before tonight, or tell me the real count once Flora's connected.\""}
+  {:severity :minor
+   :where ":chore-1 :body (\"Flora's been circling the jar this morning.\")"
+   :issue "The keeper takes only the mirror's state and chores and emits events such as due :feed and stock 2. Behavior the state doesn't report is invented, even in a sample."
+   :gdd "§3 (a twin shows only what its counterpart's real state says), §3.1 (keeper)"
+   :fix "Stick to state plus the in-world bubble: \"Feeding's due and the jar says 2 worms left. Flora's floating an 'I'm hungry' over the weeds.\""}
+  {:severity :minor
+   :where ":brief-1 (whole card)"
+   :issue "The brief is meant to cover what waits for approval, but it omits Pepper's signature request. It also never anchors itself as the 8:15 errand. The voice is a flat list with no companion warmth."
+   :gdd "§3.1 (morning brief, 8:15), §1 (Hal is your twin, your body in the digital world)"
+   :fix "Add Pepper's folder to the approvals and open with time and warmth, e.g. \"8:15, card's on the board. While you were out: Reed and Marigold each left a blueprint on the shelf, Pepper has one folder for your signature, and Flora's jar is down to 2. Biscuit wants his walk around noon, and that one's all you. — Hal\""}
+  {:severity :minor
+   :where ":clerk-1 :body"
+   :issue "The ask was counts and one-line summaries, but this is counts only, so it adds little over the inbox list itself."
+   :gdd "§3.1 (Clerk: a count plus a short triage summary)"
+   :fix "Keep the count line and add a few one-liners: \"Approvals: Reed's canal ripples, Marigold's desk sorter, Pepper's folder. Questions: rocks (Pike), button color (Sable). Chores: Flora's worms, Biscuit's walk. Held: 1 'verify your password' bait, unread by anyone with keys.\""}
+  {:severity :minor
+   :where ":from addresses (hal@acme.com, clerk@acme.com vs reed@/pepper@estate.acme.com)"
+   :issue "The split between two domains for the estate's own cast is arbitrary, and it muddies the spoofing lesson of the bait from accounts@acme.com."
+   :gdd "§4.6"
+   :fix "Put the whole cast on one domain (e.g. estate.acme.com) and leave the bare acme.com domain to outside senders like the bait."}
+  {:severity :minor
+   :where ":question-2 :subject/:body (\"Front office welcome button\")"
+   :issue "The front office is the business (what sold, what's owed, what needs your signature). A UI welcome button there is an odd fit, and the question is generic."
+   :gdd "§2.4"
+   :fix "Tie it to a real place, e.g. \"The mailbox flag: should it pop up red or swing out when mail piles up? Need a pick before I rig it.\""}
+  {:severity :minor
+   :where "subjects: \"Workshop desk organizer tool finished\", \"One signature needed: vendor invoice\""
+   :issue "These read like generic ticket titles rather than voices on the estate."
+   :gdd "§1 (design pillars, tone)"
+   :fix "Give each sender a little character, e.g. Marigold: \"Built you a sorter for the waiting desks\"; Pepper: \"One folder, one signature, then it's off your plate\"."}]}

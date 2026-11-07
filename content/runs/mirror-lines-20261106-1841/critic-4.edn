@@ -1,0 +1,38 @@
+{:verdict :pass
+ :sounds-like-game "Mostly: the lines are light, never guilt-trip, and the counts on signs stay true, but many are flat and interchangeable ('Much better', 'Good walk', 'Resting up') and lack the warm, wry personality the game's voice calls for."
+ :findings
+ [{:severity :minor
+   :where ":flora :low / :juniper :low, and both :stock-sign sets"
+   :issue "Each set of five is one line reworded ('Worms left' / 'Low worms' / 'Worms running low' / 'Jar running low' / 'Low: N left'; 'Bales' / 'Hay bales' / 'Bale count' / 'Hay stock'). Hand-lettered labels give room for more personality than this."
+   :gdd "§2.5"
+   :fix "Keep one plain line per set, such as 'Worms: {stock}'. Make the rest truly different hand-lettered notes: 'Worm jar ({stock}). Restock soon', 'Only {stock}. Bait shop?', '{bales} bales. Order more hay'."}
+  {:severity :minor
+   :where ":flora :low 'Jar running low: {stock}', 'Worms running low: {stock}'; :juniper :low 'Hay running low: {bales}', 'Barn running low: {bales}'"
+   :issue "The low rule fires at 2 or fewer for Flora and 3 or fewer for Juniper, which includes 0. 'Running low: 0' is wrong once the supply is empty. 'Barn running low' also names the wrong thing: the hay is low, not the barn."
+   :gdd "§1 pillar 1 (real, not simulated); estate.edn :rules"
+   :fix "Change the low lines to wording that stays true at 0 ('Worms left: {stock}'), or ask for an :empty variant. Change 'Barn running low' to 'Hay pile low: {bales}'."}
+  {:severity :minor
+   :where ":flora :hungry 'Is it five already?'"
+   :issue "The overdue state holds steady until she is fed, so this line can show at 9 pm or the next morning, when it no longer fits. It doesn't escalate, so this is a small timing mismatch."
+   :gdd "§2.3 pressure ceiling; estate.edn :chores :at 17:00"
+   :fix "Change it to a line that fits at any hour after due, such as 'Worm o'clock?'."}
+  {:severity :minor
+   :where ":modes :memorial :hal-note lines 1, 3, 5"
+   :issue "The three lines repeat 'no needs... just a place to remember them' almost word for word. They read as a status change, not a kind word about a pet who died ('{name}'s a memorial now. No needs left' is especially cold). Only line 2 acknowledges the loss. They are truthful, but the GDD asks for kind and truthful, and Hal is a companion."
+   :gdd "§2.5 memorial mode; §3.2 your agent as coach"
+   :fix "Open every line with the loss, then state the truth in different words. Example: 'I'm sorry about {name}. I've taken their chores off your list; the sunny spot is still theirs.' Another: '{name} was lucky to have you. Nothing's due from you anymore. They'll still be on the estate.'"}
+  {:severity :minor
+   :where ":modes :memorial :plaque '{name} rested here, {years}'"
+   :issue "The wording is ambiguous. It can read as a grave marker or as if the pet only napped there during those years."
+   :gdd "§2.5 memorial mode"
+   :fix "Change it to something plain and warm, such as '{name}, {years}. Loved here.' or 'For {name}, {years}'."}
+  {:severity :minor
+   :where ":modes :virtual :idle '{name} naps in the sun', '{name} watches the yard', '{name}'s just here for company'"
+   :issue "These are bubbles, but they read as third-person narration rather than the creature's light 'voice' that the :say lines use. 'Watches the yard' and 'naps in the sun' also assume a land animal, and these lines must work for any kind of virtual creature, an axolotl in the canal included."
+   :gdd "§2.5 (mirrors are any creature, declared as data)"
+   :fix "Write kind-neutral first-person lines that state no needs: 'Just hanging out', 'Nice day for it', 'Don't mind me'. Or ask for the lines to be split by :model."}
+  {:severity :minor
+   :where ":flora :fed 'Much better', 'Full now'; :juniper :fed 'Satisfied now', 'That's the stuff'; :biscuit :walked 'Good walk', 'Needed that'; :biscuit :porch 'Resting up'"
+   :issue "These lines are generic and could come from any creature in any game. Each creature is a real animal with its own real habits, and that specificity is missing."
+   :gdd "§1 design pillars 1 and 3; §2.5 personality"
+   :fix "Tie lines to the creature and the place: Flora 'Back to the weeds', 'Gills say thanks'; Juniper 'Crunch crunch'; Biscuit 'Smelled every tree', 'Leash back on the hook'."}]}

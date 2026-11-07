@@ -1,0 +1,62 @@
+{:verdict :revise
+ :sounds-like-game "Mostly yes: the jack-out, stay-late, and closing-time lines carry Hal's warm, unpushy companion voice and send the player back to life, but the count-driven keys (morning-brief, blueprint-ready) read like a status log, and the memorial lines read like a database confirmation."
+ :findings [{:severity :blocker
+             :where ":next-small-step line 3, \"The grounds got a little quiet. One answer and we're moving again.\""
+             :issue "This key fires when the estate is overgrown from missed days or chores, not when a question is pending. The line claims an answer is waiting when there may be no \"!\" at all. A twin shows only what real state says, and a wrong \"!\" teaches players to ignore every \"!\"."
+             :gdd "§3 twin rule; §2.1 status vocabulary (Unknown); §1 pillar 1"
+             :fix "Drop the claim of a pending answer, e.g. \"The grounds went a little wild. One small thing and they'll come back.\""}
+            {:severity :blocker
+             :where ":next-small-step line 4, \"No rush. Pick one thing, and I'll handle the rest.\""
+             :issue "Hal promises to do things only the human can do. The overgrown state usually comes from human parts (chores, habits), and the twin is not the player's hands in the physical world. This also undercuts the reverse loop and the long-term win, which counts chores done in person."
+             :gdd "§1 cast (\"You're its hands in the physical world\"); §1 core loop / reverse loop; §1 win/loss"
+             :fix "Keep the split honest, e.g. \"Pick one thing out there. I'll keep the desks in here.\""}
+            {:severity :blocker
+             :where ":blueprint-ready line 4, \"Last night's work, waiting: {count}.\""
+             :issue "Blueprints also come from daytime tasks, so this line can misstate where the work came from whenever it fires outside the morning tray. The twin must not narrate a state that isn't true."
+             :gdd "§2.1 Approve; §2.3 step 5; §3 twin rule"
+             :fix "Remove it, or gate it to the morning-card tray only. Otherwise use a source-neutral line such as \"{count} on the shelf, ghosted and waiting on your yes.\""}
+            {:severity :minor
+             :where ":morning-brief (all four) and :blueprint-ready lines 1-3"
+             :issue "These are the same line reworded and sound robotic: \"Items: {count}.\", \"Count: {count}.\", \"Blueprints waiting: {count}.\" A colon-and-number reads like a log, which is the wall of text the game exists to replace."
+             :gdd "§1 Why a game, not a terminal; §1 pillar 3"
+             :fix "Vary what each line says: one points at the board, one previews the first item, one says how light the day looks, one invites a walk to the shelf. Example: \"Card's on the board. {count} things, nothing on fire.\""}
+            {:severity :minor
+             :where ":last-call (all four)"
+             :issue "No line mentions night-shift orders, which must be in by closing. Last call is the moment to deliver the day's real choice. Lines 1 and 4 are also near-rewords of each other."
+             :gdd "§2.3 step 4 (night-shift orders by closing), step 5 (last call 10:15)"
+             :fix "Swap one or two lines for an orders nudge, e.g. \"Last call. Anything for the night crew before {bedtime}?\" and \"Fifteen to {bedtime}. Which desks get the frontier tonight?\""}
+            {:severity :minor
+             :where ":memorial-moved, all lines, especially \"Moved {name} to memorial.\" and \"I've set {name} a place in memorial.\""
+             :issue "These lines are clinical for a pet who died. Lines 1 and 4 are rewords of each other. Lines 2 and 4 also credit Hal with a move the player made."
+             :gdd "§2.5 (memorial creatures, via §3 twin rule); §3.2 coach never shames, points to real people"
+             :fix "Make them warm and quiet, credit the player, and imply no needs, e.g. \"{name} has a quiet spot now. Nothing to tend, just there.\" and \"That's a good place for {name}. Take your time.\""}
+            {:severity :minor
+             :where ":coach-habit, \"You said {goal} for {habit}.\" and \"You told me {goal} on {habit}.\""
+             :issue "If {goal} holds the player's own words (\"three workouts a week\"), appending {habit} renders as \"You said three workouts a week for workout.\" None of the lines offers the concrete small ask the GDD models (\"One today?\"). \"Where are we today?\" and \"How's it going?\" are generic."
+             :gdd "§3.2 coach (\"You said three workouts a week. One today?\"); §2.6 declared habits"
+             :fix "Let {goal} carry the words and add a small ask, e.g. \"You said {goal}. One today?\" and \"{goal}, your words. Room for one this afternoon?\""}
+            {:severity :minor
+             :where ":weekly-card (all four)"
+             :issue "Every line disclaims \"not a score\" or \"not grading\", which is the same move four times and sounds defensive. No line names the direction of the trend or the second measure (agents needing you less). \"This week: {hours} in.\" also breaks if {hours} is a bare number."
+             :gdd "§1 win/loss (long-term win, weekly card, never a score)"
+             :fix "Drop most of the disclaimers and vary the content: hours down, agents asking less, a nod to time out in the world. Render {hours} with units, e.g. \"{hours} in here this week, and the crew asked you less. That's the good direction.\""}
+            {:severity :minor
+             :where ":agent-stalled line 3, \"{agent} went quiet — cap must've run out.\""
+             :issue "The event already knows the cap ran out, so \"must've\" reads as Hal guessing, and the GDD says the bridge doesn't guess. No line mentions that the stalled agent's keycards come back."
+             :gdd "§3.1 stalled; §2.1 status Unknown, Check the juice"
+             :fix "State it plainly and add what the player sees, e.g. \"{agent} ran out of juice. Desk's free, keycards are back.\""}
+            {:severity :minor
+             :where ":program-loaded and :program-needed line 2, \"I don't have {program} yet for this task.\""
+             :issue "The program-loaded lines are flat for the GDD's Matrix moment. Program-needed line 2 never asks the player to load the program, though the twin is supposed to ask right then."
+             :gdd "§2.6 loadout; §2.7 (\"I need a program for this one.\" \"Loading.\")"
+             :fix "Give one loaded line a snap-open beat, e.g. \"{program}'s on the belt. There goes the {building}.\" End program-needed line 2 with an ask: \"Need {program} for this one. Load it?\""}
+            {:severity :minor
+             :where ":chore-done line 3 and :coming-back lines 1/3/4, lines that open on {chore}"
+             :issue "Chore ids like :feed render lowercase at the start of the bubble (\"feed for Flora — marked done.\"). The draft also mixes em dashes and colons across keys."
+             :gdd "§2.1 Mark a chore done (chore ids are data)"
+             :fix "Avoid opening on {chore}, or have the renderer capitalize it. Pick one punctuation style for the set."}
+            {:severity :minor
+             :where ":jack-in line 5, \"You're jacked in. Let's get going.\"; :jack-out-appointment line 4, \"I'll hold the fort.\""
+             :issue "These are generic filler that could come from any assistant. They carry no estate or TRON flavor."
+             :gdd "§1 cast (Matrix/TRON shorthand); §2.3 step 1"
+             :fix "Tie them to the place, e.g. \"Grid's up. The workshop lights stayed on for you.\" and \"Leave at {leave-at}. The estate will still be here.\""}]}

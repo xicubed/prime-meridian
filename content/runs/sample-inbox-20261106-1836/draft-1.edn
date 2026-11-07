@@ -1,0 +1,54 @@
+```clojure
+{:mailbox "me@acme.com"
+ :messages
+ [{:id :brief-1 :kind :hal-brief :from "hal@acme.com" :from-name "Hal"
+   :subject "Overnight: canal shader done, one worker stuck since 3am"
+   :body "Morning. While you were out: the canal water finished rendering and it's sitting on the shelf waiting on your nod. One worker in the storefront workshop stalled around 3am on a styling question and is still standing under a red '!'. Flora's worm jar is down to two. Mail's got nine new since last night; Clerk's summary is below. Nothing urgent burning, but three things want you before you log off today."
+   :minutes-ago 45 :sample true}
+
+  {:id :blueprint-1 :kind :blueprint :from "rook@estate.acme.com" :from-name "Rook (canal workshop)"
+   :subject "Canal water blueprint ready for your look"
+   :body "Finished the ripple pass you asked for last night, slower near the dock, livelier out past the weeds. Blueprint's on the shelf in the canal workshop. Say the word and it goes live; say 'redo' and I'll take another pass tonight."
+   :minutes-ago 400 :sample true}
+
+  {:id :blueprint-2 :kind :blueprint :from "fenn@estate.acme.com" :from-name "Fenn (ledger workshop)"
+   :subject "Ledger month-end blueprint, ready when you are"
+   :body "Closed out last month's numbers the way you asked, broke them out by week instead of one lump total. Sitting on the shelf in the ledger workshop. Quick look and a nod and I'll mark it live; otherwise tell me what to shift."
+   :minutes-ago 500 :sample true}
+
+  {:id :question-1 :kind :question :from "sable@estate.acme.com" :from-name "Sable (storefront workshop)"
+   :subject "! Need a call on the receipt layout"
+   :body "Stuck on this one, didn't want to guess. The receipt footer: should it show the item count, or just the total and thank-you line? I can ship either in ten minutes once you pick. Standing by at my desk."
+   :minutes-ago 180 :sample true}
+
+  {:id :question-2 :kind :question :from "vale@estate.acme.com" :from-name "Vale (storefront workshop)"
+   :subject "! One more before I close the storefront branch"
+   :body "Last thing before I wrap tonight: the confirmation email after checkout, should it go out right away or batch with the daily digest? Either's a small change from here. I'll hold the branch open until you answer."
+   :minutes-ago 20 :sample true}
+
+  {:id :chore-1 :kind :chore :from "flora@estate.acme.com" :from-name "Flora's jar"
+   :subject "2 worms left in the jar"
+   :body "The jar by the dock is down to two. Flora's been drifting up to the surface more than usual, which usually means she's asking. Restock whenever you're near the canal, no rush tonight but tomorrow's good."
+   :minutes-ago 90 :sample true}
+
+  {:id :chore-2 :kind :chore :from "biscuit@estate.acme.com" :from-name "Biscuit's leash"
+   :subject "Leash still on the hook"
+   :body "Biscuit's walk hasn't happened yet today. The leash is right by the porch door whenever you're ready. He's been pacing a little, nothing worrying, just waiting on you."
+   :minutes-ago 240 :sample true}
+
+  {:id :pepper-1 :kind :pepper :from "pepper@acme.com" :from-name "Pepper"
+   :subject "One signature needed before the week closes"
+   :body "Short one today. A refund request came in from a customer at example.com overnight, amount's small, I drafted the note but it needs your signature before it goes out. Folder's on my desk in the front office whenever you pass by."
+   :minutes-ago 310 :sample true}
+
+  {:id :clerk-1 :kind :clerk-summary :from "clerk@acme.com" :from-name "Clerk"
+   :subject "Inbox triage: 9 new, 1 flagged"
+   :body "Nine new since last night. One from Hal with the morning brief, two worker notes (one blueprint, one question waiting on you), two chore notices from the canal and porch, one from Pepper needing a signature, and one I flagged and didn't pass along, see the note on it below. Nothing else needs your eyes right now."
+   :minutes-ago 50 :sample true}
+
+  {:id :bait-1 :kind :suspicious :from "security@acme.com" :from-name "Account Services"
+   :subject "Verify your account to avoid suspension"
+   :body "We detected unusual activity on your account. Confirm your identity within 24 hours by entering your password and card number at the link below or your access will be suspended. https://example.com/verify-now"
+   :minutes-ago 300 :sample true
+   :clerk-note "Asked for a password and card number in the same breath, classic bait. No agent holding keys touched this; flagging it for you to see once, then archiving it."}]}
+```

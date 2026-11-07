@@ -1,0 +1,2 @@
+[":morning-brief[0]: a count followed by a plural noun reads wrong at 1 (\"1 worms\"): put the count after a label (\"Worms: {stock}\"): \"Morning card's up: {count} items.\""
+ ":weekly-card[1]: a count followed by a plural noun reads wrong at 1 (\"1 worms\"): put the count after a label (\"Worms: {stock}\"): \"{hours} this week. Worth noticing, nothing more.\""]

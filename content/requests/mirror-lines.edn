@@ -1,0 +1,53 @@
+{:id    :mirror-lines
+ :title "Mirror bubbles and signs (creatures that mirror real life)"
+ :out   "resources/content/mirror-lines.edn"
+ :max-drafts 5
+ :sources {:gdd ["1." "2.3" "2.4" "2.5" "3."]
+           :files ["resources/estate.edn"]}
+ :brief "Mirrors are real-life creatures declared as data (GDD §2.5). Over a creature floats a
+short speech bubble (:say) and on its supply sits a sign (:sign); the keeper errand (§3.1)
+turns its state into these. Write 3 to 5 different lines for each key below. Bubbles are
+what the creature 'says' in the game's light way (an axolotl doesn't talk, but the GDD's
+Flora says \"I'm hungry\"); signs are hand-lettered labels on the jar or the hay pile.
+
+Mirrors in the sample estate (see resources/estate.edn and §2.5):
+- :flora    the axolotl in the canal, eats worms every 2 days at 5 pm; state {stock} = worms in the jar
+  keys: :hungry (bubble, feeding is due) :fed (bubble, just fed) :low (sign, 2 or fewer left, {stock})
+        :stock-sign (the jar's everyday sign, {stock})
+- :juniper  the horse in the barn, hay every 12 hours; state {bales}
+  keys: :hungry :fed :low ({bales}) :stock-sign ({bales})
+- :biscuit  the dog on the porch (nickname Bisco), walked daily, his leash hangs by the door
+  keys: :walk-due (bubble, he's at the door) :walked (bubble, after the walk) :porch (idle bubble)
+
+Modes (§2.5), for any creature:
+- :memorial  a pet who died. Needs nothing, NEVER speaks as if alive.
+  keys: :plaque (the small plaque by its sunny spot; {name}, {years}; not in the pet's voice)
+        :hal-note (what Hal says when the player moves a pet to memorial; {name}; kind and truthful)
+- :virtual   a creature kept for company, no needs, never calls the player out.
+  keys: :idle (its bubble; {name}; no needs, no chores)"
+ :shape "{:mirrors {:flora   {:hungry [..] :fed [..] :low [..] :stock-sign [..]}
+           :juniper {:hungry [..] :fed [..] :low [..] :stock-sign [..]}
+           :biscuit {:walk-due [..] :walked [..] :porch [..]}}
+ :modes   {:memorial {:plaque [..] :hal-note [..]}
+           :virtual  {:idle [..]}}}
+Each [..] is a vector of 3-5 strings."
+ :rules "- exactly the mirrors, modes and keys above; 3-5 distinct lines each
+- bubbles and signs at most 32 characters; :plaque at most 60; :hal-note at most 110; :idle at most 40
+- placeholders only where listed: {stock} (flora :low/:stock-sign), {bales} (juniper :low/:stock-sign), {name} and {years} (memorial), {name} (virtual :idle)
+- memorial and virtual lines name no needs or chores (hungry, feed, fed, worms, hay, walk, leash, due)
+- :plaque is never in the pet's own voice (no I, I'm, me, my)
+- no XP, scores, streaks, shaming; no film lines
+- say only what the event carries and the GDD guarantees: never claim state the event doesn't tell you (what changed, whether work was saved, whether a program is sample or real, the time of day, the weather)
+- a count is a label, not a sentence subject: \"Worms: {stock}\", never \"{stock} worms\" (the count can be 0 or 1)"
+ :critic "6. Mirror specifics: a creature's lines must match its real chores and counter (Flora: worms every 2 days; Juniper: hay every 12 hours; Biscuit: a daily walk, the leash by the door); the sign is the count the player reported (§1 pillar 'real, not simulated'); a missed chore is one steady overdue state that never escalates (§2.3 pressure ceiling), so :hungry lines don't guilt or escalate; memorial lines are kind and truthful.\n"
+ :checks {:kind :mirror-lines
+          :variants [3 5]
+          :mirrors {:flora   {:hungry {:allowed #{} :max-chars 32} :fed {:allowed #{} :max-chars 32}
+                              :low {:allowed #{:stock} :max-chars 32} :stock-sign {:allowed #{:stock} :max-chars 32}}
+                    :juniper {:hungry {:allowed #{} :max-chars 32} :fed {:allowed #{} :max-chars 32}
+                              :low {:allowed #{:bales} :max-chars 32} :stock-sign {:allowed #{:bales} :max-chars 32}}
+                    :biscuit {:walk-due {:allowed #{} :max-chars 32} :walked {:allowed #{} :max-chars 32}
+                              :porch {:allowed #{} :max-chars 32}}}
+          :modes {:memorial {:plaque {:allowed #{:name :years} :max-chars 60 :no-first-person true}
+                             :hal-note {:allowed #{:name} :max-chars 110}}
+                  :virtual  {:idle {:allowed #{:name} :max-chars 40}}}}}
