@@ -63,7 +63,7 @@ flowchart TD
 
 | Output | What the game uses it for | GDD | File |
 |---|---|---|---|
-| **Hal's lines** | Hal, the player's digital twin, speaks on 18 events: jack in, coming back, the three kinds of jack-out, chore done, program loaded or needed, the smallest next step, coaching, the morning card, blueprints waiting, a stalled worker, last call, closing time, staying late, a pet moved to memorial, the weekly card | §2.3, §2.6, §2.7, §3 | [`hal-lines.edn`](../resources/content/hal-lines.edn) |
+| **Hal's lines** | Hal, the player's digital twin, speaks on 20 events: jack in, coming back, the three kinds of jack-out, chore done, a chore not due yet, a chore taken back, program loaded or needed, the smallest next step, coaching, the morning card, blueprints waiting, a stalled worker, last call, closing time, staying late, a pet moved to memorial, the weekly card | §2.3, §2.6, §2.7, §3 | [`hal-lines.edn`](../resources/content/hal-lines.edn) |
 | **Mirror bubbles and signs** | what Flora (axolotl), Juniper (horse) and Biscuit (dog) say and what their jar or hay sign reads; plus memorial plaques, Hal's note when a pet moves to memorial, and virtual creatures' idle lines | §2.5, §3.1 | [`mirror-lines.edn`](../resources/content/mirror-lines.edn) |
 | **The pretend inbox** | `me@acme.com`, the mailbox a new player finds on day one in demo mode: Hal's morning card, two blueprints, two questions, two chore notices, Pepper's signature request, the Clerk's triage, and a bait mail the Clerk held back | §3.1, §3.2, §4.6 | [`sample-inbox.edn`](../resources/content/sample-inbox.edn) |
 
@@ -96,7 +96,7 @@ is a minor finding by design, so it never blocks.
 
 ## What the critic caught
 
-Across 7 runs and 24 drafts the critic raised **38 blockers**. All runs and
+Across 8 runs and 26 drafts the critic raised **38 blockers**. All runs and
 their logs are in [`runs/`](runs/). The first three runs installed nothing,
 and that's the loop working. The ones that mattered:
 
@@ -138,7 +138,12 @@ its counterpart's real state says):
 
 **Bugs a script should catch** (moved into the validator after the critic
 found them): "Only {stock} worms left" reads "Only 1 worms left", so a count
-followed by a plural noun is now a validator error.
+followed by a plural noun is now a validator error. It paid off in run 8, when
+Hal gained two events for click-to-feed (`:chore-not-due`, `:chore-undone`):
+the validator stopped draft 1 on "Morning card's up: {count} items." before
+the critic saw it, and draft 2 installed with no blockers. The same check also
+flagged "{hours} this week", which is fine English: a false positive the
+rewrite happened to avoid.
 
 ## What the critic got wrong, and what the validator got wrong
 
@@ -158,3 +163,11 @@ Flora's and Juniper's bubbles and signs come from `mirror-lines.edn` (a
 different line each day), Hal greets you from `hal-lines.edn` when you jack in
 and after a chore, and the HUD shows the pretend mailbox count. A coverage
 test fails the build if a regenerated file drops a key the game uses.
+
+Later rounds the same night (`talk-captions`, `click-chores`, `request-todos`)
+made those lines readable and playable: every line shows as a big caption, is
+spoken aloud when 🔊 is on, and lands in a 💭 history. Clicking a creature does
+its chore, and Hal answers with `:chore-done` or, when it's too early,
+`:chore-not-due` ("Last done at 8:16 PM. Not due again till around 8:00 AM.").
+A creature's request in the history is a checkbox; unticking it takes the chore
+back with a `:chore-undone` line.
