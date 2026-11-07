@@ -28,15 +28,16 @@
     #hud { position: fixed; top: 12px; left: 14px; z-index: 200; color: #e8e4d8; font: 14px/1.4 system-ui, sans-serif;
       opacity: .9; pointer-events: none; }
     body.kit #hud { color: #24312a; background: rgba(238,241,223,.72); padding: 4px 10px; border-radius: 8px; }
-    #brook { position: fixed; bottom: 14px; left: 14px; z-index: 200; color: #e8e4d8; font: 13px system-ui, sans-serif;
+    /* our controls sit above the kit's camera row along the bottom (it spans the full width) */
+    #brook { position: fixed; bottom: 128px; left: 14px; z-index: 200; color: #e8e4d8; font: 13px system-ui, sans-serif;
       background: rgba(0,0,0,.35); padding: 8px 10px; border-radius: 8px; display: flex; gap: 12px; align-items: center; }
     #brook input[type=range] { width: 110px; }
     #brook button { font: inherit; padding: 4px 10px; border-radius: 6px; border: 1px solid #777; background: #2b3040; color: #e8e4d8; cursor: pointer; }
-    #caption { position: fixed; left: 50%; bottom: 96px; transform: translateX(-50%); max-width: min(760px, calc(100vw - 32px)); z-index: 210; padding: 12px 20px; border-radius: 12px; background: rgba(20,24,32,.80); color: #f3efe2; font: 22px/1.35 system-ui, sans-serif; text-align: center; opacity: 0; transition: opacity .5s; pointer-events: none; }
+    #caption { position: fixed; left: 50%; bottom: 140px; transform: translateX(-50%); max-width: min(760px, calc(100vw - 32px)); z-index: 210; padding: 12px 20px; border-radius: 12px; background: rgba(20,24,32,.80); color: #f3efe2; font: 22px/1.35 system-ui, sans-serif; text-align: center; opacity: 0; transition: opacity .5s; pointer-events: none; }
     #caption.show { opacity: 1; }
-    #talk-toggle { position: fixed; left: 14px; bottom: 64px; z-index: 200; font: 22px system-ui; background: rgba(0,0,0,.35); border: 0; border-radius: 8px; padding: 4px 10px; cursor: pointer; }
+    #talk-toggle { position: fixed; left: 14px; bottom: 170px; z-index: 200; font: 22px system-ui; background: rgba(0,0,0,.35); border: 0; border-radius: 8px; padding: 4px 10px; cursor: pointer; }
     #talk-badge { font: 600 12px system-ui; color: #f3efe2; margin-left: 4px; }
-    #talk-panel { position: fixed; left: 14px; bottom: 116px; width: min(380px, calc(100vw - 28px)); max-height: 50vh; overflow-y: auto; z-index: 220; background: rgba(20,24,32,.88); color: #f3efe2; border-radius: 10px; font: 16px/1.4 system-ui, sans-serif; }
+    #talk-panel { position: fixed; left: 14px; bottom: 222px; width: min(380px, calc(100vw - 28px)); max-height: 50vh; overflow-y: auto; z-index: 220; background: rgba(20,24,32,.88); color: #f3efe2; border-radius: 10px; font: 16px/1.4 system-ui, sans-serif; }
     #talk-list { list-style: none; margin: 0; padding: 8px 12px; }
     #talk-list li { padding: 4px 0; cursor: pointer; }
     .time { opacity: .6; margin-right: 6px; }
