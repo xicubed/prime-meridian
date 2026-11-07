@@ -1,0 +1,303 @@
+│ +   ever matters.
+│ +
+│ … omitted 1 diff line(s) across 1 additional file(s)/section(s)
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/avoid-v0-20261107-1327/review.md. Verdict: pass, 1 minor non-blocking note (no boundary violations, no leaked names, keep-right/footprint/moveTo-throttling/?paths-gating/resources/content all confirmed). Flagged a scope note: public/** changes observed mid-review belong to a different, concurrently-running round (characters-v0), not avoid-v0.
+
+done-5822
+────────────────────────────────────────
+
+─ 3m29s · edited 1 file · read 6 files · ran 10 commands · 1:54 PM
+  💾 Self-improvement review: Skill 'crew-round-review' patched
+
+
+────────────────────────────────────────
+❯ Review the round's changes against crew/runs/characters-v0-20261107-1354/spec.md and .crew/quests/characters-v0.md: git diff for edited files, and read the new files (git status lists them). Check in particular: GLTFLoader and the library are imported only after the kit is ready, through the js/Function loader; a failed character falls back per walker with the reason in the HUD; display scale applied once to the object and to the avoidance radius; no walker names in code; no edits to public/vendor or resources/content; pure logic tested. Write the review to crew/runs/characters-v0-20261107-1354/review.md.
+
+When you have completely finished, end your reply with a line containing only this: done-5732
+────────────────────────────────────────
+
+💻 $ echo "=== git log -5 ===" + 3 commands  0.9s
+📖 Read spec.md
+📖 Read characters-v0.md
+📖 Read log.md
+📖 Read gate-note.md
+💻 $ cat crew/runs/characters-v0-20261107-1354/gate-1.txt echo "=== mtimes ===" stat -f "%Sm %N" TASKS.md public/index.html public/vendor/three-kit.mjs public/assets/characters public/vendor/three-addons-r186 resources/estate.edn src/pm/bricks.cljs src/pm/kit.cljs src/pm/motion.cljs src/pm/scene.cljs src/pm/three.cljs test/pm/characters_test.cljs crew/runs/characters-v0-20261107-1354/spec.md  0.3s
+💻 $ echo "=== kit.cljs diff ===" + 3 commands  0.4s
+💻 $ git diff -- resources/estate.edn  0.3s
+💻 $ git diff -- src/pm/three.cljs  0.3s
+
+────────────────────────────────────────
+☤ Hermes
+Both match spec §1.1 and §4 exactly, and additive-only in three.cljs. Now the motion.cljs and bricks.cljs diffs, plus the new test file.
+────────────────────────────────────────
+
+💻 $ git diff -- src/pm/motion.cljs  0.3s
+💻 $ mkdir -p /tmp/review-scratch + 1 command  0.4s
+✍️ Write /tmp/review-scratch/avoid-motion.diff
+│ /private/tmp/review-scratch/avoid-motion.diff
+│ @@ -0,0 +1,346 @@
+│ +--- a/src/pm/motion.cljs
+│ ++++ b/src/pm/motion.cljs
+│ +@@ -1,15 +1,20 @@
+│ + (ns pm.motion
+│ +-  "Pure rules for walkers pacing a route: kinematic stepping, MotionBricks
+│ +-   follow-mode, ground sensing/smoothing, and HUD text. No three.js, no
+│ +-   atoms, no js/Date and no walker names — the only JS used is js/Math and
+│ +-   js/URLSearchParams, both available under Node for testing."
+│ +-  (:require [clojure.string :as str]))
+│ ++  "Pure rules for walkers pacing a route: kinematic stepping, MotionBricks
+│ ++   follow-mode, ground sensing/smoothing, avoidance planning, and HUD text.
+│ ++   No three.js, no atoms, no js/Date and no walker names — the only JS used
+│ ++   is js/Math and js/URLSearchParams, both available under Node for testing."
+│ ++  (:require [clojure.string :as str]
+│ ++            [pm.avoid :as a]))
+│ +
+│ + ;; -- Constants ---------------------------------------------------------
+│ +
+│ + (def default-speed 1.2)
+│ + (def arrive-m 0.3)
+│ + (def smooth-tau 0.15)
+│ ++(def plan-every-s 0.25)
+│ ++(def wait-s 2)
+│ ++(def resend-m 0.5)
+│ ++(def default-radius 0.3)
+│ +
+│ + (def figure
+│ +   "The kinematic figure, in pm.plan's look-part format (+x forward, degrees)."
+│ +@@ -23,6 +28,9 @@
+│ + (defn yaw [dx dz]
+│ +   (js/Math.atan2 (- dz) dx))
+│ +
+│ ++(defn- pt-dist [[x1 z1] [x2 z2]]
+│ ++  (js/Math.hypot (- x1 x2) (- z1 z2)))
+│ ++
+│ + ;; -- Config / walker state -------------------------------------------------
+│ +
+│ + (defn config [world]
+│ +@@ -34,6 +42,13 @@
+│ +         s (if (and (number? s) (pos? s)) s default-speed)]
+│ +     {:bricks b :ground (vec g) :speed s}))
+│ +
+│ ++(defn avoid-config [world]
+│ ++  (let [r (get-in world [:motion :radius])
+│ ++        r (if (and (number? r) (pos? r)) r default-radius)
+│ ++        h (get-in world [:motion :horizon-s])
+│ ++        h (if (and (number? h) (pos? h)) h 2)]
+│ ++    {:radius r :horizon-s h}))
+│ ++
+│ + (defn- valid-point? [p]
+│ +   (and (vector? p) (= 2 (count p)) (every? number? p)))
+│ +
+│ +@@ -45,6 +60,8 @@
+│ +             nm      (if (and (string? nm) (not (str/blank? nm))) nm (name id))
+│ +             pause-s (:pause-s entry)
+│ +             pause-s (if (and (number? pause-s) (>= pause-s 0)) pause-s 0)
+│ ++            radius  (:radius entry)
+│ ++            radius  (if (and (number? radius) (pos? radius)) radius default-radius)
+│ +             [x0 z0] (first route)
+│ +             heading (if (>= (count route) 2)
+│ +                       (let [[x1 z1] (second route)]
+│ +@@ -52,10 +69,18 @@
+│ +                       0)]
+│ +         {:id id :name nm :route route :pause-s pause-s
+│ +          :pos [x0 z0] :heading heading :to 0 :dir 1 :pause pause-s :leg 0
+│ +-         :ground nil :y nil}))))
+│ ++         :ground nil :y nil
+│ ++         :radius radius :vel [0 0] :aim nil :goal nil :side nil :wait 0 :waited false}))))
+│ +
+│ + (defn walkers [world]
+│ +-  (into [] (keep walker) (:walkers world)))
+│ ++  (let [cfg (avoid-config world)]
+│ ++    (into []
+│ ++          (keep (fn [entry]
+│ ++                  (let [entry (if (and (number? (:radius entry)) (pos? (:radius entry)))
+│ ++                                entry
+│ ++                                (assoc entry :radius (:radius cfg)))]
+│ ++                    (walker entry))))
+│ … omitted 268 diff line(s) across 1 additional file(s)/section(s)
+✗ $ cp motion-base.cljs a/src/pm/motion.cljs 2>/dev/null + 2 commands  0.4s [exit 1]
+✗ $ cat << 'DIFFEOF' --- a/src/pm/three.cljs +++ b/src/pm/three.cljs @@ -308,6 +308,48 @@ vec)) (catch :default _ []))) +(defn- flatten-points [points] + (js/Float32Array.from (into-array (mapcat identity points)))) + +(defn polyline + "A THREE.Line of `points` ([[x y z] ...]), thin and always-on-top." + [points color] + (let [^js T (three) + ^js Line (.-Line T) + ^js Geom (.-BufferGeometry T) + ^js Attr (.-Float32BufferAttribute T) + ^js Mat (.-LineBasicMaterial T) + ^js geom (Geom.) + ^js mat (Mat. #js {:color color :depthTest false :transparent true :opacity 0.9}) + ^js line (Line. geom mat)] + (.setAttribute geom "position" (Attr. (flatten-points points) 3)) + (set! (.-renderOrder line) 999) + line)) + +(defn set-polyline! + "Move `line`'s points to `points`. Rewrites in place when the count is + unchanged, else swaps in a fresh geometry and disposes the old one." + [^js line points] + (let [^js geom (.-geometry line) + ^js attr (.getAttribute geom "position") + n (count points)] + (if (and attr (= (.-count attr) n)) + (let [^js arr (.-array attr)] + (doseq [[i [x y z]] (map-indexed vector points)] + (let [base (* i 3)] + (aset arr base x) + (aset arr (+ base 1) y) + (aset arr (+ base 2) z))) + (set! (.-needsUpdate attr) true)) + (let [^js T (three) + ^js Geom (.-BufferGeometry T) + ^js Attr (.-Float32BufferAttribute T) + ^js new-geom (Geom.)] + (.setAttribute new-geom "position" (Attr. (flatten-points points) 3)) + (set! (.-geometry line) new-geom) + (.dispose geom))) + line)) + (defn drop-ray "Cast a ray straight down at (x, z) from height `from` through `root` and return the first `n` hits as [[y name] ...] (y rounded to cm). Sprites need DIFFEOF cp three-base.cljs a/src/pm/three.cljs patch -p1 --input=avoid-three.diff a/src/pm/three.cljs -o avoid-end-three.cljs 2>&1 | tail -5 echo "=== characters-v0 contribution to three.cljs ===" diff -u avoid-end-three.cljs /Users/hal/src/prime-meridian/src/pm/three.cljs  1.1s [exit 1]
+✍️ Write /tmp/review-scratch/avoid-bricks.diff
+│ /private/tmp/review-scratch/avoid-bricks.diff
+│ @@ -0,0 +1,239 @@
+│ +--- a/src/pm/bricks.cljs
+│ ++++ b/src/pm/bricks.cljs
+│ +@@ -1,16 +1,20 @@
+│ + (ns pm.bricks
+│ +   "Interop for the crew walkers: default kinematic figures, or (with
+│ +-   `?bricks`) SOMA mannequins driven by one shared MotionBricks model. No
+│ +-   rules live here — pm.motion decides, this namespace only moves three.js
+│ +-   objects and the MotionBricks characters to match."
+│ ++   `?bricks`) SOMA mannequins driven by one shared MotionBricks model, both
+│ ++   steered clear of statics and each other by pm.motion's planner
+│ ++   (pm.avoid's geometry). No rules live here — pm.motion decides, this
+│ ++   namespace only moves three.js objects and the MotionBricks characters
+│ ++   to match."
+│ +   (:require [pm.three :as t]
+│ +             [pm.motion :as m]
+│ ++            [pm.avoid :as a]
+│ +             [pm.plan :as p]
+│ +             [pm.scene :as scene]))
+│ +
+│ + (defonce !state
+│ +   (atom {:status nil :walkers [] :views [] :ground-meshes [] :frame 0
+│ +-         :cfg nil :root nil :started? false}))
+│ ++         :cfg nil :statics [] :pcfg nil :plan-acc 0 :paths nil
+│ ++         :root nil :started? false}))
+│ +
+│ + (declare fallback! swap-in!)
+│ +
+│ +@@ -38,13 +42,62 @@
+│ +     (t/add! anchor fig lbl)
+│ +     (t/set-visible! anchor (some? y))
+│ +     (t/add! root anchor)
+│ +-    {:anchor anchor :figure fig :char nil}))
+│ ++    {:anchor anchor :figure fig :char nil :sent nil}))
+│ ++
+│ ++;; -- ?paths debug overlay ----------------------------------------------------
+│ ++
+│ ++(defn- static-path-line! [^js ground-meshes cfg c]
+│ ++  (let [[cx cz] (:at c)
+│ ++        hits (t/down-hits ground-meshes cx cz 40)
+│ ++        gy   (or (m/ground-height hits (:ground cfg)) 0)
+│ ++        y    (+ gy 0.05)
+│ ++        pts  (mapv (fn [[x z]] [x y z]) (a/circle-points (:at c) (:r c) 24))]
+│ ++    (t/polyline pts (part-color :path-static))))
+│ ++
+│ ++(defn- walker-path-lines! [w]
+│ ++  (let [[x z] (:pos w) y (+ (or (:y w) 0) 0.05)
+│ ++        gp    (m/goal-point w)
+│ ++        aim   (or (:aim w) (:pos w))]
+│ ++    {:circle (t/polyline (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:radius w) 24))
+│ ++                          (part-color :path-walker))
+│ ++     :goal   (t/polyline [[x y z] [(first gp) y (second gp)]] (part-color :path-walker))
+│ ++     :aim    (t/polyline [[x y z] [(first aim) y (second aim)]] (part-color :path-aim))}))
+│ ++
+│ ++(defn- build-paths! [^js root ground-meshes cfg statics walkers]
+│ ++  (let [^js paths-root (t/group {:name "pm-paths"})
+│ ++        static-lines (mapv (fn [c]
+│ ++                              (let [^js l (static-path-line! ground-meshes cfg c)]
+│ ++                                (t/add! paths-root l)
+│ ++                                l))
+│ ++                            statics)
+│ ++        walker-lines (mapv (fn [w]
+│ ++                              (let [{:keys [circle goal aim]} (walker-path-lines! w)]
+│ ++                                (t/add! paths-root circle goal aim)
+│ ++                                {:circle circle :goal goal :aim aim}))
+│ ++                            walkers)]
+│ ++    (t/add! root paths-root)
+│ ++    {:root paths-root :statics static-lines :walkers walker-lines}))
+│ ++
+│ ++(defn- update-paths! [paths walkers]
+│ ++  (when paths
+│ ++    (doseq [[w lines] (map vector walkers (:walkers paths))]
+│ ++      (let [[x z] (:pos w) y (+ (or (:y w) 0) 0.05)
+│ ++            gp    (m/goal-point w)
+│ ++            aim   (or (:aim w) (:pos w))]
+│ ++        (t/set-polyline! (:circle lines) (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:radius w) 24)))
+│ ++        (t/set-polyline! (:goal lines) [[x y z] [(first gp) y (second gp)]])
+│ ++        (t/set-polyline! (:aim lines) [[x y z] [(first aim) y (second aim)]])))))
+│ ++
+│ … omitted 161 diff line(s) across 1 additional file(s)/section(s)
+✗ $ cp bricks-base.cljs a/src/pm/bricks.cljs patch -p1 --input=avoid-bricks.diff a/src/pm/bricks.cljs -o avoid-end-bricks.cljs  0.4s [exit 1]
+📖 Read characters_test.cljs
+💻 $ echo "=== name leakage in src/ ===" + 3 commands  0.3s
+💻 $ diff <(git show 00460c6:TASKS.md) TASKS.md  0.3s
+✍️ Write crew/runs/characters-v0-20261107-1354/review.md
+│ crew/runs/characters-v0-20261107-1354/review.md
+│ @@ -0,0 +1,85 @@
+│ +# Review: characters-v0
+│ +
+│ +Gate re-checked against `gate-1.txt`: PASS, 0 warnings, 353 tests / 1686 assertions (up from
+│ +325/1628 at the end of `avoid-v0`: +28 tests, exactly `test/pm/characters_test.cljs`'s `t01`–`t28`,
+│ +one per spec case). `motion_test.cljs` and `avoid_test.cljs` are untouched (not in `git status`)
+│ +and their totals (58+65=123 of the 353) are unaffected, satisfying the "keep passing unchanged"
+│ +contract; `m/config`, `m/avoid-config` and `(:label-y m/figure)` are untouched by this round (see
+│ +isolation method below).
+│ +
+│ +**Isolation method.** `motion.cljs`/`bricks.cljs`/`three.cljs` are also `avoid-v0`'s files, and
+│ +`avoid-v0` is still uncommitted, so a plain `git diff` mixes both rounds' hunks. I reconstructed
+│ +each file's `avoid-v0`-end state (`git show 00460c6:<file>` + `avoid-v0`'s own diff, already
+│ +verified against its spec in the prior review) and diffed that against the current file to get
+│ +*only* `characters-v0`'s contribution. All findings below are checked against that isolated diff.
+│ +
+│ +**Scope note — pre-build setup, not this round's work.** `public/index.html`, `public/vendor/three-kit.mjs`,
+│ +`public/assets/characters/` and `public/vendor/three-addons-r186/` are modified/untracked, and
+│ +`src/pm/kit.cljs` is modified — none are in the builder's/tester's allowed files (`public/**` and
+│ +`kit.cljs` are both explicitly off-limits). Mtimes place all of them between 13:51 and 13:55:08,
+│ +before `build` started at 14:00:41 (two of `un-architecte`'s blocked `spec` attempts ran in that
+│ +window) — manager setup (the quest's own "what exists" bullets: vendored `.glb`s, the unmodified
+│ +`GLTFLoader.js`, the import-map entry, `three-kit.mjs`'s re-export list), not a builder/tester
+│ +boundary violation. `kit.cljs`'s diff is an unrelated "close the Studio panel" UI fix, also outside
+│ +this round's scope. Excluded below.
+│ +
+│ +## Conformance checks
+│ +
+│ +- **GLTFLoader/library import gating:** `gltf-loader!` loads
+│ +  `"three/addons/loaders/GLTFLoader.js"` via `((js/Function. "u" "return import(u)") ...)`, memoized
+│ +  in `defonce !gltf-loader`, created lazily only when a walker's `load-body!` actually needs it
+│ +  (never if no walker has `:character`) — matches §3.3's "created only when some walker has a
+│ +  `:character`". Both this and the MotionBricks model's own `import()` call happen only inside
+│ +  `start!`'s `(m/bricks-flag? ...)` branch, and `start!` is only invoked as `pm.core`'s kit-ready
+│ +  callback (`kit/load! start-kit! ...`, unchanged from `motion-bricks-v0`) — so both only run after
+│ +  the kit is ready, and both exclusively through the `js/Function` loader (no bare `import(` found
+│ +  anywhere in `src/`).
+│ +- **Per-walker fallback with HUD reason:** a character/body/rig failure for one walker
+│ +  (`load-body!`'s resolved `#js {:error ...}`, a missing `CHARACTER_RIGS` key, or a `setCharacter`
+│ +  exception) only calls `(.setMannequin c)` for *that* walker and records
+│ +  `{:name (:name w) :reason reason}` — it does **not** call the generation-failure `fallback!`
+│ +  (which still drops *every* walker to kinematic and is reserved for the model/network failure
+│ +  path, unchanged). The per-walker errors are collected in walker order and land in
+│ +  `:char-errors`, which `char-errors-text`/`hud-text` render as `"mannequin for <name> (<reason>)"`
+│ +  after the gen segment and before the detours segment — hand-verified against spec §2.2 and
+│ +  matches `characters_test.cljs` t23–t26 exactly, including the "every other mode ignores
+│ +  `:char-errors`" rule (t28).
+│ +- **Display scale applied once, to the object and the radius:** `t/set-scale!` is called exactly
+│ +  once per view — on the kinematic figure in `build-view!`, or on `c.object` in `swap-in!` (before
+│ +  it's positioned/added) — never both for the same walker, since the figure is hidden once the
+│ +  character swaps in. The port's own `matchSize` (inside `setCharacter`) scales the retargeted
+│ +  skeleton to match SOMA's legs; `display-scale` is a separate, outer scale on `c.object`/the
+│ +  figure group, so the two don't double-count. The avoidance radius gets the same `ds` exactly
+│ +  once, inside `walkers` (`(update w :radius * ds)`, after the avoid-v0 radius default and *not*
+│ +  inside `walker` itself, matching "this happens in `walkers` only; `walker` stays unscaled" —
+│ +  confirmed by `t16`/`characters_test.cljs`). `t14`/`t15`/`t17` hand-check the scaled numbers
+│ +  (0.3×2=0.6, 0.4×2=0.8, 0.3×1.4≈0.42) and that the scaled-radius planner still clears both
+│ +  walkers and the statics over a 2400-frame sim.
+│ +- **No walker or character names in code:** `grep -rni "polybot|astronaut|un-automate|le-testeur|juniper|flora" src/` is empty.
+│ +- **`public/vendor` and `resources/content` untouched by this round:** confirmed by mtime
+│ +  (`three-motionbricks-0.2.0` predates everything; nothing under `resources/content` is newer than
+│ +  this round's `spec.md`); `public/vendor/three-addons-r186`'s own mtime also predates `build`.
+│ +- **Pure logic tested:** `rig-key`, `character`, `display-scale`, `label-height`, `char-errors-text`
+│ +  and the scaled `walkers` are all pure (no three.js/atoms/`js/Date`), each has direct test
+│ +  coverage (t01–t21), and the `pm.bricks` interop changes carry no new rules — `plan`/`step`/`follow`/
+│ +  `advance` are byte-for-byte unchanged from `avoid-v0` in the isolated diff.
+│ +
+│ +## Boundary-table compliance
+│ +
+│ +Builder touched exactly: `src/pm/motion.cljs`, `src/pm/bricks.cljs`, `src/pm/three.cljs` (isolated
+│ +diff shows only `set-scale!`/`top-y` added, matching §4 exactly — nothing else in the file
+│ +changed), `resources/estate.edn` (§1.1: `:display-scale 1.0` with the specified comment, both
+│ +walkers' `:character` entries, nothing else). `src/pm/avoid.cljs` and `src/pm/core.cljs` are
+│ +untouched. `src/pm/world.cljs` was touched (mtime inside the build window), satisfying "touch
+│ +after editing estate.edn." Tester touched only `test/pm/characters_test.cljs`. No off-limits file
+│ +was edited by this round's builder/tester (see scope note above for the pre-build setup files).
+│ +
+│ +## Findings
+│ +
+│ … omitted 7 diff line(s) across 1 additional file(s)/section(s)
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/characters-v0-20261107-1354/review.md. Verdict: pass, 1 minor non-blocking style note. Isolated this round's actual diff from the still-uncommitted avoid-v0 changes (both touch motion.cljs/bricks.cljs/three.cljs) by reconstructing the avoid-v0-end state and diffing against it — confirmed GLTFLoader/library import gating, per-walker character fallback, single-application display scale (object + radius), no name leakage, and that public/vendor/resources/content/boundary-table files are untouched by this round's builder/tester.
+
+done-5732
+────────────────────────────────────────
+
+─ 4m45s · edited 3 files · read 5 files · ran 9 commands · 2:10 PM
+──────────────────────────────────────────────────────────── Introduce name, job, and model ─
+crew ❯ Find and fix a failing test
+─────────────────────────────────────────────────────────────────────────────────────────────
+ ☤ claude-sonnet-5 · ~207K/1M · [██░░░░░░░░] ~21% · ◎ 91.3% · ◷ 23.6s · ↑ 103 t/s · 4h 13m...

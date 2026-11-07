@@ -1,0 +1,1178 @@
+diff --git a/TASKS.md b/TASKS.md
+index 3749466..2ba99d8 100644
+--- a/TASKS.md
++++ b/TASKS.md
+@@ -42,6 +42,11 @@ Plan of record: [`docs/session-2026-10-17.md`](docs/session-2026-10-17.md) §7.
+ - [ ] W2-7 Mirrors v0: `pm.world` reads a `mirrors` vector (GDD §9a shape) from `resources/estate.edn`; `pm.scene` renders each in its `:home` slot with a placeholder figure by `:kind`; `:say`/`:sign` rules render as bubble/sign. Ship `estate.edn` with Flora (axolotl, tank) AND a second example (horse, barn) so nothing is axolotl-specific. State mocked this week.
+ - [ ] W2-8 HUD: agent list on the left with name + status dot; clicking one centers the camera on it.
+ 
++- [ ] M-1 Foot IK on slopes (Michael, Nov 7: "how do their feet know where the ground is?"): today only the whole body follows the ground (one ray under the root); after MotionBricks poses a walker, ray under each foot and bend that leg so the foot lands on the real height and tilts with the slope, pelvis dropping to the lower foot. Same tool keeps a rider's feet in stirrups.
++- [ ] M-2 Take a seat: our own seated target pose (from the model's own standing pose, hips and knees bent, pelvis at seat height) wrapped as a 'sit' primitive, so the sit-down and stand-up are generated without NVIDIA's evaluation-only clips.
++- [ ] M-3 Riding Juniper (Michael, Nov 7): rider parented to the saddle, foot IK to stirrup points, pelvis on a spring following his back, torso sway with his gait; mounting/dismounting as generated transitions from our own target poses. Needs Juniper to walk first (procedural quadruped legs).
++- [ ] M-5 Bump and recover (Michael, Nov 7: "they aren't looking and collide, a force pushes each apart, and they recover naturally"): on overlap, an impulse on each root along the contact normal (by closing speed, decaying), a spring jolt on spine/shoulders added over the generated pose, then a MotionBricks "catch step" target (a balanced stance half a step along the push) so the stagger and recovery are generated; a glance back and an optional "sorry!" line. `?distracted` turns off one walker's avoidance to test it. Before the full ragdoll (M-4).
++- [ ] M-4 Physics later: a Rapier ragdoll that follows MotionBricks' motion and reacts to bumps (the "reference motion" pattern); a navigation mesh (recast-navigation, MIT) once there are buildings and doors.
+ ## Week 3 — Bridge v0 (real state)
+ - [ ] W3-0 The crew in the game (Michael, Nov 6): each real crew member (Herdr workspace `crew`: architect, builder, tester, runner, critic) is an avatar on the estate, its status from `herdr agent get` (working / idle / done / blocked). A member waiting at a permission prompt is **blocked** and wears the GDD's red "!" (§1 opening, §3.1 `ask_player`); clicking it shows the prompt and answers it (Yes / No), like `herdr agent send-keys`. Source: Herdr's API through the bridge (W3-1), not mock timers. This is the GDD's "snap", and tonight it would have saved three stuck rounds.
+ - [ ] W3-1 `bb` script `bridge.clj`: websocket server that pushes `world-state` JSON on change. Sources: `~/.hermes/state/worms.json`, Hermes cron job list (`hermes cron list --json` or state db), Gmail unread count via the google-workspace script.
+diff --git a/public/index.html b/public/index.html
+index 52f734c..824e53f 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -7,7 +7,7 @@
+   <!-- Relative URLs resolve inside the kit's folder (it fetches ./assets/...);
+        every game URL below and in the code is absolute (/js/, /assets/audio/). -->
+   <base href="/kit/">
+-  <script type="importmap">{"imports": {"three": "/vendor/three-kit.mjs"}}</script>
++  <script type="importmap">{"imports": {"three": "/vendor/three-kit.mjs", "three/addons/": "/vendor/three-addons-r186/"}}</script>
+   <!-- The world is the licensed Hiroshi's Island kit, loaded at runtime from
+        /kit/ (public/kit/, gitignored; copy it from assets/private/kit/dist/).
+        pm.kit adds the kit's stylesheet and loader. Without it, the scaffold runs. -->
+diff --git a/public/vendor/three-kit.mjs b/public/vendor/three-kit.mjs
+index 3a65df3..3008409 100644
+--- a/public/vendor/three-kit.mjs
++++ b/public/vendor/three-kit.mjs
+@@ -1,8 +1,452 @@
+ // "three" for vendored ES modules: the kit's own THREE (window.hiroshi.THREE), so the page
+ // keeps one three.js. Import only after the kit has published window.hiroshi.
+-// List exactly the names the vendored modules import.
++// Generated from the three 0.186.1 export list (the kit is r186); a name the kit lacks is undefined.
+ const T = globalThis.hiroshi && globalThis.hiroshi.THREE;
+ if (!T) throw new Error("three-kit.mjs: the kit's THREE isn't ready (window.hiroshi.THREE)");
+-export const { Quaternion, Vector3, Group, Euler, Object3D, MeshStandardMaterial, Mesh,
+-               CapsuleGeometry, SphereGeometry, BoxGeometry } = T;
++export const {
++  ACESFilmicToneMapping,
++  AddEquation,
++  AddOperation,
++  AdditiveAnimationBlendMode,
++  AdditiveBlending,
++  AgXToneMapping,
++  AlphaFormat,
++  AlwaysCompare,
++  AlwaysDepth,
++  AlwaysStencilFunc,
++  AmbientLight,
++  AnimationAction,
++  AnimationClip,
++  AnimationLoader,
++  AnimationMixer,
++  AnimationObjectGroup,
++  AnimationUtils,
++  ArcCurve,
++  ArrayCamera,
++  ArrowHelper,
++  AttachedBindMode,
++  Audio,
++  AudioAnalyser,
++  AudioContext,
++  AudioListener,
++  AudioLoader,
++  AxesHelper,
++  BackSide,
++  BasicDepthPacking,
++  BasicShadowMap,
++  BatchedMesh,
++  BezierInterpolant,
++  Bone,
++  BooleanKeyframeTrack,
++  Box2,
++  Box3,
++  Box3Helper,
++  BoxGeometry,
++  BoxHelper,
++  BufferAttribute,
++  BufferGeometry,
++  BufferGeometryLoader,
++  ByteType,
++  Cache,
++  Camera,
++  CameraHelper,
++  CanvasTexture,
++  CapsuleGeometry,
++  CatmullRomCurve3,
++  CineonToneMapping,
++  CircleGeometry,
++  ClampToEdgeWrapping,
++  Clock,
++  Color,
++  ColorKeyframeTrack,
++  ColorManagement,
++  Compatibility,
++  CompressedArrayTexture,
++  CompressedCubeTexture,
++  CompressedTexture,
++  CompressedTextureLoader,
++  ConeGeometry,
++  ConstantAlphaFactor,
++  ConstantColorFactor,
++  Controls,
++  CubeCamera,
++  CubeDepthTexture,
++  CubeReflectionMapping,
++  CubeRefractionMapping,
++  CubeTexture,
++  CubeTextureLoader,
++  CubeUVReflectionMapping,
++  CubicBezierCurve,
++  CubicBezierCurve3,
++  CubicInterpolant,
++  CullFaceBack,
++  CullFaceFront,
++  CullFaceFrontBack,
++  CullFaceNone,
++  Curve,
++  CurvePath,
++  CustomBlending,
++  CustomToneMapping,
++  CylinderGeometry,
++  Cylindrical,
++  Data3DTexture,
++  DataArrayTexture,
++  DataTexture,
++  DataTextureLoader,
++  DataUtils,
++  DecrementStencilOp,
++  DecrementWrapStencilOp,
++  DefaultLoadingManager,
++  DepthFormat,
++  DepthStencilFormat,
++  DepthTexture,
++  DetachedBindMode,
++  DirectionalLight,
++  DirectionalLightHelper,
++  DiscreteInterpolant,
++  DodecahedronGeometry,
++  DoubleSide,
++  DstAlphaFactor,
++  DstColorFactor,
++  DynamicCopyUsage,
++  DynamicDrawUsage,
++  DynamicReadUsage,
++  EdgesGeometry,
++  EllipseCurve,
++  EqualCompare,
++  EqualDepth,
++  EqualStencilFunc,
++  EquirectangularReflectionMapping,
++  EquirectangularRefractionMapping,
++  Euler,
++  EventDispatcher,
++  ExternalTexture,
++  ExtrudeGeometry,
++  FileLoader,
++  Float16BufferAttribute,
++  Float32BufferAttribute,
++  FloatType,
++  Fog,
++  FogExp2,
++  FramebufferTexture,
++  FrontSide,
++  Frustum,
++  FrustumArray,
++  GLBufferAttribute,
++  GLSL1,
++  GLSL3,
++  GreaterCompare,
++  GreaterDepth,
++  GreaterEqualCompare,
++  GreaterEqualDepth,
++  GreaterEqualStencilFunc,
++  GreaterStencilFunc,
++  GridHelper,
++  Group,
++  HTMLTexture,
++  HalfFloatType,
++  HemisphereLight,
++  HemisphereLightHelper,
++  IcosahedronGeometry,
++  ImageBitmapLoader,
++  ImageLoader,
++  ImageUtils,
++  IncrementStencilOp,
++  IncrementWrapStencilOp,
++  InstancedBufferAttribute,
++  InstancedBufferGeometry,
++  InstancedInterleavedBuffer,
++  InstancedMesh,
++  Int16BufferAttribute,
++  Int32BufferAttribute,
++  Int8BufferAttribute,
++  IntType,
++  InterleavedBuffer,
++  InterleavedBufferAttribute,
++  Interpolant,
++  InterpolateBezier,
++  InterpolateDiscrete,
++  InterpolateLinear,
++  InterpolateSmooth,
++  InterpolationSamplingMode,
++  InterpolationSamplingType,
++  InvertStencilOp,
++  KeepStencilOp,
++  KeyframeTrack,
++  LOD,
++  LatheGeometry,
++  Layers,
++  LessCompare,
++  LessDepth,
++  LessEqualCompare,
++  LessEqualDepth,
++  LessEqualStencilFunc,
++  LessStencilFunc,
++  Light,
++  LightProbe,
++  LightShadow,
++  Line,
++  Line3,
++  LineBasicMaterial,
++  LineCurve,
++  LineCurve3,
++  LineDashedMaterial,
++  LineLoop,
++  LineSegments,
++  LinearFilter,
++  LinearInterpolant,
++  LinearMipMapLinearFilter,
++  LinearMipMapNearestFilter,
++  LinearMipmapLinearFilter,
++  LinearMipmapNearestFilter,
++  LinearSRGBColorSpace,
++  LinearToneMapping,
++  LinearTransfer,
++  Loader,
++  LoaderUtils,
++  LoadingManager,
++  LoopOnce,
++  LoopPingPong,
++  LoopRepeat,
++  MOUSE,
++  Material,
++  MaterialBlending,
++  MaterialLoader,
++  MathUtils,
++  Matrix2,
++  Matrix3,
++  Matrix4,
++  MaxEquation,
++  Mesh,
++  MeshBasicMaterial,
++  MeshDepthMaterial,
++  MeshDistanceMaterial,
++  MeshLambertMaterial,
++  MeshMatcapMaterial,
++  MeshNormalMaterial,
++  MeshPhongMaterial,
++  MeshPhysicalMaterial,
++  MeshStandardMaterial,
++  MeshToonMaterial,
++  MinEquation,
++  MirroredRepeatWrapping,
++  MixOperation,
++  MultiplyBlending,
++  MultiplyOperation,
++  NearestFilter,
++  NearestMipMapLinearFilter,
++  NearestMipMapNearestFilter,
++  NearestMipmapLinearFilter,
++  NearestMipmapNearestFilter,
++  NeutralToneMapping,
++  NeverCompare,
++  NeverDepth,
++  NeverStencilFunc,
++  NoBlending,
++  NoColorSpace,
++  NoNormalPacking,
++  NoToneMapping,
++  NormalAnimationBlendMode,
++  NormalBlending,
++  NormalGAPacking,
++  NormalRGPacking,
++  NotEqualCompare,
++  NotEqualDepth,
++  NotEqualStencilFunc,
++  NumberKeyframeTrack,
++  Object3D,
++  ObjectLoader,
++  ObjectSpaceNormalMap,
++  OctahedronGeometry,
++  OneFactor,
++  OneMinusConstantAlphaFactor,
++  OneMinusConstantColorFactor,
++  OneMinusDstAlphaFactor,
++  OneMinusDstColorFactor,
++  OneMinusSrcAlphaFactor,
++  OneMinusSrcColorFactor,
++  OrthographicCamera,
++  PCFShadowMap,
++  PCFSoftShadowMap,
++  PMREMGenerator,
++  Path,
++  PerspectiveCamera,
++  Plane,
++  PlaneGeometry,
++  PlaneHelper,
++  PointLight,
++  PointLightHelper,
++  Points,
++  PointsMaterial,
++  PolarGridHelper,
++  PolyhedronGeometry,
++  PositionalAudio,
++  PropertyBinding,
++  PropertyMixer,
++  QuadraticBezierCurve,
++  QuadraticBezierCurve3,
++  Quaternion,
++  QuaternionKeyframeTrack,
++  QuaternionLinearInterpolant,
++  R11_EAC_Format,
++  RED_GREEN_RGTC2_Format,
++  RED_RGTC1_Format,
++  REVISION,
++  RG11_EAC_Format,
++  RGBADepthPacking,
++  RGBAFormat,
++  RGBAIntegerFormat,
++  RGBA_ASTC_10x10_Format,
++  RGBA_ASTC_10x5_Format,
++  RGBA_ASTC_10x6_Format,
++  RGBA_ASTC_10x8_Format,
++  RGBA_ASTC_12x10_Format,
++  RGBA_ASTC_12x12_Format,
++  RGBA_ASTC_4x4_Format,
++  RGBA_ASTC_5x4_Format,
++  RGBA_ASTC_5x5_Format,
++  RGBA_ASTC_6x5_Format,
++  RGBA_ASTC_6x6_Format,
++  RGBA_ASTC_8x5_Format,
++  RGBA_ASTC_8x6_Format,
++  RGBA_ASTC_8x8_Format,
++  RGBA_BPTC_Format,
++  RGBA_ETC2_EAC_Format,
++  RGBA_PVRTC_2BPPV1_Format,
++  RGBA_PVRTC_4BPPV1_Format,
++  RGBA_S3TC_DXT1_Format,
++  RGBA_S3TC_DXT3_Format,
++  RGBA_S3TC_DXT5_Format,
++  RGBDepthPacking,
++  RGBFormat,
++  RGBIntegerFormat,
++  RGB_BPTC_SIGNED_Format,
++  RGB_BPTC_UNSIGNED_Format,
++  RGB_ETC1_Format,
++  RGB_ETC2_Format,
++  RGB_PVRTC_2BPPV1_Format,
++  RGB_PVRTC_4BPPV1_Format,
++  RGB_S3TC_DXT1_Format,
++  RGDepthPacking,
++  RGFormat,
++  RGIntegerFormat,
++  RawShaderMaterial,
++  Ray,
++  Raycaster,
++  RectAreaLight,
++  RedFormat,
++  RedIntegerFormat,
++  ReinhardToneMapping,
++  RenderObjectRefreshType,
++  RenderTarget,
++  RenderTarget3D,
++  RepeatWrapping,
++  ReplaceStencilOp,
++  ReverseSubtractEquation,
++  RingGeometry,
++  SIGNED_R11_EAC_Format,
++  SIGNED_RED_GREEN_RGTC2_Format,
++  SIGNED_RED_RGTC1_Format,
++  SIGNED_RG11_EAC_Format,
++  SRGBColorSpace,
++  SRGBTransfer,
++  Scene,
++  ShaderChunk,
++  ShaderLib,
++  ShaderMaterial,
++  ShadowMaterial,
++  Shape,
++  ShapeGeometry,
++  ShapePath,
++  ShapeUtils,
++  ShortType,
++  Skeleton,
++  SkeletonHelper,
++  SkinnedMesh,
++  Source,
++  Sphere,
++  SphereGeometry,
++  Spherical,
++  SphericalHarmonics3,
++  SplineCurve,
++  SpotLight,
++  SpotLightHelper,
++  Sprite,
++  SpriteMaterial,
++  SrcAlphaFactor,
++  SrcAlphaSaturateFactor,
++  SrcColorFactor,
++  StaticCopyUsage,
++  StaticDrawUsage,
++  StaticReadUsage,
++  StereoCamera,
++  StreamCopyUsage,
++  StreamDrawUsage,
++  StreamReadUsage,
++  StringKeyframeTrack,
++  SubtractEquation,
++  SubtractiveBlending,
++  TOUCH,
++  TangentSpaceNormalMap,
++  TetrahedronGeometry,
++  Texture,
++  TextureLoader,
++  TextureSource,
++  TextureUtils,
++  Timer,
++  TimestampQuery,
++  TorusGeometry,
++  TorusKnotGeometry,
++  Triangle,
++  TriangleFanDrawMode,
++  TriangleStripDrawMode,
++  TrianglesDrawMode,
++  TubeGeometry,
++  UVMapping,
++  Uint16BufferAttribute,
++  Uint32BufferAttribute,
++  Uint8BufferAttribute,
++  Uint8ClampedBufferAttribute,
++  Uniform,
++  UniformsGroup,
++  UniformsLib,
++  UniformsUtils,
++  UnsignedByteType,
++  UnsignedInt101111Type,
++  UnsignedInt248Type,
++  UnsignedInt5999Type,
++  UnsignedIntType,
++  UnsignedShort4444Type,
++  UnsignedShort5551Type,
++  UnsignedShortType,
++  VSMShadowMap,
++  Vector2,
++  Vector3,
++  Vector4,
++  VectorKeyframeTrack,
++  VideoFrameTexture,
++  VideoTexture,
++  WebGL3DRenderTarget,
++  WebGLArrayRenderTarget,
++  WebGLCoordinateSystem,
++  WebGLCubeRenderTarget,
++  WebGLRenderTarget,
++  WebGLRenderer,
++  WebGLUtils,
++  WebGPUCoordinateSystem,
++  WebXRController,
++  WireframeGeometry,
++  WrapAroundEnding,
++  ZeroCurvatureEnding,
++  ZeroFactor,
++  ZeroSlopeEnding,
++  ZeroStencilOp,
++  createCanvasElement,
++  error,
++  getConsoleFunction,
++  log,
++  setConsoleFunction,
++  warn,
++  warnOnce
++} = T;
+ export default T;
+diff --git a/resources/estate.edn b/resources/estate.edn
+index 9c40f31..d70cabd 100644
+--- a/resources/estate.edn
++++ b/resources/estate.edn
+@@ -22,7 +22,10 @@
+                      :rig   :soma
+                      :model "https://repalash.com/three-motionbricks/soma-model/"}
+             :ground ["SM_Hiroshi_Terrain" "SM_Hiroshi_Gravel"]   ; meshes you can stand on (name prefixes)
+-            :speed  1.2}                                         ; kinematic m/s
++            :speed  1.2                                          ; kinematic m/s
++            :obstacles [{:at [-4.8 -8.2] :r 0.7} {:at [-4.3 -12.0] :r 0.6}]   ; the bank rocks
++            :radius 0.3
++            :horizon-s 2}
+  :walkers [{:id :un-automate-monde :name "Un Automate"
+             :route [[-6.5 -6.5] [-6.0 -10.0] [-5.0 -14.0]] :pause-s 3}
+            {:id :le-testeur :name "Le Testeur"
+@@ -64,6 +67,7 @@
+                      {:shape :sphere :size [0.008 0.008 0.008] :at [0.112 0.026  0.021] :color :eye}
+                      {:shape :sphere :size [0.008 0.008 0.008] :at [0.112 0.026 -0.021] :color :eye}]}}
+             {:id :jar :at [1.4 1.81 -15.7] :scale 4 :label :sign :idle :stock-sign   ; on the bank rocks (top 1.81); real jar 0.124 m, drawn ~0.5 m
++             :footprint [[0 0 0.0875]]   ; 0.35 m in the world (scale 4)
+              :look {:parts
+                     [{:shape :cylinder :size [0.08 0.11 0.08]   :at [0 0.055 0] :color :glass}  ; jar
+                      {:shape :cylinder :size [0.088 0.014 0.088] :at [0 0.117 0] :color :tin}]}}]} ; lid
+@@ -77,6 +81,7 @@
+              :consumes [:bales 1] :done-at :last-hayed :past "fed"}]
+    ;; Juniper's :placed
+    :placed [{:id :body :at [-5.0 2.5 -10.0] :yaw 90 :label :say   ; west bank; long axis along world z, side-on to the creek camera
++             :footprint [[0.75 0 0.5] [0 0 0.5] [-0.6 0 0.45]]
+              :look {:parts
+                     [{:shape :capsule  :size [1.3 0.62 0.6]   :at [0 1.2 0]                     :color :brown}  ; barrel
+                      {:shape :box      :size [0.3 0.8 0.32]   :at [0.72 1.62 0]  :rot [0 0 -35] :color :brown}  ; neck, leaning forward
+diff --git a/src/pm/bricks.cljs b/src/pm/bricks.cljs
+index d29f30b..42741fe 100644
+--- a/src/pm/bricks.cljs
++++ b/src/pm/bricks.cljs
+@@ -1,16 +1,20 @@
+ (ns pm.bricks
+   "Interop for the crew walkers: default kinematic figures, or (with
+-   `?bricks`) SOMA mannequins driven by one shared MotionBricks model. No
+-   rules live here — pm.motion decides, this namespace only moves three.js
+-   objects and the MotionBricks characters to match."
++   `?bricks`) SOMA mannequins driven by one shared MotionBricks model, both
++   steered clear of statics and each other by pm.motion's planner
++   (pm.avoid's geometry). No rules live here — pm.motion decides, this
++   namespace only moves three.js objects and the MotionBricks characters
++   to match."
+   (:require [pm.three :as t]
+             [pm.motion :as m]
++            [pm.avoid :as a]
+             [pm.plan :as p]
+             [pm.scene :as scene]))
+ 
+ (defonce !state
+   (atom {:status nil :walkers [] :views [] :ground-meshes [] :frame 0
+-         :cfg nil :root nil :started? false}))
++         :cfg nil :statics [] :pcfg nil :plan-acc 0 :paths nil
++         :root nil :started? false}))
+ 
+ (declare fallback! swap-in!)
+ 
+@@ -38,13 +42,62 @@
+     (t/add! anchor fig lbl)
+     (t/set-visible! anchor (some? y))
+     (t/add! root anchor)
+-    {:anchor anchor :figure fig :char nil}))
++    {:anchor anchor :figure fig :char nil :sent nil}))
++
++;; -- ?paths debug overlay ----------------------------------------------------
++
++(defn- static-path-line! [^js ground-meshes cfg c]
++  (let [[cx cz] (:at c)
++        hits (t/down-hits ground-meshes cx cz 40)
++        gy   (or (m/ground-height hits (:ground cfg)) 0)
++        y    (+ gy 0.05)
++        pts  (mapv (fn [[x z]] [x y z]) (a/circle-points (:at c) (:r c) 24))]
++    (t/polyline pts (part-color :path-static))))
++
++(defn- walker-path-lines! [w]
++  (let [[x z] (:pos w) y (+ (or (:y w) 0) 0.05)
++        gp    (m/goal-point w)
++        aim   (or (:aim w) (:pos w))]
++    {:circle (t/polyline (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:radius w) 24))
++                          (part-color :path-walker))
++     :goal   (t/polyline [[x y z] [(first gp) y (second gp)]] (part-color :path-walker))
++     :aim    (t/polyline [[x y z] [(first aim) y (second aim)]] (part-color :path-aim))}))
++
++(defn- build-paths! [^js root ground-meshes cfg statics walkers]
++  (let [^js paths-root (t/group {:name "pm-paths"})
++        static-lines (mapv (fn [c]
++                              (let [^js l (static-path-line! ground-meshes cfg c)]
++                                (t/add! paths-root l)
++                                l))
++                            statics)
++        walker-lines (mapv (fn [w]
++                              (let [{:keys [circle goal aim]} (walker-path-lines! w)]
++                                (t/add! paths-root circle goal aim)
++                                {:circle circle :goal goal :aim aim}))
++                            walkers)]
++    (t/add! root paths-root)
++    {:root paths-root :statics static-lines :walkers walker-lines}))
++
++(defn- update-paths! [paths walkers]
++  (when paths
++    (doseq [[w lines] (map vector walkers (:walkers paths))]
++      (let [[x z] (:pos w) y (+ (or (:y w) 0) 0.05)
++            gp    (m/goal-point w)
++            aim   (or (:aim w) (:pos w))]
++        (t/set-polyline! (:circle lines) (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:radius w) 24)))
++        (t/set-polyline! (:goal lines) [[x y z] [(first gp) y (second gp)]])
++        (t/set-polyline! (:aim lines) [[x y z] [(first aim) y (second aim)]])))))
++
++;; -- start! -------------------------------------------------------------------
+ 
+ (defn start!
+   "No-op if already started (hot reload) or there are no walkers."
+   [^js h world]
+   (when (and (not (:started? @!state)) (seq (m/walkers world)))
+     (let [cfg          (m/config world)
++          acfg         (m/avoid-config world)
++          pcfg         {:speed (:speed cfg) :horizon-s (:horizon-s acfg)}
++          statics      (a/statics world)
+           ^js root     (t/group {:name "pm-walkers"})
+           _            (t/add! (.-scene h) root)
+           ground-meshes (t/find-meshes (.-scene h) #(m/ground-name? % (:ground cfg)))
+@@ -53,9 +106,13 @@
+                                hits  (t/down-hits ground-meshes x z 40)]
+                            (m/settle (m/sense-ground w hits (:ground cfg)) 0)))
+           walkers      (mapv sample (m/walkers world))
+-          views        (mapv #(build-view! root %) walkers)]
++          views        (mapv #(build-view! root %) walkers)
++          paths        (when (m/paths-flag? (.. js/window -location -search))
++                         (build-paths! root ground-meshes cfg statics walkers))]
+       (reset! !state {:status {:mode :kinematic} :walkers walkers :views views
+-                       :ground-meshes ground-meshes :frame 0 :cfg cfg :root root :started? true})
++                       :ground-meshes ground-meshes :frame 0 :cfg cfg
++                       :statics statics :pcfg pcfg :plan-acc 0 :paths paths
++                       :root root :started? true})
+       (when (and (m/bricks-flag? (.. js/window -location -search)) (:bricks cfg))
+         (swap! !state assoc :status {:mode :loading :progress 0})
+         (try
+@@ -83,25 +140,32 @@
+               (.catch (fn [e] (fallback! e))))
+           (catch :default e (fallback! e)))))))
+ 
++(defn- apply-command! [^js c w cmd]
++  (when cmd
++    (case (first cmd)
++      :move (let [[tx tz] (second cmd)] (.moveTo c (t/vec3 [tx (:y w) tz]) "walk"))
++      :stop (.stop c))))
++
+ (defn- swap-in!
+   [^js h chars]
+-  (let [{:keys [walkers views root]} @!state]
+-    (doseq [[w view ^js c] (map vector walkers views chars)]
+-      (let [[x z] (:pos w) y (:y w)
+-            ^js obj (.-object c)]
+-        (t/set-pos! obj [x (or y 0) z])
+-        (t/set-yaw! obj (:heading w))
+-        (t/add! root obj)
+-        (t/set-visible! (:figure view) false)
+-        (when (zero? (:pause w))
+-          (let [[tx tz] (m/target w)]
+-            (.moveTo c (t/vec3 [tx (or y 0) tz]) "walk")))))
+-    (let [views'  (mapv (fn [view c] (assoc view :char c)) views chars)
+-          ^js first-c (first chars)
+-          gen-ms  (.. first-c -stats -averageInferenceMs)]
+-      (swap! !state assoc :views views'
+-             :status {:mode :bricks :backend (.-backend first-c) :walkers (count chars)
+-                      :gen-ms (when (number? gen-ms) gen-ms)}))))
++  (let [{:keys [walkers views root]} @!state
++        views' (mapv
++                 (fn [w view ^js c]
++                   (let [[x z] (:pos w) y (:y w)
++                         ^js obj (.-object c)]
++                     (t/set-pos! obj [x (or y 0) z])
++                     (t/set-yaw! obj (:heading w))
++                     (t/add! root obj)
++                     (t/set-visible! (:figure view) false)
++                     (let [cmd (m/steer-command nil w)]
++                       (apply-command! c w cmd)
++                       (assoc view :char c :sent cmd))))
++                 walkers views chars)
++        ^js first-c (first chars)
++        gen-ms (.. first-c -stats -averageInferenceMs)]
++    (swap! !state assoc :views views'
++           :status {:mode :bricks :backend (.-backend first-c) :walkers (count chars)
++                    :gen-ms (when (number? gen-ms) gen-ms)})))
+ 
+ (defn- fallback!
+   "Ignored when the status is already :failed or :kinematic."
+@@ -116,42 +180,47 @@
+             (t/remove! root obj)))
+         (t/set-visible! (:figure view) true))
+       (swap! !state assoc
+-             :views (mapv #(dissoc % :char) views)
++             :views (mapv #(dissoc % :char :sent) views)
+              :status {:mode :failed :reason (m/short-reason (or (.-message e) e))}))))
+ 
+ (defn- tick-kinematic! [dt]
+-  (let [{:keys [cfg walkers views]} @!state
+-        speed    (:speed cfg)
+-        walkers' (mapv (fn [w] (m/settle (m/step w speed dt) dt)) walkers)]
+-    (doseq [[w view] (map vector walkers' views)]
++  (let [{:keys [walkers views statics pcfg plan-acc]} @!state
++        [ws acc] (m/advance walkers statics pcfg dt plan-acc)
++        ws       (mapv #(m/settle % dt) ws)]
++    (doseq [[w view] (map vector ws views)]
+       (let [[x z] (:pos w) y (:y w)
+             ^js anchor (:anchor view) ^js fig (:figure view)]
+         (t/set-pos! anchor [x (or y 0) z])
+         (t/set-yaw! fig (:heading w))
+         (t/set-visible! anchor (some? y))))
+-    (swap! !state assoc :walkers walkers')))
++    (swap! !state assoc :walkers ws :plan-acc acc)))
+ 
+ (defn- tick-bricks! [dt]
+   (try
+-    (let [{:keys [walkers views]} @!state
+-          walkers' (mapv
+-                     (fn [w view]
+-                       (let [^js c (:char view)
+-                             ^js v (.getPosition c)
+-                             pos   [(.-x v) (.-z v)]
+-                             w'    (m/settle (m/follow w pos (.-idle c) dt) dt)]
+-                         (when (m/new-target? w w')
+-                           (let [[tx tz] (m/target w')]
+-                             (.moveTo c (t/vec3 [tx (:y w') tz]) "walk")))
+-                         (.update c dt)
+-                         (let [[x z] (:pos w') y (:y w')
+-                               ^js obj (.-object c)]
+-                           (set! (.-y (.-position obj)) y)
+-                           (t/set-pos! (:anchor view) [x (or y 0) z]))
+-                         w'))
+-                     walkers views)]
+-      (swap! !state assoc :walkers walkers')
+-      (when-let [^js c0 (:char (first views))]
++    (let [{:keys [walkers views statics pcfg plan-acc]} @!state
++          before walkers
++          after  (mapv (fn [w view]
++                          (let [^js c (:char view)
++                                ^js v (.getPosition c)
++                                pos   [(.-x v) (.-z v)]]
++                            (m/follow w pos (.-idle c) dt)))
++                        before views)
++          [ws acc] (m/replan before after statics pcfg dt plan-acc)
++          ws     (mapv #(m/settle % dt) ws)
++          views' (mapv
++                   (fn [w view]
++                     (let [^js c (:char view)
++                           cmd (m/steer-command (:sent view) w)]
++                       (apply-command! c w cmd)
++                       (.update c dt)
++                       (let [[x z] (:pos w) y (:y w)
++                             ^js obj (.-object c)]
++                         (set! (.-y (.-position obj)) y)
++                         (t/set-pos! (:anchor view) [x (or y 0) z]))
++                       (if cmd (assoc view :sent cmd) view)))
++                   ws views)]
++      (swap! !state assoc :walkers ws :views views' :plan-acc acc)
++      (when-let [^js c0 (:char (first views'))]
+         (let [gen-ms (.. c0 -stats -averageInferenceMs)]
+           (when (number? gen-ms)
+             (swap! !state update :status assoc :gen-ms gen-ms)))))
+@@ -180,6 +249,8 @@
+       (if (= :bricks (:mode (:status @!state)))
+         (tick-bricks! dt)
+         (tick-kinematic! dt))
++      (swap! !state update :status assoc :detours (m/detours (:walkers @!state)))
++      (update-paths! (:paths @!state) (:walkers @!state))
+       (swap! !state update :frame inc))))
+ 
+ (defn hud-segment []
+diff --git a/src/pm/motion.cljs b/src/pm/motion.cljs
+index 9a488ac..74bc207 100644
+--- a/src/pm/motion.cljs
++++ b/src/pm/motion.cljs
+@@ -1,15 +1,20 @@
+ (ns pm.motion
+   "Pure rules for walkers pacing a route: kinematic stepping, MotionBricks
+-   follow-mode, ground sensing/smoothing, and HUD text. No three.js, no
+-   atoms, no js/Date and no walker names — the only JS used is js/Math and
+-   js/URLSearchParams, both available under Node for testing."
+-  (:require [clojure.string :as str]))
++   follow-mode, ground sensing/smoothing, avoidance planning, and HUD text.
++   No three.js, no atoms, no js/Date and no walker names — the only JS used
++   is js/Math and js/URLSearchParams, both available under Node for testing."
++  (:require [clojure.string :as str]
++            [pm.avoid :as a]))
+ 
+ ;; -- Constants ---------------------------------------------------------
+ 
+ (def default-speed 1.2)
+ (def arrive-m 0.3)
+ (def smooth-tau 0.15)
++(def plan-every-s 0.25)
++(def wait-s 2)
++(def resend-m 0.5)
++(def default-radius 0.3)
+ 
+ (def figure
+   "The kinematic figure, in pm.plan's look-part format (+x forward, degrees)."
+@@ -23,6 +28,9 @@
+ (defn yaw [dx dz]
+   (js/Math.atan2 (- dz) dx))
+ 
++(defn- pt-dist [[x1 z1] [x2 z2]]
++  (js/Math.hypot (- x1 x2) (- z1 z2)))
++
+ ;; -- Config / walker state -------------------------------------------------
+ 
+ (defn config [world]
+@@ -34,6 +42,13 @@
+         s (if (and (number? s) (pos? s)) s default-speed)]
+     {:bricks b :ground (vec g) :speed s}))
+ 
++(defn avoid-config [world]
++  (let [r (get-in world [:motion :radius])
++        r (if (and (number? r) (pos? r)) r default-radius)
++        h (get-in world [:motion :horizon-s])
++        h (if (and (number? h) (pos? h)) h 2)]
++    {:radius r :horizon-s h}))
++
+ (defn- valid-point? [p]
+   (and (vector? p) (= 2 (count p)) (every? number? p)))
+ 
+@@ -45,6 +60,8 @@
+             nm      (if (and (string? nm) (not (str/blank? nm))) nm (name id))
+             pause-s (:pause-s entry)
+             pause-s (if (and (number? pause-s) (>= pause-s 0)) pause-s 0)
++            radius  (:radius entry)
++            radius  (if (and (number? radius) (pos? radius)) radius default-radius)
+             [x0 z0] (first route)
+             heading (if (>= (count route) 2)
+                       (let [[x1 z1] (second route)]
+@@ -52,10 +69,18 @@
+                       0)]
+         {:id id :name nm :route route :pause-s pause-s
+          :pos [x0 z0] :heading heading :to 0 :dir 1 :pause pause-s :leg 0
+-         :ground nil :y nil}))))
++         :ground nil :y nil
++         :radius radius :vel [0 0] :aim nil :goal nil :side nil :wait 0 :waited false}))))
+ 
+ (defn walkers [world]
+-  (into [] (keep walker) (:walkers world)))
++  (let [cfg (avoid-config world)]
++    (into []
++          (keep (fn [entry]
++                  (let [entry (if (and (number? (:radius entry)) (pos? (:radius entry)))
++                                entry
++                                (assoc entry :radius (:radius cfg)))]
++                    (walker entry))))
++          (:walkers world))))
+ 
+ ;; -- Ping-pong -------------------------------------------------------------
+ 
+@@ -73,15 +98,22 @@
+ (defn new-target? [before after]
+   (not= (:leg before) (:leg after)))
+ 
++(defn goal-point [w]
++  (or (:goal w) (target w)))
++
++(defn steer-point [w]
++  (or (:aim w) (goal-point w)))
++
+ ;; -- step / follow ---------------------------------------------------------
+ 
+ (defn- pick [w]
+   (let [[i' dir'] (next-index (count (:route w)) (:to w) (:dir w))]
+-    (assoc w :to i' :dir dir' :pause 0 :leg (inc (:leg w)))))
++    (assoc w :to i' :dir dir' :pause 0 :leg (inc (:leg w))
++             :aim nil :goal nil :side nil :wait 0 :waited false)))
+ 
+ (defn- arrive [w]
+   (if (> (:pause-s w) 0)
+-    (assoc w :pause (:pause-s w))
++    (assoc w :pause (:pause-s w) :aim nil :goal nil :side nil :wait 0 :waited false)
+     (pick w)))
+ 
+ (defn step [w speed dt]
+@@ -93,29 +125,52 @@
+ 
+       (> (:pause w) 0)
+       (let [p (- (:pause w) dt')]
++        (assoc (if (> p 0) (assoc w :pause p) (pick w)) :vel [0 0]))
++
++      (> (:wait w) 0)
++      (let [p (- (:wait w) dt')]
+         (if (> p 0)
+-          (assoc w :pause p)
+-          (pick w)))
++          (assoc w :wait p :vel [0 0])
++          (assoc w :wait 0 :waited true :vel [0 0])))
+ 
+       :else
+-      (let [[tx tz] (target w)
+-            [x z]   (:pos w)
+-            dx (- tx x) dz (- tz z)
+-            d  (js/Math.hypot dx dz)]
+-        (if (<= d arrive-m)
+-          (arrive w)
+-          (let [s  (min (* speed dt') d)
+-                w' (assoc w
+-                          :pos [(+ x (* (/ dx d) s)) (+ z (* (/ dz d) s))]
+-                          :heading (yaw dx dz))]
+-            (if (<= (- d s) arrive-m)
+-              (arrive w')
+-              w')))))))
++      (let [gp     (goal-point w)
++            [x z]  (:pos w)
++            dgx (- (first gp) x) dgz (- (second gp) z)
++            dg  (js/Math.hypot dgx dgz)]
++        (if (<= dg arrive-m)
++          (assoc (arrive w) :vel [0 0])
++          (let [sp  (steer-point w)
++                dsx (- (first sp) x) dsz (- (second sp) z)
++                ds  (js/Math.hypot dsx dsz)
++                s   (min (* speed dt') ds)
++                ux  (if (zero? ds) 0 (/ dsx ds))
++                uz  (if (zero? ds) 0 (/ dsz ds))
++                nx  (+ x (* ux s))
++                nz  (+ z (* uz s))
++                vel (if (zero? dt') [0 0] [(/ (* ux s) dt') (/ (* uz s) dt')])
++                w'  (assoc w :pos [nx nz] :heading (yaw dsx dsz) :vel vel)]
++            (if (:aim w)
++              (let [dgx' (- (first gp) nx) dgz' (- (second gp) nz)
++                    dg'  (js/Math.hypot dgx' dgz')]
++                (cond
++                  (<= dg' arrive-m)      (arrive w')
++                  (<= (- ds s) arrive-m) (assoc w' :aim nil)
++                  :else                  w'))
++              (if (<= (- dg s) arrive-m)
++                (arrive w')
++                w'))))))))
+ 
+ (defn follow [w pos idle? dt]
+-  (let [w     (if (some? pos) (assoc w :pos pos) w)
+-        dt'   (max 0 dt)
+-        route (:route w)]
++  (let [dt'     (max 0 dt)
++        old-pos (:pos w)
++        w       (cond
++                  (nil? pos) w
++                  (zero? dt') (assoc w :pos pos)
++                  :else (assoc w :pos pos
++                                 :vel [(/ (- (first pos) (first old-pos)) dt')
++                                       (/ (- (second pos) (second old-pos)) dt')]))
++        route   (:route w)]
+     (cond
+       (< (count route) 2)
+       w
+@@ -126,14 +181,92 @@
+           (assoc w :pause p)
+           (pick w)))
+ 
++      (> (:wait w) 0)
++      (let [p (- (:wait w) dt')]
++        (if (> p 0)
++          (assoc w :wait p :vel [0 0])
++          (assoc w :wait 0 :waited true :vel [0 0])))
++
+       :else
+-      (let [[tx tz] (target w)
+-            [x z]   (:pos w)
+-            dx (- tx x) dz (- tz z)
+-            d  (js/Math.hypot dx dz)]
+-        (if (or (<= d arrive-m) idle?)
++      (let [gp     (goal-point w)
++            dg     (pt-dist gp (:pos w))]
++        (if (or (<= dg arrive-m) (and idle? (nil? (:aim w))))
+           (arrive w)
+-          w)))))
++          (if (and (:aim w) (<= (pt-dist (:aim w) (:pos w)) arrive-m))
++            (assoc w :aim nil)
++            w))))))
++
++;; -- Avoidance planning ------------------------------------------------------
++
++(defn plan [w others statics cfg]
++  (let [route (:route w)]
++    (if (or (< (count route) 2) (> (:pause w) 0))
++      (assoc w :aim nil)
++      (let [G (target w)
++            P (:pos w)
++            r (:radius w)
++            g (a/free-goal P G r statics)
++            w1 (assoc w :goal (when (not= g G) g))]
++        (if (<= (pt-dist P g) arrive-m)
++          (assoc w1 :aim nil)
++          (let [speed      (:speed cfg)
++                horizon-s  (:horizon-s cfg)
++                other-circles (mapv (fn [o] {:at (:pos o) :r (:radius o) :vel (:vel o)}) others)
++                circles    (into statics other-circles)
++                b          (a/path-block P g speed horizon-s r circles)]
++            (if (nil? b)
++              (assoc w1 :aim nil :side nil :wait 0 :waited false)
++              (let [clear  (+ (:clear b) a/pad)
++                    sides  (if (= (:side w) :left) [:left :right] [:right :left])
++                    taken  (reduce
++                             (fn [acc side]
++                               (or acc
++                                   (let [D (a/tangent-aim P (:at b) clear side)]
++                                     (when (and (not (a/inside? D r statics))
++                                                (nil? (a/path-block P D speed horizon-s r circles)))
++                                       [D side]))))
++                             nil sides)]
++                (if taken
++                  (let [[D side] taken]
++                    (assoc w1 :aim D :side side :wait 0 :waited false))
++                  (cond
++                    (:waited w)      (arrive w1)
++                    (> (:wait w) 0)  (assoc w1 :aim nil)
++                    :else            (assoc w1 :aim nil :side nil :wait wait-s)))))))))))
++
++(defn plan-all [ws statics cfg]
++  (let [ws (vec ws) n (count ws)]
++    (vec (map-indexed
++           (fn [i w]
++             (plan w (into (subvec ws 0 i) (subvec ws (inc i) n)) statics cfg))
++           ws))))
++
++(defn replan [before after statics cfg dt acc]
++  (if (or (>= (+ acc dt) (- plan-every-s 1e-9))
++          (some (fn [[b a]] (not= (:leg b) (:leg a))) (map vector before after)))
++    [(plan-all after statics cfg) 0]
++    [after (+ acc dt)]))
++
++(defn advance [ws statics cfg dt acc]
++  (replan ws (mapv #(step % (:speed cfg) dt) ws) statics cfg dt acc))
++
++(defn detours [ws]
++  (count (filter #(some? (:aim %)) ws)))
++
++(defn steer-command [sent w]
++  (cond
++    (or (< (count (:route w)) 2) (> (:pause w) 0))
++    nil
++
++    (> (:wait w) 0)
++    (if (= sent [:stop]) nil [:stop])
++
++    :else
++    (let [p (steer-point w)
++          q (when (and (vector? sent) (= (first sent) :move)) (second sent))]
++      (if (and q (<= (pt-dist q p) resend-m))
++        nil
++        [:move p]))))
+ 
+ ;; -- Ground sensing / smoothing ---------------------------------------------
+ 
+@@ -166,6 +299,9 @@
+ (defn bricks-flag? [search]
+   (.has (js/URLSearchParams. (or search "")) "bricks"))
+ 
++(defn paths-flag? [search]
++  (.has (js/URLSearchParams. (or search "")) "paths"))
++
+ (defn load-fraction [stage loaded total]
+   (case stage
+     "runtime" 0
+@@ -183,28 +319,35 @@
+ 
+ ;; -- HUD --------------------------------------------------------------------
+ 
++(defn- base-hud-text [status]
++  (case (:mode status)
++    :kinematic "motion: kinematic"
++
++    :loading
++    (let [f (:progress status)
++          f (if (number? f) f 0)
++          f (max 0 (min 1 f))
++          n (js/Math.round (* 100 f))]
++      (str "motion: loading model " n "%"))
++
++    :bricks
++    (let [backend (:backend status)
++          n       (:walkers status)
++          gen-ms  (:gen-ms status)]
++      (str "motion: bricks"
++           (when (and (string? backend) (not (str/blank? backend))) (str " " backend))
++           " · " n " walker" (when (not= n 1) "s")
++           (when (number? gen-ms) (str " · gen " (js/Math.round gen-ms) " ms"))))
++
++    :failed
++    (str "motion: kinematic (bricks failed: " (:reason status) ")")
++
++    nil))
++
+ (defn hud-text [status]
+   (when (map? status)
+-    (case (:mode status)
+-      :kinematic "motion: kinematic"
+-
+-      :loading
+-      (let [f (:progress status)
+-            f (if (number? f) f 0)
+-            f (max 0 (min 1 f))
+-            n (js/Math.round (* 100 f))]
+-        (str "motion: loading model " n "%"))
+-
+-      :bricks
+-      (let [backend (:backend status)
+-            n       (:walkers status)
+-            gen-ms  (:gen-ms status)]
+-        (str "motion: bricks"
+-             (when (and (string? backend) (not (str/blank? backend))) (str " " backend))
+-             " · " n " walker" (when (not= n 1) "s")
+-             (when (number? gen-ms) (str " · gen " (js/Math.round gen-ms) " ms"))))
+-
+-      :failed
+-      (str "motion: kinematic (bricks failed: " (:reason status) ")")
+-
+-      nil)))
++    (when-let [base (base-hud-text status)]
++      (let [n (:detours status)]
++        (if (and (number? n) (>= n 1))
++          (str base " · " n " detour" (when (not= n 1) "s"))
++          base)))))
+diff --git a/src/pm/scene.cljs b/src/pm/scene.cljs
+index bc07465..cd5c1f0 100644
+--- a/src/pm/scene.cljs
++++ b/src/pm/scene.cljs
+@@ -22,7 +22,10 @@
+    :sign-paper   0xe9d3a8
+    :sign-ink     0x4a3420
+    :crew         0x5b7fa3
+-   :crew-head    0xf0e6d6})
++   :crew-head    0xf0e6d6
++   :path-walker  0x4fd1c5
++   :path-static  0xf6ad55
++   :path-aim     0xf56565})
+ 
+ (def label-height 0.3)
+ 
+diff --git a/src/pm/three.cljs b/src/pm/three.cljs
+index 90a8a32..fc566a9 100644
+--- a/src/pm/three.cljs
++++ b/src/pm/three.cljs
+@@ -308,6 +308,48 @@
+            vec))
+     (catch :default _ [])))
+ 
++(defn- flatten-points [points]
++  (js/Float32Array.from (into-array (mapcat identity points))))
++
++(defn polyline
++  "A THREE.Line of `points` ([[x y z] ...]), thin and always-on-top."
++  [points color]
++  (let [^js T    (three)
++        ^js Line (.-Line T)
++        ^js Geom (.-BufferGeometry T)
++        ^js Attr (.-Float32BufferAttribute T)
++        ^js Mat  (.-LineBasicMaterial T)
++        ^js geom (Geom.)
++        ^js mat  (Mat. #js {:color color :depthTest false :transparent true :opacity 0.9})
++        ^js line (Line. geom mat)]
++    (.setAttribute geom "position" (Attr. (flatten-points points) 3))
++    (set! (.-renderOrder line) 999)
++    line))
++
++(defn set-polyline!
++  "Move `line`'s points to `points`. Rewrites in place when the count is
++   unchanged, else swaps in a fresh geometry and disposes the old one."
++  [^js line points]
++  (let [^js geom (.-geometry line)
++        ^js attr (.getAttribute geom "position")
++        n        (count points)]
++    (if (and attr (= (.-count attr) n))
++      (let [^js arr (.-array attr)]
++        (doseq [[i [x y z]] (map-indexed vector points)]
++          (let [base (* i 3)]
++            (aset arr base x)
++            (aset arr (+ base 1) y)
++            (aset arr (+ base 2) z)))
++        (set! (.-needsUpdate attr) true))
++      (let [^js T        (three)
++            ^js Geom     (.-BufferGeometry T)
++            ^js Attr     (.-Float32BufferAttribute T)
++            ^js new-geom (Geom.)]
++        (.setAttribute new-geom "position" (Attr. (flatten-points points) 3))
++        (set! (.-geometry line) new-geom)
++        (.dispose geom)))
++    line))
++
+ (defn drop-ray
+   "Cast a ray straight down at (x, z) from height `from` through `root` and
+    return the first `n` hits as [[y name] ...] (y rounded to cm). Sprites need

@@ -7,7 +7,7 @@
   <!-- Relative URLs resolve inside the kit's folder (it fetches ./assets/...);
        every game URL below and in the code is absolute (/js/, /assets/audio/). -->
   <base href="/kit/">
-  <script type="importmap">{"imports": {"three": "/vendor/three-kit.mjs"}}</script>
+  <script type="importmap">{"imports": {"three": "/vendor/three-kit.mjs", "three/addons/": "/vendor/three-addons-r186/"}}</script>
   <!-- The world is the licensed Hiroshi's Island kit, loaded at runtime from
        /kit/ (public/kit/, gitignored; copy it from assets/private/kit/dist/).
        pm.kit adds the kit's stylesheet and loader. Without it, the scaffold runs. -->
@@ -26,9 +26,13 @@
     #cozy-loading.done { opacity: 0; pointer-events: none; visibility: hidden; transition: opacity .6s, visibility 0s .6s; }
     #cozy-audit { display: none; }
     /* the game's layer */
-    #hud { position: fixed; top: 12px; left: 14px; z-index: 200; color: #e8e4d8; font: 14px/1.4 system-ui, sans-serif;
-      opacity: .9; pointer-events: none; }
-    body.kit #hud { color: #24312a; background: rgba(238,241,223,.72); padding: 4px 10px; border-radius: 8px; }
+    /* Status ("admin") bubble: a small ⓘ next to 💭; click to open the status, which scrolls if long. */
+    #admin { position: fixed; left: 64px; bottom: 170px; z-index: 200; font: 14px/1.4 system-ui, sans-serif; }
+    #admin > summary { list-style: none; cursor: pointer; font: 20px system-ui; background: rgba(0,0,0,.35); color: #f3efe2; border-radius: 8px; padding: 4px 10px; user-select: none; }
+    #admin > summary::-webkit-details-marker { display: none; }
+    #admin[open] > summary { background: rgba(20,24,32,.88); }
+    #hud { position: fixed; left: 14px; bottom: 222px; width: min(520px, calc(100vw - 28px)); max-height: 40vh; overflow-y: auto; z-index: 220;
+           background: rgba(20,24,32,.88); color: #f3efe2; border-radius: 10px; padding: 10px 14px; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; word-break: break-word; }
     /* our controls sit above the kit's camera row along the bottom (it spans the full width) */
     #brook { position: fixed; bottom: 128px; left: 14px; z-index: 200; color: #e8e4d8; font: 13px system-ui, sans-serif;
       background: rgba(0,0,0,.35); padding: 8px 10px; border-radius: 8px; display: flex; gap: 12px; align-items: center; }
@@ -54,7 +58,7 @@
   <main id="cozy-scene" aria-label="Prime Meridian estate"></main>
   <div id="cozy-loading"><h1>Prime Meridian</h1><p id="cozy-load-status">Loading the estate…</p></div>
   <pre id="cozy-audit" aria-hidden="true"></pre>
-  <div id="hud">Prime Meridian</div>
+  <details id="admin"><summary title="Status">ⓘ</summary><div id="hud">Prime Meridian</div></details>
   <div id="brook">
     <button id="brook-toggle">▶ brook</button>
     <button id="voice-toggle">🔇 voice off</button>

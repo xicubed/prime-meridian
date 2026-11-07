@@ -1,0 +1,27 @@
+  t65-scenario-real-estate), including the
+  footprint/statics geometry, the planner
+  (clear/static/sides/wait/give-up),
+  step/follow with aims/goals/waits, cadence
+  (advance/replan/steer-command), HUD detour
+  text, paths-flag?, and the six sim-based
+  scenarios (head-on, crossing,
+  static-on-line, right-blocked,
+  target-inside, real-estate laps). It only
+  touches src/pm/avoid.cljs,
+  src/pm/motion.cljs's new fns, etc. via
+  calls — I didn't modify any src/,
+  resources/, or public/ file, and left
+  motion_test.cljs untouched. It will fail to
+  compile until the builder's pm.avoid and
+  the pm.motion/estate.edn additions land,
+  which is expected since we're working in
+  parallel.
+
+  done-6061
+
+✻ Brewed for 3m 29s · done 1:42 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

@@ -1,0 +1,27 @@
+     .0/index.mjs; grep -n
+     "CHARACTER_RIGS\|class RetargetedCharact
+     er\|matchSize\|mixamoPlusZ\|mixamo:" $f
+     | head -30; sed -n 3220,3260p $f
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ f=public/vendor/three-motionbricks-0.2.0/
+ │ index.mjs; grep -n "CHARACTER_RIGS\|class
+ │ RetargetedCharacter\|matchSize\|mixamoPl
+ │ usZ\|mixamo:" $f | head -30; sed -n
+ │ 3220,3260p $f
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ A variable in this command can't be checked
+ before it runs
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend

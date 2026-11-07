@@ -1,0 +1,27 @@
+  ⎿  $ f=public/vendor/three-motionbricks-0.2
+     .0/index.mjs; grep -n "class
+     SOMAMannequin" $f; sed -n 2200,2290p $f;
+     grep -n "SOMA_SKELETON =" -A 40 $f |
+     head -60
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ f=public/vendor/three-motionbricks-0.2.0/
+ │ index.mjs; grep -n "class SOMAMannequin"
+ │ $f; sed -n 2200,2290p $f; grep -n
+ │ "SOMA_SKELETON =" -A 40 $f | head -60
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ A variable set in this command can't be
+ checked before it runs
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend

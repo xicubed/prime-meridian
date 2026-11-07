@@ -1,0 +1,27 @@
+  says.
+
+  When you have completely finished, end
+  your reply with a line containing only
+  this: done-3951
+
+  Ran 1 shell command
+
+⏺ Write(crew/runs/foot-ik-v0-2…/gate-note.md)
+  ⎿  Wrote 3 lines to crew/runs/foot-ik-
+     v0-20261107-1449/gate-note.md
+      1 PASS
+      2 0 warnings
+      3 Ran 397 tests containing 1826
+        assertions. 0 failures, 0 erro
+        rs.
+
+⏺ PASS
+
+  done-3951
+
+✻ Sautéed for 10s · done 3:12 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

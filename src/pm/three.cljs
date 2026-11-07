@@ -277,6 +277,22 @@
   (.remove parent obj)
   parent)
 
+(defn set-scale! [^js obj s]
+  (.setScalar (.-scale obj) s)
+  obj)
+
+(defn top-y
+  "The highest y of obj's world-space bounding box, or nil (never throws)."
+  [^js obj]
+  (try
+    (.updateMatrixWorld obj true)
+    (let [^js T (three)
+          ^js Box3 (.-Box3 T)
+          ^js box (.setFromObject (Box3.) obj)
+          y (.-y (.-max box))]
+      (when (js/isFinite y) y))
+    (catch :default _ nil)))
+
 (defn find-meshes
   "Every mesh under `root` whose name satisfies `pred`, as a vector. A nil
    root -> []."
@@ -308,6 +324,48 @@
            vec))
     (catch :default _ [])))
 
+(defn- flatten-points [points]
+  (js/Float32Array.from (into-array (mapcat identity points))))
+
+(defn polyline
+  "A THREE.Line of `points` ([[x y z] ...]), thin and always-on-top."
+  [points color]
+  (let [^js T    (three)
+        ^js Line (.-Line T)
+        ^js Geom (.-BufferGeometry T)
+        ^js Attr (.-Float32BufferAttribute T)
+        ^js Mat  (.-LineBasicMaterial T)
+        ^js geom (Geom.)
+        ^js mat  (Mat. #js {:color color :depthTest false :transparent true :opacity 0.9})
+        ^js line (Line. geom mat)]
+    (.setAttribute geom "position" (Attr. (flatten-points points) 3))
+    (set! (.-renderOrder line) 999)
+    line))
+
+(defn set-polyline!
+  "Move `line`'s points to `points`. Rewrites in place when the count is
+   unchanged, else swaps in a fresh geometry and disposes the old one."
+  [^js line points]
+  (let [^js geom (.-geometry line)
+        ^js attr (.getAttribute geom "position")
+        n        (count points)]
+    (if (and attr (= (.-count attr) n))
+      (let [^js arr (.-array attr)]
+        (doseq [[i [x y z]] (map-indexed vector points)]
+          (let [base (* i 3)]
+            (aset arr base x)
+            (aset arr (+ base 1) y)
+            (aset arr (+ base 2) z)))
+        (set! (.-needsUpdate attr) true))
+      (let [^js T        (three)
+            ^js Geom     (.-BufferGeometry T)
+            ^js Attr     (.-Float32BufferAttribute T)
+            ^js new-geom (Geom.)]
+        (.setAttribute new-geom "position" (Attr. (flatten-points points) 3))
+        (set! (.-geometry line) new-geom)
+        (.dispose geom)))
+    line))
+
 (defn drop-ray
   "Cast a ray straight down at (x, z) from height `from` through `root` and
    return the first `n` hits as [[y name] ...] (y rounded to cm). Sprites need
@@ -327,3 +385,115 @@
                         (when (and m (not-empty (.-name m))) (str "/" (.-name m))))])))
          (take n)
          vec)))
+
+(defn down-hits-n
+  "Like `down-hits`, but each hit is [y name [nx ny nz]]. The normal is the
+   hit face's normal transformed into world space, or nil when there is no
+   face. Never throws."
+  [objs x z from]
+  (try
+    (let [^js T  (three)
+          ^js rc (new (.-Raycaster T)
+                      (new (.-Vector3 T) x from z)
+                      (new (.-Vector3 T) 0 -1 0))]
+      (->> (.intersectObjects rc (into-array objs) true)
+           (map (fn [^js hit]
+                  (let [^js o (.-object hit) ^js m (.-material o)
+                        ^js face (.-face hit)
+                        n (when face
+                            (let [^js v (.clone (.-normal face))]
+                              (.transformDirection v (.-matrixWorld o))
+                              [(.-x v) (.-y v) (.-z v)]))]
+                    [(.. hit -point -y)
+                     (str (or (not-empty (.-name o)) (.-type o))
+                          (when (and m (not-empty (.-name m))) (str "/" (.-name m))))
+                     n])))
+           vec))
+    (catch :default _ [])))
+
+(defn object-names
+  "A vector of every non-blank .name under root, root included, in
+   traverse order."
+  [^js root]
+  (if (nil? root)
+    []
+    (let [out #js []]
+      (.traverse root
+                 (fn [^js o]
+                   (when (not-empty (.-name o))
+                     (.push out (.-name o)))))
+      (vec out))))
+
+(defn by-name
+  "root.getObjectByName(name), or nil."
+  [^js root name]
+  (when root
+    (or (.getObjectByName root name) nil)))
+
+(defn update-world!
+  "obj.updateMatrixWorld(true); returns obj."
+  [^js obj]
+  (.updateMatrixWorld obj true)
+  obj)
+
+(defn world-pos
+  "[x y z] of obj's world position."
+  [^js obj]
+  (let [^js T (three)
+        ^js v (new (.-Vector3 T))]
+    (.getWorldPosition obj v)
+    [(.-x v) (.-y v) (.-z v)]))
+
+(defn world-quat
+  "A new world Quaternion (opaque to CLJS)."
+  [^js obj]
+  (let [^js T (three)
+        ^js q (new (.-Quaternion T))]
+    (.getWorldQuaternion obj q)
+    q))
+
+(defn set-world-quat!
+  "Sets bone.quaternion = parentWorld⁻¹ · q, then bone.updateMatrixWorld(true)."
+  [^js bone q]
+  (let [^js T (three)
+        ^js parent (.-parent bone)
+        ^js inv (new (.-Quaternion T))]
+    (if parent
+      (.getWorldQuaternion parent inv)
+      (.identity inv))
+    (.invert inv)
+    (.multiply inv q)
+    (.copy (.-quaternion bone) inv)
+    (.updateMatrixWorld bone true)
+    bone))
+
+(defn- unit-vec3 [[x y z]]
+  (let [len (js/Math.sqrt (+ (* x x) (* y y) (* z z)))]
+    (when (>= len 1e-9)
+      (vec3 [(/ x len) (/ y len) (/ z len)]))))
+
+(defn aim-bone!
+  "from/to are [x y z]; a no-op when either is shorter than 1e-9. r =
+   setFromUnitVectors(f̂, t̂), the new world quat is r · world(bone), then
+   set-world-quat!."
+  [^js bone from to]
+  (when-let [fhat (unit-vec3 from)]
+    (when-let [that (unit-vec3 to)]
+      (let [^js T (three)
+            ^js Quaternion (.-Quaternion T)
+            ^js r (.setFromUnitVectors (Quaternion.) fhat that)
+            ^js world (world-quat bone)]
+        (.multiply r world)
+        (set-world-quat! bone r)))))
+
+(defn tilt-bone!
+  "The same as aim-bone!, with r = setFromAxisAngle(axis, angle)."
+  [^js bone [ax ay az] angle]
+  (let [^js T (three)
+        ^js Vector3 (.-Vector3 T)
+        ^js Quaternion (.-Quaternion T)
+        ^js axis (Vector3. ax ay az)
+        ^js r (.setFromAxisAngle (Quaternion.) axis angle)
+        ^js world (world-quat bone)]
+    (.multiply r world)
+    (set-world-quat! bone r)))

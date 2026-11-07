@@ -1,0 +1,27 @@
+  pelvis-drop/base-height/planted,
+  tilt/blend/smoothing, the foot-frame
+  per-frame rule (level ground, downhill
+  drop, drop-cap, moving-foot,
+  tilt-only-when-planted, missing ground,
+  display-scale planting, smoothed values,
+  and the no-hop base-height fix), and
+  m/walkable?/plan's new ground-at rejection
+  (including the two real-estate cases). I
+  only touched the new test file — no src/,
+  resources/, or other test files.
+
+  One note: test/pm/characters_test.cljs was
+  flagged as changed on disk since I last
+  wrote it, presumably by the builder or
+  another process — I left it alone per
+  instructions since this task only concerns
+  feet_test.cljs.
+
+  done-7744
+
+✻ Churned for 2m 59s · done 2:59 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

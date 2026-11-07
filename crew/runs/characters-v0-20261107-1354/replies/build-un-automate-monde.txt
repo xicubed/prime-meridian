@@ -1,0 +1,27 @@
+    scales/positions the object and places
+    the label; fallback! also resets every
+    label height and clears :sent.
+  - src/pm/three.cljs — added set-scale!,
+    top-y.
+  - src/pm/scene.cljs — unchanged from this
+    round (only the prior round's palette
+    keys remain).
+  - resources/estate.edn — :motion gained
+    :display-scale 1.0; each walker gained
+    its :character; touched src/pm/world.cljs
+    for the resource cache.
+
+  Note: src/pm/kit.cljs also shows a diff in
+  git diff --stat (a Studio-panel auto-close
+  helper) — that's not my change; it predates
+  this round's edits and is outside my
+  assigned files, so I left it untouched.
+
+  done-4611
+
+✻ Cooked for 4m 17s · done 2:04 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

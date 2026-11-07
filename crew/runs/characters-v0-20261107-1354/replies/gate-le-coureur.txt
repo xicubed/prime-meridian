@@ -1,0 +1,27 @@
+  says.
+
+  When you have completely finished, end
+  your reply with a line containing only
+  this: done-8631
+
+  Ran 1 shell command
+
+⏺ Write(crew/runs/characters-v…/gate-note.md)
+  ⎿  Wrote 3 lines to crew/runs/characte
+     rs-v0-20261107-1354/gate-note.md
+      1 PASS
+      2 0 warnings
+      3 Ran 353 tests containing 1686
+        assertions. 0 failures, 0 erro
+        rs.
+
+⏺ PASS
+
+  done-8631
+
+✻ Crunched for 10s · done 2:05 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

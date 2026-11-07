@@ -1,0 +1,56 @@
+{
+  "round": "foot-ik-v0",
+  "quest": ".crew/quests/foot-ik-v0.md",
+  "runDir": "crew/runs",
+  "gate": "bash .crew/gate.sh",
+  "fix": {
+    "who": "un-automate-monde",
+    "max": 2
+  },
+  "timeoutMinutes": 40,
+  "steps": [
+    {
+      "id": "spec",
+      "who": [
+        "un-architecte"
+      ],
+      "prompt": "New quest: read {quest} (and the GDD sections and code it cites). Write the spec to {run}/spec.md following your role card, with numbered test cases and hand-checked expected values. Reply when it's written.",
+      "expect": [
+        "{run}/spec.md"
+      ]
+    },
+    {
+      "id": "build",
+      "who": [
+        "un-automate-monde",
+        "le-testeur"
+      ],
+      "prompt": {
+        "un-automate-monde": "Spec: {run}/spec.md (quest: {quest}). Implement it in the source files the spec assigns the builder, and nothing else. Run .crew/gate.sh before replying.",
+        "le-testeur": "Spec: {run}/spec.md (quest: {quest}). Write its test cases in the test file the spec assigns the tester, and nothing else. The builder is coding in parallel."
+      },
+      "expect": []
+    },
+    {
+      "id": "gate",
+      "who": [
+        "le-coureur"
+      ],
+      "verify": true,
+      "prompt": "Run the gate (.crew/gate.sh) and write the gate note to {run}/gate-note.md as your role card says.",
+      "expect": [
+        "{run}/gate-note.md"
+      ]
+    },
+    {
+      "id": "review",
+      "who": [
+        "le-critique"
+      ],
+      "prompt": "Review the round's changes against {run}/spec.md and {quest}: git diff for edited files, and read the new files (git status lists them). Check in particular: IK runs after the library's update each frame and only adds a vertical correction; the knee side is kept; pelvis drop capped and smoothed; base height from the feet (the hop fix); foot tilt only when planted and capped; detours reject big ground steps; leg names come from data; no edits to public/vendor or resources/content; pure math tested. Write the review to {run}/review.md.",
+      "expect": [
+        "{run}/review.md"
+      ]
+    }
+  ]
+}

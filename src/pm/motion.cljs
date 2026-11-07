@@ -1,15 +1,22 @@
 (ns pm.motion
   "Pure rules for walkers pacing a route: kinematic stepping, MotionBricks
-   follow-mode, ground sensing/smoothing, and HUD text. No three.js, no
-   atoms, no js/Date and no walker names — the only JS used is js/Math and
-   js/URLSearchParams, both available under Node for testing."
-  (:require [clojure.string :as str]))
+   follow-mode, ground sensing/smoothing, avoidance planning, and HUD text.
+   No three.js, no atoms, no js/Date and no walker names — the only JS used
+   is js/Math and js/URLSearchParams, both available under Node for testing."
+  (:require [clojure.string :as str]
+            [pm.avoid :as a]))
 
 ;; -- Constants ---------------------------------------------------------
 
 (def default-speed 1.2)
 (def arrive-m 0.3)
 (def smooth-tau 0.15)
+(def plan-every-s 0.25)
+(def wait-s 2)
+(def resend-m 0.5)
+(def default-radius 0.3)
+(def default-rig :mixamo)
+(def label-gap 0.35)
 
 (def figure
   "The kinematic figure, in pm.plan's look-part format (+x forward, degrees)."
@@ -23,6 +30,9 @@
 (defn yaw [dx dz]
   (js/Math.atan2 (- dz) dx))
 
+(defn- pt-dist [[x1 z1] [x2 z2]]
+  (js/Math.hypot (- x1 x2) (- z1 z2)))
+
 ;; -- Config / walker state -------------------------------------------------
 
 (defn config [world]
@@ -33,6 +43,39 @@
         s (get-in world [:motion :speed])
         s (if (and (number? s) (pos? s)) s default-speed)]
     {:bricks b :ground (vec g) :speed s}))
+
+(defn avoid-config [world]
+  (let [r (get-in world [:motion :radius])
+        r (if (and (number? r) (pos? r)) r default-radius)
+        h (get-in world [:motion :horizon-s])
+        h (if (and (number? h) (pos? h)) h 2)]
+    {:radius r :horizon-s h}))
+
+(defn rig-key [rig]
+  (when (keyword? rig)
+    (let [[first-part & rest-parts] (str/split (name rig) #"-")]
+      (apply str first-part
+             (map (fn [p] (str (str/upper-case (subs p 0 1)) (subs p 1))) rest-parts)))))
+
+(defn character [c]
+  (when (map? c)
+    (let [f (:file c)]
+      (when (and (string? f) (not (str/blank? f))
+                 (or (str/starts-with? f "/") (str/starts-with? f "https://")))
+        (let [r (:rig c)]
+          (cond
+            (nil? r)     {:file f :rig default-rig}
+            (keyword? r) {:file f :rig r}
+            :else        nil))))))
+
+(defn display-scale [world]
+  (let [ds (get-in world [:motion :display-scale])]
+    (if (and (number? ds) (pos? ds)) ds 1.0)))
+
+(defn label-height [top ds]
+  (if (and (number? top) (js/isFinite top) (pos? top))
+    (+ (* top ds) label-gap)
+    (* (:label-y figure) ds)))
 
 (defn- valid-point? [p]
   (and (vector? p) (= 2 (count p)) (every? number? p)))
@@ -45,6 +88,8 @@
             nm      (if (and (string? nm) (not (str/blank? nm))) nm (name id))
             pause-s (:pause-s entry)
             pause-s (if (and (number? pause-s) (>= pause-s 0)) pause-s 0)
+            radius  (:radius entry)
+            radius  (if (and (number? radius) (pos? radius)) radius default-radius)
             [x0 z0] (first route)
             heading (if (>= (count route) 2)
                       (let [[x1 z1] (second route)]
@@ -52,10 +97,21 @@
                       0)]
         {:id id :name nm :route route :pause-s pause-s
          :pos [x0 z0] :heading heading :to 0 :dir 1 :pause pause-s :leg 0
-         :ground nil :y nil}))))
+         :ground nil :y nil
+         :radius radius :vel [0 0] :aim nil :goal nil :side nil :wait 0 :waited false
+         :character (character (:character entry))}))))
 
 (defn walkers [world]
-  (into [] (keep walker) (:walkers world)))
+  (let [cfg (avoid-config world)
+        ds  (display-scale world)]
+    (into []
+          (keep (fn [entry]
+                  (let [entry (if (and (number? (:radius entry)) (pos? (:radius entry)))
+                                entry
+                                (assoc entry :radius (:radius cfg)))
+                        w (walker entry)]
+                    (when w (update w :radius * ds)))))
+          (:walkers world))))
 
 ;; -- Ping-pong -------------------------------------------------------------
 
@@ -73,15 +129,22 @@
 (defn new-target? [before after]
   (not= (:leg before) (:leg after)))
 
+(defn goal-point [w]
+  (or (:goal w) (target w)))
+
+(defn steer-point [w]
+  (or (:aim w) (goal-point w)))
+
 ;; -- step / follow ---------------------------------------------------------
 
 (defn- pick [w]
   (let [[i' dir'] (next-index (count (:route w)) (:to w) (:dir w))]
-    (assoc w :to i' :dir dir' :pause 0 :leg (inc (:leg w)))))
+    (assoc w :to i' :dir dir' :pause 0 :leg (inc (:leg w))
+             :aim nil :goal nil :side nil :wait 0 :waited false)))
 
 (defn- arrive [w]
   (if (> (:pause-s w) 0)
-    (assoc w :pause (:pause-s w))
+    (assoc w :pause (:pause-s w) :aim nil :goal nil :side nil :wait 0 :waited false)
     (pick w)))
 
 (defn step [w speed dt]
@@ -93,29 +156,52 @@
 
       (> (:pause w) 0)
       (let [p (- (:pause w) dt')]
+        (assoc (if (> p 0) (assoc w :pause p) (pick w)) :vel [0 0]))
+
+      (> (:wait w) 0)
+      (let [p (- (:wait w) dt')]
         (if (> p 0)
-          (assoc w :pause p)
-          (pick w)))
+          (assoc w :wait p :vel [0 0])
+          (assoc w :wait 0 :waited true :vel [0 0])))
 
       :else
-      (let [[tx tz] (target w)
-            [x z]   (:pos w)
-            dx (- tx x) dz (- tz z)
-            d  (js/Math.hypot dx dz)]
-        (if (<= d arrive-m)
-          (arrive w)
-          (let [s  (min (* speed dt') d)
-                w' (assoc w
-                          :pos [(+ x (* (/ dx d) s)) (+ z (* (/ dz d) s))]
-                          :heading (yaw dx dz))]
-            (if (<= (- d s) arrive-m)
-              (arrive w')
-              w')))))))
+      (let [gp     (goal-point w)
+            [x z]  (:pos w)
+            dgx (- (first gp) x) dgz (- (second gp) z)
+            dg  (js/Math.hypot dgx dgz)]
+        (if (<= dg arrive-m)
+          (assoc (arrive w) :vel [0 0])
+          (let [sp  (steer-point w)
+                dsx (- (first sp) x) dsz (- (second sp) z)
+                ds  (js/Math.hypot dsx dsz)
+                s   (min (* speed dt') ds)
+                ux  (if (zero? ds) 0 (/ dsx ds))
+                uz  (if (zero? ds) 0 (/ dsz ds))
+                nx  (+ x (* ux s))
+                nz  (+ z (* uz s))
+                vel (if (zero? dt') [0 0] [(/ (* ux s) dt') (/ (* uz s) dt')])
+                w'  (assoc w :pos [nx nz] :heading (yaw dsx dsz) :vel vel)]
+            (if (:aim w)
+              (let [dgx' (- (first gp) nx) dgz' (- (second gp) nz)
+                    dg'  (js/Math.hypot dgx' dgz')]
+                (cond
+                  (<= dg' arrive-m)      (arrive w')
+                  (<= (- ds s) arrive-m) (assoc w' :aim nil)
+                  :else                  w'))
+              (if (<= (- dg s) arrive-m)
+                (arrive w')
+                w'))))))))
 
 (defn follow [w pos idle? dt]
-  (let [w     (if (some? pos) (assoc w :pos pos) w)
-        dt'   (max 0 dt)
-        route (:route w)]
+  (let [dt'     (max 0 dt)
+        old-pos (:pos w)
+        w       (cond
+                  (nil? pos) w
+                  (zero? dt') (assoc w :pos pos)
+                  :else (assoc w :pos pos
+                                 :vel [(/ (- (first pos) (first old-pos)) dt')
+                                       (/ (- (second pos) (second old-pos)) dt')]))
+        route   (:route w)]
     (cond
       (< (count route) 2)
       w
@@ -126,14 +212,101 @@
           (assoc w :pause p)
           (pick w)))
 
+      (> (:wait w) 0)
+      (let [p (- (:wait w) dt')]
+        (if (> p 0)
+          (assoc w :wait p :vel [0 0])
+          (assoc w :wait 0 :waited true :vel [0 0])))
+
       :else
-      (let [[tx tz] (target w)
-            [x z]   (:pos w)
-            dx (- tx x) dz (- tz z)
-            d  (js/Math.hypot dx dz)]
-        (if (or (<= d arrive-m) idle?)
+      (let [gp     (goal-point w)
+            dg     (pt-dist gp (:pos w))]
+        (if (or (<= dg arrive-m) (and idle? (nil? (:aim w))))
           (arrive w)
-          w)))))
+          (if (and (:aim w) (<= (pt-dist (:aim w) (:pos w)) arrive-m))
+            (assoc w :aim nil)
+            w))))))
+
+;; -- Avoidance planning ------------------------------------------------------
+
+(defn walkable? [g base step-max]
+  (and (number? g) (<= (js/Math.abs (- g base)) step-max)))
+
+(defn plan [w others statics cfg]
+  (let [route (:route w)]
+    (if (or (< (count route) 2) (> (:pause w) 0))
+      (assoc w :aim nil)
+      (let [G (target w)
+            P (:pos w)
+            r (:radius w)
+            g (a/free-goal P G r statics)
+            w1 (assoc w :goal (when (not= g G) g))]
+        (if (<= (pt-dist P g) arrive-m)
+          (assoc w1 :aim nil)
+          (let [speed      (:speed cfg)
+                horizon-s  (:horizon-s cfg)
+                other-circles (mapv (fn [o] {:at (:pos o) :r (:radius o) :vel (:vel o)}) others)
+                circles    (into statics other-circles)
+                b          (a/path-block P g speed horizon-s r circles)]
+            (if (nil? b)
+              (assoc w1 :aim nil :side nil :wait 0 :waited false)
+              (let [clear  (+ (:clear b) a/pad)
+                    sides  (if (= (:side w) :left) [:left :right] [:right :left])
+                    taken  (reduce
+                             (fn [acc side]
+                               (or acc
+                                   (let [D (a/tangent-aim P (:at b) clear side)
+                                         [Dx Dz] D
+                                         ground-ok (or (not (fn? (:ground-at cfg)))
+                                                       (not (number? (:y w)))
+                                                       (walkable? ((:ground-at cfg) Dx Dz) (:y w)
+                                                                  (or (:step-max cfg) 0.4)))]
+                                     (when (and ground-ok
+                                                (not (a/inside? D r statics))
+                                                (nil? (a/path-block P D speed horizon-s r circles)))
+                                       [D side]))))
+                             nil sides)]
+                (if taken
+                  (let [[D side] taken]
+                    (assoc w1 :aim D :side side :wait 0 :waited false))
+                  (cond
+                    (:waited w)      (arrive w1)
+                    (> (:wait w) 0)  (assoc w1 :aim nil)
+                    :else            (assoc w1 :aim nil :side nil :wait wait-s)))))))))))
+
+(defn plan-all [ws statics cfg]
+  (let [ws (vec ws) n (count ws)]
+    (vec (map-indexed
+           (fn [i w]
+             (plan w (into (subvec ws 0 i) (subvec ws (inc i) n)) statics cfg))
+           ws))))
+
+(defn replan [before after statics cfg dt acc]
+  (if (or (>= (+ acc dt) (- plan-every-s 1e-9))
+          (some (fn [[b a]] (not= (:leg b) (:leg a))) (map vector before after)))
+    [(plan-all after statics cfg) 0]
+    [after (+ acc dt)]))
+
+(defn advance [ws statics cfg dt acc]
+  (replan ws (mapv #(step % (:speed cfg) dt) ws) statics cfg dt acc))
+
+(defn detours [ws]
+  (count (filter #(some? (:aim %)) ws)))
+
+(defn steer-command [sent w]
+  (cond
+    (or (< (count (:route w)) 2) (> (:pause w) 0))
+    nil
+
+    (> (:wait w) 0)
+    (if (= sent [:stop]) nil [:stop])
+
+    :else
+    (let [p (steer-point w)
+          q (when (and (vector? sent) (= (first sent) :move)) (second sent))]
+      (if (and q (<= (pt-dist q p) resend-m))
+        nil
+        [:move p]))))
 
 ;; -- Ground sensing / smoothing ---------------------------------------------
 
@@ -163,8 +336,14 @@
 
 ;; -- Flag / progress / reasons ----------------------------------------------
 
+(defn url-flag? [search name]
+  (.has (js/URLSearchParams. (or search "")) name))
+
 (defn bricks-flag? [search]
   (.has (js/URLSearchParams. (or search "")) "bricks"))
+
+(defn paths-flag? [search]
+  (.has (js/URLSearchParams. (or search "")) "paths"))
 
 (defn load-fraction [stage loaded total]
   (case stage
@@ -183,28 +362,42 @@
 
 ;; -- HUD --------------------------------------------------------------------
 
+(defn char-errors-text [errs]
+  (when (seq errs)
+    (str "mannequin for "
+         (str/join ", " (map (fn [e] (str (:name e) " (" (:reason e) ")")) errs)))))
+
+(defn- base-hud-text [status]
+  (case (:mode status)
+    :kinematic "motion: kinematic"
+
+    :loading
+    (let [f (:progress status)
+          f (if (number? f) f 0)
+          f (max 0 (min 1 f))
+          n (js/Math.round (* 100 f))]
+      (str "motion: loading model " n "%"))
+
+    :bricks
+    (let [backend (:backend status)
+          n       (:walkers status)
+          gen-ms  (:gen-ms status)
+          ce      (char-errors-text (:char-errors status))]
+      (str "motion: bricks"
+           (when (and (string? backend) (not (str/blank? backend))) (str " " backend))
+           " · " n " walker" (when (not= n 1) "s")
+           (when (number? gen-ms) (str " · gen " (js/Math.round gen-ms) " ms"))
+           (when ce (str " · " ce))))
+
+    :failed
+    (str "motion: kinematic (bricks failed: " (:reason status) ")")
+
+    nil))
+
 (defn hud-text [status]
   (when (map? status)
-    (case (:mode status)
-      :kinematic "motion: kinematic"
-
-      :loading
-      (let [f (:progress status)
-            f (if (number? f) f 0)
-            f (max 0 (min 1 f))
-            n (js/Math.round (* 100 f))]
-        (str "motion: loading model " n "%"))
-
-      :bricks
-      (let [backend (:backend status)
-            n       (:walkers status)
-            gen-ms  (:gen-ms status)]
-        (str "motion: bricks"
-             (when (and (string? backend) (not (str/blank? backend))) (str " " backend))
-             " · " n " walker" (when (not= n 1) "s")
-             (when (number? gen-ms) (str " · gen " (js/Math.round gen-ms) " ms"))))
-
-      :failed
-      (str "motion: kinematic (bricks failed: " (:reason status) ")")
-
-      nil)))
+    (when-let [base (base-hud-text status)]
+      (let [n (:detours status)]
+        (if (and (number? n) (>= n 1))
+          (str base " · " n " detour" (when (not= n 1) "s"))
+          base)))))

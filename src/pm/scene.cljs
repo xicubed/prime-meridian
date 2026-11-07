@@ -22,7 +22,12 @@
    :sign-paper   0xe9d3a8
    :sign-ink     0x4a3420
    :crew         0x5b7fa3
-   :crew-head    0xf0e6d6})
+   :crew-head    0xf0e6d6
+   :path-walker  0x4fd1c5
+   :path-static  0xf6ad55
+   :path-aim     0xf56565
+   :feet-ground  0x48bb78
+   :feet-target  0xed64a6})
 
 (def label-height 0.3)
 

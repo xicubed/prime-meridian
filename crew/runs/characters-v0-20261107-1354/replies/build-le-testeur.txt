@@ -1,0 +1,27 @@
+
+  Ran 1 shell command
+
+⏺ Created test/pm/characters_test.cljs (175
+  lines, ns pm.characters-test) covering spec
+  §5 cases 1–28 as 28 deftests
+  (t01-rig-key-simple … t28-hud-text-char-err
+  ors-ignored-other-modes): rig-key naming,
+  character validation, estate :character
+  wiring, display-scale/radius scaling
+  (including the 2400-frame avoidance sim at
+  scale 1.4), label-height, and
+  char-errors-text/hud-text HUD formatting.
+  No src/, resources/, or other test files
+  were touched. It will fail to compile until
+  the builder's additions to
+  pm.motion/pm.three/estate.edn land, as
+  expected in parallel work.
+
+  done-2880
+
+✻ Worked for 43s · done 2:01 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

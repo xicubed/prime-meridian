@@ -1,0 +1,27 @@
+    :sent; kinematic/bricks ticks route
+    through m/advance/m/replan and
+    m/steer-command (dropped the old
+    new-target?/moveTo); swap-in issues the
+    initial command via steer-command; ?paths
+    builds a pm-paths group of static/walker
+    circles and goal/aim lines, refreshed
+    every frame via t/set-polyline!.
+  - src/pm/three.cljs — added
+    polyline/set-polyline!.
+  - src/pm/scene.cljs — added
+    :path-walker/:path-static/:path-aim
+    palette keys.
+  - resources/estate.edn — added footprints
+    to Juniper's body and Flora's jar, and
+    :obstacles/:radius/:horizon-s under
+    :motion; touched src/pm/world.cljs for
+    the resource cache.
+
+  done-7792
+
+✻ Cogitated for 11m 22s · done 1:50 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

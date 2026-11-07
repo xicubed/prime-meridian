@@ -49,6 +49,17 @@
     (.observe (js/MutationObserver. sweep) js/document.documentElement
               #js {:childList true :subtree true :characterData true})))
 
+(defn- close-studio!
+  "The kit opens its Studio panel on every load, covering half the scene.
+   Start with it closed (its Studio button still opens it): press its own
+   close button once, when it has rendered."
+  ([] (close-studio! 40))
+  ([tries]
+   (if-let [^js btn (.querySelector js/document "button[data-action='closeStudio']")]
+     (when-let [^js aside (.closest btn "aside")]
+       (when-not (.-hidden aside) (.click btn)))
+     (when (pos? tries) (js/setTimeout #(close-studio! (dec tries)) 250)))))
+
 (defn- when-ready!
   "Poll until the kit publishes `window.hiroshi` (after its first frame)."
   [on-ready]
@@ -66,7 +77,7 @@
                (set! (.-className js/document.body) "kit")
                (inject! html)
                (hide-kit-title!)
-               (when-ready! on-ready)))
+               (when-ready! (fn [h] (close-studio!) (on-ready h)))))
       (.catch (fn [e]
                 (js/console.info "Prime Meridian: no kit in public/kit/ (" (str e) "); using the scaffold scene")
                 (on-missing)))))
