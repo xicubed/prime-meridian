@@ -1,0 +1,386 @@
+it diff for edited files, and read the new files (git status lists them). Check in particular: the overlay is pure and tested; the file can't invent state keys or mirrors; fetch URLs are absolute; failures are silent; polling doesn't reapply an unchanged :as-of; nothing names a mirror in code. Write the review to crew/runs/real-state-v0-20261106-1739/review.md.
+
+When you have completely finished, end your reply with a line containing only this: done-3356
+────────────────────────────────────────
+
+📚 Skill crew-round-review
+💻 $ git status + 1 command  0.8s
+📖 Read spec.md
+📖 Read real-state-v0.md
+🔎 Find *  2.1s
+💻 $ git diff -- src/pm/core.cljs README.md .crew/crew.json .gitignore  0.3s
+📖 Read log.md
+📖 Read gate-note.md
+📖 Read overlay.cljs
+📖 Read overlay_test.cljs
+✗ $ grep -n "flora\|juniper\|:stock\b\|bales\|worms" -ri src/pm/overlay.cljs src/pm/core.cljs  0.3s [exit 1]
+💻 $ bash .crew/gate.sh  3.5s
+🔎 Grep :done-at  0.3s
+🔎 Grep done-at  0.3s
+📖 Read core.cljs
+
+────────────────────────────────────────
+☤ Hermes
+Everything checks out. Now let me write the review.
+────────────────────────────────────────
+
+✍️ Write crew/runs/real-state-v0-20261106-1739/review.md
+│ crew/runs/real-state-v0-20261106-1739/review.md
+│ @@ -0,0 +1,72 @@
+│ +# Review: real-state-v0
+│ +
+│ +Reviewed against `crew/runs/real-state-v0-20261106-1739/spec.md` and
+│ +`.crew/quests/real-state-v0.md`, at `HEAD` `fd2694e` with the round's uncommitted
+│ +working-tree diff on top.
+│ +
+│ +## Scope note
+│ +
+│ +`git status` also shows `.crew/crew.json` and `.gitignore` modified. Per `log.md`, both
+│ +changed during the `spec` step (17:39:42), before `build` even started (adding the
+│ +`le-coureur-omy` runner and gitignoring `/public/state/`) — pre-existing round setup, not
+│ +this round's build output, and outside the builder/tester boundary table anyway. Excluded
+│ +below.
+│ +
+│ +## Conformance
+│ +
+│ +- **Gate verified independently**: `bash .crew/gate.sh` → `Build completed. (0 warnings)`
+│ +  for both `:app` and `:test`, `Ran 84 tests containing 410 assertions. 0 failures, 0
+│ +  errors.` Matches `gate-note.md` exactly.
+│ +- **Boundary table**: builder touched exactly `src/pm/overlay.cljs` (new), `src/pm/core.cljs`
+│ +  (edit), `README.md` (edit, Run section only — the diff is one inserted paragraph after the
+│ +  code block, nothing else in the file moved). Tester touched exactly
+│ +  `test/pm/overlay_test.cljs` (new). `src/pm/world.cljs`, `plan.cljs`, `scene.cljs`,
+│ +  `three.cljs`, `resources/estate.edn` are untouched, as required.
+│ +- **Purity**: `pm.overlay` requires only `cljs.reader` and `pm.world`; no `js/fetch`,
+│ +  `js/Date`, or atom use anywhere in the namespace (only `js/isFinite`, a pure predicate).
+│ +  All side effects (fetch, polling, the atom, `js/Date.now`, `console.info`) live in
+│ +  `pm.core`, matching the spec's namespace split.
+│ +- **No field/mirror invention**: `accept?` rejects any key not already in the mirror's
+│ +  current `:state` (`(not (contains? state k))` → false) before any type check runs, and
+│ +  `apply-file` only touches an entry when `(get-in world [:mirrors id])` already exists —
+│ +  unknown ids (`:rex` in t07, `:pet` as a copy in t17) are left untouched. Matches spec §2
+│ +  step 5 and quest scope item 1.
+│ +- **No mirror named in code**: `grep -ri "flora\|juniper\|stock\|bales\|worms"` over
+│ +  `src/pm/overlay.cljs` and `src/pm/core.cljs` returns nothing — the overlay and core work
+│ +  only from each mirror's own `:state`/`:chores`, as the spec requires (mirror names appear
+│ +  only in `test/pm/overlay_test.cljs`, which is in scope for that).
+│ +- **Fetch URL absolute**: `(def state-url "/state/mirrors.edn")`, built as
+│ +  `(str state-url "?t=" (js/Date.now))` — a leading-slash absolute URL under
+│ +  `<base href="/kit/">`, correct per AGENTS.md/quest.
+│ +- **Failures silent**: `.catch (fn [_])` does nothing (no console error, no HUD write);
+│ +  a non-OK response resolves `nil` from the first `.then`, which fails `parse-file`'s
+│ +  `string?` check and is swallowed by `when-let`; `.finally` always clears `:busy?`, so a
+│ +  failed fetch doesn't wedge the single-in-flight guard. `console.info` only fires when
+│ +  `:state-as-of` actually changed, never on failure.
+│ +- **Polling vs. unchanged `:as-of`**: the single-in-flight guard (`:busy?`) prevents
+│ +  overlapping fetches, and `apply-file`'s step 3 (`(= a (:state-as-of world))` → return
+│ +  `world` unchanged) makes re-applying the same `:as-of` a true no-op — confirmed by t05
+│ +  (`(o/apply-file K HF) = K`, an unchanged file doesn't undo an in-game F press) and t06.
+│ +- **Hand-traced logic**: `apply-file`'s check order (map? → valid non-negative integer
+│ +  `:as-of` → equal-to-last-applied → merge accepted fields → unconditional
+│ +  `(assoc :state-as-of a)`), `accept?`'s branch order (`:source` → unknown key → time field
+│ +  via `(:done-at chore)` membership → type-matched by current value), `source-tag`, and
+│ +  `hud-line`'s name-part splicing all match the spec text verbatim, and the independently
+│ +  re-run test suite (including t17's renamed-mirror case and t18's generic `:fern`/`:panel`
+│ +  mirrors, which aren't domain-specific) passes.
+│ +- **README**: new paragraph covers every bullet the spec lists (private/gitignored path,
+│ +  silent fallback to sample state, `mkdir -p public/state` + save-the-example steps, the
+│ +  `Flora (Hal) · stock 37` example, 5 s poll tied to `:as-of` change, can-only-update-existing-
+│ +  fields) with no emails/phone numbers/private paths.
+│ +
+│ +## Findings
+│ +
+│ +Nothing rises above a style nit. One minor observation, not a defect:
+│ +
+│ +1. `src/pm/core.cljs:34` — the "log only when `:state-as-of` changed" check reads
+│ +   `(:state-as-of @!world)` before and after the `swap!`, which is correct today but would
+│ +   silently stop logging if a future change made `apply-file` ever mutate `:state-as-of`
+│ +   outside the returned world value (it doesn't — low risk, just worth knowing the
+│ +   before/after comparison is the only thing gating that log line).
+│ +
+│ +No conformance, purity, boundary, or security issues found.
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/real-state-v0-20261106-1739/review.md: gate re-verified independently (0 warnings, 84 tests/410 assertions), purity/boundary/naming/URL/silent-failure/no-reapply checks all pass, one minor non-defect note (console.info's before/after comparison relies on apply-file being the only :state-as-of writer). No real findings.
+
+done-3356
+────────────────────────────────────────
+
+─ 1m49s · edited 1 file · read 1 skill, 7 files · ran 3 commands · searched 3 paths · 5:47 PM
+
+
+────────────────────────────────────────
+❯ Review the round's changes against crew/runs/real-state-v1-cache-20261106-1749/spec.md and .crew/quests/real-state-v1-cache.md: git diff for edited files, and read the new files (git status lists them). Check in particular: cache logic is pure and tested; precedence (same :as-of keeps local changes, different :as-of wins); storage failures are silent; the cache can't invent mirrors or state keys; nothing names a mirror in code. Write the review to crew/runs/real-state-v1-cache-20261106-1749/review.md.
+
+When you have completely finished, end your reply with a line containing only this: done-4502
+────────────────────────────────────────
+
+💻 $ git status + 1 command  0.7s
+📖 Read spec.md
+📖 Read real-state-v1-cache.md
+🔎 Find *  1.9s
+📖 Read log.md  1.9s
+✍️ Write /Users/hal/.hermes/profiles/crew/cache/scratch/v0_core.cljs
+│ /Users/hal/.hermes/profiles/crew/cache/scratch/v0_core.cljs
+│ @@ -0,0 +1,211 @@
+│ +(ns pm.core
+│ +  "Entry point. The world is the purchased Hiroshi's Island kit (see `pm.kit`):
+│ +   the kit renders the estate, and the game layers its HUD, keys, rules and
+│ +   spatial brook on top, using the kit's own scene and THREE. Without the kit (a
+│ +   public clone), the week-1 scaffold runs instead: a cube over a ground plane.
+│ +   World state lives in one atom; the render loop reads it."
+│ +  (:require [pm.three :as t]
+│ +            [pm.audio :as audio]
+│ +            [pm.brook :as brook]
+│ +            [pm.kit :as kit]
+│ +            [pm.overlay :as overlay]
+│ +            [pm.scene :as scene]
+│ +            [pm.world :as world]
+│ +            [clojure.string]))
+│ +
+│ +(defonce !world (atom (merge {:t 0 :spin 0.6} (world/load-estate world/estate-edn))))
+│ +
+│ +(defonce !gfx (atom nil)) ; {:renderer :scene :camera :cube}
+│ +
+│ +(def state-url "/state/mirrors.edn")
+│ +(def state-poll-ms 5000)
+│ +
+│ +(defonce ^:private !state-poll (atom {:timer nil :busy? false}))
+│ +
+│ +(defn- fetch-state! []
+│ +  (when-not (:busy? @!state-poll)
+│ +    (swap! !state-poll assoc :busy? true)
+│ +    (-> (js/fetch (str state-url "?t=" (js/Date.now)) #js {:cache "no-store"})
+│ +        (.then (fn [^js resp] (if (.-ok resp) (.text resp) nil)))
+│ +        (.then (fn [text]
+│ +                 (when-let [f (overlay/parse-file text)]
+│ +                   (let [before (:state-as-of @!world)]
+│ +                     (swap! !world overlay/apply-file f)
+│ +                     (when (not= before (:state-as-of @!world))
+│ +                       (js/console.info "Prime Meridian: state from Hal as of" (:state-as-of @!world)))))))
+│ +        (.catch (fn [_]))
+│ +        (.finally (fn [] (swap! !state-poll assoc :busy? false))))))
+│ +
+│ +(defn- start-state-poll! []
+│ +  (when (nil? (:timer @!state-poll))
+│ +    (fetch-state!)
+│ +    (swap! !state-poll assoc :timer (js/setInterval fetch-state! state-poll-ms))))
+│ +
+│ +(defn build-scene! []
+│ +  (let [scene (t/scene)
+│ +        cube  (t/box {:size [1.5 1.5 1.5] :color 0xe07a5f :pos [0 0.75 0]})]
+│ +    (t/add! scene (t/lights) (t/ground {}) cube)
+│ +    {:scene scene :cube cube}))
+│ +
+│ +(defn tick! [dt]
+│ +  (swap! !world update :t + dt)
+│ +  (when-let [{:keys [renderer scene camera ^js cube]} @!gfx]
+│ +    (let [{:keys [t spin]} @!world
+│ +          hue (mod (* t 0.08) 1)]                       ; full rainbow every ~12 s
+│ +      (set! (.-y (.-rotation cube)) (* t spin))
+│ +      (set! (.-x (.-rotation cube)) (* t spin 0.4))
+│ +      (.setHSL (.-color (.-material cube)) hue 0.6 0.55)
+│ +      (t/render! renderer scene camera))))
+│ +
+│ +(defonce !last (atom nil))
+│ +(defonce !frames (atom 0))
+│ +
+│ +(defn hud! [text]
+│ +  (when-let [el (js/document.getElementById "hud")]
+│ +    (set! (.-textContent el) text)))
+│ +
+│ +(defonce !backend (atom "init…"))
+│ +(defonce !probe (atom nil)) ; ?probe=x,z;x,z → ground heights in the HUD
+│ +(defonce !mode (atom "loading")) ; "estate" (kit) or "scaffold"
+│ +
+│ +(defn- hud-mirrors-suffix []
+│ +  (let [w @!world]
+│ +    (str
+│ +      (apply str
+│ +        (for [id (get-in w [:hud :mirrors])
+│ +              :let [line (overlay/hud-line w id (js/Date.now))]
+│ +              :when line]
+│ +          (str " · " line)))
+│ … omitted 133 diff line(s) across 1 additional file(s)/section(s)
+✍️ Write /Users/hal/.hermes/profiles/crew/cache/scratch/v0_overlay.cljs
+│ /Users/hal/.hermes/profiles/crew/cache/scratch/v0_overlay.cljs
+│ @@ -0,0 +1,68 @@
+│ +(ns pm.overlay
+│ +  "Hal's twin state file, laid over the world. Pure: no js/fetch, no js/Date,
+│ +   no atoms. Never names a mirror; works from each mirror's own :state and
+│ +   :chores."
+│ +  (:require [cljs.reader :as reader]
+│ +            [pm.world :as w]))
+│ +
+│ +(defn parse-file [text]
+│ +  (when (string? text)
+│ +    (try (reader/read-string text) (catch :default _ nil))))
+│ +
+│ +(defn- accept?
+│ +  "Can field `k` of mirror `m` take value `v` from the file?"
+│ +  [m k v]
+│ +  (let [state (:state m)
+│ +        times (set (keep :done-at (:chores m)))
+│ +        num?  (fn [x] (and (number? x) (js/isFinite x)))]
+│ +    (cond
+│ +      (= k :source) false
+│ +      (not (contains? state k)) false
+│ +      (contains? times k) (or (nil? v) (num? v))
+│ +      :else
+│ +      (let [cur (get state k)]
+│ +        (cond
+│ +          (and (number? cur) (js/isFinite cur)) (num? v)
+│ +          (string? cur)  (string? v)
+│ +          (keyword? cur) (keyword? v)
+│ +          (boolean? cur) (boolean? v)
+│ +          :else false)))))
+│ +
+│ +(defn apply-file [world file]
+│ +  (if-not (map? file)
+│ +    world
+│ +    (let [a (:as-of file)]
+│ +      (if-not (and (integer? a) (not (neg? a)))
+│ +        world
+│ +        (if (= a (:state-as-of world))
+│ +          world
+│ +          (let [entries (let [m (:mirrors file)] (if (map? m) m {}))
+│ +                world'  (reduce
+│ +                          (fn [w [id entry]]
+│ +                            (let [mirror (get-in w [:mirrors id])]
+│ +                              (if (and mirror (map? entry) (map? (:state entry)))
+│ +                                (let [accepted (into {} (filter (fn [[k v]] (accept? mirror k v))
+│ +                                                                 (:state entry)))]
+│ +                                  (if (seq accepted)
+│ +                                    (-> w
+│ +                                        (update-in [:mirrors id :state] merge accepted)
+│ +                                        (assoc-in [:mirrors id :state :source] :hal))
+│ +                                    w))
+│ +                                w)))
+│ +                          world entries)]
+│ +            (assoc world' :state-as-of a)))))))
+│ +
+│ +(defn source-tag [source]
+│ +  (cond
+│ +    (= source :hal) "Hal"
+│ +    (keyword? source) (name source)
+│ +    :else nil))
+│ +
+│ +(defn hud-line [world mirror-id now]
+│ +  (when-let [line (w/status-line world mirror-id now)]
+│ +    (let [tag (source-tag (get-in world [:mirrors mirror-id :state :source]))]
+│ +      (if (nil? tag)
+│ +        line
+│ +        (let [mirror    (get-in world [:mirrors mirror-id])
+│ +              name-part (or (:name mirror) (name mirror-id))]
+│ +          (str name-part " (" tag ")" (subs line (count name-part))))))))
+📖 Read core.cljs
+📖 Read overlay.cljs
+💻 $ git diff -- README.md  0.3s
+✗ $ diff -u /Users/hal/.hermes/profiles/crew/cache/scratch/v0_core.cljs src/pm/core.cljs + 2 commands  0.3s [exit 1]
+📖 Read overlay_test.cljs L1-185
+
+────────────────────────────────────────
+☤ Hermes
+t01-t18 are byte-identical to the v0 baseline. Let me read the rest (t19-t31) and run the gate myself.
+────────────────────────────────────────
+
+📖 Read overlay_test.cljs L186-305
+💻 $ bash .crew/gate.sh  3.8s
+📖 Read gate-note.md
+✗ $ grep -n "flora\|juniper\|stock\|bales\|worms" -ri src/pm/overlay.cljs src/pm/core.cljs  0.3s [exit 1]
+✍️ Write crew/runs/real-state-v1-cache-20261106-1749/review.md
+│ crew/runs/real-state-v1-cache-20261106-1749/review.md
+│ @@ -0,0 +1,82 @@
+│ +# Review: real-state-v1-cache
+│ +
+│ +Reviewed against `crew/runs/real-state-v1-cache-20261106-1749/spec.md` and
+│ +`.crew/quests/real-state-v1-cache.md`. This round stacks on the uncommitted `real-state-v0`
+│ +round (same shared working tree), so a plain `git diff`/`git status` mixes both rounds for
+│ +`README.md`/`src/pm/core.cljs` (both already modified before this round's `build` step per
+│ +`log.md`'s `spec` step, 17:49:21). To isolate this round's actual work I diffed the current
+│ +`src/pm/core.cljs` and `src/pm/overlay.cljs` against the exact v0 content I verified in last
+│ +round's review (saved to scratch and `diff -u`'d), and `git diff -- README.md` separately
+│ +since README had no pre-v1 uncommitted baseline conflict in the visible hunk.
+│ +
+│ +## Scope note
+│ +
+│ +`.crew/crew.json` and `.gitignore` are pre-existing round-setup diffs (added before `build`,
+│ +confirmed via `log.md`), not this round's output — excluded, same as last round's review.
+│ +
+│ +## Conformance
+│ +
+│ +- **Gate verified independently**: `bash .crew/gate.sh` → 0 warnings (`:app` and `:test`),
+│ +  `Ran 97 tests containing 488 assertions. 0 failures, 0 errors.` Matches `gate-note.md`
+│ +  exactly. 97 = 84 (v0) + 13 new (t19–t31), confirming no existing test was touched.
+│ +- **t01–t18 byte-identical**: diffed the current `test/pm/overlay_test.cljs` lines 1–177
+│ +  against the v0 file content — identical, as the boundary table requires ("append only").
+│ +- **Boundary table**: builder touched exactly `src/pm/overlay.cljs`, `src/pm/core.cljs`,
+│ +  and one added sentence in `README.md`'s existing state-file paragraph (confirmed by
+│ +  `git diff -- README.md`: a single appended sentence, no other line moved). Tester touched
+│ +  only `test/pm/overlay_test.cljs`, appending t19–t31. `world.cljs`, `plan.cljs`,
+│ +  `scene.cljs`, `three.cljs`, `estate.edn` untouched.
+│ +- **Purity**: `pm.overlay`'s new code (`merge-entries`, `cache-of`, `apply-cache`, 2-arity
+│ +  `source-tag`) adds no new requires and no `js/fetch`/`js/Date`/atom use — only the existing
+│ +  `js/isFinite` predicate. All storage/watch side effects landed in `pm.core` only
+│ +  (`read-cache`, `write-cache!`, `restore-cache!`, `on-world-change!`), matching "storage
+│ +  access lives only in `pm.core`; `pm.overlay` stays pure."
+│ +- **No mirror named in code**: `grep -ri "flora|juniper|stock|bales|worms"` over
+│ +  `src/pm/overlay.cljs` and `src/pm/core.cljs` returns nothing.
+│ +- **Can't invent mirrors/keys**: `apply-cache` routes through the same `merge-entries` →
+│ +  `accept?` path as `apply-file` (unchanged `accept?`), so the file's invention guard
+│ +  (unknown mirror id, unknown field, wrong type) applies identically to cache restores —
+│ +  confirmed by t26 (garbage caches incl. unknown `:rex` mirror, invented fields) and t27
+│ +  (a field the sample lacks is dropped even after a cache round-trip, case `:pond`).
+│ +- **Precedence, hand-traced**:
+│ +  - *Same `:as-of` keeps local changes*: `apply-file`'s branch 3 changed from `world` (v0) to
+│ +    `(dissoc world :state-cached?)` — no merge happens at all on that path, so a cached
+│ +    mirror's locally-advanced fields (e.g. stock 36 after an F press) are never touched by a
+│ +    same-`:as-of` file. Matches t23 exactly (stock stays 36, `:state-cached?` gone, HUD flips
+│ +    to `(Hal)`).
+│ +  - *Different `:as-of` wins*: falls through to the normal merge branch, now merging onto
+│ +    the cache-restored world (not the sample), so file fields overwrite cached ones and
+│ +    fields the file doesn't list keep their cached values (`update-in merge`, not
+│ +    replacement) — matches t24's partial-file case (`last-fed` stays the cached
+│ +    `1794186000000` when the new file only sends `:stock`).
+│ +  - *Fresh-world-only cache*: `apply-cache` checks `(some? (:state-as-of world))` — `0` counts
+│ +    as "not fresh" (matches t28's `(assoc W :state-as-of 0)` case, since `some?` is true for
+│ +    `0`, only `nil` is fresh), so a cache can never re-apply over a file or a prior cache.
+│ +  - *A no-op cache doesn't even stamp `:as-of`*: unlike `apply-file` (which always records
+│ +    `:as-of` even with nothing accepted), `apply-cache` only touches the world when
+│ +    `merge-entries`'s `changed?` is true — matches the spec's explicit "Not `changed?` →
+│ +    `world`" and t26's garbage-cache cases, which assert `(o/apply-cache W c) = W` (not
+│ +    `(assoc W :state-as-of ...)`).
+│ +- **Ordering avoids a spurious self-write**: `init!` does `restore-cache!` *before*
+│ +  `(add-watch !world ::state-cache on-world-change!)`, so the `swap!` inside `restore-cache!`
+│ +  itself cannot trigger `on-world-change!` — the just-read cache text is never immediately
+│ +  re-serialized and written back, even if `pr-str (cache-of ...)` would format slightly
+│ +  differently than the stored text. This was worth checking for (a reformat-and-rewrite loop
+│ +  on every load) and the ordering rules it out.
+│ +- **Storage failures silent**: `read-cache`/`write-cache!` both wrap the only
+│ +  `js/localStorage` calls in `try/catch :default _ nil` with no logging; `restore-cache!`'s
+│ +  `when-let` swallows a `nil` read (missing key or threw) the same way `fetch-state!` already
+│ +  swallows a missing file.
+│ +- **`on-world-change!` cheap no-op path**: returns at once when `:mirrors` is `identical?`
+│ +  and `:state-as-of` is `=` between old/new — true on every plain `:t` tick, so the watch
+│ +  costs nothing on the render loop, matching the spec note.
+│ +- **README**: `git diff -- README.md` shows exactly one sentence appended to the existing
+│ +  state-file paragraph (localStorage key name, cached-tag behavior, "a newer file always
+│ +  wins"), nothing else in the file touched.
+│ +
+│ +## Findings
+│ +
+│ … omitted 4 diff line(s) across 1 additional file(s)/section(s)
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/real-state-v1-cache-20261106-1749/review.md. Since this round stacks uncommitted on top of the v0 round in the shared tree, I isolated the real diff by comparing current core.cljs/overlay.cljs against the exact v0 content (verified in the prior review) rather than trusting a plain git diff. Gate re-verified independently (0 warnings, 97 tests/488 assertions, +13 new over v0's 84 with t01–t18 byte-identical). All three precedence cases, the no-invent guard, silent storage failures, and the restore-before-watch ordering (which avoids a spurious self-triggered write) hand-traced correctly against the spec. No findings.
+
+done-4502
+────────────────────────────────────────
+
+─ 3m00s · edited 3 files · read 8 files · ran 3 commands · searched 1 path · 5:56 PM
+────────────────────────────────────────────────────────────────────────────────── Review real-state-v0 round changes ─
+crew ❯ Ask anything, or type / for commands…
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☤ claude-sonnet-5 · ~99.7K/1M · [█░░░░░░░░░] ~10% · ◎ 84.3% · ◷ 19.9s · ↑ 96 t/s · 23m · ⏲ 3m · ✓ 0s

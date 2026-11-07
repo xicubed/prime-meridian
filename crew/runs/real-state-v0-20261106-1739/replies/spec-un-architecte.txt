@@ -1,0 +1,38 @@
+  your role card, with numbered test cases and
+  hand-checked expected values. Reply when it's written.
+
+  When you have completely finished, end your reply with
+  a line containing only this: done-4205
+
+  Reading world, core, estate, gitignore, GDD refs, README
+
+  ⎿  $ cat src/pm/world.cljs src/pm/core.cljs
+     resources/estate.edn | grep -v "^ *{:shape" ; cat
+     .gitignore; git diff .gitignore; grep -n
+     "batteries\|test drive\|sample" docs/GDD.md | head
+     -20; sed -n '/^## Run/,/^## /p' README.md | head -40;
+     ls docs
+
+──────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ Read world, core, estate, gitignore, GDD refs, README
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ cat src/pm/world.cljs src/pm/core.cljs
+ │ resources/estate.edn | grep -v "^ *{:shape" ; cat
+ │ .gitignore; git diff .gitignore; grep -n
+ │ "batteries\|test drive\|sample" docs/GDD.md | head
+ │ -20; sed -n '/^## Run/,/^## /p' README.md | head -40;
+ │ ls docs
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ sed command contains operations that require explicit
+ │ approval (e.g., write commands, execute commands)
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend

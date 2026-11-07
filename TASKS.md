@@ -24,6 +24,9 @@ Plan of record: [`docs/session-2026-10-17.md`](docs/session-2026-10-17.md) §7. 
 - [x] 2026-10-31 C-4 `pm.three` builds objects with the kit's THREE when the kit is present (one three.js per page). First step of W2-7.
 - [x] 2026-10-31 C-6 Mirrors v0 (crew round `mirrors-v0`): stand-ins for Flora, her worm jar and Juniper placed in the kit's world from `:placed` data, with bubble/sign labels from their rules; pure `pm.plan` (22 tests); `pm.scene` builds once, updates labels only.
 - [x] 2026-10-31 C-7 Mirrors v1 (crew round `mirrors-v1-looks`): looks as data (`:parts`, per-item `:scale` and `:yaw`); Flora as an axolotl of 15 parts at display size (~1.5 m, the size of a mid-size rock), Juniper as a horse of 13; display-scale rule in `estate.edn`.
+- [x] 2026-11-06 C-9 Real state from Hal (crew rounds `real-state-v0`, `real-state-v1-cache`): the game reads `/state/mirrors.edn` (private, gitignored, kept by Hal from his Flora reminder and what Michael tells him), polls it every 5 s, and caches Hal's last word in the browser so it stays right while Hal is offline.
+- [ ] C-10 Write-back: the F key / a feed card updates Hal's file and completes his reminder (needs a small local helper; the browser can't write files). Then the feed card UI (worm count you can type in).
+- [ ] C-11 `le-coureur-omy` (runner on omarchy): first gate on Linux once the box is up (box clone needs `npm install`; ask Michael first).
 - [ ] C-8 Idea: try NVIDIA MotionBricks (`three-motionbricks`, Apache-2.0; weights under NVIDIA's Open Model Agreement) as the reference motion for one KayKit agent behind the motion-controller interface, after the MVP. Humanoid only (nothing for Flora). 190-760 MB model download.
 - [ ] C-5 Submit Assignment 3: repo link to `crew/README.md` + crew-up link.
 

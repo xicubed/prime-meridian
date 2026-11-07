@@ -22,3 +22,4 @@ assets/private/
 /out/
 .claude/settings.local.json
 /public/kit/
+/public/state/

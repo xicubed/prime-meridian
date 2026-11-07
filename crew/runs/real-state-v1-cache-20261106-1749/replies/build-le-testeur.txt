@@ -1,0 +1,38 @@
+          +irrors {:pet {:state {:stock 37 :last-f
+          +ed 1794013200000}}}}))
+      303 +    (let [CP (o/apply-cache WP (o/cache
+          +-of RP))]
+      304 +      (is (= (o/hud-line CP :pet (+ A 1
+          +000)) "Pet (Hal, cached) · stock 37"))
+      305 +      (is (= (o/hud-line CP :flora A) "
+          +Flora (sample) · stock 15 · I'm hungry"
+          +)))))
+
+  Ran 2 shell commands
+
+⏺ Appended t19–t31 to test/pm/overlay_test.cljs (t01–t18
+  and shared defs unchanged). File is untracked (new
+  since v0), so git diff --no-index --stat /dev/null:
+
+  /dev/null => test/pm/overlay_test.cljs | 305
+  +++++++++++++++++++++++++++++++++
+   1 file changed, 305 insertions(+)
+
+  New shared defs: WK CK RC HB WB HJ. Tests added:
+  t19-cache-of, t20-cache-of-both-mirrors,
+  t21-cache-roundtrip, t22-cached-hud,
+  t23-same-as-of-goes-live, t24-different-file-wins,
+  t25-unreachable-file-stays-cached, t26-garbage-caches,
+  t27-cache-acceptance, t28-cache-only-on-fresh-world,
+  t29-both-mirrors-cached-then-live,
+  t30-local-changes-survive-restarts, t31-renamed-copy.
+  31 total deftests in the file now.
+
+  done-3602
+
+✻ Crunched for 40s · done 5:53 PM
+
+─────────────────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

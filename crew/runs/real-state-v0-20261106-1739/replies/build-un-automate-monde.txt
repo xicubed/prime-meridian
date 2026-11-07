@@ -1,0 +1,40 @@
+
+⏺ Update(README.md)
+  ⎿  Added 8 lines
+      16  npx shadow-cljs watch app     # http://localhost:8080
+      17  ```
+      18
+      19 +The game also reads a twin's state file at `public/state/mirrors.edn` (served as
+      20 +`/state/mirrors.edn`). That file is private, gitignored, and never committed; without it,
+      21 +every mirror just runs on its sample state. To try it: `mkdir -p public/state`, then save
+      22 +an example like Flora's there, and the HUD line changes from `Flora (sample) · stock 15`
+      23 +to `Flora (Hal) · stock 37`. The game re-reads the file every 5 s and applies it whenever
+      24 +its `:as-of` changes, and it can only update fields a mirror already has — it can't add
+      25 +new ones.
+      26 +
+      27  Built by Michael Lopez with Hal Niner (bot). Course project, fall 2026.
+
+⏺ Now let's run the gate.
+
+  Ran 1 shell command
+
+⏺ Gate passes: 0 warnings, all 84 tests/410 assertions green (including the tester's pm.overlay-test suite, 18 cases).
+
+  Changes:
+  - src/pm/overlay.cljs (new): parse-file, apply-file, source-tag, hud-line.
+  - src/pm/core.cljs: requires pm.overlay; added state-url/state-poll-ms, !state-poll, fetch-state!, start-state-poll!
+    (wired into init!); hud-mirrors-suffix now calls overlay/hud-line instead of world/status-line.
+  - README.md: added the state-file paragraph to "Run".
+
+   README.md       |  7 +++++
+   src/pm/core.cljs | 23 +++++++++++++-
+   src/pm/overlay.cljs | (new, 73 lines)
+
+  done-6857
+
+✻ Churned for 1m 19s · done 5:45 PM
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

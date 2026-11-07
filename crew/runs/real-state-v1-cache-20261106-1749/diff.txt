@@ -1,0 +1,168 @@
+diff --git a/.crew/crew.json b/.crew/crew.json
+index cb40e06..133c50a 100644
+--- a/.crew/crew.json
++++ b/.crew/crew.json
+@@ -160,6 +160,41 @@
+         "Bash(unzip -p:*)"
+       ]
+     },
++    {
++      "name": "le-coureur-omy",
++      "title": "Le Coureur (omarchy)",
++      "role": "runner",
++      "kind": "claude",
++      "backend": "anthropic",
++      "model": "claude-haiku-4-5",
++      "enabled": true,
++      "args": [
++        "--permission-mode",
++        "acceptEdits",
++        "--allowedTools",
++        "Bash(.crew/gate.sh)",
++        "Bash(./.crew/gate.sh)",
++        "Bash(bash .crew/gate.sh)",
++        "Bash(bash ./.crew/gate.sh)",
++        "Bash(git diff:*)",
++        "Bash(git status:*)",
++        "Bash(git log:*)",
++        "Bash(git show:*)",
++        "Bash(ls:*)",
++        "Bash(cat:*)",
++        "Bash(grep:*)",
++        "Bash(find:*)",
++        "Bash(head:*)",
++        "Bash(tail:*)",
++        "Bash(wc:*)",
++        "Bash(unzip -l:*)",
++        "Bash(unzip -p:*)",
++        "Bash(git pull --ff-only:*)",
++        "Bash(git fetch:*)"
++      ],
++      "machine": "omarchy",
++      "cwd": "~/src/prime-meridian"
++    },
+     {
+       "name": "le-critique",
+       "title": "Le Critique",
+@@ -212,4 +247,4 @@
+       "note": "docs (the crew's memory): crew/README.md, session notes. Off until a round needs it."
+     }
+   ]
+-}
+\ No newline at end of file
++}
+diff --git a/.gitignore b/.gitignore
+index 2f3a0f7..6f81b81 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -22,3 +22,4 @@ assets/private/
+ /out/
+ .claude/settings.local.json
+ /public/kit/
++/public/state/
+diff --git a/README.md b/README.md
+index c4901f7..13dbcc8 100644
+--- a/README.md
++++ b/README.md
+@@ -16,4 +16,15 @@ npm install
+ npx shadow-cljs watch app     # http://localhost:8080
+ ```
+ 
++The game also reads a twin's state file at `public/state/mirrors.edn` (served as
++`/state/mirrors.edn`). That file is private, gitignored, and never committed; without it,
++every mirror just runs on its sample state. To try it: `mkdir -p public/state`, then save
++an example like Flora's there, and the HUD line changes from `Flora (sample) · stock 15`
++to `Flora (Hal) · stock 37`. The game re-reads the file every 5 s and applies it whenever
++its `:as-of` changes, and it can only update fields a mirror already has — it can't add
++new ones. The game also remembers the last state it got (plus in-game changes since) in
++the browser's `localStorage` under `pm.state.v1`, so if the file is missing on the next
++start the HUD shows that state as `Flora (Hal, cached)` until the file is back; a newer
++file always wins.
++
+ Built by Michael Lopez with Hal Niner (bot). Course project, fall 2026.
+diff --git a/src/pm/core.cljs b/src/pm/core.cljs
+index b4f8ead..e1b0ded 100644
+--- a/src/pm/core.cljs
++++ b/src/pm/core.cljs
+@@ -8,6 +8,7 @@
+             [pm.audio :as audio]
+             [pm.brook :as brook]
+             [pm.kit :as kit]
++            [pm.overlay :as overlay]
+             [pm.scene :as scene]
+             [pm.world :as world]
+             [clojure.string]))
+@@ -16,6 +17,54 @@
+ 
+ (defonce !gfx (atom nil)) ; {:renderer :scene :camera :cube}
+ 
++(def state-url "/state/mirrors.edn")
++(def state-poll-ms 5000)
++
++(defonce ^:private !state-poll (atom {:timer nil :busy? false}))
++
++(defn- fetch-state! []
++  (when-not (:busy? @!state-poll)
++    (swap! !state-poll assoc :busy? true)
++    (-> (js/fetch (str state-url "?t=" (js/Date.now)) #js {:cache "no-store"})
++        (.then (fn [^js resp] (if (.-ok resp) (.text resp) nil)))
++        (.then (fn [text]
++                 (when-let [f (overlay/parse-file text)]
++                   (let [before (:state-as-of @!world)]
++                     (swap! !world overlay/apply-file f)
++                     (when (not= before (:state-as-of @!world))
++                       (js/console.info "Prime Meridian: state from Hal as of" (:state-as-of @!world)))))))
++        (.catch (fn [_]))
++        (.finally (fn [] (swap! !state-poll assoc :busy? false))))))
++
++(defn- start-state-poll! []
++  (when (nil? (:timer @!state-poll))
++    (fetch-state!)
++    (swap! !state-poll assoc :timer (js/setInterval fetch-state! state-poll-ms))))
++
++(def cache-key "pm.state.v1")
++(defonce ^:private !cache-text (atom nil)) ; last text read or written
++
++(defn- read-cache []
++  (try (.getItem js/localStorage cache-key) (catch :default _ nil)))
++
++(defn- write-cache! [text]
++  (try (.setItem js/localStorage cache-key text) (catch :default _ nil)))
++
++(defn- restore-cache! []
++  (let [text (read-cache)]
++    (reset! !cache-text text)
++    (when-let [c (overlay/parse-file text)]
++      (swap! !world overlay/apply-cache c))))
++
++(defn- on-world-change! [_ _ old new]
++  (when-not (and (identical? (:mirrors old) (:mirrors new))
++                 (= (:state-as-of old) (:state-as-of new)))
++    (when-let [c (overlay/cache-of new)]
++      (let [text (pr-str c)]
++        (when (not= text @!cache-text)
++          (reset! !cache-text text)
++          (write-cache! text))))))
++
+ (defn build-scene! []
+   (let [scene (t/scene)
+         cube  (t/box {:size [1.5 1.5 1.5] :color 0xe07a5f :pos [0 0.75 0]})]
+@@ -48,7 +97,7 @@
+     (str
+       (apply str
+         (for [id (get-in w [:hud :mirrors])
+-              :let [line (world/status-line w id (js/Date.now))]
++              :let [line (overlay/hud-line w id (js/Date.now))]
+               :when line]
+           (str " · " line)))
+       (when-let [s (scene/summary)] (str " · " s))
+@@ -172,6 +221,9 @@
+ (defn init! []
+   ;; Capture phase: the kit's own controls handle keys too and may stop them.
+   (.addEventListener js/window "keydown" (fn [^js e] (on-key! e)) true)
++  (restore-cache!)
++  (add-watch !world ::state-cache on-world-change!)
++  (start-state-poll!)
+   (kit/load! start-kit! start-scaffold!))
+ 
+ (defn reload!

@@ -1,0 +1,38 @@
+  crew/runs/real-state-v1-cache-20261106-1749/spec.md
+  following your role card, with numbered test cases and
+  hand-checked expected values. Reply when it's written.
+
+  When you have completely finished, end your reply with
+  a line containing only this: done-2114
+
+  Ran 2 shell commands
+
+⏺ Writing the spec now: the cache uses the same shape as
+  Hal's file, and a :state-cached? marker keeps all 18 v0
+  tests valid unchanged.
+
+⏺ Listing top-level test defs to avoid name clashes
+  ⎿  $ grep -n "^(def" test/pm/overlay_test.cljs; sed -n
+     '/deftest t05/,/deftest t07/p'
+     test/pm/overlay_test.cljs
+
+──────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ List top-level test defs to avoid name clashes
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ grep -n "^(def" test/pm/overlay_test.cljs; sed -n
+ │ '/deftest t05/,/deftest t07/p'
+ │ test/pm/overlay_test.cljs
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ sed command contains operations that require explicit
+ │ approval (e.g., write commands, execute commands)
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend

@@ -1,0 +1,38 @@
+       6 (def A 1794013200000)                 ; F
+         ri 2026-11-06 17:00 PST
+       7 (def D2 172800000)                    ; "
+         2d"
+     … +170 lines
+
+  Ran 1 shell command
+
+⏺ Created test/pm/overlay_test.cljs with the 18 spec test
+  cases (t01–t18), covering parse-file, apply-file,
+  source-tag, and hud-line exactly per spec §5. These
+  will fail until the builder lands src/pm/overlay.cljs —
+  expected since I'm writing from spec, not
+  implementation.
+
+  git diff --no-index --stat:
+  /dev/null => test/pm/overlay_test.cljs | 177
+  +++++++++++++++++++++++++++++++++
+   1 file changed, 177 insertions(+)
+
+  Tests added: t01-hal-file-applied,
+  t02-no-bubble-until-due, t03-hud-line, t04-source-tag,
+  t05-same-as-of-no-change, t06-new-as-of-follows,
+  t07-cant-invent, t08-source-not-settable,
+  t09-wrong-types, t10-bad-as-of, t11-bad-shapes,
+  t12-juniper-from-file, t13-both-mirrors,
+  t14-rules-run-on-real-state, t15-parse-file,
+  t16-other-world-keys-kept, t17-renamed-copy,
+  t18-other-field-kinds.
+
+  done-5126
+
+✻ Cooked for 56s · done 5:44 PM
+
+─────────────────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

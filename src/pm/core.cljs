@@ -8,6 +8,7 @@
             [pm.audio :as audio]
             [pm.brook :as brook]
             [pm.kit :as kit]
+            [pm.overlay :as overlay]
             [pm.scene :as scene]
             [pm.world :as world]
             [clojure.string]))
@@ -15,6 +16,54 @@
 (defonce !world (atom (merge {:t 0 :spin 0.6} (world/load-estate world/estate-edn))))
 
 (defonce !gfx (atom nil)) ; {:renderer :scene :camera :cube}
+
+(def state-url "/state/mirrors.edn")
+(def state-poll-ms 5000)
+
+(defonce ^:private !state-poll (atom {:timer nil :busy? false}))
+
+(defn- fetch-state! []
+  (when-not (:busy? @!state-poll)
+    (swap! !state-poll assoc :busy? true)
+    (-> (js/fetch (str state-url "?t=" (js/Date.now)) #js {:cache "no-store"})
+        (.then (fn [^js resp] (if (.-ok resp) (.text resp) nil)))
+        (.then (fn [text]
+                 (when-let [f (overlay/parse-file text)]
+                   (let [before (:state-as-of @!world)]
+                     (swap! !world overlay/apply-file f)
+                     (when (not= before (:state-as-of @!world))
+                       (js/console.info "Prime Meridian: state from Hal as of" (:state-as-of @!world)))))))
+        (.catch (fn [_]))
+        (.finally (fn [] (swap! !state-poll assoc :busy? false))))))
+
+(defn- start-state-poll! []
+  (when (nil? (:timer @!state-poll))
+    (fetch-state!)
+    (swap! !state-poll assoc :timer (js/setInterval fetch-state! state-poll-ms))))
+
+(def cache-key "pm.state.v1")
+(defonce ^:private !cache-text (atom nil)) ; last text read or written
+
+(defn- read-cache []
+  (try (.getItem js/localStorage cache-key) (catch :default _ nil)))
+
+(defn- write-cache! [text]
+  (try (.setItem js/localStorage cache-key text) (catch :default _ nil)))
+
+(defn- restore-cache! []
+  (let [text (read-cache)]
+    (reset! !cache-text text)
+    (when-let [c (overlay/parse-file text)]
+      (swap! !world overlay/apply-cache c))))
+
+(defn- on-world-change! [_ _ old new]
+  (when-not (and (identical? (:mirrors old) (:mirrors new))
+                 (= (:state-as-of old) (:state-as-of new)))
+    (when-let [c (overlay/cache-of new)]
+      (let [text (pr-str c)]
+        (when (not= text @!cache-text)
+          (reset! !cache-text text)
+          (write-cache! text))))))
 
 (defn build-scene! []
   (let [scene (t/scene)
@@ -48,7 +97,7 @@
     (str
       (apply str
         (for [id (get-in w [:hud :mirrors])
-              :let [line (world/status-line w id (js/Date.now))]
+              :let [line (overlay/hud-line w id (js/Date.now))]
               :when line]
           (str " · " line)))
       (when-let [s (scene/summary)] (str " · " s))
@@ -172,6 +221,9 @@
 (defn init! []
   ;; Capture phase: the kit's own controls handle keys too and may stop them.
   (.addEventListener js/window "keydown" (fn [^js e] (on-key! e)) true)
+  (restore-cache!)
+  (add-watch !world ::state-cache on-world-change!)
+  (start-state-poll!)
   (kit/load! start-kit! start-scaffold!))
 
 (defn reload!
