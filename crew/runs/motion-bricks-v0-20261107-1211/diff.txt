@@ -1,0 +1,148 @@
+diff --git a/public/index.html b/public/index.html
+index f11a870..52f734c 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -7,6 +7,7 @@
+   <!-- Relative URLs resolve inside the kit's folder (it fetches ./assets/...);
+        every game URL below and in the code is absolute (/js/, /assets/audio/). -->
+   <base href="/kit/">
++  <script type="importmap">{"imports": {"three": "/vendor/three-kit.mjs"}}</script>
+   <!-- The world is the licensed Hiroshi's Island kit, loaded at runtime from
+        /kit/ (public/kit/, gitignored; copy it from assets/private/kit/dist/).
+        pm.kit adds the kit's stylesheet and loader. Without it, the scaffold runs. -->
+diff --git a/resources/estate.edn b/resources/estate.edn
+index db5ce4a..9c40f31 100644
+--- a/resources/estate.edn
++++ b/resources/estate.edn
+@@ -18,6 +18,15 @@
+             [-1.91 0.37  -7.1 1.0]    ; cascade 3
+             [-2.49 0.01  -4.2 0.8]    ; mouth into the pool
+             [ 0.30 0.00   4.5 0.25]]}] ; the pool (still water)
++ :motion  {:bricks {:lib   "/vendor/three-motionbricks-0.2.0/index.mjs"
++                     :rig   :soma
++                     :model "https://repalash.com/three-motionbricks/soma-model/"}
++            :ground ["SM_Hiroshi_Terrain" "SM_Hiroshi_Gravel"]   ; meshes you can stand on (name prefixes)
++            :speed  1.2}                                         ; kinematic m/s
++ :walkers [{:id :un-automate-monde :name "Un Automate"
++            :route [[-6.5 -6.5] [-6.0 -10.0] [-5.0 -14.0]] :pause-s 3}
++           {:id :le-testeur :name "Le Testeur"
++            :route [[-5.0 -14.0] [-6.0 -10.0] [-6.5 -6.5]] :pause-s 5}]
+  ;; Display scale (standing rule): creatures and crew are drawn big enough to
+  ;; see from the kit's camera views without zooming in, about the size of a
+  ;; mid-size rock (~1 m). Real size doesn't matter; proportions do. Author a
+diff --git a/src/pm/core.cljs b/src/pm/core.cljs
+index 50369af..6b64dee 100644
+--- a/src/pm/core.cljs
++++ b/src/pm/core.cljs
+@@ -6,6 +6,7 @@
+    World state lives in one atom; the render loop reads it."
+   (:require [pm.three :as t]
+             [pm.audio :as audio]
++            [pm.bricks :as bricks]
+             [pm.brook :as brook]
+             [pm.chores :as chores]
+             [pm.content :as content]
+@@ -156,6 +157,7 @@
+           (str " · " line)))
+       (when-let [m (content/mail-line content/sample-inbox)] (str " · " m))
+       (when-let [s (scene/summary)] (str " · " s))
++      (when-let [s (bricks/hud-segment)] (str " · " s))
+       (when-let [p @!probe] (str " · " p))
+       (when-let [h (kit/handle)]
+         (when-let [b (brook/status h)] (str " · " b))))))
+@@ -224,6 +226,7 @@
+   (let [dt (if-let [l @!last] (/ (- now l) 1000) 0)]
+     (reset! !last now)
+     (tick! (min dt 0.1))
++    (when-let [h (kit/handle)] (bricks/tick! h (min dt 0.1)))
+     (scene/update! @!world (js/Date.now))
+     (talk-tick! (js/Date.now))
+     (when (zero? (mod (swap! !frames inc) 30))
+@@ -410,6 +413,7 @@
+   (wire-kit-brook-ui! h)
+   (t/use-three! (.-THREE h))
+   (scene/mount! (.-scene h) @!world (js/Date.now))
++  (bricks/start! h @!world)
+   (wire-pointer! h)
+   (probe! h)
+   (jack-in!)
+diff --git a/src/pm/scene.cljs b/src/pm/scene.cljs
+index 1547153..bc07465 100644
+--- a/src/pm/scene.cljs
++++ b/src/pm/scene.cljs
+@@ -20,7 +20,9 @@
+    :bubble-paper 0xfffaf0
+    :bubble-ink   0x3a2d22
+    :sign-paper   0xe9d3a8
+-   :sign-ink     0x4a3420})
++   :sign-ink     0x4a3420
++   :crew         0x5b7fa3
++   :crew-head    0xf0e6d6})
+ 
+ (def label-height 0.3)
+ 
+diff --git a/src/pm/three.cljs b/src/pm/three.cljs
+index 3f3987b..90a8a32 100644
+--- a/src/pm/three.cljs
++++ b/src/pm/three.cljs
+@@ -254,6 +254,60 @@
+                   (recur (.-parent o) chain'))))))))
+     (catch :default _ [])))
+ 
++(defn vec3
++  "new THREE.Vector3(x, y, z) with the current THREE."
++  [[x y z]]
++  (let [^js T (three)
++        ^js Vector3 (.-Vector3 T)]
++    (Vector3. x y z)))
++
++(defn set-pos! [^js obj [x y z]]
++  (.set (.-position obj) x y z)
++  obj)
++
++(defn set-yaw! [^js obj rad]
++  (set! (.-y (.-rotation obj)) rad)
++  obj)
++
++(defn set-visible! [^js obj on?]
++  (set! (.-visible obj) (boolean on?))
++  obj)
++
++(defn remove! [^js parent ^js obj]
++  (.remove parent obj)
++  parent)
++
++(defn find-meshes
++  "Every mesh under `root` whose name satisfies `pred`, as a vector. A nil
++   root -> []."
++  [^js root pred]
++  (if (nil? root)
++    []
++    (let [out #js []]
++      (.traverse root
++                 (fn [^js o]
++                   (when (and (.-isMesh o) (pred (.-name o)))
++                     (.push out o))))
++      (vec out))))
++
++(defn down-hits
++  "Ray straight down from (x, from, z) through `objs` (recursive). All hits
++   nearest first, as [[y name] ...] (y not rounded). Never throws."
++  [objs x z from]
++  (try
++    (let [^js T  (three)
++          ^js rc (new (.-Raycaster T)
++                      (new (.-Vector3 T) x from z)
++                      (new (.-Vector3 T) 0 -1 0))]
++      (->> (.intersectObjects rc (into-array objs) true)
++           (map (fn [^js hit]
++                  (let [^js o (.-object hit) ^js m (.-material o)]
++                    [(.. hit -point -y)
++                     (str (or (not-empty (.-name o)) (.-type o))
++                          (when (and m (not-empty (.-name m))) (str "/" (.-name m))))])))
++           vec))
++    (catch :default _ [])))
++
+ (defn drop-ray
+   "Cast a ray straight down at (x, z) from height `from` through `root` and
+    return the first `n` hits as [[y name] ...] (y rounded to cm). Sprites need

@@ -20,7 +20,9 @@
    :bubble-paper 0xfffaf0
    :bubble-ink   0x3a2d22
    :sign-paper   0xe9d3a8
-   :sign-ink     0x4a3420})
+   :sign-ink     0x4a3420
+   :crew         0x5b7fa3
+   :crew-head    0xf0e6d6})
 
 (def label-height 0.3)
 

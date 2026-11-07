@@ -254,6 +254,60 @@
                   (recur (.-parent o) chain'))))))))
     (catch :default _ [])))
 
+(defn vec3
+  "new THREE.Vector3(x, y, z) with the current THREE."
+  [[x y z]]
+  (let [^js T (three)
+        ^js Vector3 (.-Vector3 T)]
+    (Vector3. x y z)))
+
+(defn set-pos! [^js obj [x y z]]
+  (.set (.-position obj) x y z)
+  obj)
+
+(defn set-yaw! [^js obj rad]
+  (set! (.-y (.-rotation obj)) rad)
+  obj)
+
+(defn set-visible! [^js obj on?]
+  (set! (.-visible obj) (boolean on?))
+  obj)
+
+(defn remove! [^js parent ^js obj]
+  (.remove parent obj)
+  parent)
+
+(defn find-meshes
+  "Every mesh under `root` whose name satisfies `pred`, as a vector. A nil
+   root -> []."
+  [^js root pred]
+  (if (nil? root)
+    []
+    (let [out #js []]
+      (.traverse root
+                 (fn [^js o]
+                   (when (and (.-isMesh o) (pred (.-name o)))
+                     (.push out o))))
+      (vec out))))
+
+(defn down-hits
+  "Ray straight down from (x, from, z) through `objs` (recursive). All hits
+   nearest first, as [[y name] ...] (y not rounded). Never throws."
+  [objs x z from]
+  (try
+    (let [^js T  (three)
+          ^js rc (new (.-Raycaster T)
+                      (new (.-Vector3 T) x from z)
+                      (new (.-Vector3 T) 0 -1 0))]
+      (->> (.intersectObjects rc (into-array objs) true)
+           (map (fn [^js hit]
+                  (let [^js o (.-object hit) ^js m (.-material o)]
+                    [(.. hit -point -y)
+                     (str (or (not-empty (.-name o)) (.-type o))
+                          (when (and m (not-empty (.-name m))) (str "/" (.-name m))))])))
+           vec))
+    (catch :default _ [])))
+
 (defn drop-ray
   "Cast a ray straight down at (x, z) from height `from` through `root` and
    return the first `n` hits as [[y name] ...] (y rounded to cm). Sprites need

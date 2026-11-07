@@ -6,6 +6,7 @@
    World state lives in one atom; the render loop reads it."
   (:require [pm.three :as t]
             [pm.audio :as audio]
+            [pm.bricks :as bricks]
             [pm.brook :as brook]
             [pm.chores :as chores]
             [pm.content :as content]
@@ -156,6 +157,7 @@
           (str " · " line)))
       (when-let [m (content/mail-line content/sample-inbox)] (str " · " m))
       (when-let [s (scene/summary)] (str " · " s))
+      (when-let [s (bricks/hud-segment)] (str " · " s))
       (when-let [p @!probe] (str " · " p))
       (when-let [h (kit/handle)]
         (when-let [b (brook/status h)] (str " · " b))))))
@@ -224,6 +226,7 @@
   (let [dt (if-let [l @!last] (/ (- now l) 1000) 0)]
     (reset! !last now)
     (tick! (min dt 0.1))
+    (when-let [h (kit/handle)] (bricks/tick! h (min dt 0.1)))
     (scene/update! @!world (js/Date.now))
     (talk-tick! (js/Date.now))
     (when (zero? (mod (swap! !frames inc) 30))
@@ -410,6 +413,7 @@
   (wire-kit-brook-ui! h)
   (t/use-three! (.-THREE h))
   (scene/mount! (.-scene h) @!world (js/Date.now))
+  (bricks/start! h @!world)
   (wire-pointer! h)
   (probe! h)
   (jack-in!)

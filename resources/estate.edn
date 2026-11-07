@@ -18,6 +18,15 @@
             [-1.91 0.37  -7.1 1.0]    ; cascade 3
             [-2.49 0.01  -4.2 0.8]    ; mouth into the pool
             [ 0.30 0.00   4.5 0.25]]}] ; the pool (still water)
+ :motion  {:bricks {:lib   "/vendor/three-motionbricks-0.2.0/index.mjs"
+                     :rig   :soma
+                     :model "https://repalash.com/three-motionbricks/soma-model/"}
+            :ground ["SM_Hiroshi_Terrain" "SM_Hiroshi_Gravel"]   ; meshes you can stand on (name prefixes)
+            :speed  1.2}                                         ; kinematic m/s
+ :walkers [{:id :un-automate-monde :name "Un Automate"
+            :route [[-6.5 -6.5] [-6.0 -10.0] [-5.0 -14.0]] :pause-s 3}
+           {:id :le-testeur :name "Le Testeur"
+            :route [[-5.0 -14.0] [-6.0 -10.0] [-6.5 -6.5]] :pause-s 5}]
  ;; Display scale (standing rule): creatures and crew are drawn big enough to
  ;; see from the kit's camera views without zooming in, about the size of a
  ;; mid-size rock (~1 m). Real size doesn't matter; proportions do. Author a

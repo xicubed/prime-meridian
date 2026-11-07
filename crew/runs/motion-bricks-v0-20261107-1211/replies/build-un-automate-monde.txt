@@ -1,0 +1,27 @@
+  tests containing 1426 assertions.
+
+   resources/estate.edn |  9 +++++++++
+   src/pm/core.cljs     |  4 ++++
+   src/pm/scene.cljs    |  4 +++-
+   src/pm/three.cljs    | 54
+  +++++++++++++++++++++++++++++++++++++++
+  (plus src/pm/motion.cljs and
+  src/pm/bricks.cljs, new files — git diff
+  --no-index --stat /dev/null <file> for
+  those.)
+
+  Note: public/index.html also shows a diff
+  (an importmap line) in git diff --stat —
+  that wasn't made by me; it predates this
+  session's edits (file mtime 12:09, before
+  my first tool call) and is outside my
+  assigned files, so I left it untouched.
+
+  done-4228
+
+✻ Baked for 7m 29s · done 12:25 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

@@ -1,0 +1,164 @@
+hal in ~/src/prime-meridian on main λ export PATH=/Users/hal/.cache/crew-up/prime-meridian/bin-le-critique:$PATH
+hal in ~/src/prime-meridian on main λ hermes -p crew -m claude-sonnet-5 --in /Users/hal/src/prime-meridian --provider anthropic
+You are Le Critique (Herdr agent name "le-critique"), the critic in the "prime-meridian" crew: coding agents in Herdr panes.
+The manager is Hal ("hal"). They send you work by typing into your pane and read your reply on your screen, so answer in your pane; you can't message them any other way.
+Project directory: /Users/hal/src/prime-meridian
+
+# Role: critic
+
+You do a read-only review of the round's diff against the spec: naming,
+idiomatic ClojureScript, purity (no js/Date or three.js inside `pm.world`),
+anything specific to one pet leaking into code, and whether the code and
+tests match what the spec asked for.
+
+Project: **Prime Meridian**, a cozy 3D management game where the characters are real AI agents (`docs/GDD.md`). Read `AGENTS.md` before your first change: ClojureScript via shadow-cljs, three.js only through `pm.three`, Babashka for scripts, **no TypeScript, ever**, 0 compile warnings. The repo is public: no secrets, phone numbers or emails in anything you write.
+
+- Never edit source or t
+
+╭────── Hermes Agent v0.21.6+7051.gbf0203a (2026.9.24) · stable · local bf0203a794a0 ───────╮
+│                                   Available Tools                                         │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀⠀⢀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   browser-use: browser_exec                               │
+│  ⠀⠀⠀⠀⠀⠀⢀⣠⣴⣾⣿⣿⣇⠸⣿⣿⠇⣸⣿⣿⣷⣦⣄⡀⠀⠀⠀⠀⠀⠀   clarify: clarify                                        │
+│  ⠀⢀⣠⣴⣶⠿⠋⣩⡿⣿⡿⠻⣿⡇⢠⡄⢸⣿⠟⢿⣿⢿⣍⠙⠿⣶⣦⣄⡀⠀   code_execution: execute_code                            │
+│  ⠀⠀⠉⠉⠁⠶⠟⠋⠀⠉⠀⢀⣈⣁⡈⢁⣈⣁⡀⠀⠉⠀⠙⠻⠶⠈⠉⠉⠀⠀   connections: manage_connections                         │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⣿⡿⠛⢁⡈⠛⢿⣿⣦⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   delegation: delegate_task                               │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠿⣿⣦⣤⣈⠁⢠⣴⣿⠿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   file: patch, read_file, search_files, write_file        │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠻⢿⣿⣦⡉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   image_gen: image_generate                               │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⢷⣦⣈⠛⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   memory: memory                                          │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣴⠦⠈⠙⠿⣦⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   (and 6 more toolsets...)                                │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⣿⣤⡈⠁⢤⣿⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀                                                           │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠷⠄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   Available Skills                                        │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠑⢶⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   autonomous-ai-agents: hermes-agent                      │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠁⢰⡆⠈⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   general: crew-round-review                              │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠳⠈⣡⠞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀                                                           │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   Profile: crew                                           │
+│                                   21 tools · 2 skills · /help for commands                │
+│  claude-sonnet-5 · Nous Research  ⚠ update available                                      │
+│  /Users/hal/src/prime-meridian                                                            │
+│  Session: 20de6f5a                                                                        │
+╰───────────────────────────────────────────────────────────────────────────────────────────╯
+
+Welcome to Hermes Agent! Type your message or /help for commands.
+✦ Tip: Set worktree: true in config.yaml to always create a git worktree (same as hermes -w).
+
+
+
+────────────────────────────────────────
+❯ Say hi in ONE line: your name, your job, and the model you're running on. Don't use any tools.
+────────────────────────────────────────
+
+────────────────────────────────────────
+☤ Hermes
+Hal here — Prime Meridian's engineering agent, running on Claude Sonnet 5.
+────────────────────────────────────────
+
+─ 3.4s · 10:01 AM
+
+
+────────────────────────────────────────
+❯ Review the round's changes against crew/runs/motion-bricks-v0-20261107-1211/spec.md and .crew/quests/motion-bricks-v0.md: git diff for edited files, and read the new files (git status lists them). Check in particular: the model loads only with ?bricks and only after the kit is ready; one model shared by all walkers (load once, loadFrom for the rest); any failure falls back to kinematic with a reason; no import() in compiled cljs except through the js/Function loader; all three.js through pm.three or the library's own objects; no edits to public/vendor; no walker names in code; pure logic is tested. Write the review to crew/runs/motion-bricks-v0-20261107-1211/review.md.
+
+When you have completely finished, end your reply with a line containing only this: done-6270
+────────────────────────────────────────
+
+📚 Skill crew-round-review
+💻 $ echo "=== git status ===" + 3 commands  0.7s
+📖 Read spec.md
+📖 Read motion-bricks-v0.md
+🔎 Find *  2.0s
+💻 $ ls public/vendor/ + 1 command  0.3s
+📖 Read log.md
+📖 Read gate-note.md
+📖 Read review-le-critique.txt
+💻 $ echo "=== diff public/index.html ===" + 3 commands  0.3s
+💻 $ git diff -- resources/estate.edn src/pm/core.cljs src/pm/scene.cljs src/pm/three.cljs  0.3s
+💻 $ find public/vendor -maxdepth 2 -newer crew/runs/motion-bricks-v0-20261107-1211/spec.md echo "---gate-1---" cat crew/runs/motion-bricks-v0-20261107-1211/gate-1.txt echo "---replies build un-automate-monde---" cat crew/runs/motion-bricks-v0-20261107-1211/replies/build-un-automate-monde.txt  0.3s
+📖 Read motion.cljs
+📖 Read bricks.cljs
+📖 Read motion_test.cljs
+💻 $ echo "=== walker name leakage check (src) ===" + 4 commands  0.3s
+🔎 Grep defn start-kit|defn- start-kit|start-kit!|kit/ready|kit/handle  0.6s
+
+────────────────────────────────────────
+☤ Hermes
+start-kit! is called by kit/load! as the "kit ready" callback ((kit/load! start-kit! start-scaffold!)), so bricks/start! runs only once the kit has actually loaded — confirms "loads only after kit is ready." Everything checks out. Writing the review now.
+────────────────────────────────────────
+
+✍️ Write crew/runs/motion-bricks-v0-20261107-1211/review.md
+│ crew/runs/motion-bricks-v0-20261107-1211/review.md
+│ @@ -0,0 +1,62 @@
+│ +# Review: motion-bricks-v0
+│ +
+│ +Gate re-checked against `gate-1.txt`: PASS, 0 warnings, 260 tests / 1426 assertions. Spec's 58
+│ +numbered test cases are all present in `test/pm/motion_test.cljs` (t01–t58) and hand-traced
+│ +against a sample (t03/t04/t05 estate data, t18–t22 kinematic arrival, t30/t31 ping-pong order,
+│ +t39–t43 ground filtering, t51–t57 HUD text) — implementation matches the spec's formulas, not
+│ +just "tests pass."
+│ +
+│ +**Scope note:** `public/index.html` and `public/vendor/three-motionbricks-0.2.0/` show up as
+│ +changed/untracked in `git status`, but both have mtime 12:09:42, before this round's `spec` step
+│ +started (12:11:36) — pre-existing infra (the import map and Hal's vendored library), not touched
+│ +by this round. The builder's own reply flags the same thing. Excluded from the diff below.
+│ +
+│ +## Conformance checks
+│ +
+│ +- **`?bricks`-gated, post-kit-ready load:** `bricks/start!` only imports when
+│ +  `(m/bricks-flag? ...)` is true and `(:bricks cfg)` is non-nil (`bricks.cljs:59`), and is wired
+│ +  into `pm.core` as the `kit/load!` ready-callback (`core.cljs:407,415`), not called from the
+│ +  scaffold path. Confirmed.
+│ +- **One shared model:** `chars` built once per walker; only the first calls `.load`, the rest
+│ +  `.loadFrom first-c` via `Promise.all` (`bricks.cljs:78-82`). Confirmed.
+│ +- **Failure → kinematic + reason:** `onError` wired per-character, the load promise chain has a
+│ +  `.catch`, the synchronous path has `try/catch`, and `tick-bricks!` wraps its body in
+│ +  `try/catch` — all route to `fallback!`, which is idempotent (`:failed`/`:kinematic` guard),
+│ +  hides characters, shows figures, and sets `{:mode :failed :reason (m/short-reason ...)}`.
+│ +  Confirmed.
+│ +- **No bare `import()`:** only occurrence in `src/` is the `js/Function.` loader
+│ +  (`bricks.cljs:63`); grep for `import(` elsewhere in `src/` is empty. Confirmed.
+│ +- **Three.js discipline:** `bricks.cljs` calls three.js only through `pm.three` (`t/group`,
+│ +  `t/add!`, `t/stand-in`, `t/label`, `t/set-visible!`, `t/set-pos!`, `t/set-yaw!`, `t/remove!`,
+│ +  `t/find-meshes`, `t/down-hits`, `t/vec3`) or direct properties on the library's own
+│ +  `MotionBricksCharacter`/`.object` (`.getPosition`, `.-idle`, `.moveTo`, `.update`,
+│ +  `c.object.position.y` — matching §3's explicit instruction to set that one directly). The new
+│ +  `pm.three` functions (§4) are additive only — `git diff --stat` on `three.cljs` shows
+│ +  `1 file changed, 54 insertions(+)`, no deletions — and each is `^js`-hinted. Confirmed.
+│ +- **`public/vendor` untouched:** confirmed by mtime (above).
+│ +- **No walker names in code:** `grep -rn "Un Automate|Le Testeur|un-automate-monde|le-testeur"
+│ +  src/` is empty. The strings only appear in `resources/estate.edn` (data) and
+│ +  `test/pm/motion_test.cljs` (asserting against that data), which is expected.
+│ +- **Pure logic tested:** `pm.motion` has no three.js, atoms, or `js/Date`; its only JS is
+│ +  `js/Math`/`js/URLSearchParams` as specced. All 58 spec test cases are present and pass.
+│ +
+│ +## Boundary-table compliance
+│ +
+│ +Builder touched exactly: `src/pm/motion.cljs`, `src/pm/bricks.cljs` (both new), `src/pm/three.cljs`
+│ +(additive block only), `src/pm/scene.cljs` (two palette keys, nothing else — diff confirms no
+│ +other hunk), `src/pm/core.cljs` (require + 3 call sites, matching §6 exactly), `resources/estate.edn`
+│ +(`:motion`/`:walkers` added verbatim from §1.1). Tester touched only `test/pm/motion_test.cljs`.
+│ +No off-limits file was edited by this round.
+│ +
+│ +## Findings
+│ +
+│ +None rise above a style nit. Two small observations, not blocking:
+│ +
+│ +1. `bricks.cljs:149` — `tick-bricks!` sets `(or y 0)` into the anchor's position when `:y` is
+│ +   nil, same pattern as kinematic, but by the time bricks mode is active `:y` should already be
+│ +   settled from the kinematic phase; harmless defensive code, no fix needed.
+│ +2. The `!state` defonce atom carries `:root`/`:started?` beyond the four keys §3 lists — a
+│ +   reasonable, undocumented-but-harmless extension for the hot-reload no-op check; not a spec
+│ +   deviation since §3 says the atom "holds" that shape, not that it's exhaustive.
+│ +
+│ +**Verdict: pass.**
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/motion-bricks-v0-20261107-1211/review.md. Verdict: pass, 2 minor non-blocking notes, no boundary or safety-rule violations found (the public/index.html/public/vendor diffs predate the round and weren't touched by it).
+
+done-6270
+────────────────────────────────────────
+
+─ 2m15s · edited 1 file · read 1 skill, 8 files · ran 6 commands · searched 2 paths · 12:27 PM
+──────────────────────────────────────────────────────────── Introduce name, job, and model ─
+crew ❯ Find and fix a failing test
+─────────────────────────────────────────────────────────────────────────────────────────────
+ ☤ claude-sonnet-5 · ~60.4K/1M · [█░░░░░░░░░] ~6% · ◎ 84.9% · ◷ 12.9s · ↑ 87 t/s · 2h 31m...

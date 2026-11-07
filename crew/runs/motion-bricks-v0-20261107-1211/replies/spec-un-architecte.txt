@@ -1,0 +1,27 @@
+  through each other around 21–23 s; the end
+  of §8 suggests a fix.
+  Public functions:
+  - pm.motion: yaw, config, walker, walkers,
+    next-index, target, new-target?, step,
+    follow, ground-name?, ground-height,
+    sense-ground, smooth, settle,
+    bricks-flag?, load-fraction,
+    short-reason, hud-text, plus the figure
+    data.
+  - pm.bricks: start!, tick!, hud-segment,
+    status.
+  - pm.three: vec3, set-pos!, set-yaw!,
+    set-visible!, remove!, find-meshes,
+    down-hits.
+
+  Test cases: 58, all with hand-checked
+  expected values; they cover both walkers.
+
+  done-5553
+
+✻ Cogitated for 6m 14s · done 12:17 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)
