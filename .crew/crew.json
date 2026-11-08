@@ -166,7 +166,7 @@
       "role": "runner",
       "kind": "claude",
       "backend": "anthropic",
-      "model": "claude-haiku-4-5",
+      "model": "claude-sonnet-5",
       "enabled": true,
       "args": [
         "--permission-mode",
@@ -257,6 +257,11 @@
       "name": "crew-bridge",
       "cmd": "bb crew-bridge",
       "note": "127.0.0.1:8091: the game's 💭 allow / no / reply → herdr (token in state/bridge.edn)"
+    },
+    {
+      "name": "crew-fielder",
+      "cmd": "bb crew-fielder",
+      "note": "the twin's automatic half: answers routine crew prompts after :answer-after-s (crew-talk files, crew-up README); holds while state/hold.edn is on"
     }
   ]
 }
