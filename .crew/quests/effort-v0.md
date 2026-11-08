@@ -29,6 +29,14 @@ and steady, so little tremor and long holds; that's the second example).
   empties it in `:energy-s`. Below `:low` the reflex lets go (strength ramps to 0 over ~0.5 s, the
   head sinks under gravity). Resting, energy refills in `:recover-s`; above `:high` the reflex
   ramps back in and he tries again. Pure state, tested; `now`/time are arguments.
+- **Limp when not trying (Michael, Nov 8: "there's space under his ribcage; all the joints
+  need to touch the floor when prone, not just the feet").** Today a zero control means "hold the
+  joint straight" at full stiffness, so the settled foal stands on straight legs like a table with
+  his torso in the air. Muscles that aren't working must be soft: every joint's stiffness comes
+  from data (`:kp` as the strong value, `:rest-kp` per species, e.g. 8–15 % of `:kp`), the twitch
+  works at rest stiffness except during a kick, and the reflex joints at rest stiffness while he
+  rests. Lying down, his legs flop or fold and **his torso and legs lie on the ground**: test it.
+  (Ground mismatch with the sloped terrain is a later round; keep the flat plane.)
 - **HUD:** the creature line gains `· energy 0.42 · trying|holding|resting` with `?pony`.
 
 ## Out of scope
@@ -53,7 +61,7 @@ the generated actuators' force limits; the energy state machine on hand cases (d
 half effort, the hysteresis: no flapping between `:low` and `:high`, recovery time, ramp out/in);
 tremor amplitude at t=0, t=`:steady-s` (×1/e) and its seeded repeatability; a reflex without
 `:effort` unchanged; and **in real MuJoCo** (Node): the horse dropped on its side with legs at zero,
-over 30 simulated seconds the head clears `:lift-m` at least twice with a rest (clearance below
+over 30 simulated seconds the torso capsule's lowest point stays within 2 cm of the ground once settled (no table legs; same for the dog), the head clears `:lift-m` at least twice with a rest (clearance below
 half of `:lift-m`) in between; the dog, with its own numbers, holds for at least 20 of the 30 s.
 Live (Hal): `?pony` shows tries, shaky holds and rests; Michael's camera is not moved (it's
 remembered across reloads now).
