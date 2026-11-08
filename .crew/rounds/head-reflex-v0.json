@@ -1,0 +1,57 @@
+{
+  "round": "head-reflex-v0",
+  "quest": ".crew/quests/head-reflex-v0.md",
+  "runDir": "crew/runs",
+  "gate": "bash .crew/gate.sh",
+  "fix": {
+    "who": "un-automate-monde",
+    "max": 2
+  },
+  "timeoutMinutes": 45,
+  "steps": [
+    {
+      "id": "spec",
+      "who": [
+        "un-architecte"
+      ],
+      "prompt": "New quest: read {quest} (and the code and docs it cites; the MuJoCo API is node_modules/@mujoco/mujoco/mujoco.d.ts). Write the spec to {run}/spec.md following your role card: numbered test cases with hand-checked expected values (body/joint/actuator counts and masses for both species, the reflex math cases with hand-worked Jacobians, and how mj_jacBody's arrays are passed in these bindings (check it in Node in your scratchpad)), the species file shape, the namespaces and who-touches-what table, and how the spike fits pm.motion's controller pattern. Reply when it's written.",
+      "expect": [
+        "{run}/spec.md"
+      ]
+    },
+    {
+      "id": "build",
+      "who": [
+        "un-automate-monde",
+        "le-testeur"
+      ],
+      "prompt": {
+        "un-automate-monde": "Spec: {run}/spec.md (quest: {quest}). Implement it in the source and data files the spec assigns the builder, and nothing else. Run .crew/gate.sh before replying.",
+        "le-testeur": "Spec: {run}/spec.md (quest: {quest}). Write its test cases in the test file(s) the spec assigns the tester, and nothing else, including the real-MuJoCo Node test (load MuJoCo with js/require as test/pm/creature_mujoco_test.cljs does). The builder is coding in parallel."
+      },
+      "expect": []
+    },
+    {
+      "id": "gate",
+      "who": [
+        "le-coureur"
+      ],
+      "verify": true,
+      "prompt": "Run the gate (.crew/gate.sh) and write the gate note to {run}/gate-note.md as your role card says.",
+      "expect": [
+        "{run}/gate-note.md"
+      ]
+    },
+    {
+      "id": "review",
+      "who": [
+        "le-critique"
+      ],
+      "prompt": "Review the round's changes against {run}/spec.md and {quest}: git diff for edited files, and read the new files (git status lists them). Check: nothing in code names a species or body (grep src for horse|dog|pony|juniper|neck|head outside data and docstrings); the reflex math is pure and matches the spec's formula; reflex joints really leave the twitch noise; arrays passed to mj_jacBody are allocated once, not per step; MuJoCo objects still freed on failure; the real-MuJoCo test really drops each species on its side and checks clearance and up-axis; the ?pony flag still leaves the normal game untouched. Write the review to {run}/review.md (at most 5 ranked findings).",
+      "expect": [
+        "{run}/review.md"
+      ]
+    }
+  ],
+  "onBlocked": "wait"
+}
