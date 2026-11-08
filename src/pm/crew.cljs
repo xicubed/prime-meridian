@@ -86,6 +86,10 @@
     (count (filter #(contains? (:agents crew) %) agents))
     0))
 
+(defn plate-name [crew w]
+  (let [t (get-in crew [:titles (:agent w)])]
+    (if (and (string? t) (not (str/blank? t))) t (:name w))))
+
 (defn hud-text [crew agents now]
   (cond
     (empty? agents)          nil

@@ -154,7 +154,8 @@
   (is (= 0 (c/live-count C agents (+ T0 20000)))))
 
 (deftest t26-walker-agent
-  (is (= [:un-automate-monde :le-testeur] (mapv :agent (m/walkers W))))
+  (is (= [:un-automate-monde :le-testeur :un-architecte :le-coureur :le-critique :le-docteur]
+         (mapv :agent (m/walkers W))))
   (is (= :a (:agent (m/walker {:id :a :route [[0 0]]}))))
   (is (= :b (:agent (m/walker {:id :a :route [[0 0]] :agent :b}))))
   (is (= :a (:agent (m/walker {:id :a :route [[0 0]] :agent "b"})))))
@@ -162,11 +163,11 @@
 (deftest t27-estate-walkers-end-to-end
   (let [S (c/parse "{:as-of 1000 :agents {:un-automate-monde {:status :working} :le-testeur {:status :idle}}}")
         colors (c/colors W)]
-    (is (= ["● Un Automate" "● Le Testeur"]
+    (is (= ["● Un Automate" "● Le Testeur" "○ Un Architecte" "○ Le Coureur" "○ Le Critique" "○ Le Docteur"]
            (mapv (fn [wk] (c/label-text (c/dot S (:agent wk) 3000 colors) (:name wk))) (m/walkers W))))
-    (is (= ["○ Un Automate" "○ Le Testeur"]
+    (is (= ["○ Un Automate" "○ Le Testeur" "○ Un Architecte" "○ Le Coureur" "○ Le Critique" "○ Le Docteur"]
            (mapv (fn [wk] (c/label-text (c/dot S (:agent wk) 16001 colors) (:name wk))) (m/walkers W))))
-    (is (= [15905076 10133670]
+    (is (= [15905076 10133670 10133670 10133670 10133670 10133670]
            (mapv (fn [wk] (:color (c/dot S (:agent wk) 3000 colors))) (m/walkers W))))))
 
 (deftest t28-keep-the-last-good-file

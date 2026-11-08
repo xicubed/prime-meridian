@@ -73,7 +73,7 @@
     (is (nil? (m/character c)))))
 
 (deftest t10-walkers-estate-characters
-  (is (= [{:file "/assets/characters/polybot.glb" :rig :mixamo} nil]
+  (is (= [{:file "/assets/characters/polybot.glb" :rig :mixamo} nil nil nil nil nil]
          (mapv :character (m/walkers W)))))
 
 (deftest t11-walker-character-nil-cases
@@ -103,8 +103,8 @@
 
 (deftest t15-walkers-radius-estate-scaled
   (let [W14 (assoc-in W [:motion :display-scale] 1.4)]
-    (is (every? true? (map near? [0.42 0.42] (mapv :radius (m/walkers W14)))))
-    (is (= [0.3 0.3] (mapv :radius (m/walkers W))))))
+    (is (every? true? (map near? (vec (repeat 6 0.42)) (mapv :radius (m/walkers W14)))))
+    (is (= (vec (repeat 6 0.3)) (mapv :radius (m/walkers W))))))
 
 (deftest t16-walker-radius-unscaled
   (is (= 0.4 (:radius (m/walker {:id :a :route [[0 0]] :radius 0.4})))))

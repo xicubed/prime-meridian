@@ -1,0 +1,27 @@
+ │ 1]-ws[j].pos[1]);const
+ │ key=w.id+'-'+ws[j].id;minPair[key]=Math.m
+ │ in(minPair[key]??1e9,d);}});}
+ │ const mp=Object.entries(minPair).sort((a,
+ │ b)=>a[1]-b[1]).slice(0,5).map(([k,v])=>k+
+ │ ':'+f(v));
+ │ console.log('R',R,'closest',mp.join('
+ │ '));
+ │ ws.forEach((w,i)=>console.log(w.id,'picks
+ │ ',picks[i].slice(0,10).join(''),'legs',w.
+ │ leg,'minS',f(minS[i]),'aimFrames',aimE[i]
+ │ ,'x',f([ext[i][0],ext[i][1]]),'z',f([ext[
+ │ i][2],ext[i][3]])));
+ │ EOF
+ │ node wrun.js 0.3 2400; node wrun.js 0.42
+ │ 2400
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Contains brace with quote character
+ (expansion obfuscation)
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend

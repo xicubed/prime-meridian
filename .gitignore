@@ -28,3 +28,6 @@ assets/private/
 
 # the crew bridge's request log (local)
 /crew/bridge.log
+
+# MotionBricks model weights (NVIDIA SOMA, packed by three-motionbricks); ~195 MB, local copy only
+/public/models/

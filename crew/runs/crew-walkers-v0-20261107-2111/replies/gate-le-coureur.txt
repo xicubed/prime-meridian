@@ -1,0 +1,27 @@
+      1 -FAIL
+      2 -2 warnings in test build
+      3 -WARNING #8 - :infer-warning a
+        -t test/pm/crew_walkers_test.c
+        -ljs:233:23: Cannot infer targ
+        -et type in expression (. (.-c
+        -olor (.-material MA)) getHex)
+      4 -WARNING #9 - :undeclared-var
+        -at test/pm/crew_walkers_test.
+        -cljs:280:47: Use of undeclare
+        -d Var pm.crew-walkers-test/G3
+      1 +PASS
+      2 +0 warnings
+      3 +Ran 533 tests containing 2971
+        + assertions. 0 failures, 0 er
+        +rors.
+
+⏺ PASS
+
+  done-5889
+
+✻ Churned for 11s · done 9:34 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

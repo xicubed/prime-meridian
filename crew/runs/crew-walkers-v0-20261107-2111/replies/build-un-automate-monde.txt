@@ -1,0 +1,27 @@
+           (not= runs (:runs view))
+      514                           (d
+           o (t/set-label-runs! (:labe
+           l view) runs)
+
+⏺ Running gate and capturing full output
+  ⎿  $ bash .crew/gate.sh 2>&1 | tee
+     /tmp/gate-walkers.txt | head -200
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run gate and capture full output
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ bash .crew/gate.sh 2>&1 | tee
+ /tmp/gate-walkers.txt | head -200
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and always allow access to /tmp
+      from this project
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend

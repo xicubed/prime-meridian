@@ -116,14 +116,20 @@
             speed   (:speed entry)
             speed   (when (and (number? speed) (pos? speed)) speed)
             agent   (:agent entry)
-            agent   (if (keyword? agent) agent id)]
+            agent   (if (keyword? agent) agent id)
+            tint    (:tint entry)
+            tint    (when (and (integer? tint) (<= 0 tint 0xffffff)) tint)
+            loop?   (true? (:loop entry))
+            face    (:face entry)
+            face    (when (valid-point? face) face)]
         {:id id :name nm :route route :pause-s pause-s
          :pos [x0 z0] :heading heading :to 0 :dir 1 :pause pause-s :leg 0
          :ground nil :y nil
          :radius radius :vel [0 0] :aim nil :goal nil :side nil :wait 0 :waited false
          :character (character (:character entry))
          :senses (senses default-senses (:senses entry))
-         :speed speed :facing nil :aware {} :glance false :agent agent}))))
+         :speed speed :facing nil :aware {} :glance false :agent agent
+         :tint tint :loop loop? :face face}))))
 
 (defn walkers [world]
   (let [cfg  (avoid-config world)
@@ -141,13 +147,17 @@
 
 ;; -- Ping-pong -------------------------------------------------------------
 
-(defn next-index [n i dir]
-  (if (< n 2)
-    [0 1]
-    (let [j (+ i dir)]
-      (if (and (>= j 0) (< j n))
-        [j dir]
-        [(- i dir) (- dir)]))))
+(defn next-index
+  ([n i dir] (next-index n i dir false))
+  ([n i dir loop?]
+   (cond
+     (< n 2) [0 1]
+     loop?   [(mod (inc i) n) 1]
+     :else
+     (let [j (+ i dir)]
+       (if (and (>= j 0) (< j n))
+         [j dir]
+         [(- i dir) (- dir)])))))
 
 (defn target [w]
   (get (:route w) (:to w)))
@@ -164,7 +174,7 @@
 ;; -- step / follow ---------------------------------------------------------
 
 (defn- pick [w]
-  (let [[i' dir'] (next-index (count (:route w)) (:to w) (:dir w))]
+  (let [[i' dir'] (next-index (count (:route w)) (:to w) (:dir w) (:loop w))]
     (assoc w :to i' :dir dir' :pause 0 :leg (inc (:leg w))
              :aim nil :goal nil :side nil :wait 0 :waited false)))
 
@@ -182,7 +192,17 @@
 
       (> (:pause w) 0)
       (let [p (- (:pause w) dt')]
-        (assoc (if (> p 0) (assoc w :pause p) (pick w)) :vel [0 0]))
+        (if (> p 0)
+          (let [w' (assoc w :pause p :vel [0 0])]
+            (if-let [[fx fz] (:face w)]
+              (let [[x z] (:pos w)
+                    dx (- fx x) dz (- fz z)]
+                (if (zero? (js/Math.hypot dx dz))
+                  w'
+                  (let [h (yaw dx dz)]
+                    (assoc w' :heading h :facing h))))
+              w'))
+          (assoc (pick w) :vel [0 0])))
 
       (> (:wait w) 0)
       (let [p (- (:wait w) dt')]
@@ -235,7 +255,15 @@
       (> (:pause w) 0)
       (let [p (- (:pause w) dt')]
         (if (> p 0)
-          (assoc w :pause p)
+          (let [w' (assoc w :pause p)]
+            (if-let [[fx fz] (:face w)]
+              (let [[x z] (:pos w)
+                    dx (- fx x) dz (- fz z)]
+                (if (zero? (js/Math.hypot dx dz))
+                  w'
+                  (let [h (yaw dx dz)]
+                    (assoc w' :heading h :facing h))))
+              w'))
           (pick w)))
 
       (> (:wait w) 0)
@@ -344,6 +372,50 @@
     (into (into [[x z]] rim) [[x z]])))
 
 ;; -- Avoidance planning ------------------------------------------------------
+
+(defn tint-hex [base tint]
+  (if (and (integer? base) (<= 0 base 0xffffff)
+           (integer? tint) (<= 0 tint 0xffffff))
+    (let [br  (bit-and (bit-shift-right base 16) 255)
+          bg  (bit-and (bit-shift-right base 8) 255)
+          bb  (bit-and base 255)
+          tr  (bit-and (bit-shift-right tint 16) 255)
+          tg  (bit-and (bit-shift-right tint 8) 255)
+          tb  (bit-and tint 255)
+          mul (fn [c t] (js/Math.round (/ (* c t) 255)))]
+      (bit-or (bit-shift-left (mul br tr) 16)
+              (bit-shift-left (mul bg tg) 8)
+              (mul bb tb)))
+    base))
+
+(defn figure-hexes [palette tint]
+  (mapv (fn [part]
+          (let [c    (:color part)
+                base (get palette c)]
+            (if (= c :eye) base (tint-hex base tint))))
+        (:parts figure)))
+
+;; -- Generation gate ---------------------------------------------------------
+
+(def empty-gate {:queue [] :in-flight nil :last-start nil :next-id 0})
+
+(defn gate-enqueue [gate]
+  (let [id (:next-id gate)]
+    [(-> gate (update :queue conj id) (update :next-id inc)) id]))
+
+(defn gate-start [gate frame]
+  (if (and (nil? (:in-flight gate)) (seq (:queue gate)) (not= (:last-start gate) frame))
+    (let [id (first (:queue gate))]
+      [(assoc gate :queue (vec (rest (:queue gate))) :in-flight id :last-start frame) id])
+    [gate nil]))
+
+(defn gate-done [gate id]
+  (if (= id (:in-flight gate))
+    (assoc gate :in-flight nil)
+    gate))
+
+(defn gate-queued [gate]
+  (count (:queue gate)))
 
 (defn walkable? [g base step-max]
   (and (number? g) (<= (js/Math.abs (- g base)) step-max)))
@@ -457,8 +529,12 @@
 (defn url-flag? [search name]
   (.has (js/URLSearchParams. (or search "")) name))
 
-(defn bricks-flag? [search]
-  (.has (js/URLSearchParams. (or search "")) "bricks"))
+(defn bricks-flag?
+  "MotionBricks is the default (Michael, Nov 7: the walkers are the real look
+   now); `?kinematic` asks for the plain stand-in figures. `?bricks` is still
+   accepted (it's the default anyway)."
+  [search]
+  (not (.has (js/URLSearchParams. (or search "")) "kinematic")))
 
 (defn paths-flag? [search]
   (.has (js/URLSearchParams. (or search "")) "paths"))
@@ -500,11 +576,13 @@
     (let [backend (:backend status)
           n       (:walkers status)
           gen-ms  (:gen-ms status)
+          q       (:queue status)
           ce      (char-errors-text (:char-errors status))]
       (str "motion: bricks"
            (when (and (string? backend) (not (str/blank? backend))) (str " " backend))
            " · " n " walker" (when (not= n 1) "s")
            (when (number? gen-ms) (str " · gen " (js/Math.round gen-ms) " ms"))
+           (when (and (number? q) (> q 0)) (str " · queue " q))
            (when ce (str " · " ce))))
 
     :failed

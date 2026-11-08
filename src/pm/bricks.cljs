@@ -1,6 +1,6 @@
 (ns pm.bricks
-  "Interop for the crew walkers: default kinematic figures, or (with
-   `?bricks`) SOMA mannequins — retargeted to a glTF character when a walker
+  "Interop for the crew walkers: SOMA mannequins by default (kinematic
+   stand-in figures with `?kinematic`, or while/if MotionBricks fails) — retargeted to a glTF character when a walker
    names one — driven by one shared MotionBricks model, both steered clear of
    statics and each other by pm.motion's planner (pm.avoid's geometry). No
    rules live here — pm.motion decides, this namespace only moves three.js
@@ -11,26 +11,29 @@
             [pm.plan :as p]
             [pm.scene :as scene]
             [pm.feet :as f]
-            [pm.crew :as crew]))
+            [pm.crew :as crew]
+            [pm.tint :as tint]))
 
 (defonce !state
   (atom {:status nil :walkers [] :views [] :ground-meshes [] :frame 0
          :cfg nil :statics [] :pcfg nil :plan-acc 0 :paths nil :ds 1.0
-         :colors nil :root nil :started? false}))
+         :colors nil :root nil :started? false
+         :gate m/empty-gate :jobs {} :raw nil}))
 
 (defonce !gltf-loader (atom nil))
 
-(declare fallback! swap-in!)
+(declare fallback! swap-in! install-gate! run-gate!)
 
 (defn- part-color [kw]
   (get scene/palette kw))
 
-(defn- build-figure! [heading]
-  (let [^js fig (t/group {:rot [0 heading 0]})]
-    (doseq [part (:parts m/figure)]
+(defn- build-figure! [heading tint]
+  (let [^js fig (t/group {:rot [0 heading 0]})
+        hexes   (m/figure-hexes scene/palette tint)]
+    (doseq [[k part] (map-indexed vector (:parts m/figure))]
       (t/add! fig (t/stand-in {:shape (:shape part)
                                 :size  (:size part)
-                                :color (part-color (:color part))
+                                :color (nth hexes k)
                                 :pos   (:at part)
                                 :rot   (mapv p/radians (:rot part))})))
     fig))
@@ -38,7 +41,7 @@
 (defn- build-view! [^js root ds w]
   (let [[x z] (:pos w)
         y     (:y w)
-        ^js fig (build-figure! (:heading w))
+        ^js fig (build-figure! (:heading w) (:tint w))
         _       (t/set-scale! fig ds)
         ;; Nameplates: bigger and lighter than the creatures' signs, so names and
         ;; status dots read at a distance (Michael: "the contrast is low").
@@ -201,6 +204,7 @@
                                                    (cond
                                                      (nil? ch)
                                                      (do (.setMannequin c)
+                                                         (tint/tint-object! (.-object c) (:tint w))
                                                          {:top (t/top-y (.-object c)) :error nil :rig :soma})
 
                                                      (and r (.-scene r))
@@ -208,6 +212,7 @@
                                                            rig (aget (.-CHARACTER_RIGS mod) key)]
                                                        (if (nil? rig)
                                                          (do (.setMannequin c)
+                                                             (tint/tint-object! (.-object c) (:tint w))
                                                              {:top (t/top-y (.-object c))
                                                               :error {:name (:name w) :reason (str "no rig " key)}
                                                               :rig :soma})
@@ -216,12 +221,14 @@
                                                            {:top (t/top-y (.-object c)) :error nil :rig (:rig ch)}
                                                            (catch :default e
                                                              (.setMannequin c)
+                                                             (tint/tint-object! (.-object c) (:tint w))
                                                              {:top (t/top-y (.-object c))
                                                               :error {:name (:name w) :reason (m/short-reason (or (.-message e) e))}
                                                               :rig :soma}))))
 
                                                      :else
                                                      (do (.setMannequin c)
+                                                         (tint/tint-object! (.-object c) (:tint w))
                                                          {:top (t/top-y (.-object c))
                                                           :error {:name (:name w) :reason (.-error r)}
                                                           :rig :soma}))))
@@ -229,10 +236,50 @@
                                     tops   (mapv :top outcomes)
                                     errors (into [] (keep :error) outcomes)
                                     rigs   (mapv :rig outcomes)]
+                                (install-gate! first-c)
                                 (swap-in! h chars tops errors rigs))))
                           (.catch (fn [e] (fallback! e))))))))
               (.catch (fn [e] (fallback! e))))
           (catch :default e (fallback! e)))))))
+
+(defn- install-gate!
+  "Wraps the SharedEngine's .generate behind the generation gate, so at most
+   one MotionBricks generation starts per frame. Logs and runs ungated if the
+   vendored engine doesn't expose a .generate fn to wrap."
+  [^js first-c]
+  (let [^js engine (.-engine first-c)]
+    (if (fn? (.-generate engine))
+      (let [raw (.bind (.-generate engine) engine)]
+        (swap! !state assoc :raw raw)
+        (set! (.-generate engine)
+              (fn [ctx tgt opt]
+                (js/Promise.
+                  (fn [res rej]
+                    (let [[gate id] (m/gate-enqueue (:gate @!state))]
+                      (swap! !state assoc :gate gate)
+                      (swap! !state update :jobs assoc id
+                             {:ctx ctx :tgt tgt :opt opt :res res :rej rej
+                              :enq (js/performance.now)})))))))
+      (js/console.info "Prime Meridian: MotionBricks engine has no .generate to gate; running ungated"))))
+
+(defn- run-gate!
+  "Starts at most one queued MotionBricks generation this frame."
+  [frame]
+  (let [{:keys [gate jobs raw]} @!state]
+    (when raw
+      (let [[gate' id] (m/gate-start gate frame)]
+        (swap! !state assoc :gate gate')
+        (when id
+          (let [{:keys [ctx tgt opt res rej enq]} (get jobs id)]
+            (swap! !state update :jobs dissoc id)
+            (-> (raw ctx tgt opt)
+                (.then (fn [^js result]
+                         (set! (.-inferenceMs result) (- (js/performance.now) enq))
+                         (swap! !state update :gate m/gate-done id)
+                         (res result)))
+                (.catch (fn [e]
+                          (swap! !state update :gate m/gate-done id)
+                          (rej e))))))))))
 
 (defn- apply-command! [^js c w cmd]
   (when cmd
@@ -364,7 +411,8 @@
         (t/set-pos! (:label view) [0 (m/label-height nil ds) 0]))
       (swap! !state assoc
              :views (mapv #(dissoc % :char :sent) views)
-             :status {:mode :failed :reason (m/short-reason (or (.-message e) e))}))))
+             :status {:mode :failed :reason (m/short-reason (or (.-message e) e))}
+             :gate m/empty-gate :jobs {}))))
 
 (defn- tick-kinematic! [dt]
   (let [{:keys [walkers views statics pcfg plan-acc]} @!state
@@ -378,8 +426,9 @@
         (t/set-visible! anchor (some? y))))
     (swap! !state assoc :walkers ws :plan-acc acc)))
 
-(defn- tick-bricks! [dt]
+(defn- tick-bricks! [dt frame]
   (try
+    (run-gate! frame)
     (let [{:keys [walkers views statics pcfg plan-acc fcfg ds cfg ground-meshes]} @!state
           before walkers
           after  (mapv (fn [w view]
@@ -413,6 +462,7 @@
           ws'    (mapv (fn [w step] (if-let [g (:ground step)] (assoc w :ground g) w)) ws steps)
           views' (mapv :view steps)]
       (swap! !state assoc :walkers ws' :views views' :plan-acc acc)
+      (swap! !state update :status assoc :queue (m/gate-queued (:gate @!state)))
       (when-let [^js c0 (:char (first views'))]
         (let [gen-ms (.. c0 -stats -averageInferenceMs)]
           (when (number? gen-ms)
@@ -444,7 +494,7 @@
                                 w)))
                           walkers))))))
       (if (= :bricks (:mode (:status @!state)))
-        (tick-bricks! dt)
+        (tick-bricks! dt frame)
         (tick-kinematic! dt))
       (swap! !state update :status assoc :detours (m/detours (:walkers @!state)))
       (update-paths! (:paths @!state) (:walkers @!state))
@@ -457,7 +507,8 @@
     (let [{:keys [walkers views colors]} @!state
           views' (mapv
                    (fn [w view]
-                     (let [runs (-> (crew/label-runs (crew/dot crew-state (:agent w) now colors) (:name w) now)
+                     (let [runs (-> (crew/label-runs (crew/dot crew-state (:agent w) now colors)
+                                                       (crew/plate-name crew-state w) now)
                                 (update 0 assoc :scale 1.4))]   ; the dot, bigger than the name
                        (if (not= runs (:runs view))
                          (do (t/set-label-runs! (:label view) runs)

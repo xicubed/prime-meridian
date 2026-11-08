@@ -1,0 +1,501 @@
+diff --git a/.crew/crew.json b/.crew/crew.json
+index 49c432a..44b638b 100644
+--- a/.crew/crew.json
++++ b/.crew/crew.json
+@@ -221,7 +221,7 @@
+       "kind": "claude",
+       "backend": "anthropic",
+       "model": "claude-sonnet-5",
+-      "enabled": false,
++      "enabled": true,
+       "args": [
+         "--permission-mode",
+         "acceptEdits",
+@@ -244,7 +244,7 @@
+         "Bash(unzip -l:*)",
+         "Bash(unzip -p:*)"
+       ],
+-      "note": "docs (the crew's memory): crew/README.md, session notes. Off until a round needs it."
++      "note": "the crew's writer (Michael: poetry, books, helping Hal write; little context needed) and the crew's memory (README rows, round notes). Role card .crew/roles/le-docteur.md. Writes in crew/notebook/."
+     }
+   ],
+   "services": [
+diff --git a/.gitignore b/.gitignore
+index e43127d..ef2d98d 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -28,3 +28,6 @@ assets/private/
+ 
+ # the crew bridge's request log (local)
+ /crew/bridge.log
++
++# MotionBricks model weights (NVIDIA SOMA, packed by three-motionbricks); ~195 MB, local copy only
++/public/models/
+diff --git a/resources/estate.edn b/resources/estate.edn
+index b58eb5a..2ba521f 100644
+--- a/resources/estate.edn
++++ b/resources/estate.edn
+@@ -47,7 +47,17 @@
+             :route [[-6.5 -6.5] [-6.0 -10.0] [-5.0 -14.0]] :pause-s 3
+             :character {:file "/assets/characters/polybot.glb" :rig :mixamo}}
+            {:id :le-testeur :name "Le Testeur" :agent :le-testeur
+-            :route [[-5.0 -14.0] [-6.0 -10.0] [-6.5 -6.5]] :pause-s 5}]   ; Le Testeur: NVIDIA's mannequin (Michael: the astronaut was too big)
++            :route [[-5.0 -14.0] [-6.0 -10.0] [-6.5 -6.5]] :pause-s 5}            ; NVIDIA's mannequin, untinted (white)
++           {:id :un-architecte :name "Un Architecte" :agent :un-architecte
++            :route [[6.0 -4.0] [4.0 -6.0] [3.5 -7.5]] :pause-s 8 :tint 0x4a7bd0}   ; east bank, north side: walks slowly, stops to think
++           {:id :le-coureur :name "Le Coureur" :agent :le-coureur
++            :route [[3.0 -8.5] [5.0 -10.0] [3.0 -12.0] [2.2 -10.0]] :loop true
++            :speed 1.9 :pause-s 1 :tint 0xe8833a}                                 ; east bank, south side: a longer, quicker loop
++           {:id :le-critique :name "Le Critique" :agent :le-critique
++            :route [[-8.0 -4.0] [-7.2 -5.2]] :pause-s 6 :face [-6.0 -10.0]
++            :tint 0x8e5cc4}                                                       ; woods' edge, north end of the west bank, watching the pair
++           {:id :le-docteur :name "Le Docteur" :agent :le-docteur
++            :route [[-6.0 -17.5] [-6.0 -20.0]] :pause-s 6 :tint 0x2f9e8f}]       ; south plateau by Flora; the rock at [-5 -17] is not walkable
+  ;; Display scale (standing rule): creatures and crew are drawn big enough to
+  ;; see from the kit's camera views without zooming in, about the size of a
+  ;; mid-size rock (~1 m). Real size doesn't matter; proportions do. Author a
+diff --git a/src/pm/bricks.cljs b/src/pm/bricks.cljs
+index dfecb88..5473d71 100644
+--- a/src/pm/bricks.cljs
++++ b/src/pm/bricks.cljs
+@@ -11,26 +11,29 @@
+             [pm.plan :as p]
+             [pm.scene :as scene]
+             [pm.feet :as f]
+-            [pm.crew :as crew]))
++            [pm.crew :as crew]
++            [pm.tint :as tint]))
+ 
+ (defonce !state
+   (atom {:status nil :walkers [] :views [] :ground-meshes [] :frame 0
+          :cfg nil :statics [] :pcfg nil :plan-acc 0 :paths nil :ds 1.0
+-         :colors nil :root nil :started? false}))
++         :colors nil :root nil :started? false
++         :gate m/empty-gate :jobs {} :raw nil}))
+ 
+ (defonce !gltf-loader (atom nil))
+ 
+-(declare fallback! swap-in!)
++(declare fallback! swap-in! install-gate! run-gate!)
+ 
+ (defn- part-color [kw]
+   (get scene/palette kw))
+ 
+-(defn- build-figure! [heading]
+-  (let [^js fig (t/group {:rot [0 heading 0]})]
+-    (doseq [part (:parts m/figure)]
++(defn- build-figure! [heading tint]
++  (let [^js fig (t/group {:rot [0 heading 0]})
++        hexes   (m/figure-hexes scene/palette tint)]
++    (doseq [[k part] (map-indexed vector (:parts m/figure))]
+       (t/add! fig (t/stand-in {:shape (:shape part)
+                                 :size  (:size part)
+-                                :color (part-color (:color part))
++                                :color (nth hexes k)
+                                 :pos   (:at part)
+                                 :rot   (mapv p/radians (:rot part))})))
+     fig))
+@@ -38,7 +41,7 @@
+ (defn- build-view! [^js root ds w]
+   (let [[x z] (:pos w)
+         y     (:y w)
+-        ^js fig (build-figure! (:heading w))
++        ^js fig (build-figure! (:heading w) (:tint w))
+         _       (t/set-scale! fig ds)
+         ;; Nameplates: bigger and lighter than the creatures' signs, so names and
+         ;; status dots read at a distance (Michael: "the contrast is low").
+@@ -201,6 +204,7 @@
+                                                    (cond
+                                                      (nil? ch)
+                                                      (do (.setMannequin c)
++                                                         (tint/tint-object! (.-object c) (:tint w))
+                                                          {:top (t/top-y (.-object c)) :error nil :rig :soma})
+ 
+                                                      (and r (.-scene r))
+@@ -208,6 +212,7 @@
+                                                            rig (aget (.-CHARACTER_RIGS mod) key)]
+                                                        (if (nil? rig)
+                                                          (do (.setMannequin c)
++                                                             (tint/tint-object! (.-object c) (:tint w))
+                                                              {:top (t/top-y (.-object c))
+                                                               :error {:name (:name w) :reason (str "no rig " key)}
+                                                               :rig :soma})
+@@ -216,12 +221,14 @@
+                                                            {:top (t/top-y (.-object c)) :error nil :rig (:rig ch)}
+                                                            (catch :default e
+                                                              (.setMannequin c)
++                                                             (tint/tint-object! (.-object c) (:tint w))
+                                                              {:top (t/top-y (.-object c))
+                                                               :error {:name (:name w) :reason (m/short-reason (or (.-message e) e))}
+                                                               :rig :soma}))))
+ 
+                                                      :else
+                                                      (do (.setMannequin c)
++                                                         (tint/tint-object! (.-object c) (:tint w))
+                                                          {:top (t/top-y (.-object c))
+                                                           :error {:name (:name w) :reason (.-error r)}
+                                                           :rig :soma}))))
+@@ -229,11 +236,51 @@
+                                     tops   (mapv :top outcomes)
+                                     errors (into [] (keep :error) outcomes)
+                                     rigs   (mapv :rig outcomes)]
++                                (install-gate! first-c)
+                                 (swap-in! h chars tops errors rigs))))
+                           (.catch (fn [e] (fallback! e))))))))
+               (.catch (fn [e] (fallback! e))))
+           (catch :default e (fallback! e)))))))
+ 
++(defn- install-gate!
++  "Wraps the SharedEngine's .generate behind the generation gate, so at most
++   one MotionBricks generation starts per frame. Logs and runs ungated if the
++   vendored engine doesn't expose a .generate fn to wrap."
++  [^js first-c]
++  (let [^js engine (.-engine first-c)]
++    (if (fn? (.-generate engine))
++      (let [raw (.bind (.-generate engine) engine)]
++        (swap! !state assoc :raw raw)
++        (set! (.-generate engine)
++              (fn [ctx tgt opt]
++                (js/Promise.
++                  (fn [res rej]
++                    (let [[gate id] (m/gate-enqueue (:gate @!state))]
++                      (swap! !state assoc :gate gate)
++                      (swap! !state update :jobs assoc id
++                             {:ctx ctx :tgt tgt :opt opt :res res :rej rej
++                              :enq (js/performance.now)})))))))
++      (js/console.info "Prime Meridian: MotionBricks engine has no .generate to gate; running ungated"))))
++
++(defn- run-gate!
++  "Starts at most one queued MotionBricks generation this frame."
++  [frame]
++  (let [{:keys [gate jobs raw]} @!state]
++    (when raw
++      (let [[gate' id] (m/gate-start gate frame)]
++        (swap! !state assoc :gate gate')
++        (when id
++          (let [{:keys [ctx tgt opt res rej enq]} (get jobs id)]
++            (swap! !state update :jobs dissoc id)
++            (-> (raw ctx tgt opt)
++                (.then (fn [^js result]
++                         (set! (.-inferenceMs result) (- (js/performance.now) enq))
++                         (swap! !state update :gate m/gate-done id)
++                         (res result)))
++                (.catch (fn [e]
++                          (swap! !state update :gate m/gate-done id)
++                          (rej e))))))))))
++
+ (defn- apply-command! [^js c w cmd]
+   (when cmd
+     (case (first cmd)
+@@ -364,7 +411,8 @@
+         (t/set-pos! (:label view) [0 (m/label-height nil ds) 0]))
+       (swap! !state assoc
+              :views (mapv #(dissoc % :char :sent) views)
+-             :status {:mode :failed :reason (m/short-reason (or (.-message e) e))}))))
++             :status {:mode :failed :reason (m/short-reason (or (.-message e) e))}
++             :gate m/empty-gate :jobs {}))))
+ 
+ (defn- tick-kinematic! [dt]
+   (let [{:keys [walkers views statics pcfg plan-acc]} @!state
+@@ -378,8 +426,9 @@
+         (t/set-visible! anchor (some? y))))
+     (swap! !state assoc :walkers ws :plan-acc acc)))
+ 
+-(defn- tick-bricks! [dt]
++(defn- tick-bricks! [dt frame]
+   (try
++    (run-gate! frame)
+     (let [{:keys [walkers views statics pcfg plan-acc fcfg ds cfg ground-meshes]} @!state
+           before walkers
+           after  (mapv (fn [w view]
+@@ -413,6 +462,7 @@
+           ws'    (mapv (fn [w step] (if-let [g (:ground step)] (assoc w :ground g) w)) ws steps)
+           views' (mapv :view steps)]
+       (swap! !state assoc :walkers ws' :views views' :plan-acc acc)
++      (swap! !state update :status assoc :queue (m/gate-queued (:gate @!state)))
+       (when-let [^js c0 (:char (first views'))]
+         (let [gen-ms (.. c0 -stats -averageInferenceMs)]
+           (when (number? gen-ms)
+@@ -444,7 +494,7 @@
+                                 w)))
+                           walkers))))))
+       (if (= :bricks (:mode (:status @!state)))
+-        (tick-bricks! dt)
++        (tick-bricks! dt frame)
+         (tick-kinematic! dt))
+       (swap! !state update :status assoc :detours (m/detours (:walkers @!state)))
+       (update-paths! (:paths @!state) (:walkers @!state))
+@@ -457,7 +507,8 @@
+     (let [{:keys [walkers views colors]} @!state
+           views' (mapv
+                    (fn [w view]
+-                     (let [runs (-> (crew/label-runs (crew/dot crew-state (:agent w) now colors) (:name w) now)
++                     (let [runs (-> (crew/label-runs (crew/dot crew-state (:agent w) now colors)
++                                                       (crew/plate-name crew-state w) now)
+                                 (update 0 assoc :scale 1.4))]   ; the dot, bigger than the name
+                        (if (not= runs (:runs view))
+                          (do (t/set-label-runs! (:label view) runs)
+diff --git a/src/pm/crew.cljs b/src/pm/crew.cljs
+index 9d5984d..f2d63ff 100644
+--- a/src/pm/crew.cljs
++++ b/src/pm/crew.cljs
+@@ -86,6 +86,10 @@
+     (count (filter #(contains? (:agents crew) %) agents))
+     0))
+ 
++(defn plate-name [crew w]
++  (let [t (get-in crew [:titles (:agent w)])]
++    (if (and (string? t) (not (str/blank? t))) t (:name w))))
++
+ (defn hud-text [crew agents now]
+   (cond
+     (empty? agents)          nil
+diff --git a/src/pm/motion.cljs b/src/pm/motion.cljs
+index eb55e8a..a02fe53 100644
+--- a/src/pm/motion.cljs
++++ b/src/pm/motion.cljs
+@@ -116,14 +116,20 @@
+             speed   (:speed entry)
+             speed   (when (and (number? speed) (pos? speed)) speed)
+             agent   (:agent entry)
+-            agent   (if (keyword? agent) agent id)]
++            agent   (if (keyword? agent) agent id)
++            tint    (:tint entry)
++            tint    (when (and (integer? tint) (<= 0 tint 0xffffff)) tint)
++            loop?   (true? (:loop entry))
++            face    (:face entry)
++            face    (when (valid-point? face) face)]
+         {:id id :name nm :route route :pause-s pause-s
+          :pos [x0 z0] :heading heading :to 0 :dir 1 :pause pause-s :leg 0
+          :ground nil :y nil
+          :radius radius :vel [0 0] :aim nil :goal nil :side nil :wait 0 :waited false
+          :character (character (:character entry))
+          :senses (senses default-senses (:senses entry))
+-         :speed speed :facing nil :aware {} :glance false :agent agent}))))
++         :speed speed :facing nil :aware {} :glance false :agent agent
++         :tint tint :loop loop? :face face}))))
+ 
+ (defn walkers [world]
+   (let [cfg  (avoid-config world)
+@@ -141,13 +147,17 @@
+ 
+ ;; -- Ping-pong -------------------------------------------------------------
+ 
+-(defn next-index [n i dir]
+-  (if (< n 2)
+-    [0 1]
+-    (let [j (+ i dir)]
+-      (if (and (>= j 0) (< j n))
+-        [j dir]
+-        [(- i dir) (- dir)]))))
++(defn next-index
++  ([n i dir] (next-index n i dir false))
++  ([n i dir loop?]
++   (cond
++     (< n 2) [0 1]
++     loop?   [(mod (inc i) n) 1]
++     :else
++     (let [j (+ i dir)]
++       (if (and (>= j 0) (< j n))
++         [j dir]
++         [(- i dir) (- dir)])))))
+ 
+ (defn target [w]
+   (get (:route w) (:to w)))
+@@ -164,7 +174,7 @@
+ ;; -- step / follow ---------------------------------------------------------
+ 
+ (defn- pick [w]
+-  (let [[i' dir'] (next-index (count (:route w)) (:to w) (:dir w))]
++  (let [[i' dir'] (next-index (count (:route w)) (:to w) (:dir w) (:loop w))]
+     (assoc w :to i' :dir dir' :pause 0 :leg (inc (:leg w))
+              :aim nil :goal nil :side nil :wait 0 :waited false)))
+ 
+@@ -182,7 +192,17 @@
+ 
+       (> (:pause w) 0)
+       (let [p (- (:pause w) dt')]
+-        (assoc (if (> p 0) (assoc w :pause p) (pick w)) :vel [0 0]))
++        (if (> p 0)
++          (let [w' (assoc w :pause p :vel [0 0])]
++            (if-let [[fx fz] (:face w)]
++              (let [[x z] (:pos w)
++                    dx (- fx x) dz (- fz z)]
++                (if (zero? (js/Math.hypot dx dz))
++                  w'
++                  (let [h (yaw dx dz)]
++                    (assoc w' :heading h :facing h))))
++              w'))
++          (assoc (pick w) :vel [0 0])))
+ 
+       (> (:wait w) 0)
+       (let [p (- (:wait w) dt')]
+@@ -235,7 +255,15 @@
+       (> (:pause w) 0)
+       (let [p (- (:pause w) dt')]
+         (if (> p 0)
+-          (assoc w :pause p)
++          (let [w' (assoc w :pause p)]
++            (if-let [[fx fz] (:face w)]
++              (let [[x z] (:pos w)
++                    dx (- fx x) dz (- fz z)]
++                (if (zero? (js/Math.hypot dx dz))
++                  w'
++                  (let [h (yaw dx dz)]
++                    (assoc w' :heading h :facing h))))
++              w'))
+           (pick w)))
+ 
+       (> (:wait w) 0)
+@@ -345,6 +373,50 @@
+ 
+ ;; -- Avoidance planning ------------------------------------------------------
+ 
++(defn tint-hex [base tint]
++  (if (and (integer? base) (<= 0 base 0xffffff)
++           (integer? tint) (<= 0 tint 0xffffff))
++    (let [br  (bit-and (bit-shift-right base 16) 255)
++          bg  (bit-and (bit-shift-right base 8) 255)
++          bb  (bit-and base 255)
++          tr  (bit-and (bit-shift-right tint 16) 255)
++          tg  (bit-and (bit-shift-right tint 8) 255)
++          tb  (bit-and tint 255)
++          mul (fn [c t] (js/Math.round (/ (* c t) 255)))]
++      (bit-or (bit-shift-left (mul br tr) 16)
++              (bit-shift-left (mul bg tg) 8)
++              (mul bb tb)))
++    base))
++
++(defn figure-hexes [palette tint]
++  (mapv (fn [part]
++          (let [c    (:color part)
++                base (get palette c)]
++            (if (= c :eye) base (tint-hex base tint))))
++        (:parts figure)))
++
++;; -- Generation gate ---------------------------------------------------------
++
++(def empty-gate {:queue [] :in-flight nil :last-start nil :next-id 0})
++
++(defn gate-enqueue [gate]
++  (let [id (:next-id gate)]
++    [(-> gate (update :queue conj id) (update :next-id inc)) id]))
++
++(defn gate-start [gate frame]
++  (if (and (nil? (:in-flight gate)) (seq (:queue gate)) (not= (:last-start gate) frame))
++    (let [id (first (:queue gate))]
++      [(assoc gate :queue (vec (rest (:queue gate))) :in-flight id :last-start frame) id])
++    [gate nil]))
++
++(defn gate-done [gate id]
++  (if (= id (:in-flight gate))
++    (assoc gate :in-flight nil)
++    gate))
++
++(defn gate-queued [gate]
++  (count (:queue gate)))
++
+ (defn walkable? [g base step-max]
+   (and (number? g) (<= (js/Math.abs (- g base)) step-max)))
+ 
+@@ -500,11 +572,13 @@
+     (let [backend (:backend status)
+           n       (:walkers status)
+           gen-ms  (:gen-ms status)
++          q       (:queue status)
+           ce      (char-errors-text (:char-errors status))]
+       (str "motion: bricks"
+            (when (and (string? backend) (not (str/blank? backend))) (str " " backend))
+            " · " n " walker" (when (not= n 1) "s")
+            (when (number? gen-ms) (str " · gen " (js/Math.round gen-ms) " ms"))
++           (when (and (number? q) (> q 0)) (str " · queue " q))
+            (when ce (str " · " ce))))
+ 
+     :failed
+diff --git a/test/pm/characters_test.cljs b/test/pm/characters_test.cljs
+index 1c2b947..d4396ed 100644
+--- a/test/pm/characters_test.cljs
++++ b/test/pm/characters_test.cljs
+@@ -73,7 +73,7 @@
+     (is (nil? (m/character c)))))
+ 
+ (deftest t10-walkers-estate-characters
+-  (is (= [{:file "/assets/characters/polybot.glb" :rig :mixamo} nil]
++  (is (= [{:file "/assets/characters/polybot.glb" :rig :mixamo} nil nil nil nil nil]
+          (mapv :character (m/walkers W)))))
+ 
+ (deftest t11-walker-character-nil-cases
+@@ -103,8 +103,8 @@
+ 
+ (deftest t15-walkers-radius-estate-scaled
+   (let [W14 (assoc-in W [:motion :display-scale] 1.4)]
+-    (is (every? true? (map near? [0.42 0.42] (mapv :radius (m/walkers W14)))))
+-    (is (= [0.3 0.3] (mapv :radius (m/walkers W))))))
++    (is (every? true? (map near? (vec (repeat 6 0.42)) (mapv :radius (m/walkers W14)))))
++    (is (= (vec (repeat 6 0.3)) (mapv :radius (m/walkers W))))))
+ 
+ (deftest t16-walker-radius-unscaled
+   (is (= 0.4 (:radius (m/walker {:id :a :route [[0 0]] :radius 0.4})))))
+diff --git a/test/pm/crew_test.cljs b/test/pm/crew_test.cljs
+index 7c4cc9b..47cb1fa 100644
+--- a/test/pm/crew_test.cljs
++++ b/test/pm/crew_test.cljs
+@@ -154,7 +154,8 @@
+   (is (= 0 (c/live-count C agents (+ T0 20000)))))
+ 
+ (deftest t26-walker-agent
+-  (is (= [:un-automate-monde :le-testeur] (mapv :agent (m/walkers W))))
++  (is (= [:un-automate-monde :le-testeur :un-architecte :le-coureur :le-critique :le-docteur]
++         (mapv :agent (m/walkers W))))
+   (is (= :a (:agent (m/walker {:id :a :route [[0 0]]}))))
+   (is (= :b (:agent (m/walker {:id :a :route [[0 0]] :agent :b}))))
+   (is (= :a (:agent (m/walker {:id :a :route [[0 0]] :agent "b"})))))
+@@ -162,11 +163,11 @@
+ (deftest t27-estate-walkers-end-to-end
+   (let [S (c/parse "{:as-of 1000 :agents {:un-automate-monde {:status :working} :le-testeur {:status :idle}}}")
+         colors (c/colors W)]
+-    (is (= ["● Un Automate" "● Le Testeur"]
++    (is (= ["● Un Automate" "● Le Testeur" "○ Un Architecte" "○ Le Coureur" "○ Le Critique" "○ Le Docteur"]
+            (mapv (fn [wk] (c/label-text (c/dot S (:agent wk) 3000 colors) (:name wk))) (m/walkers W))))
+-    (is (= ["○ Un Automate" "○ Le Testeur"]
++    (is (= ["○ Un Automate" "○ Le Testeur" "○ Un Architecte" "○ Le Coureur" "○ Le Critique" "○ Le Docteur"]
+            (mapv (fn [wk] (c/label-text (c/dot S (:agent wk) 16001 colors) (:name wk))) (m/walkers W))))
+-    (is (= [15905076 10133670]
++    (is (= [15905076 10133670 10133670 10133670 10133670 10133670]
+            (mapv (fn [wk] (:color (c/dot S (:agent wk) 3000 colors))) (m/walkers W))))))
+ 
+ (deftest t28-keep-the-last-good-file
+diff --git a/test/pm/motion_test.cljs b/test/pm/motion_test.cljs
+index 714fe24..8c55471 100644
+--- a/test/pm/motion_test.cljs
++++ b/test/pm/motion_test.cljs
+@@ -33,8 +33,10 @@
+          (m/config {:motion {:speed -1 :ground ["A" 3]}}))))
+ 
+ (deftest t03-walkers-estate-ids-names
+-  (is (= [:un-automate-monde :le-testeur] (mapv :id (m/walkers W))))
+-  (is (= ["Un Automate" "Le Testeur"] (mapv :name (m/walkers W)))))
++  (is (= [:un-automate-monde :le-testeur :un-architecte :le-coureur :le-critique :le-docteur]
++         (mapv :id (m/walkers W))))
++  (is (= ["Un Automate" "Le Testeur" "Un Architecte" "Le Coureur" "Le Critique" "Le Docteur"]
++         (mapv :name (m/walkers W)))))
+ 
+ (deftest t04-walkers-estate-first
+   (let [w1 (first (m/walkers W))]
+diff --git a/test/pm/senses_test.cljs b/test/pm/senses_test.cljs
+index 1b855a4..60fd39a 100644
+--- a/test/pm/senses_test.cljs
++++ b/test/pm/senses_test.cljs
+@@ -88,9 +88,10 @@
+     (is (= m/default-senses (:senses wk)))
+     (is (= {} (:aware wk)))
+     (is (false? (:glance wk)))
+-    (is (nil? (:speed wk)))
+     (is (nil? (:facing wk))))
+-  (is (= [:un-automate-monde :le-testeur] (mapv :id (m/walkers W)))))
++  (is (= [nil nil nil 1.9 nil nil] (mapv :speed (m/walkers W))))
++  (is (= [:un-automate-monde :le-testeur :un-architecte :le-coureur :le-critique :le-docteur]
++         (mapv :id (m/walkers W)))))
+ 
+ ;; Geometry
+ 

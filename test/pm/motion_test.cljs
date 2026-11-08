@@ -33,8 +33,10 @@
          (m/config {:motion {:speed -1 :ground ["A" 3]}}))))
 
 (deftest t03-walkers-estate-ids-names
-  (is (= [:un-automate-monde :le-testeur] (mapv :id (m/walkers W))))
-  (is (= ["Un Automate" "Le Testeur"] (mapv :name (m/walkers W)))))
+  (is (= [:un-automate-monde :le-testeur :un-architecte :le-coureur :le-critique :le-docteur]
+         (mapv :id (m/walkers W))))
+  (is (= ["Un Automate" "Le Testeur" "Un Architecte" "Le Coureur" "Le Critique" "Le Docteur"]
+         (mapv :name (m/walkers W)))))
 
 (deftest t04-walkers-estate-first
   (let [w1 (first (m/walkers W))]
@@ -330,13 +332,15 @@
 ;; Flag, progress, reasons
 
 (deftest t47-bricks-flag
+  ;; MotionBricks by default; ?kinematic opts out.
   (is (true? (m/bricks-flag? "?bricks")))
   (is (true? (m/bricks-flag? "?probe=1,2&bricks")))
-  (is (true? (m/bricks-flag? "?bricks=0")))
-  (is (false? (m/bricks-flag? "")))
-  (is (false? (m/bricks-flag? nil)))
-  (is (false? (m/bricks-flag? "?bricksx")))
-  (is (false? (m/bricks-flag? "?fresh"))))
+  (is (true? (m/bricks-flag? "")))
+  (is (true? (m/bricks-flag? nil)))
+  (is (true? (m/bricks-flag? "?fresh")))
+  (is (false? (m/bricks-flag? "?kinematic")))
+  (is (false? (m/bricks-flag? "?probe=1,2&kinematic")))
+  (is (true? (m/bricks-flag? "?kinematicx"))))
 
 (deftest t48-load-fraction
   (is (near? 0.37 (m/load-fraction "model" 37 100)))

@@ -88,9 +88,10 @@
     (is (= m/default-senses (:senses wk)))
     (is (= {} (:aware wk)))
     (is (false? (:glance wk)))
-    (is (nil? (:speed wk)))
     (is (nil? (:facing wk))))
-  (is (= [:un-automate-monde :le-testeur] (mapv :id (m/walkers W)))))
+  (is (= [nil nil nil 1.9 nil nil] (mapv :speed (m/walkers W))))
+  (is (= [:un-automate-monde :le-testeur :un-architecte :le-coureur :le-critique :le-docteur]
+         (mapv :id (m/walkers W)))))
 
 ;; Geometry
 

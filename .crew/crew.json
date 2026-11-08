@@ -221,7 +221,7 @@
       "kind": "claude",
       "backend": "anthropic",
       "model": "claude-sonnet-5",
-      "enabled": false,
+      "enabled": true,
       "args": [
         "--permission-mode",
         "acceptEdits",
@@ -244,7 +244,7 @@
         "Bash(unzip -l:*)",
         "Bash(unzip -p:*)"
       ],
-      "note": "docs (the crew's memory): crew/README.md, session notes. Off until a round needs it."
+      "note": "the crew's writer (Michael: poetry, books, helping Hal write; little context needed) and the crew's memory (README rows, round notes). Role card .crew/roles/le-docteur.md. Writes in crew/notebook/."
     }
   ],
   "services": [
