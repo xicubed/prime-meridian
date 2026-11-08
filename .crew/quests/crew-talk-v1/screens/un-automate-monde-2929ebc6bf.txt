@@ -1,0 +1,27 @@
+         +-str (m/step (assoc K :pos [
+         +-7.2 -5.2] :pause 3) 1.2 0.5
+         +)))))
+
+⏺ Listing all undeclared-var warnings
+  ⎿  $ npx shadow-cljs compile test 2>&1 |
+     tail -5 && node out/test.js 2>&1 | tail
+     -60
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ List all undeclared-var warnings
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ grep -n "Use of undeclared Var"
+ /tmp/full-compile.txt
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, allow reading from /private/tmp
+      from this project
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
