@@ -1,0 +1,57 @@
+{
+  "round": "creature-obstacle-v0",
+  "quest": ".crew/quests/creature-obstacle-v0.md",
+  "runDir": "crew/runs",
+  "gate": "bash .crew/gate.sh",
+  "fix": {
+    "who": "un-automate-monde",
+    "max": 2
+  },
+  "timeoutMinutes": 45,
+  "steps": [
+    {
+      "id": "spec",
+      "who": [
+        "un-architecte"
+      ],
+      "prompt": "New quest: read {quest} (and the code and quests it cites). Write the spec to {run}/spec.md following your role card: numbered test cases with hand-checked expected values (the circle from body positions, the detour and the sight-only case, the lap simulation on the real estate routes), and a who-touches-what table. Reply when it's written.",
+      "expect": [
+        "{run}/spec.md"
+      ]
+    },
+    {
+      "id": "build",
+      "who": [
+        "un-automate-monde",
+        "le-testeur"
+      ],
+      "prompt": {
+        "un-automate-monde": "Spec: {run}/spec.md (quest: {quest}). Implement it in the source and data files the spec assigns the builder, and nothing else. Run .crew/gate.sh before replying.",
+        "le-testeur": "Spec: {run}/spec.md (quest: {quest}). Write its test cases in the test file(s) the spec assigns the tester, and nothing else, including the real-MuJoCo Node test (load MuJoCo with js/require as test/pm/creature_mujoco_test.cljs does). The builder is coding in parallel."
+      },
+      "expect": []
+    },
+    {
+      "id": "gate",
+      "who": [
+        "le-coureur"
+      ],
+      "verify": true,
+      "prompt": "Run the gate (.crew/gate.sh) and write the gate note to {run}/gate-note.md as your role card says.",
+      "expect": [
+        "{run}/gate-note.md"
+      ]
+    },
+    {
+      "id": "review",
+      "who": [
+        "le-critique"
+      ],
+      "prompt": "Review the round's changes against {run}/spec.md and {quest}: git diff for edited files, and read the new files (git status lists them). Check: with no creature the walker code path and plans are unchanged; the creature goes through the same senses as walkers; it is never planned or pushed; the circle covers every capsule; no species names in code; the lap test uses the real estate routes. Write the review to {run}/review.md (at most 5 ranked findings).",
+      "expect": [
+        "{run}/review.md"
+      ]
+    }
+  ],
+  "onBlocked": "wait"
+}
