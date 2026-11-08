@@ -32,3 +32,5 @@ assets/private/
 
 # MotionBricks model weights (NVIDIA SOMA, packed by three-motionbricks); ~195 MB, local copy only
 /public/models/
+# MuJoCo WebAssembly (11 MB): copied from node_modules by npm postinstall, pinned by package-lock
+/public/vendor/mujoco/
