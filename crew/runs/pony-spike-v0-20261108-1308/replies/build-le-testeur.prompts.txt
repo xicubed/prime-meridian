@@ -1,0 +1,41 @@
+=== prompt 1 (13:35:12)
+ │             i += 1
+ │             continue
+ │         if c == ';':
+ │             # skip to end of line
+ │             while i < len(s) and s[i] != '\n':
+ │                 i += 1
+ │             continue
+ │         if c == '"':
+ │             in_str = True
+ │             i += 1
+ │             continue
+ │         if c in '([{':
+ │             stack.append((c, line))
+ │         elif c in ')]}':
+ │             if not stack:
+ │                 print(f, "UNMATCHED CLOSE at line", line)
+ │                 ok = False
+ │                 break
+ │             o, ol = stack.pop()
+ │             pairs = {'(': ')', '[': ']', '{': '}'}
+ │             if pairs[o] != c:
+ │                 print(f, f"MISMATCH open {o} at {ol} close {c} at {line}")
+ │                 ok = False
+ │                 break
+ │         i += 1
+ │     if stack:
+ │         print(f, "UNCLOSED:", stack[:5])
+ │         ok = False
+ │     if ok:
+ │         print(f, "OK, final depth 0, lines", line)
+ │ EOF
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Contains brace with quote character (expansion obfuscation)
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend

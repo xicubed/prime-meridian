@@ -1,0 +1,76 @@
+diff --git a/bb.edn b/bb.edn
+index 8893a03..2bba25c 100644
+--- a/bb.edn
++++ b/bb.edn
+@@ -7,4 +7,6 @@
+   crew-fielder {:doc  "The twin's automatic half: answers routine crew prompts after :answer-after-s; holds while state/hold.edn is on: bb crew-fielder [--dry-run]"
+                 :task (apply shell "bb" "scripts/crew_fielder.clj" *command-line-args*)}
+   content {:doc  "Generate game content from the GDD: bb content <request>|all [--dry-run]"
+-           :task (apply shell "bb" "content/pipeline.clj" *command-line-args*)}}}
++           :task (apply shell "bb" "content/pipeline.clj" *command-line-args*)}
++  creature-mjcf {:doc  "Print a species' MuJoCo body (MJCF XML): bb creature-mjcf <kind>"
++                 :task (apply shell "bb" "scripts/creature_mjcf.clj" *command-line-args*)}}}
+diff --git a/resources/estate.edn b/resources/estate.edn
+index 1002fb0..85077e2 100644
+--- a/resources/estate.edn
++++ b/resources/estate.edn
+@@ -3,6 +3,8 @@
+            :twin   {:name "Hal"}}              ; the twin's word follows the player's :sex (:m jumeau, :f jumelle)
+  :crew-talk {:surface-after-s 60   ; a prompt the twin hasn't answered after this long goes to the player
+              :answer-after-s 5}    ; bb crew-fielder waits this long, then answers a routine prompt
++ :creature-spike {:flag "pony" :kind :horse :seed 1     ; ?pony[=<kind>][&seed=n]: MuJoCo creature spike (pony-spike-v0)
++                  :at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4} ; east bank, terrain 1.79 m (Hal probed); yaw in degrees
+  :voices {:hal      {:rate 1.0 :pitch 0.9 :lang "en-US"}   ; Hal: even, a little low
+           :creature {:rate 1.1 :pitch 1.6 :lang "en-US"}}  ; creatures: higher, quicker
+  ;; Sounds placed in the world. Each point is an emitter [x y z gain] in the
+diff --git a/src/pm/core.cljs b/src/pm/core.cljs
+index 6477033..d0fa332 100644
+--- a/src/pm/core.cljs
++++ b/src/pm/core.cljs
+@@ -12,6 +12,7 @@
+             [pm.content :as content]
+             [pm.crew :as crew]
+             [pm.crew-log :as cl]
++            [pm.creature-spike :as creature-spike]
+             [pm.jumeaux :as j]
+             [pm.kit :as kit]
+             [pm.motion :as m]
+@@ -250,6 +251,7 @@
+       (when-let [m (content/mail-line content/sample-inbox)] (str " · " m))
+       (when-let [s (scene/summary)] (str " · " s))
+       (when-let [s (bricks/hud-segment)] (str " · " s))
++      (when-let [s (creature-spike/hud-segment)] (str " · " s))
+       (when-let [s (crew/hud-text (:crew w) (mapv :agent (m/walkers w)) now)] (str " · " s))
+       (when-let [p @!probe] (str " · " p))
+       (when-let [h (kit/handle)]
+@@ -404,6 +406,7 @@
+     (reset! !last now)
+     (tick! (min dt 0.1))
+     (when-let [h (kit/handle)] (bricks/tick! h (min dt 0.1)))
++    (when (kit/handle) (creature-spike/tick! (min dt 0.1) now))
+     (bricks/set-dots! (:crew @!world) (js/Date.now))
+     (scene/update! @!world (js/Date.now))
+     (talk-tick! (js/Date.now))
+@@ -595,6 +598,7 @@
+   (t/use-three! (.-THREE h))
+   (scene/mount! (.-scene h) @!world (js/Date.now))
+   (bricks/start! h @!world)
++  (creature-spike/start! h @!world)
+   (wire-pointer! h)
+   (probe! h)
+   (jack-in!)
+diff --git a/src/pm/three.cljs b/src/pm/three.cljs
+index 5f3388d..894c329 100644
+--- a/src/pm/three.cljs
++++ b/src/pm/three.cljs
+@@ -332,6 +332,10 @@
+   (set! (.-y (.-rotation obj)) rad)
+   obj)
+ 
++(defn set-quat! [^js obj [x y z w]]
++  (.set (.-quaternion obj) x y z w)
++  obj)
++
+ (defn set-visible! [^js obj on?]
+   (set! (.-visible obj) (boolean on?))
+   obj)

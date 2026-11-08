@@ -1,0 +1,61 @@
+<mujoco model="horse">
+  <compiler angle="radian" autolimits="true"/>
+  <option timestep="0.002" integrator="implicitfast"/>
+  <worldbody>
+    <geom name="ground" type="plane" pos="0 0 0" size="2 2 0.1" contype="1" conaffinity="0"/>
+    <body name="torso" pos="0 0 1.24" quat="1 0 0 0">
+      <freejoint name="root"/>
+      <geom name="torso" type="capsule" fromto="-0.3 0 0 0.3 0 0" size="0.15" density="1000" contype="0" conaffinity="1"/>
+      <body name="neck" pos="0.3 0 0.08">
+        <joint name="neck" type="hinge" axis="0 1 0" limited="true" range="-0.698132 0.523599" damping="5"/>
+        <geom name="neck" type="capsule" fromto="0 0 0 0.18 0 0.24" size="0.06" density="1000" contype="0" conaffinity="1"/>
+        <body name="head" pos="0.18 0 0.24">
+          <geom name="head" type="capsule" fromto="0 0 0 0.24 0 -0.1" size="0.07" density="1000" contype="0" conaffinity="1"/>
+        </body>
+      </body>
+      <body name="fl-upper" pos="0.28 0.1 -0.05">
+        <joint name="fl-upper" type="hinge" axis="0 1 0" limited="true" range="-0.785398 0.785398" damping="5"/>
+        <geom name="fl-upper" type="capsule" fromto="0 0 0 0 0 -0.38" size="0.05" density="1000" contype="0" conaffinity="1"/>
+        <body name="fl-lower" pos="0 0 -0.38">
+          <joint name="fl-lower" type="hinge" axis="0 1 0" limited="true" range="-0.174533 1.745329" damping="5"/>
+          <geom name="fl-lower" type="capsule" fromto="0 0 0 0 0 -0.37" size="0.04" density="1000" contype="0" conaffinity="1"/>
+        </body>
+      </body>
+      <body name="fr-upper" pos="0.28 -0.1 -0.05">
+        <joint name="fr-upper" type="hinge" axis="0 1 0" limited="true" range="-0.785398 0.785398" damping="5"/>
+        <geom name="fr-upper" type="capsule" fromto="0 0 0 0 0 -0.38" size="0.05" density="1000" contype="0" conaffinity="1"/>
+        <body name="fr-lower" pos="0 0 -0.38">
+          <joint name="fr-lower" type="hinge" axis="0 1 0" limited="true" range="-0.174533 1.745329" damping="5"/>
+          <geom name="fr-lower" type="capsule" fromto="0 0 0 0 0 -0.37" size="0.04" density="1000" contype="0" conaffinity="1"/>
+        </body>
+      </body>
+      <body name="hl-upper" pos="-0.28 0.1 -0.05">
+        <joint name="hl-upper" type="hinge" axis="0 1 0" limited="true" range="-0.785398 0.785398" damping="5"/>
+        <geom name="hl-upper" type="capsule" fromto="0 0 0 0 0 -0.38" size="0.05" density="1000" contype="0" conaffinity="1"/>
+        <body name="hl-lower" pos="0 0 -0.38">
+          <joint name="hl-lower" type="hinge" axis="0 1 0" limited="true" range="-1.745329 0.174533" damping="5"/>
+          <geom name="hl-lower" type="capsule" fromto="0 0 0 0 0 -0.37" size="0.04" density="1000" contype="0" conaffinity="1"/>
+        </body>
+      </body>
+      <body name="hr-upper" pos="-0.28 -0.1 -0.05">
+        <joint name="hr-upper" type="hinge" axis="0 1 0" limited="true" range="-0.785398 0.785398" damping="5"/>
+        <geom name="hr-upper" type="capsule" fromto="0 0 0 0 0 -0.38" size="0.05" density="1000" contype="0" conaffinity="1"/>
+        <body name="hr-lower" pos="0 0 -0.38">
+          <joint name="hr-lower" type="hinge" axis="0 1 0" limited="true" range="-1.745329 0.174533" damping="5"/>
+          <geom name="hr-lower" type="capsule" fromto="0 0 0 0 0 -0.37" size="0.04" density="1000" contype="0" conaffinity="1"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <actuator>
+    <position name="neck" joint="neck" kp="150" ctrllimited="true" ctrlrange="-0.698132 0.523599"/>
+    <position name="fl-upper" joint="fl-upper" kp="150" ctrllimited="true" ctrlrange="-0.785398 0.785398"/>
+    <position name="fl-lower" joint="fl-lower" kp="150" ctrllimited="true" ctrlrange="-0.174533 1.745329"/>
+    <position name="fr-upper" joint="fr-upper" kp="150" ctrllimited="true" ctrlrange="-0.785398 0.785398"/>
+    <position name="fr-lower" joint="fr-lower" kp="150" ctrllimited="true" ctrlrange="-0.174533 1.745329"/>
+    <position name="hl-upper" joint="hl-upper" kp="150" ctrllimited="true" ctrlrange="-0.785398 0.785398"/>
+    <position name="hl-lower" joint="hl-lower" kp="150" ctrllimited="true" ctrlrange="-1.745329 0.174533"/>
+    <position name="hr-upper" joint="hr-upper" kp="150" ctrllimited="true" ctrlrange="-0.785398 0.785398"/>
+    <position name="hr-lower" joint="hr-lower" kp="150" ctrllimited="true" ctrlrange="-1.745329 0.174533"/>
+  </actuator>
+</mujoco>

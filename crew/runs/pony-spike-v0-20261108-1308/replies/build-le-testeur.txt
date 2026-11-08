@@ -1,0 +1,221 @@
+
+ ▐▛███▛█   Claude Code v2.1.319
+▝▜██████▀  Sonnet 5 · Claude Max
+ ▝▝   ▝▝   ~/src/prime-meridian
+
+
+❯ Say hi in ONE line: your name, your job, and the model you're running on. Don't use any tools.
+
+⏺ Hi, I'm Le Testeur, the tester for Prime Meridian, running on Sonnet 5.
+
+✻ Brewed for 2s · done 1:08 PM
+
+❯ Spec: crew/runs/pony-spike-v0-20261108-1308/spec.md (quest: .crew/quests/pony-spike-v0.md). Write its test cases in
+  the test file(s) the spec assigns the tester, and nothing else, including the Node test that compiles both species
+  in real MuJoCo. The builder is coding in parallel.
+
+  When you have completely finished, end your reply with a line containing only this: done-5215
+
+  Searched for 1 pattern, read 2 files, listed 1 directory
+
+⏺ Now let me check resources/estate.edn to confirm current top-level structure (since builder will add :creature-spike,
+  which doesn't exist yet — tests may fail until then, that's expected).
+
+  Listed 2 directories
+
+⏺ Good, @mujoco/mujoco is present. No existing async test pattern, so I'll write it per spec using cljs.test/async. Let
+  me check pm.plan for radians and check fixtures.cljs briefly for style conventions, then write the three test files.
+
+  Searched for 2 patterns
+
+⏺ Write(test/pm/creature_test.cljs)
+  ⎿  Wrote 311 lines to test/pm/creature_test.cljs
+       1 (ns pm.creature-test
+       2   (:require [clojure.string :as str]
+       3             [cljs.test :refer [deftest is]]
+       4             [pm.creature :as c]
+       5             [pm.species :as species]))
+       6
+       7 (defn approx=
+       8   ([a b] (approx= a b 1e-6))
+       9   ([a b eps]
+      10    (cond
+     … +301 lines
+
+⏺ Write(test/pm/creature_motion_test.cljs)
+  ⎿  Wrote 241 lines to test/pm/creature_motion_test.cljs
+       1 (ns pm.creature-motion-test
+       2   (:require [cljs.test :refer [deftest is]]
+       3             [pm.creature :as c]
+       4             [pm.creature-motion :as cm]
+       5             [pm.world :as w]))
+       6
+       7 (defn approx=
+       8   ([a b] (approx= a b 1e-6))
+       9   ([a b eps]
+      10    (cond
+     … +231 lines
+
+⏺ Update(test/pm/creature_motion_test.cljs)
+  ⎿  Added 1 line
+      2    (:require [cljs.test :refer [deftest is]]
+      3              [pm.creature :as c]
+      4              [pm.creature-motion :as cm]
+      5 +            [pm.species :as species]
+      6              [pm.world :as w]))
+      7
+      8  (defn approx=
+
+⏺ Update(test/pm/creature_motion_test.cljs)
+  ⎿  Added 2 lines
+      21
+      22  (def cfg {:flag "pony" :kind :horse :seed 1 :at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4})
+      23
+      24 +(def c-horse (c/parse (get species/texts :horse)))
+      25 +
+      26  ;; M1
+      27
+      28  (deftest m01-spike-config
+
+⏺ Update(test/pm/creature_motion_test.cljs)
+  ⎿  Added 1 line, removed 5 lines
+      197    (is (approx= [1.5 0] (cm/actions->ctrl [2 -3] [[-0.5 1.5] [0 2]])))
+      198    (is (approx= [1 0.5] (cm/actions->ctrl [0.5 -0.5] [[-0.5 1.5] [0 2]])))
+      199    (is (approx= -0.087266
+      200 -               (first (cm/actions->ctrl (vec (repeat 9 0)) (c/ctrl-ranges c-horse-fixture))))))
+      200 +               (first (cm/actions->ctrl (vec (repeat 9 0)) (c/ctrl-ranges c-horse))))))
+      201
+      202 -;; C.ctrl-ranges for the horse species, loaded via pm.species for M12's real-range check.
+      203 -
+      204 -(def c-horse-fixture (c/parse (get pm.species/texts :horse)))
+      205 -
+      202  ;; M13
+      203
+      204  (deftest m13-stats-tick
+
+  Read 1 file
+
+⏺ Update(test/pm/creature_motion_test.cljs)
+  ⎿  Added 6 lines, removed 6 lines
+      160  (deftest m09-twitch-range
+      161    (let [chans-ok? (fn [c] (every? (fn [ch] (and (<= -1 (:v ch) 1) (<= 0.3 (:dur ch) 0.8))) (:chans c)
+           ))
+      162          init (cm/twitch-init 9 7)
+      163 -        final (loop [c init i 0]
+      164 -                (if (>= i 5000)
+      165 -                  c
+      166 -                  (let [c' (cm/twitch-step c 0.002)]
+      167 -                    (is (chans-ok? c'))
+      168 -                    (recur c' (inc i)))))]
+      163 +        [final all-ok?] (loop [c init i 0 ok? true]
+      164 +                          (if (>= i 5000)
+      165 +                            [c ok?]
+      166 +                            (let [c' (cm/twitch-step c 0.002)]
+      167 +                              (recur c' (inc i) (and ok? (chans-ok? c'))))))]
+      168 +    (is all-ok?)
+      169      (is (every? true? (map not= (map :to (:chans init)) (map :to (:chans final)))))))
+      170
+      171  ;; M10
+
+  Searched for 2 patterns, read 1 file, ran 1 shell command
+
+⏺ Write(test/pm/creature_mujoco_test.cljs)
+  ⎿  Wrote 157 lines to test/pm/creature_mujoco_test.cljs
+       1 (ns pm.creature-mujoco-test
+       2   (:require [cljs.test :refer [deftest is async]]
+       3             [pm.creature :as c]
+       4             [pm.creature-motion :as cm]
+       5             [pm.species :as species]))
+       6
+       7 (defn approx=
+       8   ([a b] (approx= a b 1e-6))
+       9   ([a b eps]
+      10    (cond
+     … +147 lines
+
+⏺ Update(test/pm/creature_mujoco_test.cljs)
+  ⎿  Added 3 lines, removed 2 lines
+      24         (str (.cwd js/process) "/node_modules/@mujoco/mujoco/mujoco.js"))
+      25        (.then (fn [mod] ((.-default mod))))))
+      26
+      27 -(defn aidx [^js arr n]
+      28 -  (vec (for [i (range n)] (aget arr i))))
+      27 +(defn aidx
+      28 +  ([^js arr n] (aidx arr 0 n))
+      29 +  ([^js arr start n] (vec (for [i (range start (+ start n))] (aget arr i)))))
+      30
+      31  (defn check-counts-masses-ranges [^js mj sp]
+      32    (let [^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp P))
+
+⏺ Update(test/pm/creature_mujoco_test.cljs)
+  ⎿  Added 2 lines, removed 2 lines
+      58      (-> (import-mj)
+      59          (.then (fn [^js mj]
+      60                   (let [[^js model ^js data] (check-counts-masses-ranges mj horse)]
+      61 -                   (is (approx= [4.5 8 3.03] (aidx (.-qpos data) 3)))
+      62 -                   (is (approx= [1 0 0 0] (vec (drop 3 (aidx (.-qpos data) 7)))))
+      61 +                   (is (approx= [4.5 8 3.03] (aidx (.-qpos data) 0 3)))
+      62 +                   (is (approx= [1 0 0 0] (aidx (.-qpos data) 3 4)))
+      63                     (.delete data) (.delete model))
+      64                   (done)))
+      65          (.catch (fn [e] (is false (str e)) (done))))))
+
+⏺ Update(test/pm/creature_mujoco_test.cljs)
+  ⎿  Added 1 line, removed 1 line
+      71      (-> (import-mj)
+      72          (.then (fn [^js mj]
+      73                   (let [[^js model ^js data] (check-counts-masses-ranges mj dog)]
+      74 -                   (is (approx= [4.5 8 2.63] (aidx (.-qpos data) 3)))
+      74 +                   (is (approx= [4.5 8 2.63] (aidx (.-qpos data) 0 3)))
+      75                     (.delete data) (.delete model))
+      76                   (done)))
+      77          (.catch (fn [e] (is false (str e)) (done))))))
+
+⏺ Now let's fix the R4 call to use the 2-arg form consistently (it already works with the single-n signature, defaults
+  start=0):
+
+  Read 1 file
+
+⏺ That's fine as-is (2-arg form, start defaults to 0). Now let's double check the full file and verify
+  check-counts-masses-ranges type hints don't break destructuring [^js model ^js data] since the function returns a
+  plain vector [model data] without type metadata — that's fine, ^js on binding just hints the local.
+
+  Read 3 files, ran 1 shell command
+
+⏺ All three files have balanced parens. Now let's get the diff stats.
+
+  Ran 1 shell command
+
+⏺ Wrote all three new test files (nothing else touched, nothing staged):
+
+  /dev/null => test/pm/creature_test.cljs          | 311 ++++++++++++++
+  /dev/null => test/pm/creature_motion_test.cljs   | 240 ++++++++++++
+  /dev/null => test/pm/creature_mujoco_test.cljs   | 158 ++++++++
+
+  test/pm/creature_test.cljs (pm.creature, C1–C27): c01-shipped-species-valid, c02-density-must-be-positive,
+  c03-unknown-parent-and-parse-throws, c04-joint-axis-range-problem, c05-color-not-in-colors, c06-duplicate-name,
+  c07-root-must-have-no-parent-at-joint, c08-parse-unreadable-not-map-problems-nil,
+  c09-bodies-must-be-non-empty-and-needs-joint, c10-capsule-needs-from-to-r, c11-all-problems-in-order, c12-fmt,
+  c13-bodies-dfs-order, c14-joints-order-and-ranges, c15-counts, c16-horse-body-masses, c17-dog-body-masses,
+  c18-rest-bottom, c19-spawn, c20-mjcf-horse, c21-mjcf-dog, c22-mjcf-yaw-and-origin, c23-mjcf-throws-on-bad-species,
+  c24-mj-three-conversions, c25-mj-quat->three, c26-body-part, c27-body-parts-dog.
+
+  test/pm/creature_motion_test.cljs (pm.creature-motion, M1–M15): m01-spike-config … m15-body-pose (one deftest per
+  case).
+
+  test/pm/creature_mujoco_test.cljs (real MuJoCo, R1–R5): r1-horse-mjcf-compiles, r2-dog-mjcf-compiles,
+  r3-rest-with-zero-controls, r4-yaw, r5-twitch-drives-horse-and-dog, using cljs.test/async and the exact
+  dynamic-import path from the spec.
+
+  These depend on the builder's not-yet-landed pm.creature, pm.creature-motion, pm.species, and
+  resources/creatures/*.edn, so they'll fail to compile/run until that code lands — expected per the parallel workflow.
+  Parens are balanced in all three files; I didn't touch any other file.
+
+  done-5215
+
+✻ Cogitated for 6m 39s · done 1:35 PM
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ Check with un-automate-monde on builder progress
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

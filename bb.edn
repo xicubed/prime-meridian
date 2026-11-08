@@ -7,4 +7,6 @@
   crew-fielder {:doc  "The twin's automatic half: answers routine crew prompts after :answer-after-s; holds while state/hold.edn is on: bb crew-fielder [--dry-run]"
                 :task (apply shell "bb" "scripts/crew_fielder.clj" *command-line-args*)}
   content {:doc  "Generate game content from the GDD: bb content <request>|all [--dry-run]"
-           :task (apply shell "bb" "content/pipeline.clj" *command-line-args*)}}}
+           :task (apply shell "bb" "content/pipeline.clj" *command-line-args*)}
+  creature-mjcf {:doc  "Print a species' MuJoCo body (MJCF XML): bb creature-mjcf <kind>"
+                 :task (apply shell "bb" "scripts/creature_mjcf.clj" *command-line-args*)}}}

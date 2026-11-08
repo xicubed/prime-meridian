@@ -1,0 +1,27 @@
+   bb.edn                           | 4 +++-
+   resources/estate.edn              | 2 ++
+   src/pm/core.cljs                  | 4 ++++
+   src/pm/three.cljs                 | 4 ++++
+   resources/creatures/horse.edn     | 38
+  ++++++++++ (new)
+   resources/creatures/dog.edn       | 38
+  ++++++++++ (new)
+   scripts/creature_mjcf.clj         | 22
+  ++++++++ (new)
+   src/pm/creature.cljc              | 309
+  ++++++++++++++ (new)
+   src/pm/creature_motion.cljs       | 153
+  ++++++++++++ (new)
+   src/pm/creature_spike.cljs        | 113
+  ++++++++++++ (new)
+   src/pm/species.cljs               | 9
+  +++++++ (new)
+
+  done-2415
+
+✻ Sautéed for 5m 33s · done 2:18 PM
+
+─────────────────────────────────────────────
+❯ live check on the game now, screenshot it
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

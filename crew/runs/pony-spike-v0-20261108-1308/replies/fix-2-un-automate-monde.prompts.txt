@@ -1,0 +1,112 @@
+=== prompt 1 (14:16:09)
+
+     Testing pm.overlay-test
+
+     Testing pm.plan-test
+
+     Testing pm.requests-test
+
+     Testing pm.senses-test
+
+     Testing pm.talk-test
+
+     Testing pm.world-test
+
+     Ran 674 tests containing 3729
+     assertions.
+     5 failures, 0 errors.
+     GATE: FAIL tests (Ran 674 tests
+     containing 3729 assertions.)
+
+     When you have completely finished, end
+     your reply with a line containing only
+     this: done-4620
+─────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · ctrl+g to
+edit in Vim · Esc to cancel
+=== prompt 2 (14:16:39)
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ rm -rf out .shadow-cljs/builds/test
+ │ 2>/dev/null; bash .crew/gate.sh 2>&1 |
+ │ tail -15; echo "=== diff stat ==="; git
+ │ status --porcelain; echo "--- tracked
+ │ ---"; git diff --stat; echo "---
+ │ untracked ---"; git status --porcelain |
+ │ awk '$1=="??"{print $2}' | while read f;
+ │ do git diff --no-index --stat /dev/null
+ │ "$f" 2>/dev/null; done
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Quoted text in this command can't be
+ checked before it runs
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 3 (14:17:35)
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ git diff --stat -- bb.edn
+ │ resources/estate.edn src/pm/core.cljs
+ │ src/pm/three.cljs
+ │ for f in resources/creatures/horse.edn
+ │ resources/creatures/dog.edn
+ │ scripts/creature_mjcf.clj
+ │ src/pm/creature.cljc
+ │ src/pm/creature_motion.cljs
+ │ src/pm/creature_spike.cljs
+ │ src/pm/species.cljs; do
+ │   git diff --no-index --stat /dev/null
+ │ "$f"
+ │ done
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ A variable in this command can't be checked
+ before it runs
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 4 (14:18:37)
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ git diff --stat -- bb.edn
+ │ resources/estate.edn src/pm/core.cljs
+ │ src/pm/three.cljs
+ │ for f in resources/creatures/horse.edn
+ │ resources/creatures/dog.edn
+ │ scripts/creature_mjcf.clj
+ │ src/pm/creature.cljc
+ │ src/pm/creature_motion.cljs
+ │ src/pm/creature_spike.cljs
+ │ src/pm/species.cljs; do
+ │   git diff --no-index --stat /dev/null
+ │ "$f"
+ │ done
+ │ rm -rf out
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ A variable in this command can't be checked
+ before it runs
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend

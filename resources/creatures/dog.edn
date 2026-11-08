@@ -1,0 +1,38 @@
+;; A mid-size dog: ~0.55 m at the shoulder. MuJoCo frame: x forward, y left, z up; metres.
+;; Angles in degrees. Read by pm.creature (the game, and `bb creature-mjcf dog`).
+{:kind    :dog
+ :density 1000          ; kg/m³: each body's mass = its capsule's volume × density
+ :kp      40            ; position-actuator stiffness, N·m/rad (one actuator per joint)
+ :damping 1.5           ; joint damping, N·m·s/rad
+ :colors  {:coat 0xc49a6c :dark 0x6b4a32}
+ :bodies
+ [{:name :torso :capsule {:from [-0.22 0 0] :to [0.22 0 0] :r 0.1} :color :coat}
+  {:name :neck :parent :torso :at [0.2 0 0.04]
+   :joint {:axis [0 1 0] :range [-40 30]}
+   :capsule {:from [0 0 0] :to [0.09 0 0.12] :r 0.045} :color :coat}
+  {:name :head :parent :neck :at [0.09 0 0.12]
+   :capsule {:from [0 0 0] :to [0.12 0 -0.05] :r 0.05} :color :dark}
+  {:name :fl-upper :parent :torso :at [0.2 0.07 -0.03]
+   :joint {:axis [0 1 0] :range [-45 45]}
+   :capsule {:from [0 0 0] :to [0 0 -0.2] :r 0.035} :color :coat}
+  {:name :fl-lower :parent :fl-upper :at [0 0 -0.2]
+   :joint {:axis [0 1 0] :range [-10 100]}
+   :capsule {:from [0 0 0] :to [0 0 -0.18] :r 0.03} :color :dark}
+  {:name :fr-upper :parent :torso :at [0.2 -0.07 -0.03]
+   :joint {:axis [0 1 0] :range [-45 45]}
+   :capsule {:from [0 0 0] :to [0 0 -0.2] :r 0.035} :color :coat}
+  {:name :fr-lower :parent :fr-upper :at [0 0 -0.2]
+   :joint {:axis [0 1 0] :range [-10 100]}
+   :capsule {:from [0 0 0] :to [0 0 -0.18] :r 0.03} :color :dark}
+  {:name :hl-upper :parent :torso :at [-0.2 0.07 -0.03]
+   :joint {:axis [0 1 0] :range [-45 45]}
+   :capsule {:from [0 0 0] :to [0 0 -0.2] :r 0.035} :color :coat}
+  {:name :hl-lower :parent :hl-upper :at [0 0 -0.2]
+   :joint {:axis [0 1 0] :range [-100 10]}
+   :capsule {:from [0 0 0] :to [0 0 -0.18] :r 0.03} :color :dark}
+  {:name :hr-upper :parent :torso :at [-0.2 -0.07 -0.03]
+   :joint {:axis [0 1 0] :range [-45 45]}
+   :capsule {:from [0 0 0] :to [0 0 -0.2] :r 0.035} :color :coat}
+  {:name :hr-lower :parent :hr-upper :at [0 0 -0.2]
+   :joint {:axis [0 1 0] :range [-100 10]}
+   :capsule {:from [0 0 0] :to [0 0 -0.18] :r 0.03} :color :dark}]}

@@ -1,0 +1,168 @@
+ns/pony-spike-v0-20261108-1308/spec.md and .crew/quests/pony-spike-v0.md: git diff for edited files, and read the new files (git status lists them). Check: nothing in code names a species (grep src for horse|dog|pony|juniper outside data); THREE only through pm.three; MuJoCo objects deleted when replaced; the fixed-step cap; z-up to y-up in one place; the ?pony flag leaves the normal game untouched; pure logic tested; the real-MuJoCo test really compiles both generated bodies. Write the review to crew/runs/pony-spike-v0-20261108-1308/review.md (at most 5 ranked findings).
+
+When you have completely finished, end your reply with a line containing only this: done-2386
+────────────────────────────────────────
+
+💻 $ echo "=== git status ===" + 5 commands  0.8s
+📖 Read spec.md
+📖 Read pony-spike-v0.md
+📖 Read log.md
+📖 Read gate-note.md
+💻 $ ls -la crew/runs/pony-spike-v0-20261108-1308/replies/  0.3s
+💻 $ git diff -- bb.edn resources/estate.edn src/pm/three.cljs src/pm/core.cljs  0.5s
+💻 $ cat crew/runs/pony-spike-v0-20261108-1308/gate-3.txt  0.4s
+🔎 Grep defn- start-kit!|defn- start-scaffold!  1.4s
+🔎 Grep bricks/start!  0.3s
+📖 Read core.cljs L580-609
+
+────────────────────────────────────────
+☤ Hermes
+Confirmed: creature-spike/start! lives only in start-kit!, never in start-scaffold!. Now let's check creature.cljc, creature_motion.cljs, species.cljs, creature_spike.cljs, creature_mjcf.clj, and the two EDN files in full.
+────────────────────────────────────────
+
+📖 Read creature.cljc
+📖 Read creature_motion.cljs
+📖 Read species.cljs
+📖 Read creature_mjcf.clj
+📖 Read creature_spike.cljs
+💻 $ grep -rniE 'horse|dog|pony|juniper' src/  0.4s
+✗ $ cat resources/creatures/horse.edn + 2 commands  0.9s [exit 1]
+📖 Read creature_mujoco_test.cljs
+📖 Read creature_test.cljs
+📖 Read creature_motion_test.cljs
+💻 $ grep -rn "rm -rf\|find /\|exec\|Runtime.exec\|ProcessBuilder" src/pm/creature.cljc src/pm/creature_motion.cljs src/pm/creature_spike.cljs src/pm/species.cljs scripts/creature_mjcf.clj test/pm/creature_test.cljs test/pm/creature_motion_test.cljs test/pm/creature_mujoco_test.cljs  2.2s
+
+────────────────────────────────────────
+☤ Hermes
+Clean — no match. Let's check the review-le-critique.txt (expected recursive-session artifact again) and confirm no network calls or service starts appear in the delivered code.
+────────────────────────────────────────
+
+💻 $ head -5 crew/runs/pony-spike-v0-20261108-1308/replies/review-le-critique.txt  0.3s
+✗ $ diff <(sed -n '128,167p' crew/runs/pony-spike-v0-20261108-1308/spec.md) <(sed -n '1,40p' resources/creatures/dog.edn)  0.3s [exit 1]
+💻 $ tail -20 crew/runs/pony-spike-v0-20261108-1308/gate-1.txt + 1 command  0.4s
+✍️ Write crew/runs/pony-spike-v0-20261108-1308/review.md
+│ crew/runs/pony-spike-v0-20261108-1308/review.md
+│ @@ -0,0 +1,89 @@
+│ +# Review: pony-spike-v0 (20261108-1308)
+│ +
+│ +## Conformance summary
+│ +
+│ +Gate: FAILED twice (gate-1, gate-2: 5 failures each) during two fix rounds, then PASS (gate-3,
+│ +674 tests / 3760 assertions, 0 warnings). Per `log.md`'s manager notes, both fixes were real and
+│ +reasonable: fix round 1 addressed build-script issues; fix round 2 replaced the tester's dynamic
+│ +`import()` in `test/pm/creature_mujoco_test.cljs` with `js/require` because shadow-cljs's
+│ +`:node-test` vm has no dynamic-import callback (`ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`) — a
+│ +documented, necessary deviation from the spec's literal import line, not a defect. I re-ran the
+│ +gate myself... (gate output already captured in `gate-3.txt`, matches `gate-note.md` exactly:
+│ +PASS, 0 warnings, 674/3760).
+│ +
+│ +Boundary table (spec §2): builder touched exactly the assigned new/changed files
+│ +(`src/pm/creature.cljc`, `src/pm/creature_motion.cljs`, `src/pm/species.cljs`,
+│ +`src/pm/creature_spike.cljs`, `src/pm/three.cljs` [`set-quat!` only — confirmed by diff, no other
+│ +function touched], `src/pm/core.cljs` [exactly the 3 wiring lines in §6.3], the two new
+│ +`resources/creatures/*.edn` files verbatim, `resources/estate.edn` [only the new `:creature-spike`
+│ +key], `bb.edn` [only the new task], `scripts/creature_mjcf.clj`). Tester touched only the three
+│ +new test files. None of the "nobody edits" files (`package.json`, `public/vendor/`,
+│ +`public/index.html`, `resources/content/`, `creatures/`, `docs/GDD.md`, `assets/private/`,
+│ +`public/kit/`) appear in `git status`.
+│ +
+│ +Checks from the task, verified directly:
+│ +- **Species names confined to data.** `grep -rniE 'horse|dog|pony|juniper' src/pm/creature.cljc
+│ +  src/pm/creature_motion.cljs src/pm/creature_spike.cljs src/pm/species.cljs` (this round's own
+│ +  new files): only `species.cljs`'s two `rc/inline` paths, exactly as spec'd ("the one place in
+│ +  src/ allowed to name a species"). See Finding 1 for the one exception the quest's own broader
+│ +  `grep -rniE … src/` gate catches.
+│ +- **THREE only through `pm.three`.** `src/pm/creature_spike.cljs` draws exclusively via
+│ +  `t/group`, `t/add!`, `t/stand-in`, `t/set-pos!`, `t/set-quat!` — no bare `THREE/...` call
+│ +  anywhere in the new interop file. `pm.three`'s diff adds only `set-quat!`, matching the
+│ +  boundary table's "add `set-quat!` (only)".
+│ +- **MuJoCo objects deleted when replaced/failed.** `fail!` deletes `data` then `model` (each in
+│ +  its own `try`/`catch`, so one failing delete doesn't block the other) and detaches `root` from
+│ +  its parent, on every failure path (`start!`'s `.catch`, `start!`'s own `try`/`catch`, and
+│ +  `tick!`'s `try`/`catch`). v0 never replaces a running sim (`defonce` + `start!`'s no-op guard),
+│ +  so `fail!` is the only delete path — matches spec exactly, and there is no path that drops a
+│ +  model/data reference without deleting it.
+│ +- **Fixed-step cap.** `cm/fixed-steps` caps `steps` at `max-steps` (25) via `(min n cap)` and
+│ +  returns the drop count separately; `creature-spike/tick!` loops exactly `steps` times, so a
+│ +  stalled frame can never run an unbounded number of `mj_step` calls. Hand-verified against the
+│ +  M3 table in both `creature_motion.cljs` and its test.
+│ +- **z-up ↔ y-up in one place.** `pm.creature/mj->three`, `three->mj`, `mj-quat->three` are the
+│ +  only axis-swap code in the diff; `creature_motion.cljs` and `creature_spike.cljs` both call
+│ +  into `pm.creature` for every conversion (`body-pose`, `body-part`) rather than re-deriving it.
+│ +- **`?pony` leaves the normal game untouched.** `creature-spike/start!` is a no-op unless
+│ +  `spike-request` (built from the URL search string and the estate's `:creature-spike` config)
+│ +  returns non-nil; `pm.core`'s only three call sites are gated the same way the spec requires
+│ +  (`start-kit!` only — confirmed absent from `start-scaffold!` — plus the `kit/handle` guards on
+│ +  `tick!` and the HUD segment). Without `?pony`, nothing is imported, built, or drawn.
+│ +- **Pure logic tested.** `test/pm/creature_test.cljs` (C1–C27) and
+│ +  `test/pm/creature_motion_test.cljs` (M1–M15) hand-traced against the spec's worked numbers
+│ +  (masses, DFS order, frame conversion, twitch PRNG sequence, fixed-step table, stats) — all 42
+│ +  non-MuJoCo cases match.
+│ +- **The real-MuJoCo test really compiles both bodies.** `test/pm/creature_mujoco_test.cljs`
+│ +  `require()`s the actual `@mujoco/mujoco/mujoco.js` package (not a stub), calls
+│ +  `.from_xml_string`/`new MjData`/`.mj_step`/`.delete` for real, and R1/R2/R3/R5 each exercise
+│ +  both `horse` and `dog` (R4 exercises `dog`'s yaw path) with assertions on real model/data
+│ +  fields (`nbody`, `body_mass`, `jnt_range`, `qpos`, `xpos`) — not mocked, and it ran and passed
+│ +  as part of gate-3 (`Testing pm.creature-mujoco-test` in the gate output).
+│ +- **No live interaction.** Replies show only local tool-permission screens (confirmed by `grep`
+│ +  across the new source/test/script files for `rm -rf`, `find /`, `exec`/process-spawn patterns —
+│ +  no hits); no network call or service start appears anywhere in the delivered diff.
+│ +
+│ +## Findings
+│ +
+│ +1. The quest's own literal "Done when" check — `grep -rniE 'horse|dog|pony|juniper' src/` matches
+│ +   only `src/pm/species.cljs` — currently fails: `src/pm/overlay.cljs:91` has had the phrase "a
+│ +   horse fed with a key" in a docstring since an earlier, unrelated round (mirrors/`play-of`,
+│ +   predates this round's `git status`). It's not a MuJoCo/species-pipeline reference and not
+│ +   touched by this round, but the quest's exact, checkable gate line doesn't hold as written.
+│ +   Fix: reword that one docstring phrase (e.g. "a sample creature fed with a key") so the literal
+│ +   grep gate passes, or amend the quest's wording to scope the check to the new files.
+│ +2. `src/pm/creature_spike.cljs:35-42` gives `start!` an unspecified 3-arity
+│ +   (`[h world load-mujoco]`) with a `default-loader` var, beyond the spec's single binding
+│ +   2-arity signature (§6.2: "`(start! h world)`"). It's unused by `pm.core`'s wiring and by any
+│ +   test in this diff, and is harmless/forward-looking (a seam for future test injection), but it
+│ … omitted 11 diff line(s) across 1 additional file(s)/section(s)
+🔧 Patch /Users/hal/src/prime-meridian/crew/runs/pony-spike-v0-20261108-1308/review.md
+│ crew/runs/pony-spike-v0-20261108-1308/review.md
+│ @@ -7,9 +7,9 @@
+│  reasonable: fix round 1 addressed build-script issues; fix round 2 replaced the tester's dynamic
+│  `import()` in `test/pm/creature_mujoco_test.cljs` with `js/require` because shadow-cljs's
+│  `:node-test` vm has no dynamic-import callback (`ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`) — a
+│ -documented, necessary deviation from the spec's literal import line, not a defect. I re-ran the
+│ -gate myself... (gate output already captured in `gate-3.txt`, matches `gate-note.md` exactly:
+│ -PASS, 0 warnings, 674/3760).
+│ +a documented, necessary deviation from the spec's literal import line, not a defect. `gate-3.txt`
+│ +(the actual `bash .crew/gate.sh` transcript) matches `gate-note.md`'s claim exactly: PASS, 0
+│ +warnings, 674 tests / 3760 assertions, including `Testing pm.creature-mujoco-test` in the run.
+│
+│  Boundary table (spec §2): builder touched exactly the assigned new/changed files
+│  (`src/pm/creature.cljc`, `src/pm/creature_motion.cljs`, `src/pm/species.cljs`,
+🔧 Patch /Users/hal/src/prime-meridian/crew/runs/pony-spike-v0-20261108-1308/review.md
+│ crew/runs/pony-spike-v0-20261108-1308/review.md
+│ @@ -6,7 +6,7 @@
+│  674 tests / 3760 assertions, 0 warnings). Per `log.md`'s manager notes, both fixes were real and
+│  reasonable: fix round 1 addressed build-script issues; fix round 2 replaced the tester's dynamic
+│  `import()` in `test/pm/creature_mujoco_test.cljs` with `js/require` because shadow-cljs's
+│ -`:node-test` vm has no dynamic-import callback (`ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`) — a
+│ +`:node-test` vm has no dynamic-import callback (`ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`) —
+│  a documented, necessary deviation from the spec's literal import line, not a defect. `gate-3.txt`
+│  (the actual `bash .crew/gate.sh` transcript) matches `gate-note.md`'s claim exactly: PASS, 0
+│  warnings, 674 tests / 3760 assertions, including `Testing pm.creature-mujoco-test` in the run.
+
+────────────────────────────────────────
+☤ Hermes
+Fixed. Review written to crew/runs/pony-spike-v0-20261108-1308/review.md — 3 findings, ranked:
+
+1. The quest's literal "Done when" grep (horse|dog|pony|juniper matches only species.cljs) currently fails because of a pre-existing, unrelated "horse" mention in overlay.cljs's docstring from an earlier round — not introduced by this round, but a real mismatch against the stated gate text.
+2. pm.creature-spike/start! has an unspecified 3-arity test-injection seam beyond the spec's binding 2-arity signature — unused, harmless, but scope the spec didn't ask for.
+3. Process note: the manager declined a dangerous builder command (rm -rf/unzip on the shadow-cljs jar) and flagged a find / that an approval script had let through; neither reached the delivered diff (verified by grep), but worth confirming the approval-script fix actually landed.
+
+All core checks passed on inspection: no species names outside pm.species in this round's own new files; THREE only via pm.three; MuJoCo objects deleted on every failure path (no replace path exists in v0); the 25-step fixed cap enforced structurally; z-up↔y-up conversion lives solely in pm.creature; ?pony gates every new call site so the ungated game is untouched; pure logic (C1–C27, M1–M15) hand-verified against spec; and the real-MuJoCo test genuinely require()s @mujoco/mujoco and compiles/steps both horse and dog bodies (confirmed passing in gate-3's own transcript).
+
+done-2386
+────────────────────────────────────────
+
+─ 3m20s · edited 3 files +4 -4 · read 13 files · ran 8 commands · searched 2 paths · 2:22 PM
+──── Security review of crew-talk-v1 round ─
+crew ❯ What changed in this repo recently?
+ ☤ claude-sonnet-5 · 4h 57m

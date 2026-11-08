@@ -1,0 +1,27 @@
+│ browser's dynamic import) per your last
+│ message. The only remaining fix is swapping
+│ import-mj's `import(u)` for `js/require` -
+│ a one-line change, but it's in
+│ test/pm/creature_mujoco_test.cljs, which my
+│ role says I must never edit (le-testeur
+│ owns it, writing from the same spec
+│ concurrently). How should I proceed?
+
+❯ 1. I'll edit that one helper myself
+     (Recommended)
+     You make the one-line fix in
+     test/pm/creature_mujoco_test.cljs (swap
+     import(u) for js/require in import-mj)
+     and re-run the gate; I'll tell
+     le-testeur separately.
+  2. Leave it to le-testeur/you
+     I report the exact fix needed and stop
+     here without touching test/; gate stays
+     red on R1-R5 until someone else applies
+     it.
+  3. Type something.
+─────────────────────────────────────────────
+  4. Chat about this
+
+Enter to select · ↑/↓ to navigate · Esc to
+cancel

@@ -1,0 +1,49 @@
+shadow-cljs - config: /Users/hal/src/prime-meridian/shadow-cljs.edn
+shadow-cljs - connected to server
+
+[:app] Compiling ...
+[:app] Build completed. (84 files, 0 compiled, 0 warnings, 0.95s)
+[:test] Compiling ...
+[:test] Build completed. (104 files, 1 compiled, 0 warnings, 1.06s)
+--- node out/test.js
+FAIL in (r4-yaw) (:)
+TypeError [ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING]: A dynamic import callback was not specified.
+expected: false
+  actual: false
+
+FAIL in (r5-twitch-drives-horse-and-dog) (:)
+TypeError [ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING]: A dynamic import callback was not specified.
+expected: false
+  actual: false
+
+Testing pm.creature-test
+
+Testing pm.crew-fielder-v0-test
+
+Testing pm.crew-talk-test
+
+Testing pm.crew-talk-v1-test
+
+Testing pm.crew-test
+
+Testing pm.crew-walkers-test
+
+Testing pm.feet-test
+
+Testing pm.motion-test
+
+Testing pm.overlay-test
+
+Testing pm.plan-test
+
+Testing pm.requests-test
+
+Testing pm.senses-test
+
+Testing pm.talk-test
+
+Testing pm.world-test
+
+Ran 674 tests containing 3729 assertions.
+5 failures, 0 errors.
+GATE: FAIL tests (Ran 674 tests containing 3729 assertions.)

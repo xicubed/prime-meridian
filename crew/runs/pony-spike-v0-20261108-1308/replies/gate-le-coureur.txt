@@ -1,0 +1,27 @@
+        -g 3729 assertions. 5 failures
+        -, 0 errors.
+      6 -
+      7 -(r4-yaw): TypeError [ERR_VM_D
+        -YNAMIC_IMPORT_CALLBACK_MISSIN
+        -G]: A dynamic import callback
+        - was not specified.
+      8 -
+      9 -(r5-twitch-drives-horse-and-d
+        -og): TypeError [ERR_VM_DYNAMI
+        -C_IMPORT_CALLBACK_MISSING]: A
+        - dynamic import callback was
+        -not specified.
+      5 +Test: Ran 674 tests containin
+        +g 3760 assertions. 0 failures
+        +, 0 errors.
+
+⏺ PASS
+
+  done-9173
+
+✻ Churned for 12s · done 2:19 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

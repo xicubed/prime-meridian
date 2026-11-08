@@ -332,6 +332,10 @@
   (set! (.-y (.-rotation obj)) rad)
   obj)
 
+(defn set-quat! [^js obj [x y z w]]
+  (.set (.-quaternion obj) x y z w)
+  obj)
+
 (defn set-visible! [^js obj on?]
   (set! (.-visible obj) (boolean on?))
   obj)

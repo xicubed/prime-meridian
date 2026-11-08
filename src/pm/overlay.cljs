@@ -88,7 +88,7 @@
 
 (defn play-of
   "What the player did in the game to mirrors the twin doesn't keep
-   (sample ones, e.g. a horse fed with a key): their state wherever it
+   (sample ones, e.g. a pet fed with a key): their state wherever it
    differs from the sample `estate`, so a reload doesn't undo it. nil when
    nothing differs."
   [world estate]

@@ -12,6 +12,7 @@
             [pm.content :as content]
             [pm.crew :as crew]
             [pm.crew-log :as cl]
+            [pm.creature-spike :as creature-spike]
             [pm.jumeaux :as j]
             [pm.kit :as kit]
             [pm.motion :as m]
@@ -250,6 +251,7 @@
       (when-let [m (content/mail-line content/sample-inbox)] (str " · " m))
       (when-let [s (scene/summary)] (str " · " s))
       (when-let [s (bricks/hud-segment)] (str " · " s))
+      (when-let [s (creature-spike/hud-segment)] (str " · " s))
       (when-let [s (crew/hud-text (:crew w) (mapv :agent (m/walkers w)) now)] (str " · " s))
       (when-let [p @!probe] (str " · " p))
       (when-let [h (kit/handle)]
@@ -404,6 +406,7 @@
     (reset! !last now)
     (tick! (min dt 0.1))
     (when-let [h (kit/handle)] (bricks/tick! h (min dt 0.1)))
+    (when (kit/handle) (creature-spike/tick! (min dt 0.1) now))
     (bricks/set-dots! (:crew @!world) (js/Date.now))
     (scene/update! @!world (js/Date.now))
     (talk-tick! (js/Date.now))
@@ -595,6 +598,7 @@
   (t/use-three! (.-THREE h))
   (scene/mount! (.-scene h) @!world (js/Date.now))
   (bricks/start! h @!world)
+  (creature-spike/start! h @!world)
   (wire-pointer! h)
   (probe! h)
   (jack-in!)
