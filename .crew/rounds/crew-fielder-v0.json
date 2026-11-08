@@ -1,0 +1,64 @@
+{
+  "round": "crew-fielder-v0",
+  "quest": ".crew/quests/crew-fielder-v0.md",
+  "runDir": "crew/runs",
+  "gate": "bash .crew/gate.sh",
+  "fix": {
+    "who": "un-automate-monde",
+    "max": 2
+  },
+  "timeoutMinutes": 40,
+  "steps": [
+    {
+      "id": "spec",
+      "who": [
+        "un-architecte"
+      ],
+      "prompt": "New quest: read {quest} (and the code, run and crew-up README section it cites). Write the spec to {run}/spec.md following your role card, with numbered test cases and hand-checked expected values, a who-touches-what table (give le-docteur any GDD wording the quest implies), and say whether the internal :hal event kind is renamed. Reply when it's written.",
+      "expect": [
+        "{run}/spec.md"
+      ]
+    },
+    {
+      "id": "build",
+      "who": [
+        "un-automate-monde",
+        "le-testeur"
+      ],
+      "prompt": {
+        "un-automate-monde": "Spec: {run}/spec.md (quest: {quest}). Implement it in the source files the spec assigns the builder, and nothing else. Run .crew/gate.sh before replying.",
+        "le-testeur": "Spec: {run}/spec.md (quest: {quest}). Write its test cases in the test file the spec assigns the tester, and nothing else. The builder is coding in parallel."
+      },
+      "expect": []
+    },
+    {
+      "id": "gate",
+      "who": [
+        "le-coureur"
+      ],
+      "verify": true,
+      "prompt": "Run the gate (.crew/gate.sh) and write the gate note to {run}/gate-note.md as your role card says.",
+      "expect": [
+        "{run}/gate-note.md"
+      ]
+    },
+    {
+      "id": "review",
+      "who": [
+        "le-critique"
+      ],
+      "prompt": "Review the round's changes against {run}/spec.md and {quest}: git diff for edited files, and read the new files (git status lists them). The new crew-fielder can answer a crew member's shell command on its own, so review it like security code: it answers only :bash prompts with :risky false, only while hold is off, only after re-reading the screen and finding the same prompt id, only for roster members, never declines and never answers :unknown; risky comes from pm.prompt/risky? alone (no second list); bridge decide rules reused, not copied; Herdr called with an argument vector, no shell; logs never hold the token or a raw screen. Also: grep src/ for a \"Hal\" literal (none may remain); the :jumeaux reader's fallbacks; old :hal/:michael log entries still read; no member sent keys or prompts to the crew or started a service. Write the review to {run}/review.md.",
+      "expect": [
+        "{run}/review.md"
+      ]
+    },
+    {
+      "id": "docs",
+      "who": [
+        "le-docteur"
+      ],
+      "prompt": "Spec: {run}/spec.md (quest: {quest}). Make only the documentation edits the spec's who-touches-what table gives le-docteur (if none, change nothing). Reply with git diff --stat of what you changed.",
+      "expect": []
+    }
+  ]
+}
