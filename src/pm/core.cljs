@@ -12,6 +12,7 @@
             [pm.content :as content]
             [pm.crew :as crew]
             [pm.crew-log :as cl]
+            [pm.camera :as camera]
             [pm.creature-spike :as creature-spike]
             [pm.jumeaux :as j]
             [pm.kit :as kit]
@@ -407,6 +408,7 @@
     (tick! (min dt 0.1))
     (when-let [h (kit/handle)] (bricks/tick! h (min dt 0.1)))
     (when (kit/handle) (creature-spike/tick! (min dt 0.1) now))
+    (when-let [h (kit/handle)] (camera/save-tick! h now))
     (bricks/set-dots! (:crew @!world) (js/Date.now))
     (scene/update! @!world (js/Date.now))
     (talk-tick! (js/Date.now))
@@ -597,6 +599,7 @@
   (wire-kit-brook-ui! h)
   (t/use-three! (.-THREE h))
   (scene/mount! (.-scene h) @!world (js/Date.now))
+  (when (camera/restore! h) (js/console.log "Prime Meridian: camera restored"))
   (bricks/start! h @!world)
   (creature-spike/start! h @!world)
   (wire-pointer! h)
