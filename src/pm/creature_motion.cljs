@@ -81,17 +81,93 @@
 
 (defn twitch-actions [ctrl] (mapv :v (:chans ctrl)))
 
-;; -- The controller interface (§5.2) -----------------------------------------
+(defn- clamp [x lo hi] (max lo (min hi x)))
+
+;; -- Sensing (§5.1, pure) -----------------------------------------------------
+
+(defn head-up
+  "The body's local `up` axis in world frame: wi = Σj xmat[9·id + 3i + j] · up[j]."
+  [xmat id up]
+  (mapv (fn [i]
+          (reduce + (map (fn [j] (* (aget xmat (+ (* 9 id) (* 3 i) j)) (nth up j))) (range 3))))
+        (range 3)))
+
+(defn tilt-deg [u]
+  (* (js/Math.acos (clamp (nth u 2) -1 1)) (/ 180 js/Math.PI)))
+
+(defn capsule-clearance
+  "The lowest point of the body's capsule above `ground-z`."
+  [xpos xmat id capsule ground-z]
+  (let [{:keys [from to r]} capsule
+        z-at (fn [p]
+               (+ (aget xpos (+ (* 3 id) 2))
+                  (reduce + (map (fn [j] (* (aget xmat (+ (* 9 id) 6 j)) (nth p j))) (range 3)))))]
+    (- (min (z-at from) (z-at to)) r ground-z)))
+
+(defn sense [r xpos xmat jacp jacr ground-z]
+  {:up        (head-up xmat (:body-id r) (:up r))
+   :clearance (capsule-clearance xpos xmat (:body-id r) (:capsule r) ground-z)
+   :jacp      jacp
+   :jacr      jacr})
+
+;; -- The reflex math (§5.2, pure) ----------------------------------------------
+
+(defn reflex-strength [t onset-s]
+  (if (<= onset-s 0) 1 (clamp (/ t onset-s) 0 1)))
+
+(defn reflex-targets
+  "One joint target (radians) per (:joints r), by Jacobian-transpose control."
+  [r sense q strength nv]
+  (let [[ux uy uz] (:up sense)
+        e-rot  [uy (- ux) 0]
+        e-lift (max 0 (- (:lift-m r) (:clearance sense)))
+        jacp   (:jacp sense)
+        jacr   (:jacr sense)]
+    (mapv (fn [d [lo hi] qi]
+            (let [g (+ (reduce + (map (fn [row] (* (aget jacr (+ (* row nv) d)) (nth e-rot row))) (range 3)))
+                       (* (:w-lift r) (aget jacp (+ (* 2 nv) d)) e-lift))]
+              (clamp (+ qi (* strength (:gain r) g)) lo hi)))
+          (:dofs r) (:ranges r) q)))
+
+(defn target->action [target [lo hi]]
+  (let [mid (/ (+ lo hi) 2) half (/ (- hi lo) 2)]
+    (/ (- target mid) half)))
+
+;; -- The controller interface (§5.3) -----------------------------------------
 
 (defn controller [kind n seed]
   (if (= kind :twitch) (twitch-init n seed) {:kind kind :n n}))
 
+(defn reflex-controller [inner reflexes]
+  {:kind :reflex :n (:n inner) :inner inner :reflexes reflexes :t 0})
+
 (defn act [ctrl obs dt]
   (case (:kind ctrl)
     :twitch (let [c' (twitch-step ctrl dt)] [c' (twitch-actions c')])
-    [ctrl (vec (repeat (:n ctrl) 0))]))
 
-(defn- clamp [x lo hi] (max lo (min hi x)))
+    :reflex
+    (let [[inner' a] (act (:inner ctrl) obs dt)
+          dt'   (if (and (number? dt) (js/isFinite dt) (pos? dt)) dt 0)
+          t'    (+ (:t ctrl) dt')
+          ctrl' (assoc ctrl :inner inner' :t t')]
+      (if (nil? obs)
+        [ctrl' a]
+        (let [a' (reduce
+                    (fn [a [i r]]
+                      (let [se      (nth (:senses obs) i)
+                            q       (mapv #(aget (:qpos obs) %) (:qpos r))
+                            s       (reflex-strength t' (:onset-s r))
+                            targets (reflex-targets r se q s (:nv obs))]
+                        (reduce (fn [a j]
+                                  (assoc a (nth (:acts r) j)
+                                         (target->action (nth targets j) (nth (:ranges r) j))))
+                                a
+                                (range (count (:acts r))))))
+                    a
+                    (map-indexed vector (:reflexes ctrl)))]
+          [ctrl' a'])))
+
+    [ctrl (vec (repeat (:n ctrl) 0))]))
 
 (defn actions->ctrl [actions ranges]
   (mapv (fn [a [lo hi]] (+ (/ (+ lo hi) 2) (* (clamp a -1 1) (/ (- hi lo) 2)))) actions ranges))
@@ -134,11 +210,14 @@
       :running
       (let [stats (:stats status)
             ms    (:ms stats)
-            torso (:torso status)]
+            torso (:torso status)
+            head  (:head status)]
         (str (:flag status) ": " (name (:kind status)) " · "
              (if (number? ms) (.toFixed ms 1) "-") " ms/frame · "
              (:steps stats) " steps · " (:dropped stats) " dropped · torso "
-             (if (number? torso) (.toFixed torso 2) "-") " m"))
+             (if (number? torso) (.toFixed torso 2) "-") " m"
+             (when (map? head)
+               (str " · head " (.toFixed (:clearance head) 2) " m " (js/Math.round (:tilt head)) "°"))))
 
       :failed
       (str (:flag status) ": " (name (:kind status)) " failed (" (m/short-reason (:reason status)) ")")

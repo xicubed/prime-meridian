@@ -47,7 +47,7 @@
                 (for [i (range 1 12)]
                   (approx= (second (nth masses (dec i))) (aget (.-body_mass model) i)))))
     (is (every? true?
-                (for [j (range 9)]
+                (for [j (range (count ranges))]
                   (let [[lo hi] (nth ranges j)]
                     (and (approx= lo (aget (.-jnt_range model) (+ (* 2 j) 2)))
                          (approx= hi (aget (.-jnt_range model) (+ (* 2 j) 3))))))))
@@ -126,13 +126,13 @@
         ^js data (new (.-MjData mj) model)
         ranges (c/ctrl-ranges sp)
         dt (/ 1.0 60)]
-    (loop [frame 0 acc 0 ctrl (cm/controller :twitch 9 1) total 0]
+    (loop [frame 0 acc 0 ctrl (cm/controller :twitch 12 1) total 0]
       (if (>= frame 120)
         (let [^js qpos (.-qpos data)
               nq (.-nq model)
               all-finite? (every? true? (for [i (range nq)] (not (js/isNaN (aget qpos i)))))
               torso-h (- (aget (.-xpos data) 5) ground-z)
-              hinge-moved? (some true? (for [i (range 7 16)] (> (js/Math.abs (aget qpos i)) 0.05)))]
+              hinge-moved? (some true? (for [i (range 7 19)] (> (js/Math.abs (aget qpos i)) 0.05)))]
           (is (<= 999 total 1001))
           (is all-finite?)
           (is (> torso-h 0.05))
@@ -156,5 +156,137 @@
         (.then (fn [^js mj]
                  (run-twitch mj horse)
                  (run-twitch mj dog)
+                 (done)))
+        (.catch (fn [e] (is false (str e)) (done))))))
+
+;; R6
+
+(defn run-reflex-on [^js mj sp roll]
+  (let [place (assoc P :roll roll)
+        ^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp place))
+        ^js data (new (.-MjData mj) model)
+        _ (.mj_forward mj model data)
+        rx (c/reflexes sp)
+        r (first rx)
+        nv (.-nv model)
+        ^js jp (new (.-DoubleBuffer mj) (* 3 nv))
+        ^js jr (new (.-DoubleBuffer mj) (* 3 nv))
+        ranges (c/ctrl-ranges sp)
+        nu (count ranges)
+        acts (set (:acts r))]
+    (loop [i 0 ctrl (cm/reflex-controller (cm/controller :still nu 1) rx)]
+      (if (>= i 1500)
+        (let [s (cm/sense r (.-xpos data) (.-xmat data) (.GetView jp) (.GetView jr) ground-z)
+              ^js qpos (.-qpos data)
+              nq (.-nq model)
+              finite? (every? true? (for [j (range nq)] (not (js/isNaN (aget qpos j)))))]
+          (.delete jp) (.delete jr) (.delete data) (.delete model)
+          {:sense s :finite? finite?})
+        (do
+          (.mj_jacBody mj model data jp jr (:body-id r))
+          (let [obs {:nv nv :qpos (.-qpos data)
+                     :senses [(cm/sense r (.-xpos data) (.-xmat data) (.GetView jp) (.GetView jr) ground-z)]}
+                [ctrl' a] (cm/act ctrl obs c/timestep)
+                vals (cm/actions->ctrl a ranges)]
+            (dotimes [k nu]
+              (aset (.-ctrl data) k (if (contains? acts k) (nth vals k) 0)))
+            (.mj_step mj model data)
+            (recur (inc i) ctrl')))))))
+
+(deftest r6-reflex-on-head-lifts-and-levels
+  (async done
+    (-> (import-mj)
+        (.then (fn [^js mj]
+                 (doseq [[sp need-clear] [[horse 0.175] [dog 0.105]]
+                         roll [90 -90]]
+                   (let [{:keys [sense finite?]} (run-reflex-on mj sp roll)]
+                     (is finite?)
+                     (is (>= (:clearance sense) need-clear))
+                     (is (<= (cm/tilt-deg (:up sense)) 20))))
+                 (done)))
+        (.catch (fn [e] (is false (str e)) (done))))))
+
+;; R7
+
+(defn run-reflex-off [^js mj sp roll]
+  (let [place (assoc P :roll roll)
+        ^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp place))
+        ^js data (new (.-MjData mj) model)
+        _ (.mj_forward mj model data)
+        r (first (c/reflexes sp))]
+    (dotimes [k (.-nu model)] (aset (.-ctrl data) k 0))
+    (dotimes [_ 1500] (.mj_step mj model data))
+    (let [s (cm/sense r (.-xpos data) (.-xmat data) #js [] #js [] ground-z)]
+      (.delete data) (.delete model)
+      s)))
+
+(deftest r7-reflex-off-head-does-not-level
+  (async done
+    (-> (import-mj)
+        (.then (fn [^js mj]
+                 (doseq [[sp need-clear] [[horse 0.175] [dog 0.105]]]
+                   (let [s (run-reflex-off mj sp 90)]
+                     (is (> (cm/tilt-deg (:up s)) 20))
+                     (is (< (:clearance s) need-clear))))
+                 (done)))
+        (.catch (fn [e] (is false (str e)) (done))))))
+
+;; R8
+
+(deftest r8-binding-and-jacobian-by-hand
+  (async done
+    (-> (import-mj)
+        (.then (fn [^js mj]
+                 (let [obj-body (.. mj -mjtObj -mjOBJ_BODY -value)
+                       obj-joint (.. mj -mjtObj -mjOBJ_JOINT -value)
+                       col (fn [^js v nv d] [(aget v d) (aget v (+ nv d)) (aget v (+ (* 2 nv) d))])
+                       check-species
+                       (fn [sp expect3 expect6 expect7]
+                         (let [^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp P))
+                               ^js data (new (.-MjData mj) model)
+                               _ (.mj_forward mj model data)
+                               nv (.-nv model)
+                               body-id (.mj_name2id mj model obj-body "head")
+                               ^js jp (new (.-DoubleBuffer mj) (* 3 nv))
+                               ^js jr (new (.-DoubleBuffer mj) (* 3 nv))]
+                           (.mj_jacBody mj model data jp jr body-id)
+                           (let [jpv (.GetView jp)
+                                 jrv (.GetView jr)]
+                             (is (= 18 nv))
+                             (is (= 3 body-id))
+                             (is (= 3 (:body-id (first (c/reflexes sp)))))
+                             (is (approx= [1 0 0] (col jpv nv 0)))
+                             (is (approx= [0 0 0] (col jrv nv 0)))
+                             (is (approx= expect3 (col jpv nv 3)))
+                             (is (approx= [1 0 0] (col jrv nv 3)))
+                             (is (approx= expect6 (col jpv nv 6)))
+                             (is (approx= [0 0 1] (col jrv nv 6)))
+                             (is (approx= expect7 (col jpv nv 7)))
+                             (is (approx= [0 1 0] (col jrv nv 7)))
+                             (is (approx= [0 0 0] (col jpv nv 8)))
+                             (is (approx= [0 1 0] (col jrv nv 8)))
+                             (is (approx= [0 0 0] (col jpv nv 9)))
+                             (is (approx= [1 0 0] (col jrv nv 9)))
+                             (is (approx= [0 0 0] (col jpv nv 10)))
+                             (is (approx= [0 0 0] (col jrv nv 10)))
+                             (let [joint-ids (mapv #(.mj_name2id mj model obj-joint %)
+                                                    ["neck-bend" "neck-pitch" "head-pitch" "head-roll"])
+                                   dofadrs (mapv #(aget (.-jnt_dofadr model) %) joint-ids)]
+                               (is (= [6 7 8 9] dofadrs))
+                               (is (= [6 7 8 9] (:dofs (first (c/reflexes sp)))))))
+                           (.delete jp) (.delete jr)
+                           [model data]))]
+                   (let [[^js model1 ^js data1] (check-species horse [0 -0.32 0] [0 0.18 0] [0.24 0 -0.18])]
+                     (.delete data1) (.delete model1))
+                   (let [[^js model2 ^js data2] (check-species dog [0 -0.16 0] [0 0.09 0] [0.12 0 -0.09])]
+                     ;; Pin the trap: plain Float64Arrays stay all zero.
+                     (let [nv (.-nv model2)
+                           ^js jp2 (js/Float64Array. (* 3 nv))
+                           ^js jr2 (js/Float64Array. (* 3 nv))
+                           body-id (.mj_name2id mj model2 obj-body "head")]
+                       (.mj_jacBody mj model2 data2 jp2 jr2 body-id)
+                       (is (every? true? (for [i (range (* 3 nv))] (= 0 (aget jp2 i)))))
+                       (is (every? true? (for [i (range (* 3 nv))] (= 0 (aget jr2 i))))))
+                     (.delete data2) (.delete model2)))
                  (done)))
         (.catch (fn [e] (is false (str e)) (done))))))

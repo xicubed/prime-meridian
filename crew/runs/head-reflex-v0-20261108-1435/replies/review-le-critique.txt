@@ -1,0 +1,160 @@
+│ @@ -6,7 +6,7 @@
+│  674 tests / 3760 assertions, 0 warnings). Per `log.md`'s manager notes, both fixes were real and
+│  reasonable: fix round 1 addressed build-script issues; fix round 2 replaced the tester's dynamic
+│  `import()` in `test/pm/creature_mujoco_test.cljs` with `js/require` because shadow-cljs's
+│ -`:node-test` vm has no dynamic-import callback (`ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`) — a
+│ +`:node-test` vm has no dynamic-import callback (`ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`) —
+│  a documented, necessary deviation from the spec's literal import line, not a defect. `gate-3.txt`
+│  (the actual `bash .crew/gate.sh` transcript) matches `gate-note.md`'s claim exactly: PASS, 0
+│  warnings, 674 tests / 3760 assertions, including `Testing pm.creature-mujoco-test` in the run.
+
+────────────────────────────────────────
+☤ Hermes
+Fixed. Review written to crew/runs/pony-spike-v0-20261108-1308/review.md — 3 findings, ranked:
+
+1. The quest's literal "Done when" grep (horse|dog|pony|juniper matches only species.cljs) currently fails because of a pre-existing, unrelated "horse" mention in overlay.cljs's docstring from an earlier round — not introduced by this round, but a real mismatch against the stated gate text.
+2. pm.creature-spike/start! has an unspecified 3-arity test-injection seam beyond the spec's binding 2-arity signature — unused, harmless, but scope the spec didn't ask for.
+3. Process note: the manager declined a dangerous builder command (rm -rf/unzip on the shadow-cljs jar) and flagged a find / that an approval script had let through; neither reached the delivered diff (verified by grep), but worth confirming the approval-script fix actually landed.
+
+All core checks passed on inspection: no species names outside pm.species in this round's own new files; THREE only via pm.three; MuJoCo objects deleted on every failure path (no replace path exists in v0); the 25-step fixed cap enforced structurally; z-up↔y-up conversion lives solely in pm.creature; ?pony gates every new call site so the ungated game is untouched; pure logic (C1–C27, M1–M15) hand-verified against spec; and the real-MuJoCo test genuinely require()s @mujoco/mujoco and compiles/steps both horse and dog bodies (confirmed passing in gate-3's own transcript).
+
+done-2386
+────────────────────────────────────────
+
+─ 3m20s · edited 3 files +4 -4 · read 13 files · ran 8 commands · searched 2 paths · 2:22 PM
+  💾 Self-improvement review: Skill 'crew-round-review' patched
+
+
+────────────────────────────────────────
+❯ Review the round's changes against crew/runs/head-reflex-v0-20261108-1435/spec.md and .crew/quests/head-reflex-v0.md: git diff for edited files, and read the new files (git status lists them). Check: nothing in code names a species or body (grep src for horse|dog|pony|juniper|neck|head outside data and docstrings); the reflex math is pure and matches the spec's formula; reflex joints really leave the twitch noise; arrays passed to mj_jacBody are allocated once, not per step; MuJoCo objects still freed on failure; the real-MuJoCo test really drops each species on its side and checks clearance and up-axis; the ?pony flag still leaves the normal game untouched. Write the review to crew/runs/head-reflex-v0-20261108-1435/review.md (at most 5 ranked findings).
+
+When you have completely finished, end your reply with a line containing only this: done-7919
+────────────────────────────────────────
+
+💻 $ echo "=== git status ===" + 5 commands  0.7s
+📖 Read spec.md
+📖 Read head-reflex-v0.md
+📖 Read log.md
+📖 Read gate-note.md
+💻 $ ls -la crew/runs/head-reflex-v0-20261108-1435/replies/ + 1 command  7.3s
+💻 $ git diff -- resources/creatures/horse.edn resources/creatures/dog.edn  0.3s
+💻 $ git diff -- src/pm/creature.cljc  0.5s
+💻 $ git diff -- src/pm/creature_motion.cljs  0.3s
+💻 $ git diff -- src/pm/creature_spike.cljs  0.3s
+📖 Read creature_reflex_test.cljs
+
+────────────────────────────────────────
+☤ Hermes
+All X1–X14 cases match the spec's hand-worked numbers exactly. Now let's check the real-MuJoCo R6–R8 additions and the updated R1/R2/R5.
+────────────────────────────────────────
+
+💻 $ git diff -- test/pm/creature_mujoco_test.cljs  0.4s
+💻 $ grep -rniE 'horse|dog|pony|juniper|neck|head-' src/pm/creature*.cljs src/pm/creature.cljc  0.4s
+💻 $ grep -rniE 'horse|dog|pony|juniper|neck|head' src/pm/creature*.cljs src/pm/creature.cljc  0.3s
+💻 $ git diff -- test/pm/creature_test.cljs  0.7s
+💻 $ git diff -- test/pm/creature_motion_test.cljs  0.3s
+
+────────────────────────────────────────
+☤ Hermes
+All matches spec's hand-checked values exactly (C6, C9, C14, C15, C20, C21, M12 updates). This confirms thorough, correct conformance. I have enough to write the review.
+────────────────────────────────────────
+
+✍️ Write crew/runs/head-reflex-v0-20261108-1435/review.md
+│ crew/runs/head-reflex-v0-20261108-1435/review.md
+│ @@ -0,0 +1,95 @@
+│ +# Review: head-reflex-v0 (20261108-1435)
+│ +
+│ +## Conformance summary
+│ +
+│ +Gate: PASS on the first attempt (704 tests / 3923 assertions, 0 warnings). Re-ran `bash
+│ +.crew/gate.sh` myself: identical result, matches `gate-note.md`/`gate-1.txt`.
+│ +
+│ +Boundary table (spec §2): builder touched exactly `src/pm/creature.cljc`,
+│ +`src/pm/creature_motion.cljs`, `src/pm/creature_spike.cljs`, and the two
+│ +`resources/creatures/*.edn` files (verbatim from spec §3, diffed and confirmed character-for-
+│ +character). Tester touched the required updates (C6/C9/C14/C15/C20/C21, M12) plus new C28–C40,
+│ +X1–X14, R6–R8 in the four test files, and nothing else. None of the "nobody edits" files
+│ +(`package.json`, `public/vendor/`, `creatures/`, `docs/GDD.md`, `assets/private/`, `public/kit/`,
+│ +`pm.core`, `pm.three`, `pm.species`, the estate, `bb.edn`) appear in `git status`.
+│ +
+│ +Note on scope: `log.md`'s manager notes record that, before this round's build step, Michael
+│ +asked the builder directly to fix a one-frame "creature pops in at the kit origin" visual glitch
+│ +in `creature_spike.cljs`'s `start!` (position every group from `mj_forward`'s pose before adding
+│ +the root to the scene) — explicitly "out of the round's steps by design... rides with this
+│ +round." That diff is in `src/pm/creature_spike.cljs` alongside this round's own reflex wiring; it
+│ +reuses the same `mj_forward` call the spec requires anyway and doesn't touch anything the spec
+│ +assigns elsewhere, so it isn't a boundary violation, just worth naming so it isn't mistaken for
+│ +unreviewed scope creep.
+│ +
+│ +Checks from the task, verified directly:
+│ +- **Reflex math is pure and matches the spec's formula.** Hand-traced
+│ +  `src/pm/creature_motion.cljs`'s `reflex-targets` against spec §5.2 term by term: `e_rot = [uy,
+│ +  -ux, 0]`, `e_lift = max(0, lift-m - clearance)`, `g = Σ jacr[row·nv+d]·e_rot[row] +
+│ +  w-lift·jacp[2·nv+d]·e_lift`, `target = clamp(q + strength·gain·g, lo, hi)` — exact. `act`'s new
+│ +  `:reflex` branch matches the 5-step algorithm in §5.3 (inner runs first and unconditionally,
+│ +  `t` advances only on a finite positive `dt`, `obs` nil makes the layer transparent, each
+│ +  reflex's `:acts` indices get overwritten in `a'`). `target->action`, `reflex-strength`,
+│ +  `head-up`, `tilt-deg`, `capsule-clearance`, `sense` all match their formulas exactly (cross-
+│ +  checked against the X1–X14 hand-built test cases, which match the spec's worked numbers).
+│ +- **Reflex joints really leave the twitch noise.** In `act`'s `:reflex` branch, `inner'` (the
+│ +  stepped twitch controller) still advances every channel's RNG stream unconditionally — so a
+│ +  seed keeps replaying the same legs regardless of which joints a reflex claims — but the final
+│ +  action vector `a'` overwrites exactly the reflex's own `:acts` indices with
+│ +  `target->action` output, discarding the twitch value at those positions. Confirmed by X12
+│ +  (`creature_reflex_test.cljs`): the non-reflex actuators' actions equal the plain twitch step's
+│ +  output exactly, the reflex actuator's action is the computed target, and `:inner` still equals
+│ +  `(twitch-step tw dt)`.
+│ +- **`mj_jacBody` arrays allocated once, not per step.** In `creature_spike.cljs`'s `start!`, one
+│ +  `[jp jr]` pair of `DoubleBuffer`s (sized `3·nv`) is created per reflex and stored in `:jacs`;
+│ +  `tick!`'s per-step loop reuses the same buffer objects every iteration (only `.GetView` is
+│ +  called fresh each step, per the spec's own warning about not holding a view across frames —
+│ +  the buffers themselves are not reallocated).
+│ +- **MuJoCo objects still freed on failure.** `fail!` now deletes every `[jp jr]` pair in `:jacs`
+│ +  (each delete in its own `try`/`catch`) before `data` then `model`, and drops `:jacs` from
+│ +  state alongside `:model`/`:data` — matching spec §6 exactly, and consistent with
+│ +  pony-spike-v0's existing per-object `try`/`catch` pattern.
+│ +- **`mj_forward` called exactly once**, right after `new MjData`, before any stepping or
+│ +  Jacobian call — confirmed single call site in `start!`.
+│ +- **The real-MuJoCo test really drops each species on its side and checks clearance/up-axis.**
+│ +  `test/pm/creature_mujoco_test.cljs`'s R6 (`run-reflex-on`) builds a real MJCF model with
+│ +  `:roll 90` and `:roll -90` for both horse and dog, runs 1500 real `mj_step`s with the actual
+│ +  reflex controller (`cm/reflex-controller` wrapping a `:still` inner, legs forced to 0 via the
+│ +  `acts` set) and a real per-step `mj_jacBody` call into pre-allocated buffers, then asserts
+│ +  `clearance ≥ 0.7·lift-m` and `tilt-deg ≤ 20°` with finite qpos — for all 4 (species × roll-sign)
+│ +  combinations. R7 repeats the drop with every actuator held at 0 (no reflex) and asserts the
+│ +  opposite (`tilt > 20°`, `clearance < threshold`). R8 hand-verifies the Jacobian columns against
+│ +  the spec's §7.3 table for both species and re-pins the `Float64Array`-stays-zero trap. None of
+│ +  this is mocked — `import-mj` `require()`s the real `@mujoco/mujoco` package, as in pony-spike-v0.
+│ +- **`?pony` still leaves the normal game untouched.** No changes to `pm.core`, and
+│ +  `creature-spike/start!`'s flag-gated no-op guard is untouched by this round's diff (only its
+│ +  body past the guard changed); the game's own placement still carries no `:roll`, so `spawn`'s
+│ +  roll defaults to 0 and reproduces the pre-reflex drop exactly (confirmed by C40: `:roll 0` or
+│ +  absent still gives `pos="4.5 8 3.03" quat="1 0 0 0"`, byte-identical to pony-spike-v0).
+│ +- **Validation order** (§4.2) re-derived by hand from `problems`: top-level P1–P5, P6, then per
+│ +  body P7–P13 followed by the combined P14/P16/P17/P18 joint check (mutually exclusive by
+│ +  construction, so folding them into one `joint-problems` helper is behaviorally identical to
+│ +  checking them as separate ordered branches), then P19 (duplicate joint names) across all
+│ +  bodies, then P15 ("needs at least one joint"), then Q1–Q7 per reflex in the spec's exact
+│ +  sub-order. Hand-traced against C29's two-problem case (a joint missing `:name` triggers both
+│ +  its own P18 text and a knock-on Q5 "unknown joint" from the reflex that referenced it) — matches.
+│ +
+│ +## Findings
+│ +
+│ … omitted 17 diff line(s) across 1 additional file(s)/section(s)
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/head-reflex-v0-20261108-1435/review.md — 2 findings:
+
+1. Real gate-text mismatch, architect-caused: the quest's own literal grep (horse|dog|pony|juniper|neck|head- should have no hits in src/pm/creature*.cljs/creature.cljc) actually matches head-up (a generic sensing function name) and :head-level (the reflex-kind literal) — both specified verbatim by this round's own binding spec, so builder/tester implemented exactly what was asked; the spec text itself is inconsistent with its own gate check.
+2. No implementation defects found; noted (not flagged) that an unrelated visual-pop-in fix to creature_spike.cljs's start! rode along with this round per the manager's own log, correctly scoped and non-conflicting.
+
+All requested checks passed on inspection: reflex math hand-verified exact against spec §5.2/§5.3 and the X1–X14 cases; reflex-controlled joints confirmed to discard twitch noise at their own actuator indices while the twitch RNG stream still advances (X12); mj_jacBody's DoubleBuffers allocated once in start! and reused every step in tick! (only .GetView refreshed per step); every MuJoCo object including the new Jacobian buffers freed on fail!; mj_forward called exactly once; R6/R7/R8 in test/pm/creature_mujoco_test.cljs genuinely drop both species on both roll signs in real MuJoCo and check clearance/tilt with reflex on vs. off; and ?pony's no-flag path and zero-roll placement remain byte-identical to pony-spike-v0. Gate re-verified independently (PASS, 704/3923, 0 warnings).
+
+done-7919
+────────────────────────────────────────
+
+─ 3m21s · edited 1 file · read 5 files · ran 11 commands · 3:04 PM
+──── Security review of crew-talk-v1 round ─
+crew ❯ What changed in this repo recently?
+ ☤ claude-sonnet-5 · 5h 39m

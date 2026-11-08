@@ -1,0 +1,27 @@
+  9 (covers R1/R2 automatically);
+  run-twitch/R5 updated to 12 actuators and
+  qpos[7..18]; added
+  r6-reflex-on-head-lifts-and-levels,
+  r7-reflex-off-head-does-not-level,
+  r8-binding-and-jacobian-by-hand (the last
+  pins the Float64Array-stays-zero trap and
+  hand-checks the Jacobian columns for both
+  species), all using the existing
+  js/require-based import-mj.
+
+  These depend on the builder's
+  not-yet-landed changes to
+  pm.creature/pm.creature-motion/the species
+  EDN files, so compilation/pass status is
+  expected to lag until that lands. Parens
+  balanced in all four files; no other files
+  touched.
+
+  done-5846
+
+✻ Baked for 8m 3s · done 2:55 PM
+
+─────────────────────────────────────────────
+❯ run the gate
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

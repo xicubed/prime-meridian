@@ -1,0 +1,27 @@
+  deletions(-)
+
+  One flag on the §8 grep check: grep -rniE
+  'horse|dog|pony|juniper|neck|head-'
+  src/pm/creature*.cljs src/pm/creature.cljc
+  has 2 hits, both unavoidable given the
+  spec's own binding names: the :head-level
+  reflex-kind literal in problems' Q2 check
+  (nothing else distinguishes a valid reflex
+  kind from an invalid one like :tail-wag in
+  C33), and the function name head-up in
+  creature_motion.cljs, which §5.1 names
+  explicitly and X7 tests by that exact name.
+  Neither hardcodes a body or joint name —
+  all :head/:neck-*/:head-* body and joint
+  references still flow only through species
+  data. I left both as spec'd rather than
+  obfuscate them to dodge the grep literally.
+
+  done-7577
+
+✻ Cooked for 13m 51s · done 3:00 PM
+
+─────────────────────────────────────────────
+❯ Can you fix the two grep hits without brea…
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

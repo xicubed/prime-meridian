@@ -1,0 +1,196 @@
+=== prompt 1 (14:35:18)
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Read pony-spike review and notes
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ ls
+ │ crew/runs/pony-spike-v0-20261108-1308/;
+ │ cat crew/runs/pony-spike-v0-20261108-1308
+ │ /review.md; ls
+ │ crew/runs/pony-spike-v0-20261108-1308/* |
+ │ head; for f in crew/runs/pony-spike-v0-2
+ │ 0261108-1308/*notes* crew/runs/pony-spike
+ │ -v0-20261108-1308/manager*; do [ -f "$f"
+ │ ] && { echo "== $f"; cat "$f"; }; done
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Contains brace with quote character
+ (expansion obfuscation)
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 2 (14:35:28)
+     | head -40; sed -n '/Manager notes/,$p'
+     crew/runs/pony-spike-v0-20261108-1308/lo
+     g.md | head -60
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Read manager notes in pony log
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ grep -n -i "note\|manager\|hal:" crew/run
+ │ s/pony-spike-v0-20261108-1308/log.md |
+ │ head -40; sed -n '/Manager notes/,$p' cre
+ │ w/runs/pony-spike-v0-20261108-1308/log.md
+ │ | head -60
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ sed command contains operations that
+ │ require explicit approval (e.g., write
+ │ commands, execute commands)
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 3 (14:37:19)
+ │   mj.mj_jacBody(m, d, jp, jr, 1);
+ │ console.log('arm body origin jacp',
+ │ Array.from(jp.GetView()), 'jacr',
+ │ Array.from(jr.GetView()));
+ │   jp.delete(); jr.delete();
+ │   console.log('name2id joint',
+ │ mj.mj_name2id(m,
+ │ mj.mjtObj.mjOBJ_JOINT.value, 'h'),
+ │ 'body', mj.mj_name2id(m,
+ │ mj.mjtObj.mjOBJ_BODY.value, 'tip'),
+ │ 'qposadr', Array.from(m.jnt_qposadr),
+ │ 'dofadr', Array.from(m.jnt_dofadr));
+ │   d.delete(); m.delete();
+ │ });
+ │ EOF
+ │ node jac.cjs
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Contains brace with quote character
+ (expansion obfuscation)
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 4 (14:39:01)
+ │   console.log(kind.padEnd(5),'roll',Strin
+ │ g(roll).padStart(3),on?'ON ':'off','3s:
+ │ clear',cl.toFixed(3),'(>= ',(0.7*lift).to
+ │ Fixed(3),')','angle',ang.toFixed(1),'wors
+ │ t2-3s',worst.toFixed(1),'torso z',(d.xpos
+ │ [5]-1.79).toFixed(3),'quat',Array.from(d.
+ │ qpos).slice(3,7).map(x=>x.toFixed(2)).joi
+ │ n(','),'q',Array.from(d.qpos).slice(7,11)
+ │ .map(x=>(x*180/PI).toFixed(0)).join(','),
+ │ nan?'NaN':'');
+ │   jp.delete(); jr.delete(); d.delete();
+ │ m.delete();
+ │  }
+ │ });
+ │ EOF
+ │ node reflex.cjs '{}'
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Contains brace with quote character
+ (expansion obfuscation)
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 5 (14:39:41)
+ │ [{name:'head-pitch',axis:[0,1,0],range:[-
+ │ HP,HP]},{name:'head-roll',axis:[1,0,0],ra
+ │ nge:[-HR,HR]}])")
+ │ open('reflex.cjs','w').write(s)
+ │ EOF
+ │ for args in
+ │ '{"order":"bp","nb":70,"wl":4,"lift":{"ho
+ │ rse":0.25,"dog":0.15},"rolls":[90]}'
+ │ '{"order":"bp","nb":70,"wl":20,"lift":{"h
+ │ orse":0.25,"dog":0.15},"rolls":[90]}'
+ │ '{"order":"bp","nb":70,"wl":20,"gain":2,"
+ │ lift":{"horse":0.25,"dog":0.15},"rolls":[
+ │ 90]}' '{"order":"bp","nb":70,"wl":40,"gai
+ │ n":2,"lift":{"horse":0.25,"dog":0.15},"ro
+ │ lls":[90]}'; do echo "== $args"; node
+ │ reflex.cjs "$args"; done
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ A variable in this command can't be checked
+ before it runs
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 6 (14:42:53)
+ │    }
+ │    const up=headUp(d2.xmat,3,[0,0,1]),
+ │ c=clear(d2.xpos,d2.xmat,3,cap,1.79);
+ │    console.log('
+ │ R'+(on?6:7),'roll',roll,on?'reflex ON
+ │ ':'reflex OFF','clearance',c.toFixed(3),'
+ │ need',(0.7*LIFT[kind]).toFixed(3),'tilt',
+ │ tilt(up).toFixed(1),'nan',Array.from(d2.q
+ │ pos).some(Number.isNaN));
+ │    b1.delete(); b2.delete(); d2.delete();
+ │ m2.delete();
+ │   }
+ │  }
+ │ });
+ │ EOF
+ │ node final.cjs
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Contains brace with quote character
+ (expansion obfuscation)
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 7 (14:46:20)
+        108-1308/spec.md` still holds
+     … +571 lines (~36 KB)
+
+⏺ Checking the done-when grep is clean today
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Check the done-when grep is clean today
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ grep -rniE
+ │ 'horse|dog|pony|juniper|neck|head-'
+ │ src/pm/creature*.cljs
+ │ src/pm/creature.cljc; echo "exit $?"
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: echo
+      "exit $?"
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend

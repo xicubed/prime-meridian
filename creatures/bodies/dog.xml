@@ -7,9 +7,12 @@
       <freejoint name="root"/>
       <geom name="torso" type="capsule" fromto="-0.22 0 0 0.22 0 0" size="0.1" density="1000" contype="0" conaffinity="1"/>
       <body name="neck" pos="0.2 0 0.04">
-        <joint name="neck" type="hinge" axis="0 1 0" limited="true" range="-0.698132 0.523599" damping="1.5"/>
+        <joint name="neck-bend" type="hinge" axis="0 0 1" limited="true" range="-1.22173 1.22173" damping="1.5"/>
+        <joint name="neck-pitch" type="hinge" axis="0 1 0" limited="true" range="-0.698132 0.785398" damping="1.5"/>
         <geom name="neck" type="capsule" fromto="0 0 0 0.09 0 0.12" size="0.045" density="1000" contype="0" conaffinity="1"/>
         <body name="head" pos="0.09 0 0.12">
+          <joint name="head-pitch" type="hinge" axis="0 1 0" limited="true" range="-1.047198 1.047198" damping="1.5"/>
+          <joint name="head-roll" type="hinge" axis="1 0 0" limited="true" range="-1.22173 1.22173" damping="1.5"/>
           <geom name="head" type="capsule" fromto="0 0 0 0.12 0 -0.05" size="0.05" density="1000" contype="0" conaffinity="1"/>
         </body>
       </body>
@@ -48,7 +51,10 @@
     </body>
   </worldbody>
   <actuator>
-    <position name="neck" joint="neck" kp="40" ctrllimited="true" ctrlrange="-0.698132 0.523599"/>
+    <position name="neck-bend" joint="neck-bend" kp="40" ctrllimited="true" ctrlrange="-1.22173 1.22173"/>
+    <position name="neck-pitch" joint="neck-pitch" kp="40" ctrllimited="true" ctrlrange="-0.698132 0.785398"/>
+    <position name="head-pitch" joint="head-pitch" kp="40" ctrllimited="true" ctrlrange="-1.047198 1.047198"/>
+    <position name="head-roll" joint="head-roll" kp="40" ctrllimited="true" ctrlrange="-1.22173 1.22173"/>
     <position name="fl-upper" joint="fl-upper" kp="40" ctrllimited="true" ctrlrange="-0.785398 0.785398"/>
     <position name="fl-lower" joint="fl-lower" kp="40" ctrllimited="true" ctrlrange="-0.174533 1.745329"/>
     <position name="fr-upper" joint="fr-upper" kp="40" ctrllimited="true" ctrlrange="-0.785398 0.785398"/>

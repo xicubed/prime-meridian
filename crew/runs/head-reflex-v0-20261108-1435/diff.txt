@@ -1,0 +1,1063 @@
+diff --git a/resources/creatures/dog.edn b/resources/creatures/dog.edn
+index 2dcc015..907d28e 100644
+--- a/resources/creatures/dog.edn
++++ b/resources/creatures/dog.edn
+@@ -8,9 +8,14 @@
+  :bodies
+  [{:name :torso :capsule {:from [-0.22 0 0] :to [0.22 0 0] :r 0.1} :color :coat}
+   {:name :neck :parent :torso :at [0.2 0 0.04]
+-   :joint {:axis [0 1 0] :range [-40 30]}
++   ;; several hinges: listed order = MuJoCo order, first = nearest the torso. Side-bend first:
++   ;; lying on its side, the bend is what lifts the head, so the pitch must act after it.
++   :joints [{:name :neck-bend  :axis [0 0 1] :range [-70 70]}   ; lateral flexion
++            {:name :neck-pitch :axis [0 1 0] :range [-40 45]}]  ; + = head forward/down
+    :capsule {:from [0 0 0] :to [0.09 0 0.12] :r 0.045} :color :coat}
+   {:name :head :parent :neck :at [0.09 0 0.12]
++   :joints [{:name :head-pitch :axis [0 1 0] :range [-60 60]}   ; poll flexion
++            {:name :head-roll  :axis [1 0 0] :range [-70 70]}]  ; atlas/axis rotation
+    :capsule {:from [0 0 0] :to [0.12 0 -0.05] :r 0.05} :color :dark}
+   {:name :fl-upper :parent :torso :at [0.2 0.07 -0.03]
+    :joint {:axis [0 1 0] :range [-45 45]}
+@@ -35,4 +40,8 @@
+    :capsule {:from [0 0 0] :to [0 0 -0.2] :r 0.035} :color :coat}
+   {:name :hr-lower :parent :hr-upper :at [0 0 -0.2]
+    :joint {:axis [0 1 0] :range [-100 10]}
+-   :capsule {:from [0 0 0] :to [0 0 -0.18] :r 0.03} :color :dark}]}
++   :capsule {:from [0 0 0] :to [0 0 -0.18] :r 0.03} :color :dark}]
++ ;; (same comment as horse.edn)
++ :reflexes [{:kind :head-level :body :head
++             :joints [:neck-bend :neck-pitch :head-pitch :head-roll]
++             :up [0 0 1] :lift-m 0.15 :gain 2 :w-lift 40 :onset-s 1.5}]}
+diff --git a/resources/creatures/horse.edn b/resources/creatures/horse.edn
+index 33fe2ad..9c69f2f 100644
+--- a/resources/creatures/horse.edn
++++ b/resources/creatures/horse.edn
+@@ -8,9 +8,14 @@
+  :bodies
+  [{:name :torso :capsule {:from [-0.3 0 0] :to [0.3 0 0] :r 0.15} :color :coat}
+   {:name :neck :parent :torso :at [0.3 0 0.08]
+-   :joint {:axis [0 1 0] :range [-40 30]}
++   ;; several hinges: listed order = MuJoCo order, first = nearest the torso. Side-bend first:
++   ;; lying on its side, the bend is what lifts the head, so the pitch must act after it.
++   :joints [{:name :neck-bend  :axis [0 0 1] :range [-70 70]}   ; lateral flexion
++            {:name :neck-pitch :axis [0 1 0] :range [-40 45]}]  ; + = head forward/down
+    :capsule {:from [0 0 0] :to [0.18 0 0.24] :r 0.06} :color :dark}
+   {:name :head :parent :neck :at [0.18 0 0.24]
++   :joints [{:name :head-pitch :axis [0 1 0] :range [-60 60]}   ; poll flexion
++            {:name :head-roll  :axis [1 0 0] :range [-70 70]}]  ; atlas/axis rotation
+    :capsule {:from [0 0 0] :to [0.24 0 -0.1] :r 0.07} :color :coat}
+   {:name :fl-upper :parent :torso :at [0.28 0.1 -0.05]
+    :joint {:axis [0 1 0] :range [-45 45]}
+@@ -35,4 +40,10 @@
+    :capsule {:from [0 0 0] :to [0 0 -0.38] :r 0.05} :color :coat}
+   {:name :hr-lower :parent :hr-upper :at [0 0 -0.38]
+    :joint {:axis [0 1 0] :range [-100 10]}
+-   :capsule {:from [0 0 0] :to [0 0 -0.37] :r 0.04} :color :hoof}]}
++   :capsule {:from [0 0 0] :to [0 0 -0.37] :r 0.04} :color :hoof}]
++ ;; Reflexes: hand-written controllers layered over the twitch, per species (pm.creature-motion).
++ ;; :head-level: lift :body's lowest point :lift-m above the ground and turn its :up axis to world up,
++ ;; by Jacobian transpose on :joints only; strength ramps 0 -> 1 over :onset-s after the drop.
++ :reflexes [{:kind :head-level :body :head
++             :joints [:neck-bend :neck-pitch :head-pitch :head-roll]
++             :up [0 0 1] :lift-m 0.25 :gain 2 :w-lift 40 :onset-s 1.5}]}
+diff --git a/src/pm/creature.cljc b/src/pm/creature.cljc
+index 1418c96..53c6ccd 100644
+--- a/src/pm/creature.cljc
++++ b/src/pm/creature.cljc
+@@ -51,6 +51,118 @@
+        (number? (:r c))
+        (pos? (:r c))))
+ 
++(defn- valid-joints-entry? [j]
++  (and (map? j) (keyword? (:name j)) (valid-vec3? (:axis j))
++       (not (every? zero? (:axis j))) (valid-range? (:range j))))
++
++(defn- joint-problems
++  "P14/P16/P17/P18 for a non-root body: 0 or more problem strings."
++  [nm b]
++  (let [has-joint?  (some? (:joint b))
++        has-joints? (contains? b :joints)]
++    (cond
++      (and has-joint? has-joints?)
++      [(str "body " (pr-str nm) ": use :joint or :joints, not both")]
++
++      has-joints?
++      (let [js (:joints b)]
++        (if-not (and (vector? js) (seq js))
++          [(str "body " (pr-str nm) ": :joints must be a non-empty vector")]
++          (into []
++                (keep-indexed
++                  (fn [j entry]
++                    (when-not (valid-joints-entry? entry)
++                      (str "body " (pr-str nm) ": joint " j
++                           ": needs a keyword :name, a non-zero :axis [x y z] and :range [lo hi] with -180 <= lo < hi <= 180"))))
++                js)))
++
++      has-joint?
++      (if (valid-joint? (:joint b))
++        []
++        [(str "body " (pr-str nm)
++              ": :joint needs a non-zero :axis [x y z] and :range [lo hi] with -180 <= lo < hi <= 180")])
++
++      :else [])))
++
++(defn body-joints
++  "[{:name :axis :range [lo-deg hi-deg]} ...] for a body's hinges, in MuJoCo
++   order: a :joints vector as listed, or a single :joint named after the
++   body, or [] when welded. When both are present (invalid), :joints wins."
++  [body]
++  (cond
++    (seq (:joints body)) (vec (:joints body))
++    (:joint body)        [(assoc (:joint body) :name (:name body))]
++    :else                []))
++
++(defn- has-any-joint? [b]
++  (or (some? (:joint b)) (and (vector? (:joints b)) (seq (:joints b)))))
++
++(defn- joint-name-pass
++  "[p19-problems known-names] over non-root bodies, :bodies vector order
++   then listed order."
++  [bs]
++  (reduce
++    (fn [[probs seen] [i b]]
++      (if (zero? i)
++        [probs seen]
++        (reduce
++          (fn [[probs seen] j]
++            (let [jn (:name j)]
++              (if (keyword? jn)
++                (if (contains? seen jn)
++                  [(conj probs (str "joint " (pr-str jn) ": duplicate name")) seen]
++                  [probs (conj seen jn)])
++                [probs seen])))
++          [probs seen]
++          (body-joints b))))
++    [[] #{}]
++    (map-indexed vector bs)))
++
++(defn- valid-up? [up]
++  (or (nil? up) (and (valid-vec3? up) (not (every? zero? up)))))
++
++(defn- reflex-entry-problems [i r body-names known-joint-names]
++  (let [tag (str "reflex " i)]
++    (cond-> []
++      (not= :head-level (:kind r))
++      (conj (str tag ": unknown :kind " (pr-str (:kind r))))
++
++      (not (contains? body-names (:body r)))
++      (conj (str tag ": unknown body " (pr-str (:body r))))
++
++      true
++      (into (let [js (:joints r)]
++              (if-not (and (vector? js) (seq js))
++                [(str tag ": :joints must be a non-empty vector of joint names")]
++                (keep (fn [j] (when-not (contains? known-joint-names j)
++                                (str tag ": unknown joint " (pr-str j))))
++                      js))))
++
++      (not (valid-up? (:up r)))
++      (conj (str tag ": :up must be a non-zero [x y z]"))
++
++      (not (and (number? (:lift-m r)) (>= (:lift-m r) 0)))
++      (conj (str tag ": :lift-m must be a number >= 0"))
++
++      (not (and (number? (:gain r)) (pos? (:gain r))))
++      (conj (str tag ": :gain must be a positive number"))
++
++      (not (and (number? (:w-lift r)) (>= (:w-lift r) 0)))
++      (conj (str tag ": :w-lift must be a number >= 0"))
++
++      (not (and (number? (:onset-s r)) (>= (:onset-s r) 0)))
++      (conj (str tag ": :onset-s must be a number >= 0")))))
++
++(defn- reflex-problems [sp known-joint-names]
++  (let [rx (:reflexes sp)]
++    (cond
++      (nil? rx) []
++      (not (and (vector? rx) (every? map? rx))) [":reflexes must be a vector of maps"]
++      :else
++      (let [body-names (set (map :name (:bodies sp)))]
++        (into [] (mapcat (fn [i r] (reflex-entry-problems i r body-names known-joint-names))
++                          (range) rx))))))
++
+ (defn problems
+   "A vector of problem strings, [] when `sp` is valid. Never throws."
+   [sp]
+@@ -81,7 +193,7 @@
+               (fn [[probs seen] [i b]]
+                 (let [nm    (:name b)
+                       root? (zero? i)
+-                      probs (if (and root? (or (:parent b) (:at b) (:joint b)))
++                      probs (if (and root? (or (:parent b) (:at b) (:joint b) (contains? b :joints)))
+                               (conj probs (str "root " (pr-str nm) " must have no :parent, :at or :joint"))
+                               probs)]
+                   (if-not (keyword? nm)
+@@ -102,17 +214,14 @@
+                           probs (if (and colors-ok? (not (contains? colors (:color b))))
+                                   (conj probs (str "body " (pr-str nm) ": :color " (pr-str (:color b)) " is not in :colors"))
+                                   probs)
+-                          probs (if (or root? (nil? (:joint b)) (valid-joint? (:joint b)))
+-                                  probs
+-                                  (conj probs (str "body " (pr-str nm)
+-                                                    ": :joint needs a non-zero :axis [x y z] and :range [lo hi] with -180 <= lo < hi <= 180")))]
++                          probs (if root? probs (into probs (joint-problems nm b)))]
+                       [probs (conj seen nm)]))))
+               [[] #{}]
+               (map-indexed vector bodies))
+-            all (into top body-probs)]
+-        (if (some :joint bodies)
+-          all
+-          (conj all "needs at least one :joint"))))))
++            [p19-probs known-names] (joint-name-pass bodies)
++            all (-> top (into body-probs) (into p19-probs))
++            all (if (some has-any-joint? bodies) all (conj all "needs at least one :joint"))]
++        (into all (reflex-problems sp known-names))))))
+ 
+ (defn check!
+   "`sp` if valid, else throws the ex-info `parse` throws."
+@@ -147,14 +256,16 @@
+     (subtree bs (:name (first bs)))))
+ 
+ (defn joints
+-  "[{:name :axis :range [lo-rad hi-rad]} ...] in `bodies` (MuJoCo hinge) order."
++  "[{:name :body :axis :range [lo-rad hi-rad]} ...] in `bodies` (MuJoCo hinge)
++   order, each body's `body-joints` in order."
+   [sp]
+   (into []
+-        (keep (fn [b]
+-                (when-let [j (:joint b)]
+-                  {:name  (:name b)
+-                   :axis  (:axis j)
+-                   :range (mapv #(* % (/ pi 180)) (:range j))})))
++        (mapcat (fn [b]
++                  (mapv (fn [j] {:name  (:name j)
++                                 :body  (:name b)
++                                 :axis  (:axis j)
++                                 :range (mapv #(* % (/ pi 180)) (:range j))})
++                        (body-joints b))))
+         (bodies sp)))
+ 
+ (defn ctrl-ranges [sp] (mapv :range (joints sp)))
+@@ -164,6 +275,35 @@
+         nj (count (joints sp))]
+     {:nbody (inc nb) :njnt (inc nj) :nu nj :nq (+ 7 nj) :nv (+ 6 nj) :ngeom (inc nb)}))
+ 
++(defn reflexes
++  "The compiled :reflexes vector ([] when there is no :reflexes key), with
++   indices resolved from `joints`. Assumes `sp` is valid."
++  [sp]
++  (let [bs      (bodies sp)
++        idx-of  (into {} (map-indexed (fn [i b] [(:name b) i])) bs)
++        by-name (into {} (map (fn [b] [(:name b) b])) bs)
++        jnts    (joints sp)
++        k-of    (into {} (map-indexed (fn [k j] [(:name j) k])) jnts)
++        ranges  (mapv :range jnts)]
++    (mapv
++      (fn [r]
++        (let [acts (mapv k-of (:joints r))]
++          {:kind    (:kind r)
++           :body    (:body r)
++           :body-id (inc (get idx-of (:body r)))
++           :capsule (:capsule (get by-name (:body r)))
++           :up      (or (:up r) [0 0 1])
++           :joints  (vec (:joints r))
++           :acts    acts
++           :qpos    (mapv #(+ 7 %) acts)
++           :dofs    (mapv #(+ 6 %) acts)
++           :ranges  (mapv ranges acts)
++           :lift-m  (:lift-m r)
++           :gain    (:gain r)
++           :w-lift  (:w-lift r)
++           :onset-s (:onset-s r)}))
++      (:reflexes sp))))
++
+ (defn- vec3-sub [[ax ay az] [bx by bz]] [(- ax bx) (- ay by) (- az bz)])
+ (defn- vec3-len [[x y z]] (sqrt (+ (* x x) (* y y) (* z z))))
+ 
+@@ -175,24 +315,31 @@
+ (defn body-masses [sp]
+   (mapv (fn [b] [(:name b) (capsule-mass sp b)]) (bodies sp)))
+ 
+-(defn- origin-z [by-name name]
++(defn- origin-at [by-name name]
+   (let [b (get by-name name)
+         p (:parent b)]
+     (if (nil? p)
+-      0
+-      (+ (origin-z by-name p) (nth (:at b) 2)))))
++      [0 0 0]
++      (let [[ox oy oz] (origin-at by-name p)
++            [ax ay az] (:at b)]
++        [(+ ox ax) (+ oy ay) (+ oz az)]))))
+ 
+ (defn rest-bottom
+-  "The lowest z (m, torso origin = 0, rest pose) over all bodies."
+-  [sp]
+-  (let [bs      (bodies sp)
+-        by-name (into {} (map (fn [b] [(:name b) b])) bs)]
+-    (apply min
+-           (map (fn [b]
+-                  (let [oz            (origin-z by-name (:name b))
++  "The lowest point (m, torso origin = 0, rest pose) over all bodies and
++   capsule ends, rotated by `roll-deg` about the body's own x (0 by default)."
++  ([sp] (rest-bottom sp 0))
++  ([sp roll-deg]
++   (let [bs      (bodies sp)
++         by-name (into {} (map (fn [b] [(:name b) b])) bs)
++         phi     (* roll-deg (/ pi 180))
++         sinphi  (sin phi)
++         cosphi  (cos phi)]
++     (apply min
++            (for [b bs
++                  :let [[_ oy oz] (origin-at by-name (:name b))
+                         {:keys [from to r]} (:capsule b)]
+-                    (- (+ oz (min (nth from 2) (nth to 2))) r)))
+-                bs))))
++                  p [from to]]
++              (- (+ (* (+ oy (nth p 1)) sinphi) (* (+ oz (nth p 2)) cosphi)) r))))))
+ 
+ ;; -- Frames: z-up (MuJoCo) <-> y-up (three.js) -----------------------------
+ 
+@@ -203,14 +350,20 @@
+ ;; -- Placement --------------------------------------------------------------
+ 
+ (defn spawn
+-  "{:ground [x y z] :torso [x y z] :quat [w x y z]}, all in the MuJoCo frame."
++  "{:ground [x y z] :torso [x y z] :quat [w x y z]}, all in the MuJoCo frame.
++   :roll on `place` (degrees, default 0) rotates about the body's own x
++   (forward), applied before :yaw."
+   [sp place]
+   (let [[gx gy gz] (three->mj (:at place))
+-        tz   (+ gz (:drop-m place) (- (rest-bottom sp)))
+-        psi  (* (:yaw place) (/ pi 180))]
++        roll (or (:roll place) 0)
++        tz   (+ gz (:drop-m place) (- (rest-bottom sp roll)))
++        psi  (* (:yaw place) (/ pi 180))
++        phi  (* roll (/ pi 180))
++        cy   (cos (/ psi 2)) sy (sin (/ psi 2))
++        cr   (cos (/ phi 2)) sr (sin (/ phi 2))]
+     {:ground [gx gy gz]
+      :torso  [gx gy tz]
+-     :quat   [(cos (/ psi 2)) 0 0 (sin (/ psi 2))]}))
++     :quat   [(* cy cr) (* cy sr) (* sy sr) (* cr sy)]}))
+ 
+ ;; -- MJCF ---------------------------------------------------------------
+ 
+@@ -242,12 +395,11 @@
+                      (str (ind n) "<geom name=\"" (name (:name b)) "\" type=\"capsule\" fromto=\""
+                           (v from) " " (v to) "\" size=\"" (fmt r) "\" density=\"" (fmt density)
+                           "\" contype=\"0\" conaffinity=\"1\"/>")))
+-        joint-el (fn [n b]
+-                   (let [j        (:joint b)
+-                         [lo hi]  (:range j)
+-                         lo-r     (* lo (/ pi 180))
+-                         hi-r     (* hi (/ pi 180))]
+-                     (str (ind n) "<joint name=\"" (name (:name b)) "\" type=\"hinge\" axis=\""
++        joint-el (fn [n j]
++                   (let [[lo hi] (:range j)
++                         lo-r    (* lo (/ pi 180))
++                         hi-r    (* hi (/ pi 180))]
++                     (str (ind n) "<joint name=\"" (name (:name j)) "\" type=\"hinge\" axis=\""
+                           (v (:axis j)) "\" limited=\"true\" range=\"" (fmt lo-r) " " (fmt hi-r)
+                           "\" damping=\"" (fmt damping) "\"/>")))
+         body-xml (fn body-xml [b depth]
+@@ -259,9 +411,9 @@
+                                      (str (ind lvl) "<body name=\"" nm "\" pos=\"" (v (:torso sw))
+                                           "\" quat=\"" (v (:quat sw)) "\">")
+                                      (str (ind lvl) "<body name=\"" nm "\" pos=\"" (v (:at b)) "\">"))
+-                         joint-l   (cond root?        [(str (ind inner) "<freejoint name=\"root\"/>")]
+-                                         (:joint b)    [(joint-el inner b)]
+-                                         :else         [])
++                         joint-l   (if root?
++                                     [(str (ind inner) "<freejoint name=\"root\"/>")]
++                                     (mapv #(joint-el inner %) (body-joints b)))
+                          kid-lines (mapcat #(body-xml % (inc depth)) (children (:name b)))
+                          close     (str (ind lvl) "</body>")]
+                      (into [open] (concat joint-l [(geom inner b)] kid-lines [close]))))
+diff --git a/src/pm/creature_motion.cljs b/src/pm/creature_motion.cljs
+index 110f263..0d61a99 100644
+--- a/src/pm/creature_motion.cljs
++++ b/src/pm/creature_motion.cljs
+@@ -81,17 +81,93 @@
+ 
+ (defn twitch-actions [ctrl] (mapv :v (:chans ctrl)))
+ 
+-;; -- The controller interface (§5.2) -----------------------------------------
++(defn- clamp [x lo hi] (max lo (min hi x)))
++
++;; -- Sensing (§5.1, pure) -----------------------------------------------------
++
++(defn head-up
++  "The body's local `up` axis in world frame: wi = Σj xmat[9·id + 3i + j] · up[j]."
++  [xmat id up]
++  (mapv (fn [i]
++          (reduce + (map (fn [j] (* (aget xmat (+ (* 9 id) (* 3 i) j)) (nth up j))) (range 3))))
++        (range 3)))
++
++(defn tilt-deg [u]
++  (* (js/Math.acos (clamp (nth u 2) -1 1)) (/ 180 js/Math.PI)))
++
++(defn capsule-clearance
++  "The lowest point of the body's capsule above `ground-z`."
++  [xpos xmat id capsule ground-z]
++  (let [{:keys [from to r]} capsule
++        z-at (fn [p]
++               (+ (aget xpos (+ (* 3 id) 2))
++                  (reduce + (map (fn [j] (* (aget xmat (+ (* 9 id) 6 j)) (nth p j))) (range 3)))))]
++    (- (min (z-at from) (z-at to)) r ground-z)))
++
++(defn sense [r xpos xmat jacp jacr ground-z]
++  {:up        (head-up xmat (:body-id r) (:up r))
++   :clearance (capsule-clearance xpos xmat (:body-id r) (:capsule r) ground-z)
++   :jacp      jacp
++   :jacr      jacr})
++
++;; -- The reflex math (§5.2, pure) ----------------------------------------------
++
++(defn reflex-strength [t onset-s]
++  (if (<= onset-s 0) 1 (clamp (/ t onset-s) 0 1)))
++
++(defn reflex-targets
++  "One joint target (radians) per (:joints r), by Jacobian-transpose control."
++  [r sense q strength nv]
++  (let [[ux uy uz] (:up sense)
++        e-rot  [uy (- ux) 0]
++        e-lift (max 0 (- (:lift-m r) (:clearance sense)))
++        jacp   (:jacp sense)
++        jacr   (:jacr sense)]
++    (mapv (fn [d [lo hi] qi]
++            (let [g (+ (reduce + (map (fn [row] (* (aget jacr (+ (* row nv) d)) (nth e-rot row))) (range 3)))
++                       (* (:w-lift r) (aget jacp (+ (* 2 nv) d)) e-lift))]
++              (clamp (+ qi (* strength (:gain r) g)) lo hi)))
++          (:dofs r) (:ranges r) q)))
++
++(defn target->action [target [lo hi]]
++  (let [mid (/ (+ lo hi) 2) half (/ (- hi lo) 2)]
++    (/ (- target mid) half)))
++
++;; -- The controller interface (§5.3) -----------------------------------------
+ 
+ (defn controller [kind n seed]
+   (if (= kind :twitch) (twitch-init n seed) {:kind kind :n n}))
+ 
++(defn reflex-controller [inner reflexes]
++  {:kind :reflex :n (:n inner) :inner inner :reflexes reflexes :t 0})
++
+ (defn act [ctrl obs dt]
+   (case (:kind ctrl)
+     :twitch (let [c' (twitch-step ctrl dt)] [c' (twitch-actions c')])
+-    [ctrl (vec (repeat (:n ctrl) 0))]))
+ 
+-(defn- clamp [x lo hi] (max lo (min hi x)))
++    :reflex
++    (let [[inner' a] (act (:inner ctrl) obs dt)
++          dt'   (if (and (number? dt) (js/isFinite dt) (pos? dt)) dt 0)
++          t'    (+ (:t ctrl) dt')
++          ctrl' (assoc ctrl :inner inner' :t t')]
++      (if (nil? obs)
++        [ctrl' a]
++        (let [a' (reduce
++                    (fn [a [i r]]
++                      (let [se      (nth (:senses obs) i)
++                            q       (mapv #(aget (:qpos obs) %) (:qpos r))
++                            s       (reflex-strength t' (:onset-s r))
++                            targets (reflex-targets r se q s (:nv obs))]
++                        (reduce (fn [a j]
++                                  (assoc a (nth (:acts r) j)
++                                         (target->action (nth targets j) (nth (:ranges r) j))))
++                                a
++                                (range (count (:acts r))))))
++                    a
++                    (map-indexed vector (:reflexes ctrl)))]
++          [ctrl' a'])))
++
++    [ctrl (vec (repeat (:n ctrl) 0))]))
+ 
+ (defn actions->ctrl [actions ranges]
+   (mapv (fn [a [lo hi]] (+ (/ (+ lo hi) 2) (* (clamp a -1 1) (/ (- hi lo) 2)))) actions ranges))
+@@ -134,11 +210,14 @@
+       :running
+       (let [stats (:stats status)
+             ms    (:ms stats)
+-            torso (:torso status)]
++            torso (:torso status)
++            head  (:head status)]
+         (str (:flag status) ": " (name (:kind status)) " · "
+              (if (number? ms) (.toFixed ms 1) "-") " ms/frame · "
+              (:steps stats) " steps · " (:dropped stats) " dropped · torso "
+-             (if (number? torso) (.toFixed torso 2) "-") " m"))
++             (if (number? torso) (.toFixed torso 2) "-") " m"
++             (when (map? head)
++               (str " · head " (.toFixed (:clearance head) 2) " m " (js/Math.round (:tilt head)) "°"))))
+ 
+       :failed
+       (str (:flag status) ": " (name (:kind status)) " failed (" (m/short-reason (:reason status)) ")")
+diff --git a/src/pm/creature_spike.cljs b/src/pm/creature_spike.cljs
+index e8dcd15..056ab07 100644
+--- a/src/pm/creature_spike.cljs
++++ b/src/pm/creature_spike.cljs
+@@ -12,7 +12,10 @@
+ (defonce !state (atom {:status nil :started? false}))
+ 
+ (defn fail! [e]
+-  (let [{:keys [data model root status]} @!state]
++  (let [{:keys [data model root status jacs]} @!state]
++    (doseq [[^js jp ^js jr] jacs]
++      (try (.delete jp) (catch :default _ nil))
++      (try (.delete jr) (catch :default _ nil)))
+     (when data  (try (.delete data)  (catch :default _ nil)))
+     (when model (try (.delete model) (catch :default _ nil)))
+     (when root
+@@ -22,7 +25,7 @@
+     (swap! !state
+            (fn [s]
+              (-> s
+-                 (dissoc :model :data)
++                 (dissoc :model :data :jacs)
+                  (assoc :status {:mode :failed :flag (:flag status) :kind (:kind status)
+                                   :reason (or (.-message e) (str e))}))))))
+ 
+@@ -56,6 +59,7 @@
+                    (.then (fn [^js mj]
+                             (let [^js model (.from_xml_string (.-MjModel mj) xml)
+                                   ^js data  (new (.-MjData mj) model)
++                                  _         (.mj_forward mj model data)
+                                   ^js root  (t/group {:name "pm-creature"})
+                                   groups    (mapv (fn [{bname :name part :part}]
+                                                      (let [^js g (t/group {:name (str "pm-creature/" (name bname))})]
+@@ -64,15 +68,33 @@
+                                                                                :rot (mapv p/radians (:rot part))}))
+                                                        (t/add! root g)
+                                                        g))
+-                                                   (c/body-parts sp))]
++                                                   (c/body-parts sp))
++                                  ^js xpos0  (.-xpos data)
++                                  ^js xquat0 (.-xquat data)]
++                              ;; Position every group from the just-forward-kinematic'd pose before
++                              ;; it ever enters the scene: xpos/xquat read as all zeros right after
++                              ;; `new MjData`, so without this the creature would flash at the
++                              ;; world origin for a frame, until the first tick! catches up.
++                              (dotimes [i (count groups)]
++                                (let [{:keys [pos quat]} (cm/body-pose xpos0 xquat0 (inc i))]
++                                  (t/set-pos! (nth groups i) pos)
++                                  (t/set-quat! (nth groups i) quat)))
+                               (t/add! (.-scene h) root)
+-                              (swap! !state assoc
+-                                     :mj mj :model model :data data :sp sp :ranges ranges
+-                                     :ground-z ground-z
+-                                     :ctrl (cm/controller :twitch (count ranges) (:seed req))
+-                                     :acc 0 :stats cm/empty-stats :root root :groups groups
+-                                     :status {:mode :running :flag flag :kind kind
+-                                               :stats cm/empty-stats :torso nil}))))
++                              (let [rx  (c/reflexes sp)
++                                    nv  (.-nv model)
++                                    tw  (cm/controller :twitch (count ranges) (:seed req))
++                                    jacs (mapv (fn [_]
++                                                 [(new (.-DoubleBuffer mj) (* 3 nv))
++                                                  (new (.-DoubleBuffer mj) (* 3 nv))])
++                                               rx)]
++                                (swap! !state assoc
++                                       :mj mj :model model :data data :sp sp :ranges ranges
++                                       :ground-z ground-z
++                                       :rx rx :nv nv :jacs jacs
++                                       :ctrl (if (seq rx) (cm/reflex-controller tw rx) tw)
++                                       :acc 0 :stats cm/empty-stats :root root :groups groups
++                                       :status {:mode :running :flag flag :kind kind
++                                                 :stats cm/empty-stats :torso nil})))))
+                    (.catch (fn [e] (fail! e)))))
+              (catch :default e (fail! e)))
+            (fail! (js/Error. (str "no species " kind)))))))))
+@@ -80,33 +102,43 @@
+ (defn tick! [dt now-ms]
+   (when (= :running (:mode (:status @!state)))
+     (try
+-      (let [{:keys [ranges ctrl ground-z groups stats status]} @!state
++      (let [{:keys [ranges ctrl ground-z groups stats status rx jacs nv]} @!state
+             ^js mj    (:mj @!state)
+             ^js model (:model @!state)
+             ^js data  (:data @!state)
+             {:keys [steps dropped acc]} (cm/fixed-steps (:acc @!state) dt)
+             t0    (js/performance.now)
+-            ctrl' (loop [c' ctrl i 0]
+-                    (if (>= i steps)
+-                      c'
+-                      (let [[c2 actions] (cm/act c' nil c/timestep)
+-                            ctrl-vals    (cm/actions->ctrl actions ranges)
+-                            ^js dctrl    (.-ctrl data)]
+-                        (doseq [[idx v] (map-indexed vector ctrl-vals)] (aset dctrl idx v))
+-                        (.mj_step mj model data)
+-                        (recur c2 (inc i)))))
++            [ctrl' s0]
++            (loop [c' ctrl i 0 s0 nil]
++              (if (>= i steps)
++                [c' s0]
++                (let [obs (when (seq jacs)
++                            (doseq [[r [^js jp ^js jr]] (map vector rx jacs)]
++                              (.mj_jacBody mj model data jp jr (:body-id r)))
++                            {:nv nv :qpos (.-qpos data)
++                             :senses (mapv (fn [r [^js jp ^js jr]]
++                                             (cm/sense r (.-xpos data) (.-xmat data)
++                                                       (.GetView jp) (.GetView jr) ground-z))
++                                           rx jacs)})
++                      [c2 actions] (cm/act c' obs c/timestep)
++                      ctrl-vals    (cm/actions->ctrl actions ranges)
++                      ^js dctrl    (.-ctrl data)]
++                  (doseq [[idx v] (map-indexed vector ctrl-vals)] (aset dctrl idx v))
++                  (.mj_step mj model data)
++                  (recur c2 (inc i) (when obs (first (:senses obs)))))))
+             t1     (js/performance.now)
+             ^js xpos  (.-xpos data)
+             ^js xquat (.-xquat data)
+             torso  (- (aget xpos 5) ground-z)
+-            stats' (cm/stats-tick stats now-ms (- t1 t0) steps dropped)]
++            stats' (cm/stats-tick stats now-ms (- t1 t0) steps dropped)
++            head   (when s0 {:clearance (:clearance s0) :tilt (cm/tilt-deg (:up s0))})]
+         (dotimes [i (count groups)]
+           (let [{:keys [pos quat]} (cm/body-pose xpos xquat (inc i))]
+             (t/set-pos! (nth groups i) pos)
+             (t/set-quat! (nth groups i) quat)))
+         (swap! !state assoc :ctrl ctrl' :acc acc :stats stats'
+                :status {:mode :running :flag (:flag status) :kind (:kind status)
+-                        :stats stats' :torso torso}))
++                        :stats stats' :torso torso :head head}))
+       (catch :default e (fail! e)))))
+ 
+ (defn hud-segment []
+diff --git a/test/pm/creature_motion_test.cljs b/test/pm/creature_motion_test.cljs
+index c8d8bd9..a2abe87 100644
+--- a/test/pm/creature_motion_test.cljs
++++ b/test/pm/creature_motion_test.cljs
+@@ -196,8 +196,9 @@
+   (is (approx= [0.5 1] (cm/actions->ctrl [0 0] [[-0.5 1.5] [0 2]])))
+   (is (approx= [1.5 0] (cm/actions->ctrl [2 -3] [[-0.5 1.5] [0 2]])))
+   (is (approx= [1 0.5] (cm/actions->ctrl [0.5 -0.5] [[-0.5 1.5] [0 2]])))
+-  (is (approx= -0.087266
+-               (first (cm/actions->ctrl (vec (repeat 9 0)) (c/ctrl-ranges c-horse))))))
++  (let [mids (cm/actions->ctrl (vec (repeat 12 0)) (c/ctrl-ranges c-horse))]
++    (is (approx= 0 (first mids)))
++    (is (approx= 0.043633 (second mids)))))
+ 
+ ;; M13
+ 
+diff --git a/test/pm/creature_mujoco_test.cljs b/test/pm/creature_mujoco_test.cljs
+index c70b0a3..ba2a2c7 100644
+--- a/test/pm/creature_mujoco_test.cljs
++++ b/test/pm/creature_mujoco_test.cljs
+@@ -47,7 +47,7 @@
+                 (for [i (range 1 12)]
+                   (approx= (second (nth masses (dec i))) (aget (.-body_mass model) i)))))
+     (is (every? true?
+-                (for [j (range 9)]
++                (for [j (range (count ranges))]
+                   (let [[lo hi] (nth ranges j)]
+                     (and (approx= lo (aget (.-jnt_range model) (+ (* 2 j) 2)))
+                          (approx= hi (aget (.-jnt_range model) (+ (* 2 j) 3))))))))
+@@ -126,13 +126,13 @@
+         ^js data (new (.-MjData mj) model)
+         ranges (c/ctrl-ranges sp)
+         dt (/ 1.0 60)]
+-    (loop [frame 0 acc 0 ctrl (cm/controller :twitch 9 1) total 0]
++    (loop [frame 0 acc 0 ctrl (cm/controller :twitch 12 1) total 0]
+       (if (>= frame 120)
+         (let [^js qpos (.-qpos data)
+               nq (.-nq model)
+               all-finite? (every? true? (for [i (range nq)] (not (js/isNaN (aget qpos i)))))
+               torso-h (- (aget (.-xpos data) 5) ground-z)
+-              hinge-moved? (some true? (for [i (range 7 16)] (> (js/Math.abs (aget qpos i)) 0.05)))]
++              hinge-moved? (some true? (for [i (range 7 19)] (> (js/Math.abs (aget qpos i)) 0.05)))]
+           (is (<= 999 total 1001))
+           (is all-finite?)
+           (is (> torso-h 0.05))
+@@ -158,3 +158,135 @@
+                  (run-twitch mj dog)
+                  (done)))
+         (.catch (fn [e] (is false (str e)) (done))))))
++
++;; R6
++
++(defn run-reflex-on [^js mj sp roll]
++  (let [place (assoc P :roll roll)
++        ^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp place))
++        ^js data (new (.-MjData mj) model)
++        _ (.mj_forward mj model data)
++        rx (c/reflexes sp)
++        r (first rx)
++        nv (.-nv model)
++        ^js jp (new (.-DoubleBuffer mj) (* 3 nv))
++        ^js jr (new (.-DoubleBuffer mj) (* 3 nv))
++        ranges (c/ctrl-ranges sp)
++        nu (count ranges)
++        acts (set (:acts r))]
++    (loop [i 0 ctrl (cm/reflex-controller (cm/controller :still nu 1) rx)]
++      (if (>= i 1500)
++        (let [s (cm/sense r (.-xpos data) (.-xmat data) (.GetView jp) (.GetView jr) ground-z)
++              ^js qpos (.-qpos data)
++              nq (.-nq model)
++              finite? (every? true? (for [j (range nq)] (not (js/isNaN (aget qpos j)))))]
++          (.delete jp) (.delete jr) (.delete data) (.delete model)
++          {:sense s :finite? finite?})
++        (do
++          (.mj_jacBody mj model data jp jr (:body-id r))
++          (let [obs {:nv nv :qpos (.-qpos data)
++                     :senses [(cm/sense r (.-xpos data) (.-xmat data) (.GetView jp) (.GetView jr) ground-z)]}
++                [ctrl' a] (cm/act ctrl obs c/timestep)
++                vals (cm/actions->ctrl a ranges)]
++            (dotimes [k nu]
++              (aset (.-ctrl data) k (if (contains? acts k) (nth vals k) 0)))
++            (.mj_step mj model data)
++            (recur (inc i) ctrl')))))))
++
++(deftest r6-reflex-on-head-lifts-and-levels
++  (async done
++    (-> (import-mj)
++        (.then (fn [^js mj]
++                 (doseq [[sp need-clear] [[horse 0.175] [dog 0.105]]
++                         roll [90 -90]]
++                   (let [{:keys [sense finite?]} (run-reflex-on mj sp roll)]
++                     (is finite?)
++                     (is (>= (:clearance sense) need-clear))
++                     (is (<= (cm/tilt-deg (:up sense)) 20))))
++                 (done)))
++        (.catch (fn [e] (is false (str e)) (done))))))
++
++;; R7
++
++(defn run-reflex-off [^js mj sp roll]
++  (let [place (assoc P :roll roll)
++        ^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp place))
++        ^js data (new (.-MjData mj) model)
++        _ (.mj_forward mj model data)
++        r (first (c/reflexes sp))]
++    (dotimes [k (.-nu model)] (aset (.-ctrl data) k 0))
++    (dotimes [_ 1500] (.mj_step mj model data))
++    (let [s (cm/sense r (.-xpos data) (.-xmat data) #js [] #js [] ground-z)]
++      (.delete data) (.delete model)
++      s)))
++
++(deftest r7-reflex-off-head-does-not-level
++  (async done
++    (-> (import-mj)
++        (.then (fn [^js mj]
++                 (doseq [[sp need-clear] [[horse 0.175] [dog 0.105]]]
++                   (let [s (run-reflex-off mj sp 90)]
++                     (is (> (cm/tilt-deg (:up s)) 20))
++                     (is (< (:clearance s) need-clear))))
++                 (done)))
++        (.catch (fn [e] (is false (str e)) (done))))))
++
++;; R8
++
++(deftest r8-binding-and-jacobian-by-hand
++  (async done
++    (-> (import-mj)
++        (.then (fn [^js mj]
++                 (let [obj-body (.. mj -mjtObj -mjOBJ_BODY -value)
++                       obj-joint (.. mj -mjtObj -mjOBJ_JOINT -value)
++                       col (fn [^js v nv d] [(aget v d) (aget v (+ nv d)) (aget v (+ (* 2 nv) d))])
++                       check-species
++                       (fn [sp expect3 expect6 expect7]
++                         (let [^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp P))
++                               ^js data (new (.-MjData mj) model)
++                               _ (.mj_forward mj model data)
++                               nv (.-nv model)
++                               body-id (.mj_name2id mj model obj-body "head")
++                               ^js jp (new (.-DoubleBuffer mj) (* 3 nv))
++                               ^js jr (new (.-DoubleBuffer mj) (* 3 nv))]
++                           (.mj_jacBody mj model data jp jr body-id)
++                           (let [jpv (.GetView jp)
++                                 jrv (.GetView jr)]
++                             (is (= 18 nv))
++                             (is (= 3 body-id))
++                             (is (= 3 (:body-id (first (c/reflexes sp)))))
++                             (is (approx= [1 0 0] (col jpv nv 0)))
++                             (is (approx= [0 0 0] (col jrv nv 0)))
++                             (is (approx= expect3 (col jpv nv 3)))
++                             (is (approx= [1 0 0] (col jrv nv 3)))
++                             (is (approx= expect6 (col jpv nv 6)))
++                             (is (approx= [0 0 1] (col jrv nv 6)))
++                             (is (approx= expect7 (col jpv nv 7)))
++                             (is (approx= [0 1 0] (col jrv nv 7)))
++                             (is (approx= [0 0 0] (col jpv nv 8)))
++                             (is (approx= [0 1 0] (col jrv nv 8)))
++                             (is (approx= [0 0 0] (col jpv nv 9)))
++                             (is (approx= [1 0 0] (col jrv nv 9)))
++                             (is (approx= [0 0 0] (col jpv nv 10)))
++                             (is (approx= [0 0 0] (col jrv nv 10)))
++                             (let [joint-ids (mapv #(.mj_name2id mj model obj-joint %)
++                                                    ["neck-bend" "neck-pitch" "head-pitch" "head-roll"])
++                                   dofadrs (mapv #(aget (.-jnt_dofadr model) %) joint-ids)]
++                               (is (= [6 7 8 9] dofadrs))
++                               (is (= [6 7 8 9] (:dofs (first (c/reflexes sp)))))))
++                           (.delete jp) (.delete jr)
++                           [model data]))]
++                   (let [[^js model1 ^js data1] (check-species horse [0 -0.32 0] [0 0.18 0] [0.24 0 -0.18])]
++                     (.delete data1) (.delete model1))
++                   (let [[^js model2 ^js data2] (check-species dog [0 -0.16 0] [0 0.09 0] [0.12 0 -0.09])]
++                     ;; Pin the trap: plain Float64Arrays stay all zero.
++                     (let [nv (.-nv model2)
++                           ^js jp2 (js/Float64Array. (* 3 nv))
++                           ^js jr2 (js/Float64Array. (* 3 nv))
++                           body-id (.mj_name2id mj model2 obj-body "head")]
++                       (.mj_jacBody mj model2 data2 jp2 jr2 body-id)
++                       (is (every? true? (for [i (range (* 3 nv))] (= 0 (aget jp2 i)))))
++                       (is (every? true? (for [i (range (* 3 nv))] (= 0 (aget jr2 i))))))
++                     (.delete data2) (.delete model2)))
++                 (done)))
++        (.catch (fn [e] (is false (str e)) (done))))))
+diff --git a/test/pm/creature_test.cljs b/test/pm/creature_test.cljs
+index e012c0a..bb17ff1 100644
+--- a/test/pm/creature_test.cljs
++++ b/test/pm/creature_test.cljs
+@@ -74,7 +74,7 @@
+ ;; C6
+ 
+ (deftest c06-duplicate-name
+-  (is (= ["body :neck: duplicate name"]
++  (is (= ["body :neck: duplicate name" "joint :neck-bend: duplicate name" "joint :neck-pitch: duplicate name"]
+          (c/problems (update horse :bodies conj (get-in horse [:bodies 1]))))))
+ 
+ ;; C7
+@@ -99,7 +99,7 @@
+ (deftest c09-bodies-must-be-non-empty-and-needs-joint
+   (is (= [":bodies must be a non-empty vector"] (c/problems (assoc horse :bodies []))))
+   (is (= ["needs at least one :joint"]
+-         (c/problems (assoc horse :bodies [(get-in horse [:bodies 0])])))))
++         (c/problems (-> horse (assoc :bodies [(get-in horse [:bodies 0])]) (dissoc :reflexes))))))
+ 
+ ;; C10
+ 
+@@ -142,20 +142,25 @@
+ ;; C14
+ 
+ (deftest c14-joints-order-and-ranges
+-  (is (= [:neck :fl-upper :fl-lower :fr-upper :fr-lower :hl-upper :hl-lower :hr-upper :hr-lower]
++  (is (= [:neck-bend :neck-pitch :head-pitch :head-roll :fl-upper :fl-lower :fr-upper :fr-lower
++          :hl-upper :hl-lower :hr-upper :hr-lower]
+          (mapv :name (c/joints horse))))
+-  (let [expected [[-0.698132 0.523599] [-0.785398 0.785398] [-0.174533 1.745329]
+-                   [-0.785398 0.785398] [-0.174533 1.745329] [-0.785398 0.785398]
+-                   [-1.745329 0.174533] [-0.785398 0.785398] [-1.745329 0.174533]]]
++  (is (= [:neck :neck :head :head :fl-upper :fl-lower :fr-upper :fr-lower
++          :hl-upper :hl-lower :hr-upper :hr-lower]
++         (mapv :body (c/joints horse))))
++  (let [expected [[-1.22173 1.22173] [-0.698132 0.785398] [-1.047198 1.047198] [-1.22173 1.22173]
++                   [-0.785398 0.785398] [-0.174533 1.745329] [-0.785398 0.785398] [-0.174533 1.745329]
++                   [-0.785398 0.785398] [-1.745329 0.174533] [-0.785398 0.785398] [-1.745329 0.174533]]]
+     (is (approx= expected (c/ctrl-ranges horse)))
+     (is (approx= expected (c/ctrl-ranges dog))))
+-  (is (= [0 1 0] (:axis (first (c/joints dog))))))
++  (is (= [0 0 1] (:axis (first (c/joints dog)))))
++  (is (= [1 0 0] (:axis (nth (c/joints dog) 3)))))
+ 
+ ;; C15
+ 
+ (deftest c15-counts
+-  (is (= {:nbody 12 :njnt 10 :nu 9 :nq 16 :nv 15 :ngeom 12} (c/counts horse)))
+-  (is (= {:nbody 12 :njnt 10 :nu 9 :nq 16 :nv 15 :ngeom 12} (c/counts dog)))
++  (is (= {:nbody 12 :njnt 13 :nu 12 :nq 19 :nv 18 :ngeom 12} (c/counts horse)))
++  (is (= {:nbody 12 :njnt 13 :nu 12 :nq 19 :nv 18 :ngeom 12} (c/counts dog)))
+   (is (= {:nbody 5 :njnt 3 :nu 2 :nq 9 :nv 8 :ngeom 5} (c/counts f))))
+ 
+ ;; C16
+@@ -208,9 +213,9 @@
+ (deftest c20-mjcf-horse
+   (let [x (c/mjcf horse {:at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4})]
+     (is (= 11 (count-substr x "<body ")))
+-    (is (= 9 (count-substr x "<joint ")))
++    (is (= 12 (count-substr x "<joint ")))
+     (is (= 1 (count-substr x "<freejoint ")))
+-    (is (= 9 (count-substr x "<position ")))
++    (is (= 12 (count-substr x "<position ")))
+     (is (= 12 (count-substr x "<geom ")))
+     (is (= 1 (count-substr x "type=\"plane\"")))
+     (is (str/starts-with? x "<mujoco model=\"horse\">\n"))
+@@ -221,28 +226,39 @@
+       (is (contains? trimmed "<body name=\"torso\" pos=\"4.5 8 3.03\" quat=\"1 0 0 0\">"))
+       (is (contains? trimmed "<joint name=\"hl-lower\" type=\"hinge\" axis=\"0 1 0\" limited=\"true\" range=\"-1.745329 0.174533\" damping=\"5\"/>"))
+       (is (contains? trimmed "<geom name=\"head\" type=\"capsule\" fromto=\"0 0 0 0.24 0 -0.1\" size=\"0.07\" density=\"1000\" contype=\"0\" conaffinity=\"1\"/>"))
+-      (is (contains? trimmed "<position name=\"neck\" joint=\"neck\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-0.698132 0.523599\"/>")))
++      (is (contains? trimmed "<joint name=\"neck-bend\" type=\"hinge\" axis=\"0 0 1\" limited=\"true\" range=\"-1.22173 1.22173\" damping=\"5\"/>"))
++      (is (contains? trimmed "<joint name=\"neck-pitch\" type=\"hinge\" axis=\"0 1 0\" limited=\"true\" range=\"-0.698132 0.785398\" damping=\"5\"/>"))
++      (is (contains? trimmed "<joint name=\"head-roll\" type=\"hinge\" axis=\"1 0 0\" limited=\"true\" range=\"-1.22173 1.22173\" damping=\"5\"/>"))
++      (is (contains? trimmed "<position name=\"head-pitch\" joint=\"head-pitch\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-1.047198 1.047198\"/>"))
++      (is (not (contains? trimmed "<position name=\"neck\" joint=\"neck\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-0.698132 0.523599\"/>"))))
++    (let [lines (str/split-lines x)
++          idx (first (keep-indexed (fn [i l] (when (str/includes? l "<body name=\"neck\" pos=\"0.3 0 0.08\">") i)) lines))]
++      (is (some? idx))
++      (is (str/starts-with? (str/trim (nth lines (+ idx 1))) "<joint name=\"neck-bend\""))
++      (is (str/starts-with? (str/trim (nth lines (+ idx 2))) "<joint name=\"neck-pitch\""))
++      (is (str/starts-with? (str/trim (nth lines (+ idx 3))) "<geom name=\"neck\"")))
+     (let [lines (str/split-lines x)
+           idx (first (keep-indexed (fn [i l] (when (str/includes? l "<body name=\"head\" pos=\"0.18 0 0.24\">") i)) lines))]
+       (is (some? idx))
+-      (is (str/starts-with? (str/trim (nth lines (inc idx))) "<geom ")))))
++      (is (str/starts-with? (str/trim (nth lines (inc idx))) "<joint name=\"head-pitch\"")))))
+ 
+ ;; C21
+ 
+ (deftest c21-mjcf-dog
+   (let [x (c/mjcf dog {:at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4})]
+     (is (= 11 (count-substr x "<body ")))
+-    (is (= 9 (count-substr x "<joint ")))
++    (is (= 12 (count-substr x "<joint ")))
+     (is (= 1 (count-substr x "<freejoint ")))
+-    (is (= 9 (count-substr x "<position ")))
++    (is (= 12 (count-substr x "<position ")))
+     (is (= 12 (count-substr x "<geom ")))
+     (is (= 1 (count-substr x "type=\"plane\"")))
+     (let [trimmed (set (map str/trim (str/split-lines x)))]
+       (is (contains? trimmed "<mujoco model=\"dog\">"))
+       (is (contains? trimmed "<body name=\"torso\" pos=\"4.5 8 2.63\" quat=\"1 0 0 0\">"))
+       (is (contains? trimmed "<geom name=\"fl-upper\" type=\"capsule\" fromto=\"0 0 0 0 0 -0.2\" size=\"0.035\" density=\"1000\" contype=\"0\" conaffinity=\"1\"/>"))
+-      (is (contains? trimmed "<joint name=\"neck\" type=\"hinge\" axis=\"0 1 0\" limited=\"true\" range=\"-0.698132 0.523599\" damping=\"1.5\"/>"))
+-      (is (contains? trimmed "<position name=\"hr-lower\" joint=\"hr-lower\" kp=\"40\" ctrllimited=\"true\" ctrlrange=\"-1.745329 0.174533\"/>")))))
++      (is (contains? trimmed "<position name=\"hr-lower\" joint=\"hr-lower\" kp=\"40\" ctrllimited=\"true\" ctrlrange=\"-1.745329 0.174533\"/>"))
++      (is (contains? trimmed "<joint name=\"neck-pitch\" type=\"hinge\" axis=\"0 1 0\" limited=\"true\" range=\"-0.698132 0.785398\" damping=\"1.5\"/>"))
++      (is (contains? trimmed "<position name=\"neck-bend\" joint=\"neck-bend\" kp=\"40\" ctrllimited=\"true\" ctrlrange=\"-1.22173 1.22173\"/>")))))
+ 
+ ;; C22
+ 
+@@ -309,3 +325,143 @@
+     (is (approx= {:size [0.27 0.07 0.07] :at [0 -0.1 0] :rot [0 0 -90]}
+                  (select-keys (:part (nth parts 3)) [:size :at :rot])))
+     (is (= 0x6b4a32 (:color (:part (nth parts 2)))))))
++
++;; C28
++
++(deftest c28-both-joint-forms-valid
++  (is (= [] (c/problems horse)))
++  (is (= [] (c/problems dog)))
++  (is (= [{:name :fl-upper :axis [0 1 0] :range [-45 45]}]
++         (c/body-joints (get-in horse [:bodies 3]))))
++  (is (= [:neck-bend :neck-pitch]
++         (mapv :name (c/body-joints (get-in horse [:bodies 1])))))
++  (is (= [] (c/body-joints (get-in horse [:bodies 0])))))
++
++;; C29
++
++(deftest c29-bad-joints-entry
++  (is (= ["body :neck: joint 1: needs a keyword :name, a non-zero :axis [x y z] and :range [lo hi] with -180 <= lo < hi <= 180"]
++         (c/problems (assoc-in horse [:bodies 1 :joints 1 :range] [45 -40]))))
++  (is (= ["body :head: joint 0: needs a keyword :name, a non-zero :axis [x y z] and :range [lo hi] with -180 <= lo < hi <= 180"
++          "reflex 0: unknown joint :head-pitch"]
++         (c/problems (update-in horse [:bodies 2 :joints 0] dissoc :name))))
++  (is (= ["body :head: joint 1: needs a keyword :name, a non-zero :axis [x y z] and :range [lo hi] with -180 <= lo < hi <= 180"]
++         (c/problems (assoc-in horse [:bodies 2 :joints 1 :axis] [0 0 0])))))
++
++;; C30
++
++(deftest c30-joint-and-joints-not-both
++  (is (= ["body :neck: use :joint or :joints, not both"]
++         (c/problems (assoc-in horse [:bodies 1 :joint] {:axis [0 1 0] :range [-10 10]})))))
++
++;; C31
++
++(deftest c31-joints-must-be-non-empty
++  (is (= ["body :neck: :joints must be a non-empty vector"]
++         (c/problems (-> dog (dissoc :reflexes) (assoc-in [:bodies 1 :joints] []))))))
++
++;; C32
++
++(deftest c32-joint-name-duplicate-and-root-joints
++  (is (= ["joint :fl-upper: duplicate name" "reflex 0: unknown joint :neck-bend"]
++         (c/problems (assoc-in horse [:bodies 1 :joints 0 :name] :fl-upper))))
++  (is (= ["root :torso must have no :parent, :at or :joint"]
++         (c/problems (assoc-in horse [:bodies 0 :joints] [{:name :x :axis [1 0 0] :range [-1 1]}])))))
++
++;; C33
++
++(deftest c33-reflex-field-validation
++  (is (= ["reflex 0: unknown body :tail"]
++         (c/problems (assoc-in horse [:reflexes 0 :body] :tail))))
++  (is (= ["reflex 0: unknown joint :head-yaw"]
++         (c/problems (assoc-in horse [:reflexes 0 :joints 2] :head-yaw))))
++  (is (= ["reflex 0: unknown :kind :tail-wag"]
++         (c/problems (assoc-in horse [:reflexes 0 :kind] :tail-wag))))
++  (is (= ["reflex 0: :joints must be a non-empty vector of joint names"]
++         (c/problems (assoc-in horse [:reflexes 0 :joints] []))))
++  (is (= ["reflex 0: :up must be a non-zero [x y z]"]
++         (c/problems (assoc-in horse [:reflexes 0 :up] [0 0 0]))))
++  (is (= ["reflex 0: :lift-m must be a number >= 0"]
++         (c/problems (assoc-in horse [:reflexes 0 :lift-m] -0.1))))
++  (is (= ["reflex 0: :gain must be a positive number"]
++         (c/problems (assoc-in horse [:reflexes 0 :gain] 0))))
++  (is (= ["reflex 0: :w-lift must be a number >= 0"]
++         (c/problems (update-in horse [:reflexes 0] dissoc :w-lift))))
++  (is (= ["reflex 0: :onset-s must be a number >= 0"]
++         (c/problems (assoc-in horse [:reflexes 0 :onset-s] "1.5")))))
++
++;; C34
++
++(deftest c34-reflexes-must-be-vector-of-maps
++  (is (= [":reflexes must be a vector of maps"]
++         (c/problems (assoc horse :reflexes {:kind :head-level}))))
++  (is (= ["reflex 0: unknown body :tail" "reflex 0: :gain must be a positive number"]
++         (c/problems (-> horse (assoc-in [:reflexes 0 :body] :tail) (assoc-in [:reflexes 0 :gain] -1)))))
++  (is (= [] (c/problems (dissoc horse :reflexes)))))
++
++;; C35
++
++(deftest c35-second-reflex
++  (let [r2 {:kind :head-level :body :head :joints [:head-roll] :lift-m 0 :gain 1 :w-lift 0 :onset-s 0}]
++    (is (= [] (c/problems (update horse :reflexes conj r2))))
++    (is (= ["reflex 1: unknown body :nose"]
++           (c/problems (update horse :reflexes conj (assoc r2 :body :nose)))))))
++
++;; C36
++
++(deftest c36-parse-throws-on-bad-reflex
++  (let [e (try (c/parse (pr-str (assoc-in dog [:reflexes 0 :body] :tail))) (catch :default e e))]
++    (is (= "bad species :dog: reflex 0: unknown body :tail" (ex-message e)))))
++
++;; C37
++
++(deftest c37-compiled-reflexes
++  (let [expected-horse {:kind :head-level :body :head :body-id 3
++                         :capsule {:from [0 0 0] :to [0.24 0 -0.1] :r 0.07}
++                         :up [0 0 1]
++                         :joints [:neck-bend :neck-pitch :head-pitch :head-roll]
++                         :acts [0 1 2 3]
++                         :qpos [7 8 9 10]
++                         :dofs [6 7 8 9]
++                         :ranges [[-1.22173 1.22173] [-0.698132 0.785398] [-1.047198 1.047198] [-1.22173 1.22173]]
++                         :lift-m 0.25 :gain 2 :w-lift 40 :onset-s 1.5}]
++    (is (approx= [expected-horse] (c/reflexes horse)))
++    (is (approx= [(-> expected-horse
++                       (assoc :capsule {:from [0 0 0] :to [0.12 0 -0.05] :r 0.05})
++                       (assoc :lift-m 0.15))]
++                 (c/reflexes dog))))
++  (is (= [] (c/reflexes f))))
++
++;; C38
++
++(deftest c38-reflex-joint-order-and-default-up
++  (let [r (first (c/reflexes (assoc-in horse [:reflexes 0 :joints] [:head-roll :neck-bend])))]
++    (is (= [3 0] (:acts r)))
++    (is (= [10 7] (:qpos r)))
++    (is (= [9 6] (:dofs r)))
++    (is (approx= [[-1.22173 1.22173] [-1.22173 1.22173]] (:ranges r))))
++  (is (= [0 0 1] (:up (first (c/reflexes (update-in horse [:reflexes 0] dissoc :up)))))))
++
++;; C39
++
++(deftest c39-roll
++  (is (approx= -0.15 (c/rest-bottom horse 90)))
++  (is (approx= -0.15 (c/rest-bottom horse -90)))
++  (is (approx= -0.105 (c/rest-bottom dog 90)))
++  (is (approx= (c/rest-bottom horse) (c/rest-bottom horse 0)))
++  (is (approx= -0.84 (c/rest-bottom horse)))
++  (is (approx= {:ground [4.5 8 1.79] :torso [4.5 8 2.34] :quat [0.707107 0.707107 0 0]}
++               (c/spawn horse {:at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4 :roll 90})))
++  (is (approx= [4.5 8 2.295] (:torso (c/spawn dog {:at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4 :roll 90}))))
++  (is (approx= [0.5 0.5 0.5 0.5] (:quat (c/spawn dog {:at [0 0 0] :yaw 90 :drop-m 0.4 :roll 90})))))
++
++;; C40
++
++(deftest c40-mjcf-roll
++  (let [x (c/mjcf horse {:at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4 :roll 90})
++        trimmed (set (map str/trim (str/split-lines x)))]
++    (is (contains? trimmed "<body name=\"torso\" pos=\"4.5 8 2.34\" quat=\"0.707107 0.707107 0 0\">")))
++  (let [no-roll (set (map str/trim (str/split-lines (c/mjcf horse {:at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4}))))
++        roll0 (set (map str/trim (str/split-lines (c/mjcf horse {:at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4 :roll 0}))))]
++    (is (contains? no-roll "<body name=\"torso\" pos=\"4.5 8 3.03\" quat=\"1 0 0 0\">"))
++    (is (contains? roll0 "<body name=\"torso\" pos=\"4.5 8 3.03\" quat=\"1 0 0 0\">"))))

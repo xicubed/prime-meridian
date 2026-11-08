@@ -8,9 +8,14 @@
  :bodies
  [{:name :torso :capsule {:from [-0.3 0 0] :to [0.3 0 0] :r 0.15} :color :coat}
   {:name :neck :parent :torso :at [0.3 0 0.08]
-   :joint {:axis [0 1 0] :range [-40 30]}
+   ;; several hinges: listed order = MuJoCo order, first = nearest the torso. Side-bend first:
+   ;; lying on its side, the bend is what lifts the head, so the pitch must act after it.
+   :joints [{:name :neck-bend  :axis [0 0 1] :range [-70 70]}   ; lateral flexion
+            {:name :neck-pitch :axis [0 1 0] :range [-40 45]}]  ; + = head forward/down
    :capsule {:from [0 0 0] :to [0.18 0 0.24] :r 0.06} :color :dark}
   {:name :head :parent :neck :at [0.18 0 0.24]
+   :joints [{:name :head-pitch :axis [0 1 0] :range [-60 60]}   ; poll flexion
+            {:name :head-roll  :axis [1 0 0] :range [-70 70]}]  ; atlas/axis rotation
    :capsule {:from [0 0 0] :to [0.24 0 -0.1] :r 0.07} :color :coat}
   {:name :fl-upper :parent :torso :at [0.28 0.1 -0.05]
    :joint {:axis [0 1 0] :range [-45 45]}
@@ -35,4 +40,10 @@
    :capsule {:from [0 0 0] :to [0 0 -0.38] :r 0.05} :color :coat}
   {:name :hr-lower :parent :hr-upper :at [0 0 -0.38]
    :joint {:axis [0 1 0] :range [-100 10]}
-   :capsule {:from [0 0 0] :to [0 0 -0.37] :r 0.04} :color :hoof}]}
+   :capsule {:from [0 0 0] :to [0 0 -0.37] :r 0.04} :color :hoof}]
+ ;; Reflexes: hand-written controllers layered over the twitch, per species (pm.creature-motion).
+ ;; :head-level: lift :body's lowest point :lift-m above the ground and turn its :up axis to world up,
+ ;; by Jacobian transpose on :joints only; strength ramps 0 -> 1 over :onset-s after the drop.
+ :reflexes [{:kind :head-level :body :head
+             :joints [:neck-bend :neck-pitch :head-pitch :head-roll]
+             :up [0 0 1] :lift-m 0.25 :gain 2 :w-lift 40 :onset-s 1.5}]}

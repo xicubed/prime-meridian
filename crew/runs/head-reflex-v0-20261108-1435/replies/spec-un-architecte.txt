@@ -1,0 +1,27 @@
+    new mj.DoubleBuffer(3·nv) read back with
+    .GetView(). A Float64Array is accepted
+    without error and comes back all zeros.
+    The README's two forms (new
+    DoubleBuffer([0,0,0]) and .getView())
+    fail in 4.0.0. Test R8 pins this, along
+    with the hand-worked Jacobian columns.
+  - Neck joint order matters. The neck's
+    side-bend has to be listed before its
+    pitch. In the other order the head only
+    got 0.09 m off the ground; now it reaches
+    0.244 m.
+  - Known live risk. In one scratch run with
+    the legs kicking, the dog ended upside
+    down with its head under its body. The
+    reflex can't lift through the torso; that
+    belongs to the roll-onto-the-chest
+    round.
+
+  done-4343
+
+✻ Worked for 10m 33s · done 2:46 PM
+
+─────────────────────────────────────────────
+❯ New quest: read .crew/quests/
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

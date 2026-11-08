@@ -196,8 +196,9 @@
   (is (approx= [0.5 1] (cm/actions->ctrl [0 0] [[-0.5 1.5] [0 2]])))
   (is (approx= [1.5 0] (cm/actions->ctrl [2 -3] [[-0.5 1.5] [0 2]])))
   (is (approx= [1 0.5] (cm/actions->ctrl [0.5 -0.5] [[-0.5 1.5] [0 2]])))
-  (is (approx= -0.087266
-               (first (cm/actions->ctrl (vec (repeat 9 0)) (c/ctrl-ranges c-horse))))))
+  (let [mids (cm/actions->ctrl (vec (repeat 12 0)) (c/ctrl-ranges c-horse))]
+    (is (approx= 0 (first mids)))
+    (is (approx= 0.043633 (second mids)))))
 
 ;; M13
 

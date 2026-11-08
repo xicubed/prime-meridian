@@ -1,0 +1,28 @@
+=== prompt 1 (14:53:57)
+ │                 break
+ │             o, ol = stack.pop()
+ │             pairs = {'(': ')', '[': ']',
+ │ '{': '}'}
+ │             if pairs[o] != c:
+ │                 print(f, f"MISMATCH open
+ │ {o} at {ol} close {c} at {line}")
+ │                 ok = False
+ │                 break
+ │         i += 1
+ │     if stack:
+ │         print(f, "UNCLOSED:", stack[:5])
+ │         ok = False
+ │     if ok:
+ │         print(f, "OK, lines", line)
+ │ EOF
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Contains brace with quote character
+ (expansion obfuscation)
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
