@@ -1,0 +1,27 @@
+ │ line = 1
+ │ for ch in s:
+ │     if ch == '\n':
+ │         line += 1
+ │         continue
+ │     if ch == '(':
+ │         depth += 1
+ │     elif ch == ')':
+ │         depth -= 1
+ │         if depth < 0:
+ │             print('NEGATIVE at line',
+ │ line)
+ │             break
+ │ print('final depth', depth)
+ │ "
+ │
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: python3 *
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend

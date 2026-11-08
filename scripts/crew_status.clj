@@ -8,8 +8,11 @@
 ;;
 ;; Writes names, states, titles and parsed prompts only — never a raw screen:
 ;;   {:as-of 1794100000000 :agents {:un-automate-monde {:status :blocked
-;;                                                       :prompt {:id .. :kind :bash :text .. :risky false}}}
+;;                                                       :prompt {:id .. :kind :bash :text .. :risky false :since ..}}}
 ;;    :titles {:un-automate-monde "Un Automate (monde)" ...}}
+;; A prompt's map now has 5 keys (:since is the first poll that saw it): a
+;; member only gets one once the same dialog has been seen on two
+;; consecutive polls at least pr/confirm-ms apart (pm.prompt/observe-prompts).
 ;; States are Herdr's: :idle :working :blocked :done :unknown. Herdr not running → :agents {}.
 
 (require '[babashka.process :as p]
@@ -43,10 +46,9 @@
       (when (zero? exit) out))
     (catch Exception _ nil)))
 
-(defn with-screens [agents members]
-  (let [to-read (pr/screens-to-read agents members)
-        screens (into {} (map (fn [m] [m (screen-for m)]) to-read))]
-    (pr/with-prompts agents screens (repo-path))))
+(defn screens-for [agents members]
+  (let [to-read (pr/screens-to-read agents members)]
+    (into {} (map (fn [m] [m (screen-for m)]) to-read))))
 
 (defn write! [m titles]
   (let [f   (io/file out-file)
@@ -55,19 +57,27 @@
     (spit tmp (pr-str {:as-of (System/currentTimeMillis) :agents m :titles titles}))
     (.renameTo tmp f)))
 
+(defn- poll [members seen]
+  (let [a   (agents)
+        scr (screens-for a members)]
+    (pr/observe-prompts a scr (repo-path) seen (System/currentTimeMillis))))
+
 (defn -main [& args]
   (if (some #{"--once"} args)
     (let [members (b/roster (crew-json))
-          a       (with-screens (agents) (set (keys members)))]
-      (write! a members))
-    (loop [last nil]
+          mset    (set (keys members))
+          r1      (poll mset nil)
+          _       (Thread/sleep pr/confirm-ms)
+          r2      (poll mset (:seen r1))]
+      (write! (:agents r2) members))
+    (loop [last nil seen nil]
       (let [members (b/roster (crew-json))
-            a       (with-screens (agents) (set (keys members)))]
+            {:keys [agents seen]} (poll (set (keys members)) seen)]
         ;; rewrite when something changed (a prompt change counts), and every 10 s anyway
         ;; so :as-of stays fresh
-        (when (or (not= a last) (zero? (mod (quot (System/currentTimeMillis) every-ms) 5)))
-          (write! a members))
+        (when (or (not= agents last) (zero? (mod (quot (System/currentTimeMillis) every-ms) 5)))
+          (write! agents members))
         (Thread/sleep every-ms)
-        (recur a)))))
+        (recur agents seen)))))
 
 (apply -main *command-line-args*)

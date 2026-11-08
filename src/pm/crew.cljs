@@ -22,7 +22,8 @@
        (string? (:id p)) (boolean (re-matches prompt-id-re (:id p)))
        (contains? prompt-kinds (:kind p))
        (string? (:text p)) (<= (count (:text p)) 400)
-       (boolean? (:risky p))))
+       (boolean? (:risky p))
+       (let [s (:since p)] (or (nil? s) (and (integer? s) (not (neg? s)))))))
 
 (defn- clean-titles [titles]
   (when (map? titles)
@@ -46,7 +47,7 @@
                                             p (:prompt vv)]
                                         [k (cond-> {:status s}
                                              (and (= s :blocked) (valid-prompt? p))
-                                             (assoc :prompt (select-keys p [:id :kind :text :risky])))]))))
+                                             (assoc :prompt (select-keys p [:id :kind :text :risky :since])))]))))
                             (:agents v))
               titles (clean-titles (:titles v))]
           (cond-> {:as-of (:as-of v) :agents agents}
@@ -116,6 +117,12 @@
   (cond-> {"token" (:token bridge) "action" (name action)}
     (some? prompt-id) (assoc "prompt-id" prompt-id)
     (some? text) (assoc "text" text)))
+
+(defn hold-url [bridge]
+  (str "http://127.0.0.1:" (:port bridge) "/hold"))
+
+(defn hold-body [bridge on?]
+  {"token" (:token bridge) "action" "hold" "on" (boolean on?)})
 
 (defn outcome [status reason]
   (cond

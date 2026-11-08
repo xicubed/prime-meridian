@@ -77,6 +77,8 @@
 | **Mark a chore done** | Reply "fed" to the reminder text, click the canal, tap an NFC sticker on the tank, or tell Hal. Every channel sends the same `chore-done` event. Only one counts per due window (the chore's `:every` defines it), so a text and a click don't drop two worms; texts count only from known senders; restocking is a manual event in v1. |
 | **Do it yourself** | You can always do the work directly (edit a rock in Blender and drop it in; the world hot-reloads it). It's allowed, just not the main way to play. |
 
+**Talk and permission prompts.** Hal fields the crew's permission prompts by default, answering routine read-only and test ones himself; 💭 shows these as quiet log lines. Michael sees prompts that are risky, unreadable, or overdue (unanswered after 60 s), flagged with a red badge. Flipping the "I'll answer" switch in 💭 hands every prompt to Michael, and Hal holds off.
+
 **The game never adds work.** Every action above is either the real action (answering a real question, marking a real chore, approving a real change) or optional. Nothing exists only to keep you busy: no pet that needs feeding but isn't real, no login rewards, no streaks. The agents work the same with the game closed, and anything the game asks you can also be answered where you already are (a text, your editor). A developer who never opens the estate loses only the view.
 
 **Reading the estate (status vocabulary)**

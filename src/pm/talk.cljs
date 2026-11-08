@@ -4,14 +4,17 @@
   (:require [cljs.reader :as reader]
             [clojure.string :as str]
             [pm.world :as w]
-            [pm.crew :as crew]))
+            [pm.crew :as crew]
+            [pm.crew-log :as cl]))
 
 (def hal-name "Hal")
-(def crew-kinds #{:crew-prompt :crew-status :crew-say})
+(def crew-kinds #{:crew-prompt :crew-status :crew-say :crew-log})
 (def prompt-states #{:pending :sending :allowed :declined :stale})
 (def say-states #{:sending :sent :failed})
 (def you "You")
 (def cap 100)
+(def default-surface-after-s 60)
+(def roster-log-n 3)
 (def caption-min-ms 2500)
 (def caption-max-ms 9000)
 (def caption-base-ms 1200)
@@ -30,7 +33,7 @@
 
 (def empty-talk
   {:entries [] :n 0 :seen 0 :open? false :voice? false :queue-end 0
-   :last-hal nil :last-say {} :crew-last {}})
+   :last-hal nil :last-say {} :crew-last {} :log-at 0})
 
 (defn caption-ms [text]
   (let [len (if (string? text) (count text) 0)]
@@ -252,7 +255,7 @@
   (let [talk (or talk empty-talk)]
     (if (:open? talk)
       0
-      (count (filter #(> (:n %) (:seen talk)) (:entries talk))))))
+      (count (filter #(and (> (:n %) (:seen talk)) (not= :crew-log (:kind %))) (:entries talk))))))
 
 (defn badge-text [talk]
   (let [u (unread talk)]
@@ -342,39 +345,70 @@
             e))
         entries))
 
+(defn policy
+  "What the fielding rules look like right now: whether the 'I'll answer'
+   switch is on, and how long Hal gets before a benign prompt surfaces."
+  [crew-talk hold]
+  (let [n (:surface-after-s crew-talk)
+        n (if (and (number? n) (<= 0 n 3600)) n default-surface-after-s)]
+    {:hold? (cl/hold-on? hold) :surface-after-s n}))
+
+(defn surfaced?
+  "True when prompt should be shown to Michael under policy: hold is on,
+   it's risky or unreadable, its age is unknown, or it's been waiting past
+   :surface-after-s."
+  [prompt now policy]
+  (let [surface-s (let [n (:surface-after-s policy)]
+                     (if (and (number? n) (<= 0 n 3600)) n default-surface-after-s))]
+    (boolean
+      (or (true? (:hold? policy))
+          (not= :bash (:kind prompt))
+          (true? (:risky prompt))
+          (not (integer? (:since prompt)))
+          (>= (- now (:since prompt)) (* 1000 surface-s))))))
+
 (defn observe-crew
-  "talk, folding in the latest crew.edn: a prompt line per newly blocked
+  "talk, folding in the latest crew.edn: a prompt line per newly surfaced
    member, a status line when one finishes, and staling of prompt lines
-   that no longer apply. Identical to `talk` when nothing changes."
-  [talk crew-state now]
-  (let [talk (or talk empty-talk)]
-    (if (or (nil? crew-state) (not (crew/fresh? crew-state now)))
-      talk
-      (let [agents (:agents crew-state)
-            titles (:titles crew-state)
-            talk1  (update talk :entries stale-missing (set (keys agents)))
-            result (reduce
-                     (fn [t m]
-                       (let [s    (:status (get agents m))
-                             p    (:prompt (get agents m))
-                             last (get-in t [:crew-last m])
-                             who  (get titles m (name m))
-                             eff  (cond
-                                    (and (= s :blocked) p) (:id p)
-                                    (= s :blocked) (:prompt-id last)
-                                    :else nil)
-                             t    (update t :entries stale-pending m eff)
-                             t    (if (and (= s :blocked) p (not= (:id p) (:prompt-id last)))
-                                    (append-crew t {:who who :text (crew-prompt-text p) :at now
-                                                     :kind :crew-prompt :member m :prompt p :state :pending})
-                                    t)
-                             t    (if (and (= s :done) (some? last) (not= :done (:status last)))
-                                    (append-crew t {:who who :text "done" :at now :kind :crew-status :member m})
-                                    t)]
-                         (assoc-in t [:crew-last m] {:status s :prompt-id eff})))
-                     talk1
-                     (sort (keys agents)))]
-        (if (= result talk) talk result)))))
+   that no longer apply. Identical to `talk` when nothing changes. The
+   3-arity surfaces every prompt at once, matching v0's behaviour."
+  ([talk crew-state now] (observe-crew talk crew-state now {:hold? true :surface-after-s 60}))
+  ([talk crew-state now policy]
+   (let [talk (or talk empty-talk)]
+     (if (or (nil? crew-state) (not (crew/fresh? crew-state now)))
+       talk
+       (let [agents (:agents crew-state)
+             titles (:titles crew-state)
+             talk1  (update talk :entries stale-missing (set (keys agents)))
+             result (reduce
+                      (fn [t m]
+                        (let [s       (:status (get agents m))
+                              p       (:prompt (get agents m))
+                              last    (get-in t [:crew-last m])
+                              who     (get titles m (name m))
+                              last-id (:prompt-id last)
+                              eff     (cond
+                                        (and (= s :blocked) p) (:id p)
+                                        (= s :blocked) last-id
+                                        :else nil)
+                              t       (update t :entries stale-pending m eff)
+                              id      (:id p)
+                              show?   (and (= s :blocked) (some? p) (surfaced? p now policy))
+                              t       (if (and show? (not= id last-id))
+                                        (append-crew t {:who who :text (crew-prompt-text p) :at now
+                                                         :kind :crew-prompt :member m :prompt p :state :pending})
+                                        t)
+                              t       (if (and (= s :done) (some? last) (not= :done (:status last)))
+                                        (append-crew t {:who who :text "done" :at now :kind :crew-status :member m})
+                                        t)
+                              x       (cond
+                                        (and (= s :blocked) p) (if (or show? (= id last-id)) id nil)
+                                        (= s :blocked) last-id
+                                        :else nil)]
+                          (assoc-in t [:crew-last m] {:status s :prompt-id x})))
+                      talk1
+                      (sort (keys agents)))]
+         (if (= result talk) talk result))))))
 
 (defn allowable-kind?
   [e]
@@ -456,6 +490,53 @@
       :sending {:allow? (allowable-kind? e) :disabled? true :hint "sending…"}
       :pending {:allow? (allowable? e) :disabled? (not bridge-on?) :hint (when-not bridge-on? "bridge off")})))
 
+(defn- name-of [action]
+  (case action :allowed "allowed" :declined "declined" nil))
+
+(defn- mark-answered
+  "Marks every pending/sending/stale, not-yet-marked crew-prompt entry for
+   [member prompt-id] with who answered it, and stales it if it was pending."
+  [entries member prompt-id at by]
+  (mapv (fn [e]
+          (if (and (= :crew-prompt (:kind e)) (= member (:member e))
+                   (= prompt-id (:id (:prompt e)))
+                   (contains? #{:pending :sending :stale} (:state e))
+                   (nil? (:by e))
+                   (let [since (let [s (:since (:prompt e))] (if (integer? s) s (:at e)))]
+                     (>= at (- since 5000))))
+            (cond-> (assoc e :by by)
+              (= :pending (:state e)) (assoc :state :stale))
+            e))
+        entries))
+
+(defn observe-log
+  "talk, folding in new state/crew-log.edn entries: marks any matching
+   surfaced prompt line as already answered, and logs a quiet line for each
+   of Hal's recent answers. Identical to `talk` when there's nothing new."
+  [talk log crew-state now]
+  (let [talk   (or talk empty-talk)
+        log-at (let [v (:log-at talk)] (if (integer? v) v 0))
+        new    (when (sequential? log) (filter #(> (:at %) log-at) log))]
+    (if (empty? new)
+      talk
+      (reduce
+        (fn [t x]
+          (let [t'  (update t :entries mark-answered (:member x) (:prompt-id x) (:at x) (:by x))
+                who (get-in crew-state [:titles (:member x)] (name (:member x)))
+                t'' (if (and (= :hal (:by x)) (> (:at x) (- now quiet-ms)))
+                      (append-crew t' {:who hal-name :text (str (name-of (:action x)) " `" (:text x) "` for " who)
+                                        :at (:at x) :kind :crew-log :member (:member x) :log x})
+                      t')]
+            (assoc t'' :log-at (:at x))))
+        talk
+        new))))
+
+(defn log-label
+  "The roster's past-entries line for a crew-log.edn entry."
+  [x offset-min]
+  (let [who (case (:by x) :hal "Hal" :michael "You" "")]
+    (str who " " (name-of (:action x)) " `" (:text x) "` · " (clock-text (:at x) offset-min))))
+
 (defn crew-label
   "The line for a crew entry, or nil for a non-crew entry."
   [e offset-min]
@@ -471,7 +552,7 @@
              :allowed   (str " · ☑ allowed " (clock-text (:answered-at e) offset-min))
              :declined  (str " · ✕ declined " (clock-text (:answered-at e) offset-min)
                               (when-let [note (:note e)] (str " · “" note "”")))
-             :stale     " · already answered"
+             :stale     (str " · already answered" (case (:by e) :hal " by Hal" :michael " by you" ""))
              "")))
     :crew-status (str (:who e) " · " (:text e))
     :crew-say
@@ -481,22 +562,58 @@
            :sent    ""
            :failed  (str " · not sent: " (:error e))
            ""))
+    :crew-log (str (:who e) " " (:text e) " · " (clock-text (:at e) offset-min))
     nil))
 
 (defn crew-roster
-  "The 💭 roster strip: every crew member, walker or not."
-  [crew-state now bridge-on?]
-  (if (nil? crew-state)
-    []
-    (let [fresh?  (crew/fresh? crew-state now)
-          agents  (:agents crew-state)
-          titles  (:titles crew-state)
-          members (sort (into (set (keys titles)) (keys agents)))]
-      (mapv (fn [m]
-              (let [st (if (and fresh? (contains? agents m)) (:status (get agents m)) :unknown)]
-                {:member m :who (get titles m (name m)) :status st
-                 :say? (and bridge-on? (contains? #{:idle :done} st))}))
-            members))))
+  "The 💭 roster strip: every crew member, walker or not. The 5-arity also
+   marks which rows are expanded and attaches each one's recent log."
+  ([crew-state now bridge-on?]
+   (if (nil? crew-state)
+     []
+     (let [fresh?  (crew/fresh? crew-state now)
+           agents  (:agents crew-state)
+           titles  (:titles crew-state)
+           members (sort (into (set (keys titles)) (keys agents)))]
+       (mapv (fn [m]
+               (let [st (if (and fresh? (contains? agents m)) (:status (get agents m)) :unknown)]
+                 {:member m :who (get titles m (name m)) :status st
+                  :say? (and bridge-on? (contains? #{:idle :done} st))}))
+             members))))
+  ([crew-state now bridge-on? log expanded]
+   (mapv (fn [row]
+           (let [expanded? (contains? (or expanded #{}) (:member row))]
+             (assoc row :expanded? expanded?
+                    :log (if expanded? (cl/for-member log (:member row) roster-log-n) []))))
+         (crew-roster crew-state now bridge-on?))))
+
+(defn gone?
+  "True when e belongs to a crew member who's no longer in a fresh
+   crew-state (they left). Stale or missing crew-state never fades a line."
+  [e crew-state now]
+  (boolean
+    (and (contains? crew-kinds (:kind e))
+         (keyword? (:member e))
+         (map? crew-state)
+         (crew/fresh? crew-state now)
+         (let [titles (:titles crew-state)
+               present (if (map? titles) (set (keys titles)) (set (keys (:agents crew-state))))]
+           (not (contains? present (:member e)))))))
+
+(defn hold-switch
+  "The 'I'll answer' checkbox's state, driven by hold.edn, never a local
+   guess."
+  [hold bridge-on? ui]
+  (let [checked?  (cl/hold-on? hold)
+        sending?  (true? (:sending? ui))
+        disabled? (or (not bridge-on?) sending?)
+        hint      (cond
+                    (not bridge-on?) "bridge off"
+                    sending? "sending…"
+                    (string? (:error ui)) (str "not sent: " (:error ui))
+                    checked? "you answer; Hal holds off"
+                    :else "Hal answers the easy ones")]
+    {:checked? checked? :disabled? disabled? :hint hint}))
 
 (defn- valid-rate? [v] (and (number? v) (<= 0.1 v 10)))
 (defn- valid-pitch? [v] (and (number? v) (<= 0 v 2)))
@@ -517,9 +634,10 @@
 
 (defn save-text [talk]
   (let [talk (or talk empty-talk)]
-    (pr-str {:v 1 :n (:n talk) :seen (:seen talk) :crew-last (:crew-last talk)
+    (pr-str {:v 1 :n (:n talk) :seen (:seen talk) :crew-last (:crew-last talk) :log-at (:log-at talk)
              :entries (mapv #(select-keys % [:n :who :text :at :kind :mirror :event :chore :done? :asks
-                                               :member :prompt :state :action :note :answered-at :error :to])
+                                               :member :prompt :state :action :note :answered-at :error :to
+                                               :by :log])
                              (:entries talk))})))
 
 (defn- valid-restored-entry? [e]
@@ -532,6 +650,9 @@
        (cond
          (= :chore (:kind e))
          (and (some? (chore-record (:chore e))) (boolean? (:done? e)))
+
+         (= :crew-log (:kind e))
+         (and (keyword? (:member e)) (cl/valid-entry? (:log e)))
 
          (contains? crew-kinds (:kind e))
          (and (keyword? (:member e))
@@ -551,14 +672,16 @@
         (cond-> (assoc base :state (if sending? :pending (:state e)))
           (and (not sending?) (keyword? (:action e)))       (assoc :action (:action e))
           (and (not sending?) (string? (:note e)))          (assoc :note (:note e))
-          (and (not sending?) (number? (:answered-at e)))   (assoc :answered-at (:answered-at e))))
+          (and (not sending?) (number? (:answered-at e)))   (assoc :answered-at (:answered-at e))
+          (contains? cl/bys (:by e))                        (assoc :by (:by e))))
       :crew-status (select-keys e [:n :who :text :at :kind :member])
       :crew-say
       (let [sending? (= :sending (:state e))
             state    (if sending? :failed (:state e))]
         (cond-> (assoc (select-keys e [:n :who :text :at :kind :member :to]) :state state)
           sending? (assoc :error "not confirmed")
-          (and (not sending?) (string? (:error e))) (assoc :error (:error e)))))
+          (and (not sending?) (string? (:error e))) (assoc :error (:error e))))
+      :crew-log (select-keys e [:n :who :text :at :kind :member :log]))
     (let [base (cond-> (select-keys e [:n :who :text :at :kind])
                  (keyword? (:mirror e)) (assoc :mirror (:mirror e))
                  (keyword? (:event e))  (assoc :event (:event e))
@@ -627,7 +750,9 @@
             seen-m      (:seen m)
             seen        (if (integer? seen-m)
                           (-> seen-m (max 0) (min n))
-                          n)]
-        (assoc empty-talk :entries entries :n n :seen seen
+                          n)
+            log-at-m    (:log-at m)
+            log-at      (if (and (integer? log-at-m) (>= log-at-m 0)) log-at-m 0)]
+        (assoc empty-talk :entries entries :n n :seen seen :log-at log-at
                :last-say (last-says entries)
                :crew-last (clean-crew-last (:crew-last m)))))))

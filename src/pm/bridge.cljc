@@ -12,6 +12,7 @@
 (def max-body 4096)
 (def actions #{"allow" "deny" "say"})
 (def wait-ms 5000)
+(def hold-uri "/hold")
 
 (def ^:private name-re #"[a-z][a-z0-9_-]{0,31}")
 (def ^:private uri-re #"^/crew/([a-z][a-z0-9_-]{0,31})$")
@@ -97,7 +98,7 @@
       (not= method "POST")
       {:ok false :status 405 :reason "method not allowed"}
 
-      (not (and (string? uri) (re-matches uri-re uri)))
+      (not (or (and (string? uri) (re-matches uri-re uri)) (= uri hold-uri)))
       {:ok false :status 404 :reason "not found"}
 
       (not (map? body))
@@ -108,6 +109,12 @@
 
       (not= origin allowed-origin)
       {:ok false :status 403 :reason "bad origin"}
+
+      (= uri hold-uri)
+      (cond
+        (not= (get body "action") "hold") {:ok false :status 400 :reason "bad action"}
+        (not (boolean? (get body "on"))) {:ok false :status 400 :reason "bad on"}
+        :else {:ok true :action :hold :on (get body "on")})
 
       :else
       (let [member (keyword (second (re-matches uri-re uri)))]
@@ -188,5 +195,5 @@
   (let [m (loggable member)
         a (loggable action)
         m' (cond (nil? member) "-" (and m (re-matches name-re m)) m :else "?")
-        a' (cond (nil? action) "-" (and a (contains? actions a)) a :else "?")]
+        a' (cond (nil? action) "-" (and a (or (contains? actions a) (= a "hold"))) a :else "?")]
     (str iso " " m' " " a' " " status " " reason)))

@@ -81,6 +81,13 @@
       border: 1px solid rgba(255,255,255,.2); border-radius: 6px; padding: 1px 6px; width: 7em; }
     #talk-list li.crew button:disabled,
     #talk-list li.crew input:disabled { opacity: .4; cursor: default; }
+    #talk-list li.crew.quiet { opacity: .7; font-size: 14px; }
+    #talk-list li.crew.quiet .row { gap: 0; }
+    #talk-list li.gone { opacity: .35; transition: opacity 1s; }
+    #hold-row { display: flex; align-items: center; gap: 6px; padding: 8px 12px 4px; font-size: 14px; }
+    #hold-row .hint { opacity: .6; font-size: 12px; }
+    #crew-roster .roster-log { padding: 0 0 4px 22px; opacity: .75; font-size: 12px; display: flex;
+      flex-direction: column; gap: 2px; }
   </style>
 </head>
 <body>
@@ -98,7 +105,10 @@
   </div>
   <div id="caption" aria-live="polite"><b id="caption-who"></b><span id="caption-text"></span></div>
   <button id="talk-toggle" title="What was said">💭<span id="talk-badge"></span></button>
-  <div id="talk-panel" hidden><div id="crew-roster"></div><ol id="talk-list"></ol></div>
+  <div id="talk-panel" hidden>
+    <label id="hold-row"><input type="checkbox" id="hold-toggle"> I'll answer <span id="hold-hint" class="hint"></span></label>
+    <div id="crew-roster"></div><ol id="talk-list"></ol>
+  </div>
   <script src="/js/main.js"></script>
 </body>
 </html>

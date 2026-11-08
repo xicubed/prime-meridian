@@ -1,4 +1,5 @@
 {:hud {:mirrors [:flora]}                 ; mirrors whose status-line goes on the HUD, in order
+ :crew-talk {:surface-after-s 60}   ; a prompt Hal hasn't answered after this long goes to Michael
  :voices {:hal      {:rate 1.0 :pitch 0.9 :lang "en-US"}   ; Hal: even, a little low
           :creature {:rate 1.1 :pitch 1.6 :lang "en-US"}}  ; creatures: higher, quicker
  ;; Sounds placed in the world. Each point is an emitter [x y z gain] in the

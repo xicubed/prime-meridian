@@ -11,6 +11,7 @@
             [pm.chores :as chores]
             [pm.content :as content]
             [pm.crew :as crew]
+            [pm.crew-log :as cl]
             [pm.kit :as kit]
             [pm.motion :as m]
             [pm.overlay :as overlay]
@@ -94,6 +95,48 @@
   (when (nil? (:timer @!bridge-poll))
     (fetch-bridge!)
     (swap! !bridge-poll assoc :timer (js/setInterval fetch-bridge! bridge-poll-ms))))
+
+(def crew-log-url "/state/crew-log.edn")
+(def hold-file-url "/state/hold.edn")
+(def crew-talk-poll-ms 2000)
+
+(defonce ^:private !crew-log-poll (atom {:timer nil :busy? false}))
+
+(defn- fetch-crew-log! []
+  (when-not (:busy? @!crew-log-poll)
+    (swap! !crew-log-poll assoc :busy? true)
+    (-> (js/fetch (str crew-log-url "?t=" (js/Date.now)) #js {:cache "no-store"})
+        (.then (fn [^js resp] (if (.-ok resp) (.text resp) nil)))
+        (.then (fn [text]
+                 (let [l (cl/parse text)]
+                   (when (not= l (:crew-log @!world))
+                     (swap! !world assoc :crew-log l)))))
+        (.catch (fn [_]))
+        (.finally (fn [] (swap! !crew-log-poll assoc :busy? false))))))
+
+(defn- start-crew-log-poll! []
+  (when (nil? (:timer @!crew-log-poll))
+    (fetch-crew-log!)
+    (swap! !crew-log-poll assoc :timer (js/setInterval fetch-crew-log! crew-talk-poll-ms))))
+
+(defonce ^:private !hold-poll (atom {:timer nil :busy? false}))
+
+(defn- fetch-hold! []
+  (when-not (:busy? @!hold-poll)
+    (swap! !hold-poll assoc :busy? true)
+    (-> (js/fetch (str hold-file-url "?t=" (js/Date.now)) #js {:cache "no-store"})
+        (.then (fn [^js resp] (if (.-ok resp) (.text resp) nil)))
+        (.then (fn [text]
+                 (let [h (cl/parse-hold text)]
+                   (when (not= h (:hold @!world))
+                     (swap! !world assoc :hold h)))))
+        (.catch (fn [_]))
+        (.finally (fn [] (swap! !hold-poll assoc :busy? false))))))
+
+(defn- start-hold-poll! []
+  (when (nil? (:timer @!hold-poll))
+    (fetch-hold!)
+    (swap! !hold-poll assoc :timer (js/setInterval fetch-hold! crew-talk-poll-ms))))
 
 (def cache-key "pm.state.v1")
 (defonce ^:private !cache-text (atom nil)) ; last text read or written
@@ -212,7 +255,10 @@
         (when-let [b (brook/status h)] (str " · " b))))))
 
 (defonce ^:private !talk-ui (atom {:shown nil :badge nil :alert nil
-                                    :listed nil :listed-n nil :listed-bridge nil :roster nil}))
+                                    :listed nil :listed-n nil :listed-bridge nil :roster nil
+                                    :expanded #{} :hold-sw nil}))
+
+(defonce ^:private !hold-ui (atom {:sending? false :error nil}))
 
 (defn- tz-offset-min []
   (- (.getTimezoneOffset (js/Date.))))
@@ -284,9 +330,36 @@
       (when (> n before-n)
         (post-crew! member :say nil (:text (talk/entry t n)) n)))))
 
+(defn- on-expand [member]
+  (swap! !talk-ui update :expanded
+         (fn [s] (let [s (or s #{})] (if (contains? s member) (disj s member) (conj s member))))))
+
+(defn- on-hold-toggle! [checked?]
+  (if-let [b (:bridge @!world)]
+    (do
+      (reset! !hold-ui {:sending? true :error nil})
+      (-> (js/fetch (crew/hold-url b)
+                    #js {:method "POST" :headers #js {"Content-Type" "application/json"}
+                         :body (js/JSON.stringify (clj->js (crew/hold-body b checked?)))})
+          (.then (fn [^js resp]
+                   (if (.-ok resp)
+                     (do (reset! !hold-ui {:sending? false :error nil})
+                         (fetch-hold!))
+                     (-> (.json resp)
+                         (.then (fn [^js json] (reset! !hold-ui {:sending? false :error (or (.-reason json) "refused")})))
+                         (.catch (fn [_] (reset! !hold-ui {:sending? false :error "refused"})))))))
+          (.catch (fn [_] (reset! !hold-ui {:sending? false :error "network error"})))))
+    (reset! !hold-ui {:sending? false :error "bridge off"})))
+
+(defn- gone-fn [entry]
+  (talk/gone? entry (:crew @!world) (js/Date.now)))
+
 (defn- talk-tick! [now]
   (let [t  (:talk @!world)
-        t' (-> t (talk/observe @!world now) (talk/observe-crew (:crew @!world) now))]
+        t' (-> t
+               (talk/observe @!world now)
+               (talk/observe-crew (:crew @!world) now (talk/policy (:crew-talk @!world) (:hold @!world)))
+               (talk/observe-log (:crew-log @!world) (:crew @!world) now))]
     (when-not (identical? t' t)
       (swap! !world assoc :talk t'))
     (let [e (talk/caption t' now)]
@@ -312,13 +385,17 @@
         (when-not (and (identical? (:entries t') (:listed @!talk-ui)) (= bridge-on (:listed-bridge @!talk-ui)))
           (let [keep-scroll? (= (:n t') (:listed-n @!talk-ui))]
             (ui/render-panel! (:entries t') offset-of label-of pick! on-check keep-scroll?
-                               {:bridge-on? bridge-on :on-allow on-allow :on-deny on-deny})
+                               {:bridge-on? bridge-on :on-allow on-allow :on-deny on-deny} gone-fn)
             (swap! !talk-ui assoc :listed (:entries t') :listed-n (:n t') :listed-bridge bridge-on)))
         (swap! !talk-ui assoc :listed nil :listed-n nil :listed-bridge nil)))
-    (let [rows (talk/crew-roster (:crew @!world) now (bridge-on?))]
+    (let [rows (talk/crew-roster (:crew @!world) now (bridge-on?) (:crew-log @!world) (:expanded @!talk-ui))]
       (when (not= rows (:roster @!talk-ui))
-        (ui/render-roster! rows on-say)
-        (swap! !talk-ui assoc :roster rows)))))
+        (ui/render-roster! rows on-say on-expand offset-of)
+        (swap! !talk-ui assoc :roster rows)))
+    (let [sw (talk/hold-switch (:hold @!world) (bridge-on?) @!hold-ui)]
+      (when (not= sw (:hold-sw @!talk-ui))
+        (ui/render-hold-switch! sw)
+        (swap! !talk-ui assoc :hold-sw sw)))))
 
 (defn frame [now]
   (let [dt (if-let [l @!last] (/ (- now l) 1000) 0)]
@@ -482,7 +559,10 @@
       (fn [^js e]
         (.stopPropagation e)
         (swap! !world update :talk talk/toggle-panel)
-        (ui/set-panel-open! (:open? (:talk @!world)))))))
+        (ui/set-panel-open! (:open? (:talk @!world))))))
+  (when-let [^js cb (js/document.getElementById "hold-toggle")]
+    (.addEventListener cb "change"
+      (fn [^js e] (on-hold-toggle! (.. e -target -checked))))))
 
 (defn- jack-in! []
   (swap! !world content/hal-say content/hal-lines :jack-in {} (js/Date.now)))
@@ -553,6 +633,8 @@
   (start-state-poll!)
   (start-crew-poll!)
   (start-bridge-poll!)
+  (start-crew-log-poll!)
+  (start-hold-poll!)
   (kit/load! start-kit! start-scaffold!))
 
 (defn reload!

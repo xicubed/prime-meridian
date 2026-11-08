@@ -1,0 +1,178 @@
+anything specific to one pet leaking into code, and whether the code and
+tests match what the spec asked for.
+
+Project: **Prime Meridian**, a cozy 3D management game where the characters are real AI agents (`docs/GDD.md`). Read `AGENTS.md` before your first change: ClojureScript via shadow-cljs, three.js only through `pm.three`, Babashka for scripts, **no TypeScript, ever**, 0 compile warnings. The repo is public: no secrets, phone numbers or emails in anything you write.
+
+- Never edit source or t
+
+██╗  ██╗███████╗██████╗ ███╗   ███╗███████╗███████╗       █████╗  ██████╗ ███████╗███╗   ██╗████████╗
+██║  ██║██╔════╝██╔══██╗████╗ ████║██╔════╝██╔════╝      ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝
+███████║█████╗  ██████╔╝██╔████╔██║█████╗  ███████╗█████╗███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║
+██╔══██║██╔══╝  ██╔══██╗██║╚██╔╝██║██╔══╝  ╚════██║╚════╝██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║
+██║  ██║███████╗██║  ██║██║ ╚═╝ ██║███████╗███████║      ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║
+╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝      ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝
+
+╭─────────────────── Hermes Agent v0.21.6+7051.gbf0203a (2026.9.24) · stable · local bf0203a794a0 ────────────────────╮
+│                                   Available Tools                                                                   │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀⠀⢀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   browser-use: browser_exec                                                         │
+│  ⠀⠀⠀⠀⠀⠀⢀⣠⣴⣾⣿⣿⣇⠸⣿⣿⠇⣸⣿⣿⣷⣦⣄⡀⠀⠀⠀⠀⠀⠀   clarify: clarify                                                                  │
+│  ⠀⢀⣠⣴⣶⠿⠋⣩⡿⣿⡿⠻⣿⡇⢠⡄⢸⣿⠟⢿⣿⢿⣍⠙⠿⣶⣦⣄⡀⠀   code_execution: execute_code                                                      │
+│  ⠀⠀⠉⠉⠁⠶⠟⠋⠀⠉⠀⢀⣈⣁⡈⢁⣈⣁⡀⠀⠉⠀⠙⠻⠶⠈⠉⠉⠀⠀   connections: manage_connections                                                   │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⣿⡿⠛⢁⡈⠛⢿⣿⣦⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   delegation: delegate_task                                                         │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠿⣿⣦⣤⣈⠁⢠⣴⣿⠿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   file: patch, read_file, search_files, write_file                                  │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠻⢿⣿⣦⡉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   image_gen: image_generate                                                         │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⢷⣦⣈⠛⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   memory: memory                                                                    │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣴⠦⠈⠙⠿⣦⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   (and 6 more toolsets...)                                                          │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⣿⣤⡈⠁⢤⣿⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀                                                                                     │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠷⠄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   Available Skills                                                                  │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠑⢶⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   autonomous-ai-agents: hermes-agent                                                │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠁⢰⡆⠈⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   general: crew-round-review                                                        │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠳⠈⣡⠞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀                                                                                     │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   Profile: crew                                                                     │
+│                                   21 tools · 2 skills · /help for commands                                          │
+│  claude-sonnet-5 · Nous Research  ⚠ update available                                                                │
+│  /Users/hal/src/prime-meridian
+
+────────────────────────────────────────
+❯ Review the round's changes against crew/runs/crew-talk-v1-20261108-0931/spec.md and .crew/quests/crew-talk-v1.md: git diff for edited files, and read the new files (git status lists them). This round changes code that can approve a crew member's shell command, so review it like security code: the bridge still decides risky; :unknown prompts are never allowable from the game; the new hold action uses the same token/exact-Origin/length checks and writes only state/hold.edn; a prompt is published only after two consecutive polls >= 2 s apart that both show a real permission block; nothing beyond names, states, the parsed prompt and log lines leaves a screen; the log never holds the token. Also: pure logic tested against every fixture screen; no member sent keys or prompts to the crew or started the bridge/watcher; names from the roster. Write the review to crew/runs/crew-talk-v1-20261108-0931/review.md.
+
+When you have completely finished, end your reply with a line containing only this: done-5681
+────────────────────────────────────────
+
+📚 Skill crew-round-review
+💻 $ echo "=== git status ===" + 5 commands  0.6s
+📖 Read spec.md
+📖 Read crew-talk-v1.md
+📖 Read log.md
+📖 Read gate-note.md
+📖 Read gate-1.txt
+💻 $ ls -la crew/runs/crew-talk-v1-20261108-0931/replies/  0.2s
+💻 $ git diff -- src/pm/prompt.cljc  0.3s
+💻 $ git diff -- src/pm/bridge.cljc  0.2s
+📖 Read bridge.cljc
+📖 Read crew_log.cljc
+💻 $ git diff -- scripts/crew_bridge.clj  0.3s
+💻 $ sed -n '1,150p' scripts/crew_bridge.clj  0.3s
+💻 $ git diff -- scripts/crew_status.clj  0.3s
+💻 $ git diff -- src/pm/crew.cljs resources/estate.edn  0.5s
+💻 $ git diff -- src/pm/talk.cljs  0.4s
+💻 $ git diff -- src/pm/core.cljs  0.3s
+💻 $ git diff -- src/pm/ui.cljs  0.3s
+💻 $ git diff -- public/index.html  0.4s
+
+────────────────────────────────────────
+☤ Hermes
+Good — matches spec exactly. Now the test file and checking no live calls made during build/test, plus names used from roster.
+────────────────────────────────────────
+
+📖 Read crew_talk_v1_test.cljs
+🔎 Grep allowable-kind\?|defn allowable\?  0.3s
+📖 Read review-le-critique.txt
+🔎 Grep bb crew-bridge|bb crew-status|crew_bridge\.clj|crew_status\.clj|send-keys|herdr agent prompt  0.7s
+📖 Read build-un-automate-monde.txt  0.7s
+📖 Read build-le-testeur.txt  0.7s
+💻 $ git diff --stat -- docs/GDD.md + 2 commands  0.5s
+💻 $ ls -la state/ 2>/dev/null + 2 commands  0.4s
+🔎 Grep \[(last|name|type|filter|count|name-of)[\s\]]  0.8s
+🔎 Grep \blast\s+\(get-in  0.2s
+💻 $ bash .crew/gate.sh  4.9s
+
+────────────────────────────────────────
+☤ Hermes
+Verified independently — matches gate-note.md exactly. Now writing the review.
+────────────────────────────────────────
+
+✍️ Write crew/runs/crew-talk-v1-20261108-0931/review.md
+│ crew/runs/crew-talk-v1-20261108-0931/review.md
+│ @@ -0,0 +1,81 @@
+│ +# Review: crew-talk-v1 (20261108-0931)
+│ +
+│ +## Conformance summary
+│ +
+│ +Re-ran the gate myself: `bash .crew/gate.sh` → PASS, 0 warnings, 583 tests / 3232 assertions —
+│ +matches `gate-note.md`/`gate-1.txt` exactly.
+│ +
+│ +Boundary table (spec §1): builder touched exactly `public/index.html`, `resources/estate.edn`
+│ +(only the new `:crew-talk` key — confirmed, nothing else in that file's diff changed),
+│ +`scripts/crew_bridge.clj`, `scripts/crew_status.clj`, `src/pm/bridge.cljc`, `src/pm/core.cljs`,
+│ +`src/pm/crew.cljs`, `src/pm/prompt.cljc`, `src/pm/talk.cljs`, `src/pm/ui.cljs`, and new
+│ +`src/pm/crew_log.cljc`. Tester touched only the new `test/pm/crew_talk_v1_test.cljs`. None of
+│ +the "nobody this round" files (`shadow-cljs.edn`, `.gitignore`, `dev_http.clj`, `bb.edn`,
+│ +`.crew/crew.json`, `test/pm/fixtures.cljs`, `test/pm/crew_talk_test.cljs`, fixture screens,
+│ +`public/vendor/`, `resources/content/`) appear in `git status`. `pm.crew-talk-test` (v0) and the
+│ +rest of the suite pass unchanged, confirming the compatibility rules in spec §1 held.
+│ +
+│ +Security-code pass (validate/decide re-derived by hand against `src/pm/bridge.cljc`):
+│ +- `validate`'s `cond` order is exactly method → uri (crew-or-hold) → body-map → token → origin →
+│ +  hold-branch → crew-branch, matching spec §3.3 and t26's precedence cases (bad token+bad on →
+│ +  401; bad origin+bad action → 403) by construction, not just by a passing test name.
+│ +- Token check (`token=`) is unchanged, exact-length constant-time compare, fails closed on any
+│ +  type/length mismatch. Origin check is exact string equality (`not= origin allowed-origin`),
+│ +  case-sensitive, fails closed on `nil`. `/HOLD` (wrong case) correctly 404s.
+│ +- `decide` is byte-for-byte unchanged (confirmed via diff — not touched by this round): for
+│ +  `:allow` it checks `(:kind prompt) ≠ :bash` → 403 "unknown prompt" *before* the risky check,
+│ +  and `read-prompt` always sets `:risky true` on an `:unknown` kind, so an `:unknown` prompt is
+│ +  rejected by the bridge twice over (kind gate, then would-be risky gate) even if a crafted
+│ +  request got past the game's own `allowable?` (which also requires `:kind :bash` and
+│ +  `:risky false` — `src/pm/talk.cljs:413-418`). Two independent, structural layers, not one.
+│ +- `hold` validation reuses the same token/exact-origin checks via the shared `cond` chain (not a
+│ +  parallel/duplicated check), then only ever writes `state/hold.edn` (`scripts/crew_bridge.clj`'s
+│ +  hold branch calls `write-edn!` on `hold-file` alone, no Herdr call, no `crew-log.edn` touch).
+│ +  The `/crew/<m>` allow/deny success path writes only `state/crew-log.edn` (`append-crew-log!`),
+│ +  so the two state files are written from disjoint code paths.
+│ +- The two-poll rule (`pm.prompt/observe-prompts`) only assigns `:prompt`/publishes when the same
+│ +  `:id` is seen on two polls with `now − seen-at ≥ confirm-ms` (2000), and both polls had to
+│ +  independently pass `prompt-screen?` (a `nil` read-prompt forces `:working` and clears the
+│ +  chain, t18) — so a real dialog is required on both polls, not just the first.
+│ +- Grepped `scripts/crew_bridge.clj`'s `log!`/`append-crew-log!`: the bridge log line never
+│ +  receives the token (only member/action/status/reason), and `pm.crew-log/entry` only pulls
+│ +  `:id`/`:text` off the live prompt — structurally, `crew-log.edn` entries have no slot for a
+│ +  token or a raw screen. `crew_status.clj`'s `screens-for`/`observe-prompts` never write the raw
+│ +  screen to `crew.edn`; only `:status` and the parsed prompt (`:id :kind :text :risky :since`)
+│ +  are persisted.
+│ +- `src/pm/ui.cljs`'s new rendering (`render-roster!`, `render-hold-switch!`, the `quiet`/`gone`
+│ +  classes) only reads fields already produced by the pure `pm.talk`/`pm.crew-log` functions
+│ +  (names, statuses, `log-label`/`crew-label` text) — nothing new crosses from a raw screen to the
+│ +  DOM.
+│ +- No live Herdr call anywhere in `test/pm/crew_talk_v1_test.cljs` — all 50 cases exercise pure
+│ +  functions against the six fixture files or hand-built screens/maps. `replies/build-*.txt` show
+│ +  only the builder/tester's own local shell-approval prompts (unrelated python/bb commands),
+│ +  never a `herdr agent send-keys`/`prompt` invocation or `bb crew-bridge`/`crew-status`. The
+│ +  running `bb scripts/crew_bridge.clj` / `crew_status.clj` processes (`ps aux`) started 09:29,
+│ +  two minutes before this round's `spec` step (09:31) and state/bridge.edn's mtime trails them
+│ +  continuously — these are Hal's pre-existing live processes, not something a crew member in
+│ +  this round started.
+│ +- `replies/review-le-critique.txt` is a terminal capture of this very reviewing session (its own
+│ +  tool-call list matches mine turn for turn) — not independent corroboration; excluded from the
+│ +  above, which was verified directly against the diff/spec.
+│ +
+│ +Hand-traced a sample of the 50 test cases against the implementation (not just "tests pass"):
+│ +t20-t24 (`pm.crew-log` validity/append/for-member/hold edge cases, including the tie-break and
+│ +cap-rotation math), t26 (validate precedence), t45 (the `since − 5000` boundary in
+│ +`mark-answered`) all match the code's actual branches, not just the expected literal.
+│ +
+│ +Names used throughout (tests and fixtures) are all real roster members
+│ +(`le-testeur`, `un-automate-monde`, `un-architecte`, `le-critique`, `hal`) — nothing invented.
+│ +
+│ +## Findings
+│ +
+│ +1. `.crew/quests/crew-talk-v1.md` and `spec.md` §1 assign le-docteur one short GDD paragraph
+│ +   under the Talk verb's row; `docs/GDD.md` is untouched (no diff, mtime 2026-10-31, predates
+│ +   this round) and `log.md` shows no `docs` step ever ran this round (only `spec`/`build`/
+│ +   `gate`/`review`). Not a security gap, but a missed deliverable from spec §1 — the manager
+│ +   should dispatch le-docteur for that paragraph before calling the round done, or explicitly
+│ +   defer it.
+│ +
+│ … omitted 3 diff line(s) across 1 additional file(s)/section(s)
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/crew-talk-v1-20261108-0931/review.md — 1 finding (docs/GDD.md paragraph never done; no docs step ran this round). Security pass (validate order, fail-closed token/origin, hold scope, two-poll rule, no token/raw-screen leakage) all checked out against spec on hand-inspection; gate re-verified independently (PASS, 0 warnings, 583 tests/3232 assertions).
+
+done-5681
+────────────────────────────────────────
+
+─ 3m42s · edited 1 file · read 1 skill, 11 files · ran 15 commands · searched 4 paths · 10:05 AM
+──── Security review of crew-talk-v1 round ─
+crew ❯ What changed in this repo recently?
+ ☤ claude-sonnet-5 · 41m · …ridian (main)

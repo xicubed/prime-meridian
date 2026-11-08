@@ -17,6 +17,13 @@
 (def ^:private option-re #"^(❯\s*)?1\.\s+Yes\b")
 (def ^:private rule-re #"^╌{3,}$")
 
+(def ^:private question-re #"^Do you want to .+\?$")
+(def ^:private numbered-re #"^(?:❯\s*)?(\d{1,2})\.\s+\S.*$")
+(def ^:private footer-re   #"^Esc to cancel\b.*$")
+(def ^:private context-stop-re #"^[─╌]{3,}$")
+
+(def confirm-ms 2000)
+
 (defn- strip-line [line]
   (let [t (str/trimr line)
         side (re-matches box-side-re t)]
@@ -111,3 +118,78 @@
                  [k (assoc v :prompt (prompt-of (get screens k) repo))]
                  [k v])))
         agents))
+
+(defn- numbered-n [line]
+  (when-let [[_ n] (re-matches numbered-re line)]
+    #?(:clj (Long/parseLong n) :cljs (js/parseInt n 10))))
+
+(defn- dialog-info
+  "When screen ends in a real permission dialog: {:ls trimmed-lines :q
+   index-of-the-question-line}. Else nil."
+  [screen]
+  (when (string? screen)
+    (let [ls0 (mapv strip-line (str/split-lines screen))
+          ls  (loop [v ls0]
+                (if (and (seq v)
+                         (let [l (peek v)] (or (str/blank? l) (boolean (re-matches footer-re l)))))
+                  (recur (pop v))
+                  v))
+          q   (last (keep-indexed (fn [i l] (when (re-matches question-re l) i)) ls))]
+      (when q
+        (let [opts (subvec ls (inc q))
+              nums (keep numbered-n opts)]
+          (when (and (seq opts)
+                     (not-any? str/blank? opts)
+                     (= 1 (numbered-n (first opts)))
+                     (>= (count nums) 2)
+                     (= nums (vec (range 1 (inc (count nums))))))
+            {:ls ls :q q}))))))
+
+(defn prompt-screen? [screen]
+  (boolean (dialog-info screen)))
+
+(defn read-prompt [screen repo]
+  (when-let [{:keys [ls q]} (dialog-info screen)]
+    (let [p (prompt-of screen repo)]
+      (if (= :bash (:kind p))
+        p
+        (let [question-line (nth ls q)
+              ctx (loop [i (dec q) acc []]
+                    (if (or (< i 0) (= (count acc) 3))
+                      (vec (reverse acc))
+                      (let [l (nth ls i)]
+                        (if (or (str/blank? l) (re-matches context-stop-re l))
+                          (vec (reverse acc))
+                          (recur (dec i) (conj acc l))))))
+              t (str/join " · " (conj ctx question-line))]
+          {:id (prompt-id :unknown t) :kind :unknown :text (cap-text t) :risky true})))))
+
+(defn observe-prompts [agents screens repo seen now]
+  (reduce
+    (fn [acc [m v]]
+      (if (not= :blocked (:status v))
+        (update acc :agents assoc m v)
+        (let [scr (get screens m)]
+          (if-not (string? scr)
+            (update acc :agents assoc m v)
+            (let [p (read-prompt scr repo)]
+              (if (nil? p)
+                (update acc :agents assoc m {:status :working})
+                (let [s (get seen m)]
+                  (cond
+                    (and s (= (:id s) (:id p)) (>= (- now (:at s)) confirm-ms))
+                    (-> acc
+                        (update :agents assoc m {:status :blocked :prompt (assoc p :since (:at s))})
+                        (update :seen assoc m s))
+
+                    (and s (= (:id s) (:id p)))
+                    (-> acc
+                        (update :agents assoc m {:status :working})
+                        (update :seen assoc m s))
+
+                    :else
+                    (-> acc
+                        (update :agents assoc m {:status :working})
+                        (update :seen assoc m {:id (:id p) :at now}))))))))))
+    {:agents {} :seen {}}
+    agents))

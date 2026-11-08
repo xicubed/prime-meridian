@@ -102,7 +102,7 @@
         ^js time-span (js/document.createElement "span")
         ^js row       (js/document.createElement "div")
         ^js text-span (js/document.createElement "span")]
-    (set! (.-className li) "crew")
+    (set! (.-className li) (str "crew" (when (= :crew-log (:kind entry)) " quiet")))
     (set! (.-className time-span) "time")
     (set! (.-textContent time-span) (talk/clock-text (:at entry) (offset-of (:at entry))))
     (set! (.-className row) "row")
@@ -139,7 +139,7 @@
         (set! (.-textContent hint) (:hint controls))
         (.appendChild li hint)))))
 
-(defn render-panel! [entries offset-of label-of on-pick on-check keep-scroll? crew]
+(defn render-panel! [entries offset-of label-of on-pick on-check keep-scroll? crew gone?]
   (when-let [^js list-el (el "talk-list")]
     (let [^js panel      (el "talk-panel")
           focused-n      (focused-checkbox-n)
@@ -154,6 +154,8 @@
             (talk/box? entry) (render-chore-row! li entry offset-of label-of on-check)
             (contains? talk/crew-kinds (:kind entry)) (render-crew-row! li entry offset-of crew)
             :else (render-say-row! li entry offset-of on-pick))
+          (when (and (fn? gone?) (gone? entry))
+            (.add (.-classList li) "gone"))
           (.appendChild list-el li)))
       (when focused-n
         (when-let [^js refocus (.querySelector list-el (str "input[data-n=\"" focused-n "\"]"))]
@@ -168,8 +170,9 @@
 (defn render-roster!
   "Fills #crew-roster with one row per member: its dot, the title, and a
    say… input enabled only when :say?. Enter calls (on-say member who
-   value). A re-render keeps a typed value too."
-  [rows on-say]
+   value). Tapping the name calls (on-expand member); an expanded row lists
+   its recent log entries underneath. A re-render keeps a typed value too."
+  [rows on-say on-expand offset-of]
   (when-let [^js root (el "crew-roster")]
     (let [^js active    (.-activeElement js/document)
           focused-m     (when (and active (= "INPUT" (.-tagName active)))
@@ -184,7 +187,10 @@
               ^js inp   (js/document.createElement "input")]
           (set! (.-className r) "row")
           (set! (.-textContent glyph) (if (= :unknown (:status row)) "○" "●"))
+          (set! (.-className who) "who")
           (set! (.-textContent who) (:who row))
+          (set! (.. who -style -cursor) "pointer")
+          (.addEventListener who "click" (fn [_] (on-expand (:member row))))
           (set! (.-type inp) "text")
           (.setAttribute inp "placeholder" "say…")
           (.setAttribute inp "data-member" (name (:member row)))
@@ -196,11 +202,28 @@
           (.appendChild r glyph)
           (.appendChild r who)
           (.appendChild r inp)
-          (.appendChild root r)))
+          (.appendChild root r)
+          (when (:expanded? row)
+            (let [^js sub (js/document.createElement "div")]
+              (set! (.-className sub) "roster-log")
+              (doseq [x (:log row)]
+                (let [^js p (js/document.createElement "div")]
+                  (set! (.-textContent p) (talk/log-label x (offset-of (:at x))))
+                  (.appendChild sub p)))
+              (.appendChild root sub)))))
       (when focused-m
         (when-let [^js refocus (.querySelector root (str "input[data-member=\"" focused-m "\"]"))]
           (when focused-value (set! (.-value refocus) focused-value))
           (.focus refocus))))))
+
+(defn render-hold-switch!
+  "Draws the 'I'll answer' switch from (talk/hold-switch ...)'s result."
+  [sw]
+  (when-let [^js cb (el "hold-toggle")]
+    (set! (.-checked cb) (boolean (:checked? sw)))
+    (set! (.-disabled cb) (boolean (:disabled? sw))))
+  (when-let [^js hint (el "hold-hint")]
+    (set! (.-textContent hint) (or (:hint sw) ""))))
 
 (defn set-panel-open! [open?]
   (when-let [^js panel (el "talk-panel")]

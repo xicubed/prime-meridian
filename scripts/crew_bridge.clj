@@ -17,13 +17,16 @@
          '[clojure.java.io :as io]
          '[clojure.string :as str]
          '[pm.bridge :as b]
-         '[pm.prompt :as pr])
+         '[pm.prompt :as pr]
+         '[pm.crew-log :as cl])
 
 (import '[java.security SecureRandom]
         '[java.time Instant])
 
 (def herdr (or (System/getenv "HERDR") "herdr"))
 (def bridge-file "state/bridge.edn")
+(def hold-file "state/hold.edn")
+(def crew-log-file "state/crew-log.edn")
 (def log-file "crew/bridge.log")
 (def crew-json-file ".crew/crew.json")
 (def rewrite-ms 5000)
@@ -50,6 +53,15 @@
 (defn- delete-bridge-file! []
   (try (.delete (io/file bridge-file)) (catch Exception _)))
 
+(defn- write-edn! [path data]
+  (try
+    (let [f   (io/file path)
+          tmp (io/file (str path ".tmp"))]
+      (io/make-parents f)
+      (spit tmp (pr-str data))
+      (.renameTo tmp f))
+    (catch Exception _ false)))
+
 (defn- crew-json []
   (try (json/parse-string (slurp crew-json-file) true) (catch Exception _ nil)))
 
@@ -69,7 +81,20 @@
     {:status status
      :prompt (when (= status :blocked)
                (let [{:keys [exit out]} (p/sh (b/step-argv herdr member [:read]))]
-                 (when (zero? exit) (pr/prompt-of out (repo-path)))))}))
+                 (when (zero? exit) (pr/read-prompt out (repo-path)))))}))
+
+(defn- append-crew-log!
+  "Appends an allow/deny outcome to state/crew-log.edn. A failure is logged
+   and never changes the bridge's reply."
+  [member action prompt]
+  (try
+    (let [cur  (cl/parse (try (slurp crew-log-file) (catch Exception _ nil)))
+          e    (cl/entry (System/currentTimeMillis) member action :michael prompt)
+          log' (cl/append cur e)]
+      (when-not (write-edn! crew-log-file log')
+        (throw (ex-info "write failed" {}))))
+    (catch Exception ex
+      (log! member action nil (str "crew-log not saved: " (.getMessage ex))))))
 
 (defn- run-decided!
   "Runs decision's steps in order against member. A failed :wait-idle skips
@@ -123,18 +148,30 @@
                 (let [r (b/reply v origin)]
                   (log! (member-from-uri (:uri req)) (get body "action") (:status r) (:reason v))
                   {:status (:status r) :headers (:headers r) :body (json/generate-string (:body r))})
-                (let [live     (live-for (:member v))
-                      decision (b/decide v live)]
-                  (if-not (:ok decision)
-                    (let [r (b/reply decision origin)]
-                      (log! (:member v) (:action v) (:status r) (:reason decision))
-                      {:status (:status r) :headers (:headers r) :body (json/generate-string (:body r))})
-                    (let [ran    (run-decided! (:member v) decision)
-                          reason (if (:ok ran) (:reason decision) (:reason ran))
-                          final  (if (:ok ran) decision ran)
-                          r      (b/reply (assoc final :reason reason) origin)]
-                      (log! (:member v) (:action v) (:status r) reason)
-                      {:status (:status r) :headers (:headers r) :body (json/generate-string (:body r))})))))))))))
+                (if (= :hold (:action v))
+                  (if (write-edn! hold-file (cl/hold-edn (:on v) (System/currentTimeMillis)))
+                    (let [result (if (:on v) "on" "off")]
+                      (log! nil :hold 200 result)
+                      {:status 200 :headers (merge {"Content-Type" "application/json"} (b/cors-headers origin))
+                       :body (json/generate-string {"ok" true "result" result})})
+                    (do
+                      (log! nil :hold 500 "hold not saved")
+                      {:status 500 :headers (merge {"Content-Type" "application/json"} (b/cors-headers origin))
+                       :body (json/generate-string {"ok" false "reason" "hold not saved"})}))
+                  (let [live     (live-for (:member v))
+                        decision (b/decide v live)]
+                    (if-not (:ok decision)
+                      (let [r (b/reply decision origin)]
+                        (log! (:member v) (:action v) (:status r) (:reason decision))
+                        {:status (:status r) :headers (:headers r) :body (json/generate-string (:body r))})
+                      (let [ran    (run-decided! (:member v) decision)
+                            reason (if (:ok ran) (:reason decision) (:reason ran))
+                            final  (if (:ok ran) decision ran)
+                            r      (b/reply (assoc final :reason reason) origin)]
+                        (log! (:member v) (:action v) (:status r) reason)
+                        (when (and (:ok ran) (contains? #{:allow :deny} (:action v)))
+                          (append-crew-log! (:member v) (if (= :allow (:action v)) :allowed :declined) (:prompt live)))
+                        {:status (:status r) :headers (:headers r) :body (json/generate-string (:body r))}))))))))))))
 
 (defn -main [& _]
   (let [token (random-token)]

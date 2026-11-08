@@ -1,0 +1,27 @@
+  ⎿  $ cd /Users/hal/src/prime-meridian/.crew
+     /quests/crew-talk-v1/screens && for f in
+     *.txt; do echo "=== $f"; cat -A "$f" |
+     head -60; done
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Show fixture screens with control
+ characters visible
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ cd /Users/hal/src/prime-meridian/.crew/qu
+ │ ests/crew-talk-v1/screens && for f in
+ │ *.txt; do echo "=== $f"; cat -A "$f" |
+ │ head -60; done
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ A variable in this command can't be checked
+ before it runs
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
