@@ -1,6 +1,6 @@
 (ns pm.crew
   "Pure rules for the Herdr crew-status dot and bridge: parsing
-   public/state/crew.edn and public/state/bridge.edn, freshness, a dot per
+   state/crew.edn and state/bridge.edn, freshness, a dot per
    agent, label runs/text, HUD text, and the pulse. No js/Date, no fetch, no
    atoms — `now` is always an argument, in ms."
   (:require [cljs.reader :as reader]

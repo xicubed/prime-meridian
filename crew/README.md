@@ -125,7 +125,8 @@ cd ~/src/prime-meridian
 
    crew-up also starts the crew's **services** from `.crew/crew.json`: today
    `bb crew-status`, which writes each member's Herdr state to the gitignored
-   `public/state/crew.edn`, so the coloured dots over the walkers on the
+   `state/crew.edn`, and `bb crew-bridge`, which carries your 💭 allow / no / reply
+   to Herdr (127.0.0.1 only), so the coloured dots over the walkers on the
    estate stay live (it runs in the crew workspace's `services` tab).
 
 3. **Run a round** (Hal normally does this, and answers the members'

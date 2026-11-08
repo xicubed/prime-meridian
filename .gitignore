@@ -23,6 +23,8 @@ assets/private/
 .claude/settings.local.json
 /public/kit/
 /public/state/
+# real state, crew status and the bridge token, served by pm.dev-http (not public/: shadow sends ACAO *)
+/state/
 
 # the crew bridge's request log (local)
 /crew/bridge.log

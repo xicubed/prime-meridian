@@ -16,9 +16,10 @@ npm install
 npx shadow-cljs watch app     # http://localhost:8080
 ```
 
-The game also reads a twin's state file at `public/state/mirrors.edn` (served as
-`/state/mirrors.edn`). That file is private, gitignored, and never committed; without it,
-every mirror just runs on its sample state. To try it: `mkdir -p public/state`, then save
+The game also reads a twin's state file at `state/mirrors.edn` (served as
+`/state/mirrors.edn`, same-origin only, by `pm.dev-http`; it lives outside `public/` because
+shadow-cljs lets any origin read what it serves from there). That file is private, gitignored, and never committed; without it,
+every mirror just runs on its sample state. To try it: `mkdir -p state`, then save
 an example like Flora's there, and the HUD line changes from `Flora (sample) · stock 15`
 to `Flora (Hal) · stock 37`. The game re-reads the file every 5 s and applies it whenever
 its `:as-of` changes, and it can only update fields a mirror already has — it can't add

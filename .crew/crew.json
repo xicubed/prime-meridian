@@ -251,12 +251,12 @@
     {
       "name": "crew-status",
       "cmd": "bb crew-status",
-      "note": "Herdr states → public/state/crew.edn for the game's status dots"
+      "note": "Herdr states → state/crew.edn for the game's status dots"
     },
     {
       "name": "crew-bridge",
       "cmd": "bb crew-bridge",
-      "note": "127.0.0.1:8091: the game's 💭 allow / no / reply → herdr (token in public/state/bridge.edn)"
+      "note": "127.0.0.1:8091: the game's 💭 allow / no / reply → herdr (token in state/bridge.edn)"
     }
   ]
 }

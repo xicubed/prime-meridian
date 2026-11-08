@@ -1,7 +1,7 @@
 #!/usr/bin/env bb
 ;; Local bridge for the game's 💭: a tiny HTTP server on 127.0.0.1:8091 that turns an
 ;; allow/deny/say click in the browser into a Herdr send-keys/prompt against a crew member.
-;; Writes public/state/bridge.edn {:port :token :as-of}, rewritten every 5 s, deleted on
+;; Writes state/bridge.edn {:port :token :as-of}, rewritten every 5 s, deleted on
 ;; shutdown. Only the game at http://localhost:8080, with that token, can reach it.
 ;;
 ;;   bb crew-bridge
@@ -23,7 +23,7 @@
         '[java.time Instant])
 
 (def herdr (or (System/getenv "HERDR") "herdr"))
-(def bridge-file "public/state/bridge.edn")
+(def bridge-file "state/bridge.edn")
 (def log-file "crew/bridge.log")
 (def crew-json-file ".crew/crew.json")
 (def rewrite-ms 5000)

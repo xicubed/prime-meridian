@@ -1,7 +1,7 @@
 #!/usr/bin/env bb
 ;; Crew status for the game: ask Herdr for every agent's lifecycle state, and for a
 ;; blocked member also read its screen and parse its permission prompt, then write it all
-;; to public/state/crew.edn (gitignored, like Hal's mirrors.edn), which the game polls.
+;; to state/crew.edn (gitignored, outside public/, served by pm.dev-http; like Hal's mirrors.edn), which the game polls.
 ;;
 ;;   bb crew-status          # every 2 s until stopped
 ;;   bb crew-status --once   # one write
@@ -18,7 +18,7 @@
          '[pm.bridge :as b]
          '[pm.prompt :as pr])
 
-(def out-file "public/state/crew.edn")
+(def out-file "state/crew.edn")
 (def crew-json-file ".crew/crew.json")
 (def every-ms 2000)
 (def herdr (or (System/getenv "HERDR") "herdr"))

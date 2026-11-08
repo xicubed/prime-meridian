@@ -1,6 +1,9 @@
 {:source-paths ["src" "test" "resources"]
  :dependencies []
- :dev-http {8080 {:root "public" :host "localhost"}}   ; this Mac only: public/state holds real state, crew prompts, the bridge token
+ :dev-http {8080 {:root "public" :host "localhost"   ; this Mac only
+                  ;; /state/* (real state, crew prompts, the bridge token) comes from state/, same-origin
+                  ;; only, via pm.dev-http: shadow sends Access-Control-Allow-Origin: * on public/.
+                  :handler pm.dev-http/handle}}
  :builds
  {:app {:target :browser
         :output-dir "public/js"
