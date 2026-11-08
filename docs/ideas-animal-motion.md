@@ -68,5 +68,55 @@ twitching at random. That alone is a foal that can't stand, and it shows whether
 works in our world (ground contact on the kit's terrain, stability, cost per frame) before any
 training.
 
+### Nov 8: the method, the tools, and a creature pipeline
+
+Michael found NVIDIA's walkthrough of training a robot dog to walk
+([Isaac Lab + Newton](https://developer.nvidia.com/blog/train-a-quadruped-locomotion-policy-and-simulate-cloth-manipulation-with-nvidia-isaac-lab-and-newton/)):
+it is this plan. What it adds:
+
+- **Train → Sim2Sim → deploy.** Their robot's policy must still walk in a second physics engine
+  before it goes on hardware. Ours "deploys" to the browser, so train and run in the same physics
+  family: **MuJoCo Warp** on the GPU box, **MuJoCo's WebAssembly build** in the game (same model
+  file, same contact model). That argues for MuJoCo over Rapier for animals; Rapier can still do
+  the people's ragdolls (M-4).
+- **Only what the body can feel:** their policy sees only the robot's own sensors. Juniper's
+  policy likewise sees only his own body (joint angles, tilt, foot contact), which fits
+  per-walker perception becoming personality.
+- **Tools (checked Nov 8):** Isaac Lab's Newton backend is still an experimental branch; Newton
+  itself is stable (1.6.1). **MuJoCo Playground 1.0** (Google DeepMind; MuJoCo Warp + rsl_rl PPO
+  on PyTorch) is the light option, but 1.0 dropped the Go1/Spot quadruped tasks, so Juniper's
+  environment is ours to write on its base. The trained network is a small MLP exported to ONNX;
+  the game already runs onnxruntime-web for MotionBricks.
+
+Prior work: Red Dead Redemption's horses are motion capture of real horses (a stunt horse,
+separate sets with and without a rider) blended and IK'd on terrain, with physics only for
+reactions: the look to aim for, not the method. Learned animals: DeepMimic (Peng 2018) and
+"Learning Agile Robotic Locomotion Skills by Imitating Animals" (Peng 2020, dog mocap → robot);
+DeepMind's dm_control **dog**, virtual rodent and flybody (whole animals in MuJoCo);
+AI4Animation's mode-adaptive dog (Zhang, Starke et al. 2018, kinematic); **kine2go** (2026:
+retargets horse and dog mocap onto a quadruped and trains imitation PPO, almost our pipeline).
+Horse motion data for the imitation stage: the Vienna Horse Data Collection (walk/trot, CC BY-SA:
+credit, share derived data alike) and PFERD (Max Planck, 5 horses, 100+ markers, walk to rearing
+and kicking; licence not checked yet). For animals with no mocap (Michael's example: a player's
+pet lobster), a coding agent can draft the reference motion (MimicAgent, 2026).
+
+**A creature pipeline, not a horse script** (Michael: "someday someone has a pet lobster"):
+everyone's game, so a species is data and the pipeline is part of the game.
+
+1. A species file (`resources/creatures/<kind>.edn`): body segments and joints, motion method,
+   rewards. A new pet is a new file. The player's twin drafts it once from words ("a lobster"),
+   the player approves it like a blueprint (compiled once, never interpreted per frame).
+2. The motion method per species, behind the one motion-controller interface: procedural
+   (Flora's spine; a lobster's ten legs on a rhythm generator), learned (physics RL, for animals
+   that can fall over: Juniper), or clips.
+3. Training is a job for whichever machine has a GPU (`creatures/`, a `uv` Python project; a
+   `bb creature train <kind>` task on the Mac ships the species there and copies back the body +
+   `policy.onnx`). Players without a GPU get pre-trained species from a shared library.
+4. Two species from day one: horse, and a dog (checked against dm_control's dog).
+
+Order: GPU smoke test on the box (`creatures/smoke.py`) → MuJoCo WebAssembly capsule pony in the
+browser (the no-brain spike above) → the species file + our env → train the foal, checkpoints by
+age → imitation stage on horse data.
+
 Related: M-3 (riding Juniper) needs him walking first; M-4 (Rapier ragdolls) shares the physics
 engine; M-5 (bump and recover) shares the "physics reacts, motion recovers" pattern.

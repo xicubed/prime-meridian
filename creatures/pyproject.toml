@@ -1,0 +1,11 @@
+[project]
+name = "pm-creatures"
+version = "0.1.0"
+description = "Prime Meridian creature pipeline: trains a species' walking policy on a GPU box and exports it for the game"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+  "playground[rl]==1.0.0",   # MuJoCo Playground 1.0: MuJoCo Warp physics + rsl_rl PPO (PyTorch)
+]
+
+[tool.uv]
+package = false
