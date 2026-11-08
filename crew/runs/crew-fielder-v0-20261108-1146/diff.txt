@@ -1,0 +1,848 @@
+diff --git a/bb.edn b/bb.edn
+index a5e2af3..8893a03 100644
+--- a/bb.edn
++++ b/bb.edn
+@@ -4,5 +4,7 @@
+                :task (apply shell "bb" "scripts/crew_status.clj" *command-line-args*)}
+   crew-bridge {:doc  "Local bridge for the game's 💭: allow / no / reply to crew prompts (127.0.0.1:8091)"
+                :task (apply shell "bb" "scripts/crew_bridge.clj" *command-line-args*)}
++  crew-fielder {:doc  "The twin's automatic half: answers routine crew prompts after :answer-after-s; holds while state/hold.edn is on: bb crew-fielder [--dry-run]"
++                :task (apply shell "bb" "scripts/crew_fielder.clj" *command-line-args*)}
+   content {:doc  "Generate game content from the GDD: bb content <request>|all [--dry-run]"
+            :task (apply shell "bb" "content/pipeline.clj" *command-line-args*)}}}
+diff --git a/crew/README.md b/crew/README.md
+index 626e211..779d222 100644
+--- a/crew/README.md
++++ b/crew/README.md
+@@ -126,11 +126,15 @@ cd ~/src/prime-meridian
+    crew-up also starts the crew's **services** from `.crew/crew.json`: today
+    `bb crew-status`, which writes each member's Herdr state to the gitignored
+    `state/crew.edn`, and `bb crew-bridge`, which carries your 💭 allow / no / reply
+-   to Herdr (127.0.0.1 only), so the coloured dots over the walkers on the
+-   estate stay live (it runs in the crew workspace's `services` tab).
+-
+-3. **Run a round** (Hal normally does this, and answers the members'
+-   permission prompts):
++   to Herdr (127.0.0.1 only), and `bb crew-fielder`, the twin's automatic half,
++   which answers routine prompts after 5 s (never risky or unreadable ones,
++   and nothing while 💭's "I'll answer" is on) and logs to `crew/fielder.log`,
++   so the coloured dots over the walkers on the estate stay live (it runs in
++   the crew workspace's `services` tab).
++
++3. **Run a round** (Hal normally does this; with `bb crew-fielder` running,
++   rounds use `"onBlocked": "wait"` and the fielder answers the routine
++   prompts):
+ 
+ ```bash
+ ~/src/crew-up/plugins/crew-up/bin/crew-round .crew/rounds/feed-flora.json
+diff --git a/docs/GDD.md b/docs/GDD.md
+index 42b4d27..2f46a12 100644
+--- a/docs/GDD.md
++++ b/docs/GDD.md
+@@ -78,7 +78,7 @@
+ | **Mark a chore done** | Reply "fed" to the reminder text, click the canal, tap an NFC sticker on the tank, or tell Hal. Every channel sends the same `chore-done` event. Only one counts per due window (the chore's `:every` defines it), so a text and a click don't drop two worms; texts count only from known senders; restocking is a manual event in v1. |
+ | **Do it yourself** | You can always do the work directly (edit a rock in Blender and drop it in; the world hot-reloads it). It's allowed, just not the main way to play. |
+ 
+-**Talk and permission prompts.** Hal fields the crew's permission prompts by default, answering routine read-only and test ones himself; 💭 shows these as quiet log lines. Michael sees prompts that are risky, unreadable, or overdue (unanswered after 60 s), flagged with a red badge. Flipping the "I'll answer" switch in 💭 hands every prompt to Michael, and Hal holds off.
++**Talk and permission prompts.** Your twin (Hal, for the author) fields the crew's permission prompts by default. Its automatic half, the fielder (`bb crew-fielder`, a crew-up service), answers routine ones after a short wait (5 s, `:answer-after-s` in `:crew-talk`): a plain shell command that the game's one risk classifier calls safe, and that is still on screen when the fielder looks again. 💭 shows these as quiet log lines under your twin's name. You see prompts that are risky, unreadable, or overdue (unanswered after 60 s), flagged with a red badge; the fielder never answers those, and never declines anything. Flipping the "I'll answer" switch in 💭 hands every prompt to you, and your twin holds off. The answer log records roles, not names (`:by :twin`, `:by :player`), and the names come from `:jumeaux`, so the same game works for any player and any twin.
+ 
+ **The game never adds work.** Every action above is either the real action (answering a real question, marking a real chore, approving a real change) or optional. Nothing exists only to keep you busy: no pet that needs feeding but isn't real, no login rewards, no streaks. The agents work the same with the game closed, and anything the game asks you can also be answered where you already are (a text, your editor). A developer who never opens the estate loses only the view.
+ 
+diff --git a/resources/estate.edn b/resources/estate.edn
+index 42c34ed..1002fb0 100644
+--- a/resources/estate.edn
++++ b/resources/estate.edn
+@@ -1,5 +1,8 @@
+ {:hud {:mirrors [:flora]}                 ; mirrors whose status-line goes on the HUD, in order
+- :crew-talk {:surface-after-s 60}   ; a prompt Hal hasn't answered after this long goes to Michael
++ :jumeaux {:player {:name "Michael" :sex :m}   ; les jumeaux: the player and their twin; onboarding asks (TASKS O-1)
++           :twin   {:name "Hal"}}              ; the twin's word follows the player's :sex (:m jumeau, :f jumelle)
++ :crew-talk {:surface-after-s 60   ; a prompt the twin hasn't answered after this long goes to the player
++             :answer-after-s 5}    ; bb crew-fielder waits this long, then answers a routine prompt
+  :voices {:hal      {:rate 1.0 :pitch 0.9 :lang "en-US"}   ; Hal: even, a little low
+           :creature {:rate 1.1 :pitch 1.6 :lang "en-US"}}  ; creatures: higher, quicker
+  ;; Sounds placed in the world. Each point is an emitter [x y z gain] in the
+diff --git a/scripts/crew_bridge.clj b/scripts/crew_bridge.clj
+index 74f1c2c..67fb954 100644
+--- a/scripts/crew_bridge.clj
++++ b/scripts/crew_bridge.clj
+@@ -89,7 +89,7 @@
+   [member action prompt]
+   (try
+     (let [cur  (cl/parse (try (slurp crew-log-file) (catch Exception _ nil)))
+-          e    (cl/entry (System/currentTimeMillis) member action :michael prompt)
++          e    (cl/entry (System/currentTimeMillis) member action :player prompt)
+           log' (cl/append cur e)]
+       (when-not (write-edn! crew-log-file log')
+         (throw (ex-info "write failed" {}))))
+diff --git a/scripts/crew_status.clj b/scripts/crew_status.clj
+index 31d14ae..f6cdb4d 100644
+--- a/scripts/crew_status.clj
++++ b/scripts/crew_status.clj
+@@ -1,7 +1,7 @@
+ #!/usr/bin/env bb
+ ;; Crew status for the game: ask Herdr for every agent's lifecycle state, and for a
+ ;; blocked member also read its screen and parse its permission prompt, then write it all
+-;; to state/crew.edn (gitignored, outside public/, served by pm.dev-http; like Hal's mirrors.edn), which the game polls.
++;; to state/crew.edn (gitignored, outside public/, served by pm.dev-http; like the twin's mirrors.edn), which the game polls.
+ ;;
+ ;;   bb crew-status          # every 2 s until stopped
+ ;;   bb crew-status --once   # one write
+diff --git a/src/pm/bridge.cljc b/src/pm/bridge.cljc
+index 8a308ee..2451de6 100644
+--- a/src/pm/bridge.cljc
++++ b/src/pm/bridge.cljc
+@@ -150,7 +150,7 @@
+         (not= status :blocked) {:ok false :status 409 :reason "not blocked"}
+         (or (nil? prompt) (not= (:id prompt) prompt-id)) {:ok false :status 409 :reason "prompt changed"}
+         (not= (:kind prompt) :bash) {:ok false :status 403 :reason "unknown prompt"}
+-        (:risky prompt) {:ok false :status 403 :reason "risky: Hal reviews this one"}
++        (:risky prompt) {:ok false :status 403 :reason "risky: your twin reviews this one"}
+         :else {:ok true :steps [[:keys "1"]] :reason "allowed"})
+ 
+       :deny
+diff --git a/src/pm/content.cljs b/src/pm/content.cljs
+index 68e6636..63f3239 100644
+--- a/src/pm/content.cljs
++++ b/src/pm/content.cljs
+@@ -3,7 +3,8 @@
+    no atoms, no js/Date. Never names a mirror."
+   (:require [cljs.reader :as reader]
+             [clojure.string :as str]
+-            [shadow.resource :as rc]))
++            [shadow.resource :as rc]
++            [pm.jumeaux :as j]))
+ 
+ (defn parse [text]
+   (when (string? text)
+@@ -15,7 +16,7 @@
+ (def sample-inbox (parse (rc/inline "content/sample-inbox.edn")))
+ 
+ (def hal-events
+-  "The Hal events the game uses -> the placeholders each fills."
++  "The twin's events the game uses -> the placeholders each fills."
+   {:jack-in       #{}
+    :chore-done    #{:name :chore}
+    :chore-not-due #{:name :chore :last-at :next-at}
+@@ -111,7 +112,7 @@
+ 
+ (defn hal-segment [world now]
+   (when-let [t (hal-text world now)]
+-    (str "Hal: " t)))
++    (str (j/twin (j/names world)) ": " t)))
+ 
+ (defn mail-counts [inbox]
+   (if-not (and (map? inbox) (sequential? (:messages inbox)))
+diff --git a/src/pm/core.cljs b/src/pm/core.cljs
+index f4b01cf..6477033 100644
+--- a/src/pm/core.cljs
++++ b/src/pm/core.cljs
+@@ -12,6 +12,7 @@
+             [pm.content :as content]
+             [pm.crew :as crew]
+             [pm.crew-log :as cl]
++            [pm.jumeaux :as j]
+             [pm.kit :as kit]
+             [pm.motion :as m]
+             [pm.overlay :as overlay]
+@@ -41,7 +42,7 @@
+                    (let [before (:state-as-of @!world)]
+                      (swap! !world overlay/apply-file f)
+                      (when (not= before (:state-as-of @!world))
+-                       (js/console.info "Prime Meridian: state from Hal as of" (:state-as-of @!world)))))))
++                       (js/console.info "Prime Meridian: state from your twin as of" (:state-as-of @!world)))))))
+         (.catch (fn [_]))
+         (.finally (fn [] (swap! !state-poll assoc :busy? false))))))
+ 
+@@ -190,8 +191,8 @@
+ 
+ (defn- fresh-start!
+   "Testing aid: `?fresh` in the URL forgets the talk history and what was done
+-   to sample creatures in this browser. Hal's state (and its cache) and the
+-   voice setting are kept."
++   to sample creatures in this browser. The twin's state (and its cache) and
++   the voice setting are kept."
+   []
+   (when (.has (js/URLSearchParams. (.-search js/location)) "fresh")
+     (try (.removeItem js/localStorage talk-key)
+@@ -355,11 +356,12 @@
+   (talk/gone? entry (:crew @!world) (js/Date.now)))
+ 
+ (defn- talk-tick! [now]
+-  (let [t  (:talk @!world)
++  (let [jum (j/names @!world)
++        t  (:talk @!world)
+         t' (-> t
+                (talk/observe @!world now)
+                (talk/observe-crew (:crew @!world) now (talk/policy (:crew-talk @!world) (:hold @!world)))
+-               (talk/observe-log (:crew-log @!world) (:crew @!world) now))]
++               (talk/observe-log (:crew-log @!world) (:crew @!world) now jum))]
+     (when-not (identical? t' t)
+       (swap! !world assoc :talk t'))
+     (let [e (talk/caption t' now)]
+@@ -385,14 +387,14 @@
+         (when-not (and (identical? (:entries t') (:listed @!talk-ui)) (= bridge-on (:listed-bridge @!talk-ui)))
+           (let [keep-scroll? (= (:n t') (:listed-n @!talk-ui))]
+             (ui/render-panel! (:entries t') offset-of label-of pick! on-check keep-scroll?
+-                               {:bridge-on? bridge-on :on-allow on-allow :on-deny on-deny} gone-fn)
++                               {:bridge-on? bridge-on :on-allow on-allow :on-deny on-deny :jumeaux jum} gone-fn)
+             (swap! !talk-ui assoc :listed (:entries t') :listed-n (:n t') :listed-bridge bridge-on)))
+         (swap! !talk-ui assoc :listed nil :listed-n nil :listed-bridge nil)))
+     (let [rows (talk/crew-roster (:crew @!world) now (bridge-on?) (:crew-log @!world) (:expanded @!talk-ui))]
+       (when (not= rows (:roster @!talk-ui))
+-        (ui/render-roster! rows on-say on-expand offset-of)
++        (ui/render-roster! rows on-say on-expand offset-of jum)
+         (swap! !talk-ui assoc :roster rows)))
+-    (let [sw (talk/hold-switch (:hold @!world) (bridge-on?) @!hold-ui)]
++    (let [sw (talk/hold-switch (:hold @!world) (bridge-on?) @!hold-ui jum)]
+       (when (not= sw (:hold-sw @!talk-ui))
+         (ui/render-hold-switch! sw)
+         (swap! !talk-ui assoc :hold-sw sw)))))
+diff --git a/src/pm/crew_log.cljc b/src/pm/crew_log.cljc
+index 78e589f..e33f18f 100644
+--- a/src/pm/crew_log.cljc
++++ b/src/pm/crew_log.cljc
+@@ -8,7 +8,8 @@
+ (def max-entries 200)
+ (def max-text 400)
+ (def actions #{:allowed :declined})
+-(def bys #{:hal :michael})
++(def bys #{:twin :player})
++(def legacy-bys {:hal :twin :michael :player})
+ 
+ (def ^:private member-re #"^[a-z][a-z0-9_-]{0,31}$")
+ (def ^:private prompt-id-re #"^[0-9a-f]{40}$")
+@@ -18,6 +19,24 @@
+     #?(:clj (edn/read-string text) :cljs (reader/read-string text))
+     (catch #?(:clj Exception :cljs :default) _ nil)))
+ 
++(defn role
++  "The new :by key for by: itself when already :twin/:player, the
++   upgraded key for a legacy :hal/:michael, else nil."
++  [by]
++  (cond
++    (contains? bys by) by
++    (contains? legacy-bys by) (get legacy-bys by)
++    :else nil))
++
++(defn upgrade-entry
++  "e with a legacy :by key upgraded to :twin/:player. Anything else about
++   e, and e itself when it isn't a map, is returned unchanged."
++  [e]
++  (if (map? e)
++    (let [r (role (:by e))]
++      (if (some? r) (assoc e :by r) e))
++    e))
++
+ (defn valid-entry? [e]
+   (and (map? e)
+        (integer? (:at e)) (not (neg? (:at e)))
+@@ -32,6 +51,7 @@
+     (let [v (read-edn text)]
+       (when (vector? v)
+         (->> v
++             (map upgrade-entry)
+              (filter valid-entry?)
+              (mapv #(select-keys % [:at :member :action :by :prompt-id :text]))
+              (take-last max-entries)
+@@ -41,7 +61,8 @@
+   {:at now :member member :action action :by by :prompt-id (:id prompt) :text (:text prompt)})
+ 
+ (defn append [log e]
+-  (let [base (vec (filter valid-entry? (or log [])))]
++  (let [base (vec (filter valid-entry? (map upgrade-entry (or log []))))
++        e    (upgrade-entry e)]
+     (if-not (valid-entry? e)
+       base
+       (let [last-at (:at (peek base))
+diff --git a/src/pm/overlay.cljs b/src/pm/overlay.cljs
+index 6c1b8de..b9de999 100644
+--- a/src/pm/overlay.cljs
++++ b/src/pm/overlay.cljs
+@@ -1,9 +1,10 @@
+ (ns pm.overlay
+-  "Hal's twin state file, laid over the world. Pure: no js/fetch, no js/Date,
+-   no atoms. Never names a mirror; works from each mirror's own :state and
+-   :chores."
++  "The twin's state file, laid over the world. Pure: no js/fetch, no
++   js/Date, no atoms. Never names a mirror; works from each mirror's own
++   :state and :chores."
+   (:require [cljs.reader :as reader]
+-            [pm.world :as w]))
++            [pm.world :as w]
++            [pm.jumeaux :as j]))
+ 
+ (defn parse-file [text]
+   (when (string? text)
+@@ -86,9 +87,10 @@
+               world)))))))
+ 
+ (defn play-of
+-  "What the player did in the game to mirrors Hal doesn't keep (sample ones,
+-   e.g. a horse fed with a key): their state wherever it differs from the
+-   sample `estate`, so a reload doesn't undo it. nil when nothing differs."
++  "What the player did in the game to mirrors the twin doesn't keep
++   (sample ones, e.g. a horse fed with a key): their state wherever it
++   differs from the sample `estate`, so a reload doesn't undo it. nil when
++   nothing differs."
+   [world estate]
+   (let [ms (for [[id m] (:mirrors world)
+                  :when (not= :hal (get-in m [:state :source]))
+@@ -100,7 +102,8 @@
+ 
+ (defn apply-play
+   "Lay what `play-of` saved back over a freshly loaded world: same field
+-   rules as Hal's file, never over a mirror Hal keeps, never touching :source."
++   rules as the twin's file, never over a mirror the twin keeps, never
++   touching :source."
+   [world play]
+   (if-not (and (map? play) (map? (:mirrors play)))
+     world
+@@ -114,20 +117,18 @@
+             world (:mirrors play))))
+ 
+ (defn source-tag
+-  ([source]
++  ([source] (source-tag source nil nil))
++  ([source cached?] (source-tag source cached? nil))
++  ([source cached? jum]
+    (cond
+-     (= source :hal) "Hal"
++     (= source :hal) (if cached? (str (j/twin jum) ", cached") (j/twin jum))
+      (keyword? source) (name source)
+-     :else nil))
+-  ([source cached?]
+-   (if (and (= source :hal) cached?)
+-     "Hal, cached"
+-     (source-tag source))))
++     :else nil)))
+ 
+ (defn hud-line [world mirror-id now]
+   (when-let [line (w/status-line world mirror-id now)]
+     (let [source (get-in world [:mirrors mirror-id :state :source])
+-          tag    (source-tag source (:state-cached? world))]
++          tag    (source-tag source (:state-cached? world) (j/names world))]
+       (if (nil? tag)
+         line
+         (let [mirror    (get-in world [:mirrors mirror-id])
+diff --git a/src/pm/talk.cljs b/src/pm/talk.cljs
+index e1b5276..db40436 100644
+--- a/src/pm/talk.cljs
++++ b/src/pm/talk.cljs
+@@ -1,13 +1,13 @@
+ (ns pm.talk
+-  "The talk log: what Hal, the creatures and the crew said, captioned and
+-   spoken. Pure: no atoms, no js/Date, no DOM. Never names a mirror."
++  "The talk log: what the twin, the creatures and the crew said, captioned
++   and spoken. Pure: no atoms, no js/Date, no DOM. Never names a mirror."
+   (:require [cljs.reader :as reader]
+             [clojure.string :as str]
+             [pm.world :as w]
+             [pm.crew :as crew]
+-            [pm.crew-log :as cl]))
++            [pm.crew-log :as cl]
++            [pm.jumeaux :as j]))
+ 
+-(def hal-name "Hal")
+ (def crew-kinds #{:crew-prompt :crew-status :crew-say :crew-log})
+ (def prompt-states #{:pending :sending :allowed :declined :stale})
+ (def say-states #{:sending :sent :failed})
+@@ -23,12 +23,13 @@
+ (def default-voice {:rate 1 :pitch 1 :lang "en-US"})
+ 
+ (def quiet-ms
+-  "A reload is not a new visit: within this window Hal's greeting isn't
+-   logged again, and a speaker repeating its last line isn't logged twice."
++  "A reload is not a new visit: within this window the twin's greeting
++   isn't logged again, and a speaker repeating its last line isn't logged
++   twice."
+   (* 30 60 1000))
+ 
+ (def once-per-visit
+-  "Hal events said once per visit (see quiet-ms)."
++  "The twin's events said once per visit (see quiet-ms)."
+   #{:jack-in})
+ 
+ (def empty-talk
+@@ -177,7 +178,7 @@
+                                                       (and (nil? (:event e)) (= text (:text e))))))
+                                      (:entries talk))]
+                    (cond-> (assoc talk :last-hal [text until])
+-                     (not recent?) (append {:who hal-name :text text :kind :hal :event ev} now)))
++                     (not recent?) (append {:who (j/twin (j/names world)) :text text :kind :hal :event ev} now)))
+                  talk))]
+     (reduce
+       (fn [t id]
+@@ -347,16 +348,17 @@
+ 
+ (defn policy
+   "What the fielding rules look like right now: whether the 'I'll answer'
+-   switch is on, and how long Hal gets before a benign prompt surfaces."
++   switch is on, and how long the twin gets before a benign prompt
++   surfaces."
+   [crew-talk hold]
+   (let [n (:surface-after-s crew-talk)
+         n (if (and (number? n) (<= 0 n 3600)) n default-surface-after-s)]
+     {:hold? (cl/hold-on? hold) :surface-after-s n}))
+ 
+ (defn surfaced?
+-  "True when prompt should be shown to Michael under policy: hold is on,
+-   it's risky or unreadable, its age is unknown, or it's been waiting past
+-   :surface-after-s."
++  "True when prompt should be shown to the player under policy: hold is
++   on, it's risky or unreadable, its age is unknown, or it's been waiting
++   past :surface-after-s."
+   [prompt now policy]
+   (let [surface-s (let [n (:surface-after-s policy)]
+                      (if (and (number? n) (<= 0 n 3600)) n default-surface-after-s))]
+@@ -511,59 +513,66 @@
+ 
+ (defn observe-log
+   "talk, folding in new state/crew-log.edn entries: marks any matching
+-   surfaced prompt line as already answered, and logs a quiet line for each
+-   of Hal's recent answers. Identical to `talk` when there's nothing new."
+-  [talk log crew-state now]
+-  (let [talk   (or talk empty-talk)
+-        log-at (let [v (:log-at talk)] (if (integer? v) v 0))
+-        new    (when (sequential? log) (filter #(> (:at %) log-at) log))]
+-    (if (empty? new)
+-      talk
+-      (reduce
+-        (fn [t x]
+-          (let [t'  (update t :entries mark-answered (:member x) (:prompt-id x) (:at x) (:by x))
+-                who (get-in crew-state [:titles (:member x)] (name (:member x)))
+-                t'' (if (and (= :hal (:by x)) (> (:at x) (- now quiet-ms)))
+-                      (append-crew t' {:who hal-name :text (str (name-of (:action x)) " `" (:text x) "` for " who)
+-                                        :at (:at x) :kind :crew-log :member (:member x) :log x})
+-                      t')]
+-            (assoc t'' :log-at (:at x))))
+-        talk
+-        new))))
++   surfaced prompt line as already answered, and logs a quiet line for
++   each of the twin's recent answers. Every entry is upgraded (a legacy
++   :hal/:michael :by reads as :twin/:player) before use. Identical to
++   `talk` when there's nothing new."
++  ([talk log crew-state now] (observe-log talk log crew-state now nil))
++  ([talk log crew-state now jum]
++   (let [talk   (or talk empty-talk)
++         log-at (let [v (:log-at talk)] (if (integer? v) v 0))
++         new    (when (sequential? log) (filter #(> (:at %) log-at) log))]
++     (if (empty? new)
++       talk
++       (reduce
++         (fn [t x0]
++           (let [x   (cl/upgrade-entry x0)
++                 t'  (update t :entries mark-answered (:member x) (:prompt-id x) (:at x) (:by x))
++                 who (get-in crew-state [:titles (:member x)] (name (:member x)))
++                 t'' (if (and (= :twin (:by x)) (> (:at x) (- now quiet-ms)))
++                       (append-crew t' {:who (j/twin jum) :text (str (name-of (:action x)) " `" (:text x) "` for " who)
++                                         :at (:at x) :kind :crew-log :member (:member x) :log x})
++                       t')]
++             (assoc t'' :log-at (:at x))))
++         talk
++         new)))))
+ 
+ (defn log-label
+   "The roster's past-entries line for a crew-log.edn entry."
+-  [x offset-min]
+-  (let [who (case (:by x) :hal "Hal" :michael "You" "")]
+-    (str who " " (name-of (:action x)) " `" (:text x) "` · " (clock-text (:at x) offset-min))))
++  ([x offset-min] (log-label x offset-min nil))
++  ([x offset-min jum]
++   (let [who (case (cl/role (:by x)) :twin (j/twin jum) :player "You" "")]
++     (str who " " (name-of (:action x)) " `" (:text x) "` · " (clock-text (:at x) offset-min)))))
+ 
+ (defn crew-label
+   "The line for a crew entry, or nil for a non-crew entry."
+-  [e offset-min]
+-  (case (:kind e)
+-    :crew-prompt
+-    (let [risky (:risky (:prompt e))
+-          base  (str (when risky "⚠ ") (:who e) " · " (:text e))]
+-      (str base
+-           (case (:state e)
+-             :pending   (str (when risky " · Hal reviews this one")
+-                              (when-let [err (:error e)] (str " · not sent: " err)))
+-             :sending   " · sending…"
+-             :allowed   (str " · ☑ allowed " (clock-text (:answered-at e) offset-min))
+-             :declined  (str " · ✕ declined " (clock-text (:answered-at e) offset-min)
+-                              (when-let [note (:note e)] (str " · “" note "”")))
+-             :stale     (str " · already answered" (case (:by e) :hal " by Hal" :michael " by you" ""))
+-             "")))
+-    :crew-status (str (:who e) " · " (:text e))
+-    :crew-say
+-    (str "You → " (:to e) ": " (:text e)
+-         (case (:state e)
+-           :sending " · sending…"
+-           :sent    ""
+-           :failed  (str " · not sent: " (:error e))
+-           ""))
+-    :crew-log (str (:who e) " " (:text e) " · " (clock-text (:at e) offset-min))
+-    nil))
++  ([e offset-min] (crew-label e offset-min nil))
++  ([e offset-min jum]
++   (case (:kind e)
++     :crew-prompt
++     (let [risky (:risky (:prompt e))
++           base  (str (when risky "⚠ ") (:who e) " · " (:text e))]
++       (str base
++            (case (:state e)
++              :pending   (str (when risky (str " · " (j/twin jum) " reviews this one"))
++                               (when-let [err (:error e)] (str " · not sent: " err)))
++              :sending   " · sending…"
++              :allowed   (str " · ☑ allowed " (clock-text (:answered-at e) offset-min))
++              :declined  (str " · ✕ declined " (clock-text (:answered-at e) offset-min)
++                               (when-let [note (:note e)] (str " · “" note "”")))
++              :stale     (str " · already answered"
++                               (case (cl/role (:by e)) :twin (str " by " (j/twin jum)) :player " by you" ""))
++              "")))
++     :crew-status (str (:who e) " · " (:text e))
++     :crew-say
++     (str "You → " (:to e) ": " (:text e)
++          (case (:state e)
++            :sending " · sending…"
++            :sent    ""
++            :failed  (str " · not sent: " (:error e))
++            ""))
++     :crew-log (str (:who e) " " (:text e) " · " (clock-text (:at e) offset-min))
++     nil)))
+ 
+ (defn crew-roster
+   "The 💭 roster strip: every crew member, walker or not. The 5-arity also
+@@ -603,17 +612,18 @@
+ (defn hold-switch
+   "The 'I'll answer' checkbox's state, driven by hold.edn, never a local
+    guess."
+-  [hold bridge-on? ui]
+-  (let [checked?  (cl/hold-on? hold)
+-        sending?  (true? (:sending? ui))
+-        disabled? (or (not bridge-on?) sending?)
+-        hint      (cond
+-                    (not bridge-on?) "bridge off"
+-                    sending? "sending…"
+-                    (string? (:error ui)) (str "not sent: " (:error ui))
+-                    checked? "you answer; Hal holds off"
+-                    :else "Hal answers the easy ones")]
+-    {:checked? checked? :disabled? disabled? :hint hint}))
++  ([hold bridge-on? ui] (hold-switch hold bridge-on? ui nil))
++  ([hold bridge-on? ui jum]
++   (let [checked?  (cl/hold-on? hold)
++         sending?  (true? (:sending? ui))
++         disabled? (or (not bridge-on?) sending?)
++         hint      (cond
++                     (not bridge-on?) "bridge off"
++                     sending? "sending…"
++                     (string? (:error ui)) (str "not sent: " (:error ui))
++                     checked? (str "you answer; " (j/twin jum) " holds off")
++                     :else (str (j/twin jum) " answers the easy ones"))]
++     {:checked? checked? :disabled? disabled? :hint hint})))
+ 
+ (defn- valid-rate? [v] (and (number? v) (<= 0.1 v 10)))
+ (defn- valid-pitch? [v] (and (number? v) (<= 0 v 2)))
+@@ -652,7 +662,7 @@
+          (and (some? (chore-record (:chore e))) (boolean? (:done? e)))
+ 
+          (= :crew-log (:kind e))
+-         (and (keyword? (:member e)) (cl/valid-entry? (:log e)))
++         (and (keyword? (:member e)) (cl/valid-entry? (cl/upgrade-entry (:log e))))
+ 
+          (contains? crew-kinds (:kind e))
+          (and (keyword? (:member e))
+@@ -668,12 +678,13 @@
+     (case (:kind e)
+       :crew-prompt
+       (let [sending? (= :sending (:state e))
+-            base     (select-keys e [:n :who :text :at :kind :member :prompt])]
++            base     (select-keys e [:n :who :text :at :kind :member :prompt])
++            by-role  (cl/role (:by e))]
+         (cond-> (assoc base :state (if sending? :pending (:state e)))
+           (and (not sending?) (keyword? (:action e)))       (assoc :action (:action e))
+           (and (not sending?) (string? (:note e)))          (assoc :note (:note e))
+           (and (not sending?) (number? (:answered-at e)))   (assoc :answered-at (:answered-at e))
+-          (contains? cl/bys (:by e))                        (assoc :by (:by e))))
++          (some? by-role)                                   (assoc :by by-role)))
+       :crew-status (select-keys e [:n :who :text :at :kind :member])
+       :crew-say
+       (let [sending? (= :sending (:state e))
+@@ -681,7 +692,7 @@
+         (cond-> (assoc (select-keys e [:n :who :text :at :kind :member :to]) :state state)
+           sending? (assoc :error "not confirmed")
+           (and (not sending?) (string? (:error e))) (assoc :error (:error e))))
+-      :crew-log (select-keys e [:n :who :text :at :kind :member :log]))
++      :crew-log (assoc (select-keys e [:n :who :text :at :kind :member]) :log (cl/upgrade-entry (:log e))))
+     (let [base (cond-> (select-keys e [:n :who :text :at :kind])
+                  (keyword? (:mirror e)) (assoc :mirror (:mirror e))
+                  (keyword? (:event e))  (assoc :event (:event e))
+diff --git a/src/pm/ui.cljs b/src/pm/ui.cljs
+index b7b1d88..6e33f2c 100644
+--- a/src/pm/ui.cljs
++++ b/src/pm/ui.cljs
+@@ -97,7 +97,7 @@
+     (.appendChild li text-span)))
+ 
+ (defn- render-crew-row! [^js li entry offset-of crew]
+-  (let [{:keys [bridge-on? on-allow on-deny]} crew
++  (let [{:keys [bridge-on? on-allow on-deny jumeaux]} crew
+         controls (talk/crew-controls entry bridge-on?)
+         ^js time-span (js/document.createElement "span")
+         ^js row       (js/document.createElement "div")
+@@ -113,7 +113,7 @@
+         (.addEventListener cb "change" (fn [^js e] (when (.. e -target -checked) (on-allow (:n entry)))))
+         (.appendChild row cb)))
+     (set! (.-className text-span) (str "text" (when (:risky (:prompt entry)) " risky")))
+-    (set! (.-textContent text-span) (talk/crew-label entry (offset-of (:at entry))))
++    (set! (.-textContent text-span) (talk/crew-label entry (offset-of (:at entry)) jumeaux))
+     (.appendChild row text-span)
+     (when controls
+       (let [^js x   (js/document.createElement "button")
+@@ -172,7 +172,7 @@
+    say… input enabled only when :say?. Enter calls (on-say member who
+    value). Tapping the name calls (on-expand member); an expanded row lists
+    its recent log entries underneath. A re-render keeps a typed value too."
+-  [rows on-say on-expand offset-of]
++  [rows on-say on-expand offset-of jum]
+   (when-let [^js root (el "crew-roster")]
+     (let [^js active    (.-activeElement js/document)
+           focused-m     (when (and active (= "INPUT" (.-tagName active)))
+@@ -208,7 +208,7 @@
+               (set! (.-className sub) "roster-log")
+               (doseq [x (:log row)]
+                 (let [^js p (js/document.createElement "div")]
+-                  (set! (.-textContent p) (talk/log-label x (offset-of (:at x))))
++                  (set! (.-textContent p) (talk/log-label x (offset-of (:at x)) jum))
+                   (.appendChild sub p)))
+               (.appendChild root sub)))))
+       (when focused-m
+diff --git a/test/pm/crew_talk_test.cljs b/test/pm/crew_talk_test.cljs
+index ab77e35..6215bf8 100644
+--- a/test/pm/crew_talk_test.cljs
++++ b/test/pm/crew_talk_test.cljs
+@@ -3,7 +3,7 @@
+             [clojure.string :as str]
+             ["fs" :as fs]
+             [pm.prompt :as pr] [pm.bridge :as b] [pm.crew :as c] [pm.talk :as tk]
+-            [pm.world :as w] [pm.fixtures :as fx]))
++            [pm.world :as w] [pm.fixtures :as fx] [pm.jumeaux :as j]))
+ 
+ (def FX (.readFileSync fs ".crew/quests/crew-talk-v0/claude-bash-prompt.txt" "utf8")) ; gate runs from the repo root
+ (def R "/repo")
+@@ -42,6 +42,7 @@
+ (def OK-ORIGIN "http://localhost:8080")
+ (defn rq [member body] {:method "POST" :uri (str "/crew/" member) :origin OK-ORIGIN :body body})
+ (def ALLOW {"token" TOK "action" "allow" "prompt-id" ID1})
++(def JH (j/names {:jumeaux {:player {:name "Michael" :sex :m} :twin {:name "Hal"}}}))
+ 
+ ;; pm.prompt: parsing
+ 
+@@ -316,7 +317,7 @@
+          (b/decide VA {:status :blocked :prompt P3})))
+   (is (= {:ok false :status 409 :reason "prompt changed"}
+          (b/decide VA {:status :blocked :prompt nil})))
+-  (is (= {:ok false :status 403 :reason "risky: Hal reviews this one"}
++  (is (= {:ok false :status 403 :reason "risky: your twin reviews this one"}
+          (b/decide (assoc VA :prompt-id ID2) {:status :blocked :prompt P2})))
+   (is (= {:ok false :status 403 :reason "unknown prompt"}
+          (b/decide (assoc VA :prompt-id IDU) {:status :blocked :prompt (assoc PU :risky false)}))))
+@@ -532,9 +533,9 @@
+     (is (identical? T3 (tk/crew-send T3 3 :allow nil)))
+     (is (= "⚠ Le Testeur · wants to run curl --version · ✕ declined 5:01 PM"
+            (tk/crew-label (e (tk/crew-result (tk/crew-send T3 3 :deny nil) 3 {:result :ok} (+ A 60000)) 3) OFF)))
+-    (is (= "⚠ Le Testeur · wants to run curl --version · Hal reviews this one" (tk/crew-label (e T3 3) OFF)))
++    (is (= "⚠ Le Testeur · wants to run curl --version · Hal reviews this one" (tk/crew-label (e T3 3) OFF JH)))
+     (is (= "⚠ Le Testeur · is waiting at a prompt: Edit file / 3. No · Hal reviews this one"
+-           (tk/crew-label (e U 1) OFF)))
++           (tk/crew-label (e U 1) OFF JH)))
+     (is (identical? U (tk/crew-send U 1 :allow nil)))
+     (is (true? (tk/allowable? (e T1 1))))
+     (is (false? (tk/allowable? (e T3 3))))
+diff --git a/test/pm/crew_talk_v1_test.cljs b/test/pm/crew_talk_v1_test.cljs
+index 9eade75..05dad15 100644
+--- a/test/pm/crew_talk_v1_test.cljs
++++ b/test/pm/crew_talk_v1_test.cljs
+@@ -2,7 +2,8 @@
+   (:require [cljs.test :refer [deftest is]]
+             [clojure.string :as str]
+             ["fs" :as fs]
+-            [pm.prompt :as pr] [pm.bridge :as b] [pm.crew :as c] [pm.crew-log :as cl] [pm.talk :as tk]))
++            [pm.prompt :as pr] [pm.bridge :as b] [pm.crew :as c] [pm.crew-log :as cl] [pm.talk :as tk]
++            [pm.jumeaux :as j]))
+ 
+ (defn fx [k] (.readFileSync fs (str ".crew/quests/crew-talk-v1/screens/un-automate-monde-" k ".txt") "utf8"))
+ (def F1 (fx "190664ad70")) (def F2 (fx "2929ebc6bf")) (def F3 (fx "49184610d7"))
+@@ -53,14 +54,15 @@
+ (defn crew [at agents] {:as-of at :agents agents :titles TI})
+ (def T0 tk/empty-talk)
+ (defn e [t n] (tk/entry t n))
+-(def L1 {:at (+ A 5000) :member :le-testeur :action :allowed :by :hal :prompt-id ID3 :text "ls"})
+-(def L2 {:at (+ A 7000) :member :un-automate-monde :action :declined :by :hal :prompt-id ID2 :text "curl --version"})
+-(def L3 {:at (+ A 9000) :member :un-automate-monde :action :allowed :by :michael :prompt-id ID1 :text "node -e 'console.log(6*7)'"})
++(def L1 {:at (+ A 5000) :member :le-testeur :action :allowed :by :twin :prompt-id ID3 :text "ls"})
++(def L2 {:at (+ A 7000) :member :un-automate-monde :action :declined :by :twin :prompt-id ID2 :text "curl --version"})
++(def L3 {:at (+ A 9000) :member :un-automate-monde :action :allowed :by :player :prompt-id ID1 :text "node -e 'console.log(6*7)'"})
+ (def TOK (apply str (repeat 16 "0a1b")))
+ (def CTX {:token TOK :members #{:le-testeur :un-automate-monde}})
+ (def OK-ORIGIN "http://localhost:8080")
+ (defn hq [body] {:method "POST" :uri "/hold" :origin OK-ORIGIN :body body})
+ (def H {"token" TOK "action" "hold" "on" true})
++(def JH (j/names {:jumeaux {:player {:name "Michael" :sex :m} :twin {:name "Hal"}}}))
+ 
+ ;; pm.prompt: every fixture screen (command text, kind, risky)
+ 
+@@ -218,7 +220,7 @@
+     (is (= (+ A 5) (:at (first parsed))))))
+ 
+ (deftest t22-entry-and-append
+-  (is (= L1 (cl/entry (+ A 5000) :le-testeur :allowed :hal {:id ID3 :kind :bash :text "ls" :risky false})))
++  (is (= L1 (cl/entry (+ A 5000) :le-testeur :allowed :twin {:id ID3 :kind :bash :text "ls" :risky false})))
+   (is (= [L1 L2] (cl/append [L1] L2)))
+   (is (= [L1] (cl/append nil L1)))
+   (is (= [L1 (assoc L2 :at (+ A 5001))] (cl/append [L1] (assoc L2 :at (+ A 5000)))))
+@@ -382,9 +384,9 @@
+ ;; pm.talk: the log (observe-log) and "already answered by ..."
+ 
+ (def C (crew A {:le-testeur {:status :idle} :un-automate-monde {:status :blocked}}))
+-(def G1 (tk/observe-log T0 [L1] C (+ A 6000)))
+-(def G2 (tk/observe-log G1 [L1 L2 L3] C (+ A 10000)))
+-(def M (tk/observe-log O1 [L2] C (+ A 8000)))
++(def G1 (tk/observe-log T0 [L1] C (+ A 6000) JH))
++(def G2 (tk/observe-log G1 [L1 L2 L3] C (+ A 10000) JH))
++(def M (tk/observe-log O1 [L2] C (+ A 8000) JH))
+ 
+ (deftest t39-a-quiet-line-no-badge
+   (is (= [{:n 1 :who "Hal" :text "allowed `ls` for Le Testeur" :at (+ A 5000) :kind :crew-log
+@@ -394,7 +396,7 @@
+   (is (= 0 (tk/unread G1)))
+   (is (= "" (tk/badge-text G1)))
+   (is (false? (tk/prompt-waiting? G1)))
+-  (is (= "Hal allowed `ls` for Le Testeur · 5:00 PM" (tk/crew-label (e G1 1) OFF)))
++  (is (= "Hal allowed `ls` for Le Testeur · 5:00 PM" (tk/crew-label (e G1 1) OFF JH)))
+   (is (nil? (tk/crew-controls (e G1 1) true))))
+ 
+ (deftest t40-idempotent-ordered-michaels-own-entries-no-line
+@@ -404,7 +406,7 @@
+           :kind :crew-log :member :un-automate-monde :log L2}
+          (e G2 2)))
+   (is (= (+ A 9000) (:log-at G2)))
+-  (is (= "Hal declined `curl --version` for Un Automate (monde) · 5:00 PM" (tk/crew-label (e G2 2) OFF)))
++  (is (= "Hal declined `curl --version` for Un Automate (monde) · 5:00 PM" (tk/crew-label (e G2 2) OFF JH)))
+   (is (identical? T0 (tk/observe-log T0 nil C A)))
+   (is (identical? T0 (tk/observe-log T0 [] C A)))
+   (is (= "allowed `ls` for le-testeur" (:text (e (tk/observe-log T0 [L1] nil (+ A 6000)) 1)))))
+@@ -416,28 +418,28 @@
+ 
+ (deftest t42-hal-first-already-answered-by-hal
+   (is (= :stale (:state (e M 1))))
+-  (is (= :hal (:by (e M 1))))
++  (is (= :twin (:by (e M 1))))
+   (is (= :crew-log (:kind (e M 2))))
+   (is (false? (tk/prompt-waiting? M)))
+   (is (= 1 (tk/unread M)))
+-  (is (= "⚠ Un Automate (monde) · wants to run curl --version · already answered by Hal" (tk/crew-label (e M 1) OFF)))
++  (is (= "⚠ Un Automate (monde) · wants to run curl --version · already answered by Hal" (tk/crew-label (e M 1) OFF JH)))
+   (is (nil? (tk/crew-controls (e M 1) true))))
+ 
+ (deftest t43-michael-clicked-second-409-first-log-after
+   (let [X (-> O1 (tk/crew-send 1 :deny nil) (tk/crew-result 1 {:result :stale :reason "prompt changed"} (+ A 7500)))]
+     (is (= "⚠ Un Automate (monde) · wants to run curl --version · already answered" (tk/crew-label (e X 1) OFF)))
+     (is (= "⚠ Un Automate (monde) · wants to run curl --version · already answered by Hal"
+-           (tk/crew-label (e (tk/observe-log X [L2] C (+ A 8000)) 1) OFF))))
++           (tk/crew-label (e (tk/observe-log X [L2] C (+ A 8000)) 1) OFF JH))))
+   (let [sending (tk/crew-send O1 1 :deny nil)
+         r (tk/observe-log sending [L2] C (+ A 8000))]
+     (is (= :sending (:state (e r 1))))
+-    (is (= :hal (:by (e r 1))))))
++    (is (= :twin (:by (e r 1))))))
+ 
+ (deftest t44-already-answered-by-you
+   (let [Y (tk/observe-crew T0 (crew A {:un-automate-monde {:status :blocked :prompt QN}}) A HOLD)
+         r (tk/observe-log Y [L3] C (+ A 10000))]
+     (is (= :stale (:state (e r 1))))
+-    (is (= :michael (:by (e r 1))))
++    (is (= :player (:by (e r 1))))
+     (is (= 1 (count (:entries r))))
+     (is (= (+ A 9000) (:log-at r)))
+     (is (= "Un Automate (monde) · wants to run node -e 'console.log(6*7)' · already answered by you"
+@@ -452,7 +454,7 @@
+       (is (= :crew-log (:kind (e r1 2)))))
+     (let [r2 (tk/observe-log Z [(assoc L1 :at (+ A 15000))] C (+ A 21000))]
+       (is (= :stale (:state (e r2 1))))
+-      (is (= :hal (:by (e r2 1)))))
++      (is (= :twin (:by (e r2 1)))))
+     (let [r3 (tk/observe-log Z [(assoc L1 :at (+ A 15000) :member :un-automate-monde)] C (+ A 21000))]
+       (is (= :pending (:state (e r3 1)))))
+     (let [r4 (tk/observe-log Z [(assoc L1 :at (+ A 15000) :prompt-id ID1)] C (+ A 21000))]
+@@ -464,7 +466,7 @@
+     (is (= (+ A 9000) (:log-at r2)))
+     (is (= 2 (:n r2))))
+   (let [rm (tk/restore (tk/save-text M))]
+-    (is (= :hal (:by (e rm 1))))
++    (is (= :twin (:by (e rm 1))))
+     (is (= :stale (:state (e rm 1)))))
+   (is (= T0 (tk/restore (tk/save-text T0))))
+   (is (= 0 (:log-at T0)))
+@@ -499,13 +501,13 @@
+   (is (nil? (:log (first (tk/crew-roster C A true))))))
+ 
+ (deftest t49-log-label
+-  (is (= "Hal allowed `ls` · 5:00 PM" (tk/log-label L1 OFF)))
+-  (is (= "You allowed `node -e 'console.log(6*7)'` · 5:00 PM" (tk/log-label L3 OFF)))
+-  (is (= "Hal declined `curl --version` · 5:01 PM" (tk/log-label (assoc L2 :at (+ A 60000)) OFF))))
++  (is (= "Hal allowed `ls` · 5:00 PM" (tk/log-label L1 OFF JH)))
++  (is (= "You allowed `node -e 'console.log(6*7)'` · 5:00 PM" (tk/log-label L3 OFF JH)))
++  (is (= "Hal declined `curl --version` · 5:01 PM" (tk/log-label (assoc L2 :at (+ A 60000)) OFF JH))))
+ 
+ (deftest t50-the-ill-answer-switch-from-hold-edn
+-  (is (= {:checked? true :disabled? false :hint "you answer; Hal holds off"} (tk/hold-switch {:on true :at 5} true {})))
+-  (is (= {:checked? false :disabled? false :hint "Hal answers the easy ones"} (tk/hold-switch nil true nil)))
++  (is (= {:checked? true :disabled? false :hint "you answer; Hal holds off"} (tk/hold-switch {:on true :at 5} true {} JH)))
++  (is (= {:checked? false :disabled? false :hint "Hal answers the easy ones"} (tk/hold-switch nil true nil JH)))
+   (is (= {:checked? true :disabled? true :hint "bridge off"} (tk/hold-switch {:on true :at 5} false {})))
+   (is (= {:checked? false :disabled? true :hint "sending…"} (tk/hold-switch nil true {:sending? true})))
+   (is (= {:checked? false :disabled? false :hint "not sent: bad token"} (tk/hold-switch {:on false :at 5} true {:error "bad token"})))
+diff --git a/test/pm/overlay_test.cljs b/test/pm/overlay_test.cljs
+index ae05e1d..1b7a662 100644
+--- a/test/pm/overlay_test.cljs
++++ b/test/pm/overlay_test.cljs
+@@ -3,9 +3,11 @@
+             [pm.world :as w]
+             [pm.overlay :as o]
+             [pm.fixtures :as fx]
++            [pm.jumeaux :as j]
+             [cljs.reader :as reader]))
+ 
+ (def A 1794013200000)                 ; Fri 2026-11-06 17:00 PST
++(def JH (j/names {:jumeaux {:player {:name "Michael" :sex :m} :twin {:name "Hal"}}}))
+ (def D2 172800000)                    ; "2d"
+ (def W  (assoc (w/load-estate w/estate-edn) :lines fx/lines-v0))
+ (defn ev [m c at via] {:event :chore-done :mirror m :chore c :at at :via via :who :me})
+@@ -44,7 +46,7 @@
+   (is (= (w/status-line W2 :flora (+ A 1000)) "Flora · stock 37")))
+ 
+ (deftest t04-source-tag
+-  (is (= (o/source-tag :hal) "Hal"))
++  (is (= (o/source-tag :hal) "Your twin"))
+   (is (= (o/source-tag :sample) "sample"))
+   (is (= (o/source-tag :phone) "phone"))
+   (is (= (o/source-tag nil) nil))
+@@ -172,7 +174,7 @@
+   (let [X2 (o/apply-file X {:as-of 1 :mirrors {:fern {:state {:water nil :sun 4}}}})]
+     (is (= (get-in X2 [:mirrors :fern :state]) {:water 5 :sun 4 :source :hal}))
+     (is (= (o/hud-line X :fern 0) "fern"))
+-    (is (= (o/hud-line X2 :fern 0) "fern (Hal)")))
++    (is (= (o/hud-line X2 :fern 0) "fern (Your twin)")))   ; X has no :jumeaux
+   (let [X3 (o/apply-file X {:as-of 1 :mirrors {:panel {:state {:text "yo" :on false :mode :b}}}})]
+     (is (= (get-in X3 [:mirrors :panel :state]) {:text "yo" :on false :mode :b :n 1 :source :hal})))
+   (is (= (o/apply-file X {:as-of 2 :mirrors {:panel {:state {:text 1 :on "yes" :mode "b" :n "2"}}}})
+@@ -215,9 +217,9 @@
+   (let [RC2 (o/apply-cache W HF)]
+     (is (= (o/hud-line RC2 :flora (+ A 1000)) "Flora (Hal, cached) · stock 37"))
+     (is (= (o/hud-line RC2 :flora (+ A D2)) "Flora (Hal, cached) · stock 37 · I'm hungry")))
+-  (is (= (o/source-tag :hal true) "Hal, cached"))
+-  (is (= (o/source-tag :hal false) "Hal"))
+-  (is (= (o/source-tag :hal nil) "Hal"))
++  (is (= (o/source-tag :hal true JH) "Hal, cached"))
++  (is (= (o/source-tag :hal false JH) "Hal"))
++  (is (= (o/source-tag :hal nil JH) "Hal"))
+   (is (= (o/source-tag :sample true) "sample"))
+   (is (= (o/source-tag nil true) nil)))
+ 

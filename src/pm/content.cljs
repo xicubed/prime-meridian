@@ -3,7 +3,8 @@
    no atoms, no js/Date. Never names a mirror."
   (:require [cljs.reader :as reader]
             [clojure.string :as str]
-            [shadow.resource :as rc]))
+            [shadow.resource :as rc]
+            [pm.jumeaux :as j]))
 
 (defn parse [text]
   (when (string? text)
@@ -15,7 +16,7 @@
 (def sample-inbox (parse (rc/inline "content/sample-inbox.edn")))
 
 (def hal-events
-  "The Hal events the game uses -> the placeholders each fills."
+  "The twin's events the game uses -> the placeholders each fills."
   {:jack-in       #{}
    :chore-done    #{:name :chore}
    :chore-not-due #{:name :chore :last-at :next-at}
@@ -111,7 +112,7 @@
 
 (defn hal-segment [world now]
   (when-let [t (hal-text world now)]
-    (str "Hal: " t)))
+    (str (j/twin (j/names world)) ": " t)))
 
 (defn mail-counts [inbox]
   (if-not (and (map? inbox) (sequential? (:messages inbox)))

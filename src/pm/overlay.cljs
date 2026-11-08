@@ -1,9 +1,10 @@
 (ns pm.overlay
-  "Hal's twin state file, laid over the world. Pure: no js/fetch, no js/Date,
-   no atoms. Never names a mirror; works from each mirror's own :state and
-   :chores."
+  "The twin's state file, laid over the world. Pure: no js/fetch, no
+   js/Date, no atoms. Never names a mirror; works from each mirror's own
+   :state and :chores."
   (:require [cljs.reader :as reader]
-            [pm.world :as w]))
+            [pm.world :as w]
+            [pm.jumeaux :as j]))
 
 (defn parse-file [text]
   (when (string? text)
@@ -86,9 +87,10 @@
               world)))))))
 
 (defn play-of
-  "What the player did in the game to mirrors Hal doesn't keep (sample ones,
-   e.g. a horse fed with a key): their state wherever it differs from the
-   sample `estate`, so a reload doesn't undo it. nil when nothing differs."
+  "What the player did in the game to mirrors the twin doesn't keep
+   (sample ones, e.g. a horse fed with a key): their state wherever it
+   differs from the sample `estate`, so a reload doesn't undo it. nil when
+   nothing differs."
   [world estate]
   (let [ms (for [[id m] (:mirrors world)
                  :when (not= :hal (get-in m [:state :source]))
@@ -100,7 +102,8 @@
 
 (defn apply-play
   "Lay what `play-of` saved back over a freshly loaded world: same field
-   rules as Hal's file, never over a mirror Hal keeps, never touching :source."
+   rules as the twin's file, never over a mirror the twin keeps, never
+   touching :source."
   [world play]
   (if-not (and (map? play) (map? (:mirrors play)))
     world
@@ -114,20 +117,18 @@
             world (:mirrors play))))
 
 (defn source-tag
-  ([source]
+  ([source] (source-tag source nil nil))
+  ([source cached?] (source-tag source cached? nil))
+  ([source cached? jum]
    (cond
-     (= source :hal) "Hal"
+     (= source :hal) (if cached? (str (j/twin jum) ", cached") (j/twin jum))
      (keyword? source) (name source)
-     :else nil))
-  ([source cached?]
-   (if (and (= source :hal) cached?)
-     "Hal, cached"
-     (source-tag source))))
+     :else nil)))
 
 (defn hud-line [world mirror-id now]
   (when-let [line (w/status-line world mirror-id now)]
     (let [source (get-in world [:mirrors mirror-id :state :source])
-          tag    (source-tag source (:state-cached? world))]
+          tag    (source-tag source (:state-cached? world) (j/names world))]
       (if (nil? tag)
         line
         (let [mirror    (get-in world [:mirrors mirror-id])

@@ -1,0 +1,27 @@
+ │ |hal-name\|observe-crew\|tk/policy\|crew-
+ │ roster\|"Hal\|Hal\b\|estate\|:crew-talk'
+ │ src/pm/core.cljs src/pm/ui.cljs
+ │ src/pm/overlay.cljs; echo ----; grep -n
+ │ 'hal-segment\|source-tag' test/pm/*.cljs;
+ │ echo; bb -e '(prn
+ │ (clojure.edn/read-string "{:a
+ │ 0xf2b134}"))'; bb -e '(prn (:crew-talk
+ │ (clojure.edn/read-string (slurp
+ │ "resources/estate.edn"))))'
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don't ask again for bb -e
+      '(prn (clojure.edn/read-string "{:a
+      0xf2b134}"))' and bb -e '(prn
+      (:crew-talk (clojure.edn/read-string
+      (slurp "resources/estate.edn"))))'
+      commands in
+      /Users/hal/src/prime-meridian
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend

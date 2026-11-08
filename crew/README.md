@@ -123,14 +123,18 @@ cd ~/src/prime-meridian
 ~/src/crew-up/plugins/crew-up/bin/crew-up --only le-critique   # or just some of them
 ```
 
-   crew-up also starts the crew's **services** from `.crew/crew.json`: today
-   `bb crew-status`, which writes each member's Herdr state to the gitignored
-   `state/crew.edn`, and `bb crew-bridge`, which carries your 💭 allow / no / reply
-   to Herdr (127.0.0.1 only), so the coloured dots over the walkers on the
-   estate stay live (it runs in the crew workspace's `services` tab).
+   crew-up also starts the crew's **services** from `.crew/crew.json` (in the
+   crew workspace's `services` tab): `bb crew-status`, which writes each
+   member's Herdr state to the gitignored `state/crew.edn` so the coloured dots
+   over the walkers on the estate stay live; `bb crew-bridge`, which carries
+   your 💭 allow / no / reply to Herdr (127.0.0.1 only); and `bb crew-fielder`,
+   the twin's automatic half, which answers routine prompts after 5 s (never
+   risky or unreadable ones, and nothing while 💭's "I'll answer" is on) and
+   logs to `crew/fielder.log`.
 
-3. **Run a round** (Hal normally does this, and answers the members'
-   permission prompts):
+3. **Run a round** (Hal normally does this; with `bb crew-fielder` running,
+   rounds use `"onBlocked": "wait"` and the fielder answers the routine
+   prompts):
 
 ```bash
 ~/src/crew-up/plugins/crew-up/bin/crew-round .crew/rounds/feed-flora.json
@@ -174,5 +178,6 @@ Hermes profile named `crew` (see crew-up's README, "Hermes").
 | `crew-talk-v0` (Nov 7) | architect → builder ∥ tester → runner + gate → critic | **PASS**: 513 tests; the crew in the 💭 bubble: a blocked member's prompt as a line (☐ allow, ✕ no, or type a reply), risky prompts ⚠ with no allow, messages to idle members; a local bridge (`bb crew-bridge`, 127.0.0.1, token + exact origin, allows only the prompt you saw, decides risky itself). Critic: security checklist held; one cosmetic gap, fixed. Live: Michael's first message to Le Coureur from the game | [`log.md`](runs/crew-talk-v0-20261107-1728/log.md) · [spec](runs/crew-talk-v0-20261107-1728/spec.md) · [review](runs/crew-talk-v0-20261107-1728/review.md) |
 | `crew-walkers-v0` (Nov 7) | architect → builder ∥ tester → runner + gate → critic | **PASS**: 533 tests; the whole Mac crew on the estate: six walkers, each in its own patch (Un Architecte east bank north, Le Coureur's quicker loop east bank south, Le Critique by the woods, Le Docteur on the south plateau), tinted mannequins, nameplates from the roster titles, MotionBricks generations staggered (`queue n` in the HUD). Then MotionBricks became the default (`?kinematic` opts out) on a local copy of the model | [`log.md`](runs/crew-walkers-v0-20261107-2111/log.md) · [spec](runs/crew-walkers-v0-20261107-2111/spec.md) · [review](runs/crew-walkers-v0-20261107-2111/review.md) |
 | `crew-talk-v1` (Nov 8) | architect → builder ∥ tester → runner + gate → critic (+ docs by hand) | **PASS**: 583 tests; Hal fields the crew's prompts: routine ones show as quiet 💭 lines ("Hal allowed … for Le Coureur"), risky / unreadable / overdue (60 s) ones get the badge; "I'll answer" switch (bridge `hold` → `state/hold.edn`) and Hal holds off; prompts parsed from six real screens, published only after two polls ≥ 2 s apart (no more "Cogitating…" phantoms). Critic: security checklist held; one finding (docs step missing), done. Live: quiet line, a declined risky prompt and a tick with the switch on, all from the game | [`log.md`](runs/crew-talk-v1-20261108-0931/log.md) · [spec](runs/crew-talk-v1-20261108-0931/spec.md) · [review](runs/crew-talk-v1-20261108-0931/review.md) |
+| `crew-fielder-v0` (Nov 8) | architect → builder ∥ tester → runner + gate (3 fails) → critic → docs | **PASS** after a manager fix (one test expectation the spec missed): 627 tests; the twin's prompt-fielding moved out of Hal's private scripts into `bb crew-fielder`, a crew-up service anyone's twin can run; `:jumeaux` in `estate.edn` (Hal is data, no "Hal" left in code); log keys `:by :twin`/`:player`. Critic: no security findings. Live: a round in crew-up's new `onBlocked: wait` mode answered by the fielder alone; risky prompt left to Michael; the switch holds it | [`log.md`](runs/crew-fielder-v0-20261108-1146/log.md) · [spec](runs/crew-fielder-v0-20261108-1146/spec.md) · [review](runs/crew-fielder-v0-20261108-1146/review.md) |
 
 Screenshots in `crew/runs/` show the game running on [Hiroshi's Island](https://3ditions.drop3.app/watch/hiroshis-island/) by 3DITIONS (Pixel Palms / Cocotofy LLC), used under license; the kit itself is not in this repo.

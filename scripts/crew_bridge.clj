@@ -89,7 +89,7 @@
   [member action prompt]
   (try
     (let [cur  (cl/parse (try (slurp crew-log-file) (catch Exception _ nil)))
-          e    (cl/entry (System/currentTimeMillis) member action :michael prompt)
+          e    (cl/entry (System/currentTimeMillis) member action :player prompt)
           log' (cl/append cur e)]
       (when-not (write-edn! crew-log-file log')
         (throw (ex-info "write failed" {}))))

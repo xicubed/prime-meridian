@@ -8,7 +8,8 @@
 (def max-entries 200)
 (def max-text 400)
 (def actions #{:allowed :declined})
-(def bys #{:hal :michael})
+(def bys #{:twin :player})
+(def legacy-bys {:hal :twin :michael :player})
 
 (def ^:private member-re #"^[a-z][a-z0-9_-]{0,31}$")
 (def ^:private prompt-id-re #"^[0-9a-f]{40}$")
@@ -17,6 +18,24 @@
   (try
     #?(:clj (edn/read-string text) :cljs (reader/read-string text))
     (catch #?(:clj Exception :cljs :default) _ nil)))
+
+(defn role
+  "The new :by key for by: itself when already :twin/:player, the
+   upgraded key for a legacy :hal/:michael, else nil."
+  [by]
+  (cond
+    (contains? bys by) by
+    (contains? legacy-bys by) (get legacy-bys by)
+    :else nil))
+
+(defn upgrade-entry
+  "e with a legacy :by key upgraded to :twin/:player. Anything else about
+   e, and e itself when it isn't a map, is returned unchanged."
+  [e]
+  (if (map? e)
+    (let [r (role (:by e))]
+      (if (some? r) (assoc e :by r) e))
+    e))
 
 (defn valid-entry? [e]
   (and (map? e)
@@ -32,6 +51,7 @@
     (let [v (read-edn text)]
       (when (vector? v)
         (->> v
+             (map upgrade-entry)
              (filter valid-entry?)
              (mapv #(select-keys % [:at :member :action :by :prompt-id :text]))
              (take-last max-entries)
@@ -41,7 +61,8 @@
   {:at now :member member :action action :by by :prompt-id (:id prompt) :text (:text prompt)})
 
 (defn append [log e]
-  (let [base (vec (filter valid-entry? (or log [])))]
+  (let [base (vec (filter valid-entry? (map upgrade-entry (or log []))))
+        e    (upgrade-entry e)]
     (if-not (valid-entry? e)
       base
       (let [last-at (:at (peek base))

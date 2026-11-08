@@ -1,0 +1,27 @@
+  261108-1146/gate-note.md as your role card
+  says.
+
+  (Re-check after fix round 2.)
+
+  When you have completely finished, end
+  your reply with a line containing only
+  this: done-7037
+
+⏺ Running the gate for crew-fielder-v0 after
+  fix round 2...
+
+  Ran 1 shell command
+
+⏺ Write(crew/runs/crew-fielder…/gate-note.md)
+  ⎿  
+
+⏺ FAIL
+
+  done-7037
+
+✻ Crunched for 11s · done 12:12 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

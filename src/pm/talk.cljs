@@ -1,13 +1,13 @@
 (ns pm.talk
-  "The talk log: what Hal, the creatures and the crew said, captioned and
-   spoken. Pure: no atoms, no js/Date, no DOM. Never names a mirror."
+  "The talk log: what the twin, the creatures and the crew said, captioned
+   and spoken. Pure: no atoms, no js/Date, no DOM. Never names a mirror."
   (:require [cljs.reader :as reader]
             [clojure.string :as str]
             [pm.world :as w]
             [pm.crew :as crew]
-            [pm.crew-log :as cl]))
+            [pm.crew-log :as cl]
+            [pm.jumeaux :as j]))
 
-(def hal-name "Hal")
 (def crew-kinds #{:crew-prompt :crew-status :crew-say :crew-log})
 (def prompt-states #{:pending :sending :allowed :declined :stale})
 (def say-states #{:sending :sent :failed})
@@ -23,12 +23,13 @@
 (def default-voice {:rate 1 :pitch 1 :lang "en-US"})
 
 (def quiet-ms
-  "A reload is not a new visit: within this window Hal's greeting isn't
-   logged again, and a speaker repeating its last line isn't logged twice."
+  "A reload is not a new visit: within this window the twin's greeting
+   isn't logged again, and a speaker repeating its last line isn't logged
+   twice."
   (* 30 60 1000))
 
 (def once-per-visit
-  "Hal events said once per visit (see quiet-ms)."
+  "The twin's events said once per visit (see quiet-ms)."
   #{:jack-in})
 
 (def empty-talk
@@ -177,7 +178,7 @@
                                                       (and (nil? (:event e)) (= text (:text e))))))
                                      (:entries talk))]
                    (cond-> (assoc talk :last-hal [text until])
-                     (not recent?) (append {:who hal-name :text text :kind :hal :event ev} now)))
+                     (not recent?) (append {:who (j/twin (j/names world)) :text text :kind :hal :event ev} now)))
                  talk))]
     (reduce
       (fn [t id]
@@ -347,16 +348,17 @@
 
 (defn policy
   "What the fielding rules look like right now: whether the 'I'll answer'
-   switch is on, and how long Hal gets before a benign prompt surfaces."
+   switch is on, and how long the twin gets before a benign prompt
+   surfaces."
   [crew-talk hold]
   (let [n (:surface-after-s crew-talk)
         n (if (and (number? n) (<= 0 n 3600)) n default-surface-after-s)]
     {:hold? (cl/hold-on? hold) :surface-after-s n}))
 
 (defn surfaced?
-  "True when prompt should be shown to Michael under policy: hold is on,
-   it's risky or unreadable, its age is unknown, or it's been waiting past
-   :surface-after-s."
+  "True when prompt should be shown to the player under policy: hold is
+   on, it's risky or unreadable, its age is unknown, or it's been waiting
+   past :surface-after-s."
   [prompt now policy]
   (let [surface-s (let [n (:surface-after-s policy)]
                      (if (and (number? n) (<= 0 n 3600)) n default-surface-after-s))]
@@ -511,59 +513,66 @@
 
 (defn observe-log
   "talk, folding in new state/crew-log.edn entries: marks any matching
-   surfaced prompt line as already answered, and logs a quiet line for each
-   of Hal's recent answers. Identical to `talk` when there's nothing new."
-  [talk log crew-state now]
-  (let [talk   (or talk empty-talk)
-        log-at (let [v (:log-at talk)] (if (integer? v) v 0))
-        new    (when (sequential? log) (filter #(> (:at %) log-at) log))]
-    (if (empty? new)
-      talk
-      (reduce
-        (fn [t x]
-          (let [t'  (update t :entries mark-answered (:member x) (:prompt-id x) (:at x) (:by x))
-                who (get-in crew-state [:titles (:member x)] (name (:member x)))
-                t'' (if (and (= :hal (:by x)) (> (:at x) (- now quiet-ms)))
-                      (append-crew t' {:who hal-name :text (str (name-of (:action x)) " `" (:text x) "` for " who)
-                                        :at (:at x) :kind :crew-log :member (:member x) :log x})
-                      t')]
-            (assoc t'' :log-at (:at x))))
-        talk
-        new))))
+   surfaced prompt line as already answered, and logs a quiet line for
+   each of the twin's recent answers. Every entry is upgraded (a legacy
+   :hal/:michael :by reads as :twin/:player) before use. Identical to
+   `talk` when there's nothing new."
+  ([talk log crew-state now] (observe-log talk log crew-state now nil))
+  ([talk log crew-state now jum]
+   (let [talk   (or talk empty-talk)
+         log-at (let [v (:log-at talk)] (if (integer? v) v 0))
+         new    (when (sequential? log) (filter #(> (:at %) log-at) log))]
+     (if (empty? new)
+       talk
+       (reduce
+         (fn [t x0]
+           (let [x   (cl/upgrade-entry x0)
+                 t'  (update t :entries mark-answered (:member x) (:prompt-id x) (:at x) (:by x))
+                 who (get-in crew-state [:titles (:member x)] (name (:member x)))
+                 t'' (if (and (= :twin (:by x)) (> (:at x) (- now quiet-ms)))
+                       (append-crew t' {:who (j/twin jum) :text (str (name-of (:action x)) " `" (:text x) "` for " who)
+                                         :at (:at x) :kind :crew-log :member (:member x) :log x})
+                       t')]
+             (assoc t'' :log-at (:at x))))
+         talk
+         new)))))
 
 (defn log-label
   "The roster's past-entries line for a crew-log.edn entry."
-  [x offset-min]
-  (let [who (case (:by x) :hal "Hal" :michael "You" "")]
-    (str who " " (name-of (:action x)) " `" (:text x) "` · " (clock-text (:at x) offset-min))))
+  ([x offset-min] (log-label x offset-min nil))
+  ([x offset-min jum]
+   (let [who (case (cl/role (:by x)) :twin (j/twin jum) :player "You" "")]
+     (str who " " (name-of (:action x)) " `" (:text x) "` · " (clock-text (:at x) offset-min)))))
 
 (defn crew-label
   "The line for a crew entry, or nil for a non-crew entry."
-  [e offset-min]
-  (case (:kind e)
-    :crew-prompt
-    (let [risky (:risky (:prompt e))
-          base  (str (when risky "⚠ ") (:who e) " · " (:text e))]
-      (str base
-           (case (:state e)
-             :pending   (str (when risky " · Hal reviews this one")
-                              (when-let [err (:error e)] (str " · not sent: " err)))
-             :sending   " · sending…"
-             :allowed   (str " · ☑ allowed " (clock-text (:answered-at e) offset-min))
-             :declined  (str " · ✕ declined " (clock-text (:answered-at e) offset-min)
-                              (when-let [note (:note e)] (str " · “" note "”")))
-             :stale     (str " · already answered" (case (:by e) :hal " by Hal" :michael " by you" ""))
-             "")))
-    :crew-status (str (:who e) " · " (:text e))
-    :crew-say
-    (str "You → " (:to e) ": " (:text e)
-         (case (:state e)
-           :sending " · sending…"
-           :sent    ""
-           :failed  (str " · not sent: " (:error e))
-           ""))
-    :crew-log (str (:who e) " " (:text e) " · " (clock-text (:at e) offset-min))
-    nil))
+  ([e offset-min] (crew-label e offset-min nil))
+  ([e offset-min jum]
+   (case (:kind e)
+     :crew-prompt
+     (let [risky (:risky (:prompt e))
+           base  (str (when risky "⚠ ") (:who e) " · " (:text e))]
+       (str base
+            (case (:state e)
+              :pending   (str (when risky (str " · " (j/twin jum) " reviews this one"))
+                               (when-let [err (:error e)] (str " · not sent: " err)))
+              :sending   " · sending…"
+              :allowed   (str " · ☑ allowed " (clock-text (:answered-at e) offset-min))
+              :declined  (str " · ✕ declined " (clock-text (:answered-at e) offset-min)
+                               (when-let [note (:note e)] (str " · “" note "”")))
+              :stale     (str " · already answered"
+                               (case (cl/role (:by e)) :twin (str " by " (j/twin jum)) :player " by you" ""))
+              "")))
+     :crew-status (str (:who e) " · " (:text e))
+     :crew-say
+     (str "You → " (:to e) ": " (:text e)
+          (case (:state e)
+            :sending " · sending…"
+            :sent    ""
+            :failed  (str " · not sent: " (:error e))
+            ""))
+     :crew-log (str (:who e) " " (:text e) " · " (clock-text (:at e) offset-min))
+     nil)))
 
 (defn crew-roster
   "The 💭 roster strip: every crew member, walker or not. The 5-arity also
@@ -603,17 +612,18 @@
 (defn hold-switch
   "The 'I'll answer' checkbox's state, driven by hold.edn, never a local
    guess."
-  [hold bridge-on? ui]
-  (let [checked?  (cl/hold-on? hold)
-        sending?  (true? (:sending? ui))
-        disabled? (or (not bridge-on?) sending?)
-        hint      (cond
-                    (not bridge-on?) "bridge off"
-                    sending? "sending…"
-                    (string? (:error ui)) (str "not sent: " (:error ui))
-                    checked? "you answer; Hal holds off"
-                    :else "Hal answers the easy ones")]
-    {:checked? checked? :disabled? disabled? :hint hint}))
+  ([hold bridge-on? ui] (hold-switch hold bridge-on? ui nil))
+  ([hold bridge-on? ui jum]
+   (let [checked?  (cl/hold-on? hold)
+         sending?  (true? (:sending? ui))
+         disabled? (or (not bridge-on?) sending?)
+         hint      (cond
+                     (not bridge-on?) "bridge off"
+                     sending? "sending…"
+                     (string? (:error ui)) (str "not sent: " (:error ui))
+                     checked? (str "you answer; " (j/twin jum) " holds off")
+                     :else (str (j/twin jum) " answers the easy ones"))]
+     {:checked? checked? :disabled? disabled? :hint hint})))
 
 (defn- valid-rate? [v] (and (number? v) (<= 0.1 v 10)))
 (defn- valid-pitch? [v] (and (number? v) (<= 0 v 2)))
@@ -652,7 +662,7 @@
          (and (some? (chore-record (:chore e))) (boolean? (:done? e)))
 
          (= :crew-log (:kind e))
-         (and (keyword? (:member e)) (cl/valid-entry? (:log e)))
+         (and (keyword? (:member e)) (cl/valid-entry? (cl/upgrade-entry (:log e))))
 
          (contains? crew-kinds (:kind e))
          (and (keyword? (:member e))
@@ -668,12 +678,13 @@
     (case (:kind e)
       :crew-prompt
       (let [sending? (= :sending (:state e))
-            base     (select-keys e [:n :who :text :at :kind :member :prompt])]
+            base     (select-keys e [:n :who :text :at :kind :member :prompt])
+            by-role  (cl/role (:by e))]
         (cond-> (assoc base :state (if sending? :pending (:state e)))
           (and (not sending?) (keyword? (:action e)))       (assoc :action (:action e))
           (and (not sending?) (string? (:note e)))          (assoc :note (:note e))
           (and (not sending?) (number? (:answered-at e)))   (assoc :answered-at (:answered-at e))
-          (contains? cl/bys (:by e))                        (assoc :by (:by e))))
+          (some? by-role)                                   (assoc :by by-role)))
       :crew-status (select-keys e [:n :who :text :at :kind :member])
       :crew-say
       (let [sending? (= :sending (:state e))
@@ -681,7 +692,7 @@
         (cond-> (assoc (select-keys e [:n :who :text :at :kind :member :to]) :state state)
           sending? (assoc :error "not confirmed")
           (and (not sending?) (string? (:error e))) (assoc :error (:error e))))
-      :crew-log (select-keys e [:n :who :text :at :kind :member :log]))
+      :crew-log (assoc (select-keys e [:n :who :text :at :kind :member]) :log (cl/upgrade-entry (:log e))))
     (let [base (cond-> (select-keys e [:n :who :text :at :kind])
                  (keyword? (:mirror e)) (assoc :mirror (:mirror e))
                  (keyword? (:event e))  (assoc :event (:event e))

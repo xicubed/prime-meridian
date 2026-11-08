@@ -1,0 +1,27 @@
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ bb -e '
+ │ (with-open [r (java.io.PushbackReader.
+ │ (clojure.java.io/reader
+ │ "test/pm/crew_fielder_v0_test.cljs"))]
+ │   (loop [n 0]
+ │     (let [form (try (read r) (catch
+ │ Exception e (println "ERROR:"
+ │ (.getMessage e)) :err))]
+ │       (if (or (= form :err) (nil? form))
+ │         (println "forms read ok:" n)
+ │         (recur (inc n))))))' 2>&1 | tail
+ │ -20
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: bb -e ' *
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend

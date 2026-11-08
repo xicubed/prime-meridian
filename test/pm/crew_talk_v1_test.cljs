@@ -2,7 +2,8 @@
   (:require [cljs.test :refer [deftest is]]
             [clojure.string :as str]
             ["fs" :as fs]
-            [pm.prompt :as pr] [pm.bridge :as b] [pm.crew :as c] [pm.crew-log :as cl] [pm.talk :as tk]))
+            [pm.prompt :as pr] [pm.bridge :as b] [pm.crew :as c] [pm.crew-log :as cl] [pm.talk :as tk]
+            [pm.jumeaux :as j]))
 
 (defn fx [k] (.readFileSync fs (str ".crew/quests/crew-talk-v1/screens/un-automate-monde-" k ".txt") "utf8"))
 (def F1 (fx "190664ad70")) (def F2 (fx "2929ebc6bf")) (def F3 (fx "49184610d7"))
@@ -53,14 +54,15 @@
 (defn crew [at agents] {:as-of at :agents agents :titles TI})
 (def T0 tk/empty-talk)
 (defn e [t n] (tk/entry t n))
-(def L1 {:at (+ A 5000) :member :le-testeur :action :allowed :by :hal :prompt-id ID3 :text "ls"})
-(def L2 {:at (+ A 7000) :member :un-automate-monde :action :declined :by :hal :prompt-id ID2 :text "curl --version"})
-(def L3 {:at (+ A 9000) :member :un-automate-monde :action :allowed :by :michael :prompt-id ID1 :text "node -e 'console.log(6*7)'"})
+(def L1 {:at (+ A 5000) :member :le-testeur :action :allowed :by :twin :prompt-id ID3 :text "ls"})
+(def L2 {:at (+ A 7000) :member :un-automate-monde :action :declined :by :twin :prompt-id ID2 :text "curl --version"})
+(def L3 {:at (+ A 9000) :member :un-automate-monde :action :allowed :by :player :prompt-id ID1 :text "node -e 'console.log(6*7)'"})
 (def TOK (apply str (repeat 16 "0a1b")))
 (def CTX {:token TOK :members #{:le-testeur :un-automate-monde}})
 (def OK-ORIGIN "http://localhost:8080")
 (defn hq [body] {:method "POST" :uri "/hold" :origin OK-ORIGIN :body body})
 (def H {"token" TOK "action" "hold" "on" true})
+(def JH (j/names {:jumeaux {:player {:name "Michael" :sex :m} :twin {:name "Hal"}}}))
 
 ;; pm.prompt: every fixture screen (command text, kind, risky)
 
@@ -218,7 +220,7 @@
     (is (= (+ A 5) (:at (first parsed))))))
 
 (deftest t22-entry-and-append
-  (is (= L1 (cl/entry (+ A 5000) :le-testeur :allowed :hal {:id ID3 :kind :bash :text "ls" :risky false})))
+  (is (= L1 (cl/entry (+ A 5000) :le-testeur :allowed :twin {:id ID3 :kind :bash :text "ls" :risky false})))
   (is (= [L1 L2] (cl/append [L1] L2)))
   (is (= [L1] (cl/append nil L1)))
   (is (= [L1 (assoc L2 :at (+ A 5001))] (cl/append [L1] (assoc L2 :at (+ A 5000)))))
@@ -382,9 +384,9 @@
 ;; pm.talk: the log (observe-log) and "already answered by ..."
 
 (def C (crew A {:le-testeur {:status :idle} :un-automate-monde {:status :blocked}}))
-(def G1 (tk/observe-log T0 [L1] C (+ A 6000)))
-(def G2 (tk/observe-log G1 [L1 L2 L3] C (+ A 10000)))
-(def M (tk/observe-log O1 [L2] C (+ A 8000)))
+(def G1 (tk/observe-log T0 [L1] C (+ A 6000) JH))
+(def G2 (tk/observe-log G1 [L1 L2 L3] C (+ A 10000) JH))
+(def M (tk/observe-log O1 [L2] C (+ A 8000) JH))
 
 (deftest t39-a-quiet-line-no-badge
   (is (= [{:n 1 :who "Hal" :text "allowed `ls` for Le Testeur" :at (+ A 5000) :kind :crew-log
@@ -394,7 +396,7 @@
   (is (= 0 (tk/unread G1)))
   (is (= "" (tk/badge-text G1)))
   (is (false? (tk/prompt-waiting? G1)))
-  (is (= "Hal allowed `ls` for Le Testeur · 5:00 PM" (tk/crew-label (e G1 1) OFF)))
+  (is (= "Hal allowed `ls` for Le Testeur · 5:00 PM" (tk/crew-label (e G1 1) OFF JH)))
   (is (nil? (tk/crew-controls (e G1 1) true))))
 
 (deftest t40-idempotent-ordered-michaels-own-entries-no-line
@@ -404,7 +406,7 @@
           :kind :crew-log :member :un-automate-monde :log L2}
          (e G2 2)))
   (is (= (+ A 9000) (:log-at G2)))
-  (is (= "Hal declined `curl --version` for Un Automate (monde) · 5:00 PM" (tk/crew-label (e G2 2) OFF)))
+  (is (= "Hal declined `curl --version` for Un Automate (monde) · 5:00 PM" (tk/crew-label (e G2 2) OFF JH)))
   (is (identical? T0 (tk/observe-log T0 nil C A)))
   (is (identical? T0 (tk/observe-log T0 [] C A)))
   (is (= "allowed `ls` for le-testeur" (:text (e (tk/observe-log T0 [L1] nil (+ A 6000)) 1)))))
@@ -416,28 +418,28 @@
 
 (deftest t42-hal-first-already-answered-by-hal
   (is (= :stale (:state (e M 1))))
-  (is (= :hal (:by (e M 1))))
+  (is (= :twin (:by (e M 1))))
   (is (= :crew-log (:kind (e M 2))))
   (is (false? (tk/prompt-waiting? M)))
   (is (= 1 (tk/unread M)))
-  (is (= "⚠ Un Automate (monde) · wants to run curl --version · already answered by Hal" (tk/crew-label (e M 1) OFF)))
+  (is (= "⚠ Un Automate (monde) · wants to run curl --version · already answered by Hal" (tk/crew-label (e M 1) OFF JH)))
   (is (nil? (tk/crew-controls (e M 1) true))))
 
 (deftest t43-michael-clicked-second-409-first-log-after
   (let [X (-> O1 (tk/crew-send 1 :deny nil) (tk/crew-result 1 {:result :stale :reason "prompt changed"} (+ A 7500)))]
     (is (= "⚠ Un Automate (monde) · wants to run curl --version · already answered" (tk/crew-label (e X 1) OFF)))
     (is (= "⚠ Un Automate (monde) · wants to run curl --version · already answered by Hal"
-           (tk/crew-label (e (tk/observe-log X [L2] C (+ A 8000)) 1) OFF))))
+           (tk/crew-label (e (tk/observe-log X [L2] C (+ A 8000)) 1) OFF JH))))
   (let [sending (tk/crew-send O1 1 :deny nil)
         r (tk/observe-log sending [L2] C (+ A 8000))]
     (is (= :sending (:state (e r 1))))
-    (is (= :hal (:by (e r 1))))))
+    (is (= :twin (:by (e r 1))))))
 
 (deftest t44-already-answered-by-you
   (let [Y (tk/observe-crew T0 (crew A {:un-automate-monde {:status :blocked :prompt QN}}) A HOLD)
         r (tk/observe-log Y [L3] C (+ A 10000))]
     (is (= :stale (:state (e r 1))))
-    (is (= :michael (:by (e r 1))))
+    (is (= :player (:by (e r 1))))
     (is (= 1 (count (:entries r))))
     (is (= (+ A 9000) (:log-at r)))
     (is (= "Un Automate (monde) · wants to run node -e 'console.log(6*7)' · already answered by you"
@@ -452,7 +454,7 @@
       (is (= :crew-log (:kind (e r1 2)))))
     (let [r2 (tk/observe-log Z [(assoc L1 :at (+ A 15000))] C (+ A 21000))]
       (is (= :stale (:state (e r2 1))))
-      (is (= :hal (:by (e r2 1)))))
+      (is (= :twin (:by (e r2 1)))))
     (let [r3 (tk/observe-log Z [(assoc L1 :at (+ A 15000) :member :un-automate-monde)] C (+ A 21000))]
       (is (= :pending (:state (e r3 1)))))
     (let [r4 (tk/observe-log Z [(assoc L1 :at (+ A 15000) :prompt-id ID1)] C (+ A 21000))]
@@ -464,7 +466,7 @@
     (is (= (+ A 9000) (:log-at r2)))
     (is (= 2 (:n r2))))
   (let [rm (tk/restore (tk/save-text M))]
-    (is (= :hal (:by (e rm 1))))
+    (is (= :twin (:by (e rm 1))))
     (is (= :stale (:state (e rm 1)))))
   (is (= T0 (tk/restore (tk/save-text T0))))
   (is (= 0 (:log-at T0)))
@@ -499,13 +501,13 @@
   (is (nil? (:log (first (tk/crew-roster C A true))))))
 
 (deftest t49-log-label
-  (is (= "Hal allowed `ls` · 5:00 PM" (tk/log-label L1 OFF)))
-  (is (= "You allowed `node -e 'console.log(6*7)'` · 5:00 PM" (tk/log-label L3 OFF)))
-  (is (= "Hal declined `curl --version` · 5:01 PM" (tk/log-label (assoc L2 :at (+ A 60000)) OFF))))
+  (is (= "Hal allowed `ls` · 5:00 PM" (tk/log-label L1 OFF JH)))
+  (is (= "You allowed `node -e 'console.log(6*7)'` · 5:00 PM" (tk/log-label L3 OFF JH)))
+  (is (= "Hal declined `curl --version` · 5:01 PM" (tk/log-label (assoc L2 :at (+ A 60000)) OFF JH))))
 
 (deftest t50-the-ill-answer-switch-from-hold-edn
-  (is (= {:checked? true :disabled? false :hint "you answer; Hal holds off"} (tk/hold-switch {:on true :at 5} true {})))
-  (is (= {:checked? false :disabled? false :hint "Hal answers the easy ones"} (tk/hold-switch nil true nil)))
+  (is (= {:checked? true :disabled? false :hint "you answer; Hal holds off"} (tk/hold-switch {:on true :at 5} true {} JH)))
+  (is (= {:checked? false :disabled? false :hint "Hal answers the easy ones"} (tk/hold-switch nil true nil JH)))
   (is (= {:checked? true :disabled? true :hint "bridge off"} (tk/hold-switch {:on true :at 5} false {})))
   (is (= {:checked? false :disabled? true :hint "sending…"} (tk/hold-switch nil true {:sending? true})))
   (is (= {:checked? false :disabled? false :hint "not sent: bad token"} (tk/hold-switch {:on false :at 5} true {:error "bad token"})))

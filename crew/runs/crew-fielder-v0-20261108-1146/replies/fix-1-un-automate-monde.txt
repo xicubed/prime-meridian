@@ -1,0 +1,27 @@
+  ++++++-
+   src/pm/overlay.cljs            |  33
+  ++++-----
+   src/pm/talk.cljs               | 159
+  ++++++++++++++++++++++-------------------
+   src/pm/ui.cljs                 |   8 +--
+   test/pm/crew_talk_test.cljs    |   9 +--
+   test/pm/crew_talk_v1_test.cljs |  46
+  ++++++------
+   test/pm/overlay_test.cljs      |  10 +--
+   14 files changed, 187 insertions(+), 141
+  deletions(-)
+  (plus untracked new files
+  src/pm/jumeaux.cljc, src/pm/fielder.cljc,
+  scripts/crew_fielder.clj,
+  test/pm/crew_fielder_v0_test.cljs — the
+  test files listed as modified/new are
+  le-testeur's, not mine.)
+
+  done-8950
+
+✻ Brewed for 1m 12s · done 12:11 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

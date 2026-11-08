@@ -1,0 +1,27 @@
+  git diff --stat…
+  ⎿  $ for f in src/pm/jumeaux.cljc
+     src/pm/fielder.cljc
+     scripts/crew_fielder.clj; do git diff
+     --no-index --stat /dev/null "$f"; done
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ for f in src/pm/jumeaux.cljc
+ │ src/pm/fielder.cljc
+ │ scripts/crew_fielder.clj; do git diff
+ │ --no-index --stat /dev/null "$f"; done
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ A variable in this command can't be checked
+ before it runs
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend

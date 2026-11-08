@@ -150,7 +150,7 @@
         (not= status :blocked) {:ok false :status 409 :reason "not blocked"}
         (or (nil? prompt) (not= (:id prompt) prompt-id)) {:ok false :status 409 :reason "prompt changed"}
         (not= (:kind prompt) :bash) {:ok false :status 403 :reason "unknown prompt"}
-        (:risky prompt) {:ok false :status 403 :reason "risky: Hal reviews this one"}
+        (:risky prompt) {:ok false :status 403 :reason "risky: your twin reviews this one"}
         :else {:ok true :steps [[:keys "1"]] :reason "allowed"})
 
       :deny

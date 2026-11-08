@@ -1,0 +1,27 @@
+   scripts/crew_bridge.clj        |   2 +-
+   scripts/crew_status.clj        |   2 +-
+   src/pm/bridge.cljc             |   2 +-
+   src/pm/content.cljs            |   7 +-
+   src/pm/core.cljs               |  18 ++---
+   src/pm/crew_log.cljc           |  25
+  ++++++-
+   src/pm/overlay.cljs            |  33
+  ++++-----
+   src/pm/talk.cljs               | 159
+  ++++++++++++++++++++++-------------------
+   src/pm/ui.cljs                 |   8 +--
+   test/pm/crew_talk_test.cljs    |   9 +--
+   test/pm/crew_talk_v1_test.cljs |  46
+  ++++++------
+   test/pm/overlay_test.cljs      |  10 +--
+   14 files changed, 187 insertions(+), 141
+  deletions(-)
+
+  done-7808
+
+✻ Cogitated for 23s · done 12:11 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

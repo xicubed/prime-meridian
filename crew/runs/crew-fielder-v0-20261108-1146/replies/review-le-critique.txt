@@ -1,0 +1,177 @@
+│ +Hand-traced a sample of the 50 test cases against the implementation (not just "tests pass"):
+│ +t20-t24 (`pm.crew-log` validity/append/for-member/hold edge cases, including the tie-break and
+│ +cap-rotation math), t26 (validate precedence), t45 (the `since − 5000` boundary in
+│ +`mark-answered`) all match the code's actual branches, not just the expected literal.
+│ +
+│ +Names used throughout (tests and fixtures) are all real roster members
+│ +(`le-testeur`, `un-automate-monde`, `un-architecte`, `le-critique`, `hal`) — nothing invented.
+│ +
+│ +## Findings
+│ +
+│ +1. `.crew/quests/crew-talk-v1.md` and `spec.md` §1 assign le-docteur one short GDD paragraph
+│ +   under the Talk verb's row; `docs/GDD.md` is untouched (no diff, mtime 2026-10-31, predates
+│ +   this round) and `log.md` shows no `docs` step ever ran this round (only `spec`/`build`/
+│ +   `gate`/`review`). Not a security gap, but a missed deliverable from spec §1 — the manager
+│ +   should dispatch le-docteur for that paragraph before calling the round done, or explicitly
+│ +   defer it.
+│ +
+│ … omitted 3 diff line(s) across 1 additional file(s)/section(s)
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/crew-talk-v1-20261108-0931/review.md — 1 finding (docs/GDD.md paragraph never done; no docs step ran this round). Security pass (validate order, fail-closed token/origin, hold scope, two-poll rule, no token/raw-screen leakage) all checked out against spec on hand-inspection; gate re-verified independently (PASS, 0 warnings, 583 tests/3232 assertions).
+
+done-5681
+────────────────────────────────────────
+
+─ 3m42s · edited 1 file · read 1 skill, 11 files · ran 15 commands · searched 4 paths · 10:05 AM
+  💾 Self-improvement review: Skill 'crew-round-review' patched
+
+
+────────────────────────────────────────
+❯ Review the round's changes against crew/runs/crew-fielder-v0-20261108-1146/spec.md and .crew/quests/crew-fielder-v0.md: git diff for edited files, and read the new files (git status lists them). The new crew-fielder can answer a crew member's shell command on its own, so review it like security code: it answers only :bash prompts with :risky false, only while hold is off, only after re-reading the screen and finding the same prompt id, only for roster members, never declines and never answers :unknown; risky comes from pm.prompt/risky? alone (no second list); bridge decide rules reused, not copied; Herdr called with an argument vector, no shell; logs never hold the token or a raw screen. Also: grep src/ for a "Hal" literal (none may remain); the :jumeaux reader's fallbacks; old :hal/:michael log entries still read; no member sent keys or prompts to the crew or started a service. Write the review to crew/runs/crew-fielder-v0-20261108-1146/review.md.
+
+When you have completely finished, end your reply with a line containing only this: done-5162
+────────────────────────────────────────
+
+💻 $ echo "=== git status ===" + 5 commands  0.7s
+📖 Read spec.md
+📖 Read crew-fielder-v0.md
+📖 Read log.md
+📖 Read gate-note.md
+💻 $ ls -la crew/runs/crew-fielder-v0-20261108-1146/replies/  0.3s
+💻 $ git diff -- test/pm/overlay_test.cljs  0.9s
+💻 $ bash .crew/gate.sh  8.6s
+
+────────────────────────────────────────
+☤ Hermes
+Gate now passes (627 tests/3481 assertions, 0 failures) with Hal's manual fix. Now let's examine each source diff in detail, starting with the security-critical files.
+────────────────────────────────────────
+
+💻 $ git diff -- src/pm/bridge.cljc src/pm/crew_log.cljc  0.5s
+📖 Read fielder.cljc
+📖 Read jumeaux.cljc
+💻 $ grep -rnw "Hal" src/ scripts/  0.6s
+💻 $ git diff -- src/pm/talk.cljs  0.5s
+💻 $ git diff -- src/pm/talk.cljs  0.4s
+💻 $ git diff -- src/pm/overlay.cljs src/pm/content.cljs  0.3s
+💻 $ git diff -- bb.edn resources/estate.edn scripts/crew_bridge.clj scripts/crew_status.clj  0.4s
+📖 Read crew_fielder.clj
+💻 $ git diff -- src/pm/ui.cljs src/pm/core.cljs  0.4s
+📖 Read crew_fielder_v0_test.cljs
+💻 $ git diff --stat -- .crew/crew.json docs/GDD.md crew/README.md + 3 commands  0.4s
+📖 Read build-un-automate-monde.txt
+📖 Read fix-1-un-automate-monde.txt
+📖 Read fix-2-un-automate-monde.txt
+💻 $ ps aux | grep -i "crew_fielder\|crew_bridge\|crew_status" | grep -v grep  0.5s
+📖 Read build-le-testeur.txt
+📖 Read gate-le-coureur.txt
+
+────────────────────────────────────────
+☤ Hermes
+Good — nothing suspicious; just local syntax-check/gate shell approvals, no crew interaction. Now checking the review-le-critique.txt (expected to be a recursive capture of this session again) and the diff.txt consistency, then verifying :jumeaux reader fallback edge cases and legacy log reading live in the actual estate file.
+────────────────────────────────────────
+
+💻 $ head -5 crew/runs/crew-fielder-v0-20261108-1146/replies/review-le-critique.txt  1.1s
+💻 $ grep -n "jumeaux\|crew-talk" resources/estate.edn  0.3s
+💻 $ sed -n '1,6p' resources/estate.edn  0.4s
+
+────────────────────────────────────────
+☤ Hermes
+Matches spec exactly. All pieces verified. Now writing the review.
+────────────────────────────────────────
+
+✍️ Write crew/runs/crew-fielder-v0-20261108-1146/review.md
+│ crew/runs/crew-fielder-v0-20261108-1146/review.md
+│ @@ -0,0 +1,111 @@
+│ +# Review: crew-fielder-v0 (20261108-1146)
+│ +
+│ +## Conformance summary
+│ +
+│ +Gate history: automated gate FAILED 3x (gate-1/2/3) on one pre-existing test the spec's §4.8 edit
+│ +list missed (`overlay_test.cljs:177`, `"fern (Hal)"` vs. the correct "fern (Your twin)" for a
+│ +hand-built world with no `:jumeaux`, per log.md's manager note). Hal fixed that one expectation
+│ +by hand and re-ran the gate; I re-ran it again myself just now: PASS, 0 warnings, 627 tests /
+│ +3481 assertions. `git diff -- test/pm/overlay_test.cljs` confirms the live diff is exactly that
+│ +one-line fix plus the tester's own listed §4.8 edits — no other drift.
+│ +
+│ +Boundary table (spec §1): builder touched exactly the assigned files (`bb.edn`,
+│ +`resources/estate.edn`, `scripts/crew_bridge.clj`, `scripts/crew_status.clj`, `src/pm/bridge.cljc`,
+│ +`src/pm/content.cljs`, `src/pm/core.cljs`, `src/pm/crew_log.cljc`, `src/pm/overlay.cljs`,
+│ +`src/pm/talk.cljs`, `src/pm/ui.cljs`, plus new `scripts/crew_fielder.clj`, `src/pm/fielder.cljc`,
+│ +`src/pm/jumeaux.cljc`). Tester touched only the new `test/pm/crew_fielder_v0_test.cljs` and the
+│ +§4.8-listed lines of the three old test files. None of the "nobody" files (`src/pm/prompt.cljc`,
+│ +`src/pm/crew.cljs`, `src/pm/world.cljs`, `src/pm/dev_http.clj`, `public/**`, `resources/content/**`,
+│ +`.gitignore`, `state/*`) appear in `git status`.
+│ +
+│ +Security-code pass (hand-traced against the diff, not test names):
+│ +- **Risk classification has one source.** `pm.fielder` requires only `pm.bridge`/`pm.crew-log`
+│ +  (confirmed in `src/pm/fielder.cljc`'s ns form) — no `pm.prompt` require, no local risk list.
+│ +  `verdict`'s `:unknown`/`:risky` checks read `:kind`/`:risky` off the already-parsed prompt (which
+│ +  `pm.prompt/risky?` populated via the watcher), and `attempt` re-derives the same two checks
+│ +  live through `b/decide`, whose `read-prompt`-sourced `:kind`/`:risky` is the only other place
+│ +  risk is decided. `scripts/crew_fielder.clj` itself calls `pr/read-prompt` (never a second
+│ +  classifier) when building `live`. Risky is `pm.prompt/risky?`, full stop, checked twice
+│ +  (published-state gate in `verdict`, live gate in `attempt`/`decide`), never copied.
+│ +- **`verdict`'s cond order** re-derived from `src/pm/fielder.cljc`: `:hold` → `:stale` →
+│ +  `:not-in-roster` → `:not-blocked` → `:unknown` → `:risky` → `:no-since` → `:answered` →
+│ +  `:too-soon` → `:answer`, exactly spec §3.4's numbered order. `:risky` is `(not (false? (:risky
+│ +  p)))` — fails closed on `nil`/truthy/non-boolean, only an explicit `false` passes (t35).
+│ +- **Hold is checked twice**, at different layers: `verdict`'s `:hold` branch gates what's even
+│ +  considered `:answer` at poll time, and `scripts/crew_fielder.clj`'s `handle-one!` re-reads
+│ +  `state/hold.edn` fresh immediately before acting (`(if (cl/hold-on? (cl/parse-hold
+│ +  (slurp-or-nil hold-file))) tried ...)`), closing the race between `due`'s snapshot and the
+│ +  action. On hold, no `remember` call happens (matches spec's "skip (no remember)" exactly), so a
+│ +  held sighting is retried once hold lifts rather than silently forgotten.
+│ +- **Same prompt id, live re-read.** `attempt` is `(b/decide {:action :allow :prompt-id (:id
+│ +  prompt) :text nil} live)` — reused verbatim from `pm.bridge`, not duplicated; `live`'s prompt
+│ +  comes from a fresh `herdr agent read … --source visible` + `pr/read-prompt` right before
+│ +  acting, and `decide`'s own `(not= (:id prompt) prompt-id)` check (409 "prompt changed") is what
+│ +  enforces "same id now as when it was decided due." `scripts/crew_fielder.clj` never bypasses
+│ +  this: `d` is always the result of `f/attempt`, never a hand-built `{:ok true}`.
+│ +- **Same roster check as the bridge.** `ctx-now` builds `:members` as `(set (keys (b/roster
+│ +  (crew-json))))` — the identical call `crew_bridge.clj`'s `handle` makes — not a separate or
+│ +  looser membership test.
+│ +- **Never declines, never answers `:unknown`.** `log!` always logs action `:allow` (hardcoded);
+│ +  there is no code path in `pm.fielder` or `crew_fielder.clj` that constructs a `:deny` decision
+│ +  or calls `b/decide` with `:action :deny`. `:unknown` prompts are excluded before `:risky` is
+│ +  even checked (`verdict` step 5), and `attempt`'s reused `decide` independently 403s a non-`:bash`
+│ +  kind regardless. t41 confirms every `attempt` result's `:steps` is `nil` or exactly
+│ +  `[[:keys "1"]]` — never an `:esc`/decline step.
+│ +- **Herdr via argument vector, no shell.** Every Herdr call in `crew_fielder.clj` goes through
+│ +  `(p/sh (b/step-argv herdr member [...]))`, and `step-argv` (unchanged, shared with the bridge)
+│ +  returns a plain vector (`[herdr "agent" "send-keys" m "1"]` etc.) that `babashka.process/sh`
+│ +  runs without a shell — no string-interpolated command, no user-controlled text reaches argv
+│ +  positions beyond the fixed literal `"1"` and the already-roster-checked `member` keyword.
+│ +- **Logs never hold the token or a raw screen.** `log!` calls `b/log-line` with only
+│ +  member/action/status/reason (no prompt text, no token — same structural shape as the bridge's
+│ +  logger). The crew-log entry (`f/log-entry` → `cl/entry`) carries only `:id`/`:text` pulled off
+│ +  the live prompt map, never a screen or a token; `write-crew-log!` writes only
+│ +  `state/crew-log.edn`, atomically (tmp + rename), and the fielder never writes `state/hold.edn`
+│ +  (only the bridge's `hold` action does that) — matching the disjoint-write-paths pattern from
+│ +  crew-talk-v1.
+│ +- **No "Hal" literal in code.** Ran `grep -rnw Hal src/ scripts/` myself: no output (exit 1).
+│ +  `pm.jumeaux/twin` is the single chokepoint every display path (`talk`, `overlay`, `content`,
+│ +  `ui`, `core`, the bridge's 403 reason) goes through for the twin's name; a nil/malformed `jum`
+│ +  always falls back to `"Your twin"`, never throws.
+│ +- **`:jumeaux` reader's fallbacks** (`pm.jumeaux/names`): non-map `data`/`:jumeaux`/`:player`/
+│ +  `:twin` each independently degrade to `{}` rather than throwing; `:sex` is accepted only as
+│ +  exactly `:m`/`:f`, else `nil`; a name is used only if it's a control-char-free, non-blank string
+│ +  ≤ 32 chars after trimming, else the default. Hand-traced against t03/t04/t05's edge cases
+│ +  (non-map blocks, bad `:sex` types, overlength/blank/non-string names) — all match.
+│ +- **Old `:hal`/`:michael` log entries still read.** `pm.crew-log/role` and `upgrade-entry` map
+│ +  legacy keys to `:twin`/`:player`; `parse` and `append` both run every entry (old base entries
+│ +  and the new one) through `upgrade-entry` before `valid-entry?` — `valid-entry?` itself is
+│ … omitted 33 diff line(s) across 1 additional file(s)/section(s)
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/crew-fielder-v0-20261108-1146/review.md — 2 findings (docs/GDD.md, crew/README.md, and .crew/crew.json deliverables from spec §5 not yet done; a process note on the manager's gate-3 fix, which was correct). No security-relevant findings: fielder's single risk source, double hold-check, live id re-read via reused decide, roster check, no-decline/no-unknown guarantee, Herdr-via-vector, and token/screen-free logging all verified by hand against the diff; gate re-verified independently (PASS, 627 tests/3481 assertions); no live Herdr/bridge/fielder activity found in replies or running processes.
+
+done-5162
+────────────────────────────────────────
+
+─ 3m32s · edited 1 file · read 13 files · ran 16 commands · 12:16 PM
+──── Security review of crew-talk-v1 round ─
+crew ❯ What changed in this repo recently?
+ ☤ claude-sonnet-5 · 2h 51m

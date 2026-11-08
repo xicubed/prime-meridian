@@ -1,0 +1,29 @@
+⏺ Now the round table row — spec says "The round table row is added after the round, as
+  usual," which is not a docs edit for me to make now (it happens after the round runs). I'll
+  leave that.
+
+  Ran 1 shell command
+
+⏺ Done. Edits made per spec §5.1/§5.2:
+
+   crew/README.md | 14 +++++++++-----
+   docs/GDD.md    |  2 +-
+   2 files changed, 10 insertions(+), 6 deletions(-)
+
+  - docs/GDD.md: replaced the "Talk and permission prompts" paragraph with the exact text from
+    §5.1 (fielder, :answer-after-s, role-based log, :jumeaux). Left the §1 "Les jumeaux"
+    bullet untouched as instructed.
+  - crew/README.md: added the bb crew-fielder clause to the services paragraph, and updated
+    the step-3 heading line to mention "onBlocked": "wait" and the fielder answering routine
+    prompts. Left the round-table-row addition for after the round runs, and did not touch
+    anything else (not my table rows for .crew/crew.json or .crew/rounds/*.json, which belong
+    to Hal).
+
+  done-4061
+
+✻ Sautéed for 38s · done 12:17 PM
+
+──────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+──────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

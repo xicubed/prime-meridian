@@ -3,9 +3,11 @@
             [pm.world :as w]
             [pm.overlay :as o]
             [pm.fixtures :as fx]
+            [pm.jumeaux :as j]
             [cljs.reader :as reader]))
 
 (def A 1794013200000)                 ; Fri 2026-11-06 17:00 PST
+(def JH (j/names {:jumeaux {:player {:name "Michael" :sex :m} :twin {:name "Hal"}}}))
 (def D2 172800000)                    ; "2d"
 (def W  (assoc (w/load-estate w/estate-edn) :lines fx/lines-v0))
 (defn ev [m c at via] {:event :chore-done :mirror m :chore c :at at :via via :who :me})
@@ -44,7 +46,7 @@
   (is (= (w/status-line W2 :flora (+ A 1000)) "Flora · stock 37")))
 
 (deftest t04-source-tag
-  (is (= (o/source-tag :hal) "Hal"))
+  (is (= (o/source-tag :hal) "Your twin"))
   (is (= (o/source-tag :sample) "sample"))
   (is (= (o/source-tag :phone) "phone"))
   (is (= (o/source-tag nil) nil))
@@ -172,7 +174,7 @@
   (let [X2 (o/apply-file X {:as-of 1 :mirrors {:fern {:state {:water nil :sun 4}}}})]
     (is (= (get-in X2 [:mirrors :fern :state]) {:water 5 :sun 4 :source :hal}))
     (is (= (o/hud-line X :fern 0) "fern"))
-    (is (= (o/hud-line X2 :fern 0) "fern (Hal)")))
+    (is (= (o/hud-line X2 :fern 0) "fern (Your twin)")))   ; X has no :jumeaux
   (let [X3 (o/apply-file X {:as-of 1 :mirrors {:panel {:state {:text "yo" :on false :mode :b}}}})]
     (is (= (get-in X3 [:mirrors :panel :state]) {:text "yo" :on false :mode :b :n 1 :source :hal})))
   (is (= (o/apply-file X {:as-of 2 :mirrors {:panel {:state {:text 1 :on "yes" :mode "b" :n "2"}}}})
@@ -215,9 +217,9 @@
   (let [RC2 (o/apply-cache W HF)]
     (is (= (o/hud-line RC2 :flora (+ A 1000)) "Flora (Hal, cached) · stock 37"))
     (is (= (o/hud-line RC2 :flora (+ A D2)) "Flora (Hal, cached) · stock 37 · I'm hungry")))
-  (is (= (o/source-tag :hal true) "Hal, cached"))
-  (is (= (o/source-tag :hal false) "Hal"))
-  (is (= (o/source-tag :hal nil) "Hal"))
+  (is (= (o/source-tag :hal true JH) "Hal, cached"))
+  (is (= (o/source-tag :hal false JH) "Hal"))
+  (is (= (o/source-tag :hal nil JH) "Hal"))
   (is (= (o/source-tag :sample true) "sample"))
   (is (= (o/source-tag nil true) nil)))
 

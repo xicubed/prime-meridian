@@ -3,7 +3,7 @@
             [clojure.string :as str]
             ["fs" :as fs]
             [pm.prompt :as pr] [pm.bridge :as b] [pm.crew :as c] [pm.talk :as tk]
-            [pm.world :as w] [pm.fixtures :as fx]))
+            [pm.world :as w] [pm.fixtures :as fx] [pm.jumeaux :as j]))
 
 (def FX (.readFileSync fs ".crew/quests/crew-talk-v0/claude-bash-prompt.txt" "utf8")) ; gate runs from the repo root
 (def R "/repo")
@@ -42,6 +42,7 @@
 (def OK-ORIGIN "http://localhost:8080")
 (defn rq [member body] {:method "POST" :uri (str "/crew/" member) :origin OK-ORIGIN :body body})
 (def ALLOW {"token" TOK "action" "allow" "prompt-id" ID1})
+(def JH (j/names {:jumeaux {:player {:name "Michael" :sex :m} :twin {:name "Hal"}}}))
 
 ;; pm.prompt: parsing
 
@@ -316,7 +317,7 @@
          (b/decide VA {:status :blocked :prompt P3})))
   (is (= {:ok false :status 409 :reason "prompt changed"}
          (b/decide VA {:status :blocked :prompt nil})))
-  (is (= {:ok false :status 403 :reason "risky: Hal reviews this one"}
+  (is (= {:ok false :status 403 :reason "risky: your twin reviews this one"}
          (b/decide (assoc VA :prompt-id ID2) {:status :blocked :prompt P2})))
   (is (= {:ok false :status 403 :reason "unknown prompt"}
          (b/decide (assoc VA :prompt-id IDU) {:status :blocked :prompt (assoc PU :risky false)}))))
@@ -532,9 +533,9 @@
     (is (identical? T3 (tk/crew-send T3 3 :allow nil)))
     (is (= "⚠ Le Testeur · wants to run curl --version · ✕ declined 5:01 PM"
            (tk/crew-label (e (tk/crew-result (tk/crew-send T3 3 :deny nil) 3 {:result :ok} (+ A 60000)) 3) OFF)))
-    (is (= "⚠ Le Testeur · wants to run curl --version · Hal reviews this one" (tk/crew-label (e T3 3) OFF)))
+    (is (= "⚠ Le Testeur · wants to run curl --version · Hal reviews this one" (tk/crew-label (e T3 3) OFF JH)))
     (is (= "⚠ Le Testeur · is waiting at a prompt: Edit file / 3. No · Hal reviews this one"
-           (tk/crew-label (e U 1) OFF)))
+           (tk/crew-label (e U 1) OFF JH)))
     (is (identical? U (tk/crew-send U 1 :allow nil)))
     (is (true? (tk/allowable? (e T1 1))))
     (is (false? (tk/allowable? (e T3 3))))

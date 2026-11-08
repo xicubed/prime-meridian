@@ -97,7 +97,7 @@
     (.appendChild li text-span)))
 
 (defn- render-crew-row! [^js li entry offset-of crew]
-  (let [{:keys [bridge-on? on-allow on-deny]} crew
+  (let [{:keys [bridge-on? on-allow on-deny jumeaux]} crew
         controls (talk/crew-controls entry bridge-on?)
         ^js time-span (js/document.createElement "span")
         ^js row       (js/document.createElement "div")
@@ -113,7 +113,7 @@
         (.addEventListener cb "change" (fn [^js e] (when (.. e -target -checked) (on-allow (:n entry)))))
         (.appendChild row cb)))
     (set! (.-className text-span) (str "text" (when (:risky (:prompt entry)) " risky")))
-    (set! (.-textContent text-span) (talk/crew-label entry (offset-of (:at entry))))
+    (set! (.-textContent text-span) (talk/crew-label entry (offset-of (:at entry)) jumeaux))
     (.appendChild row text-span)
     (when controls
       (let [^js x   (js/document.createElement "button")
@@ -172,7 +172,7 @@
    say… input enabled only when :say?. Enter calls (on-say member who
    value). Tapping the name calls (on-expand member); an expanded row lists
    its recent log entries underneath. A re-render keeps a typed value too."
-  [rows on-say on-expand offset-of]
+  [rows on-say on-expand offset-of jum]
   (when-let [^js root (el "crew-roster")]
     (let [^js active    (.-activeElement js/document)
           focused-m     (when (and active (= "INPUT" (.-tagName active)))
@@ -208,7 +208,7 @@
               (set! (.-className sub) "roster-log")
               (doseq [x (:log row)]
                 (let [^js p (js/document.createElement "div")]
-                  (set! (.-textContent p) (talk/log-label x (offset-of (:at x))))
+                  (set! (.-textContent p) (talk/log-label x (offset-of (:at x)) jum))
                   (.appendChild sub p)))
               (.appendChild root sub)))))
       (when focused-m

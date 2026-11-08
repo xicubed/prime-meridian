@@ -12,6 +12,7 @@
             [pm.content :as content]
             [pm.crew :as crew]
             [pm.crew-log :as cl]
+            [pm.jumeaux :as j]
             [pm.kit :as kit]
             [pm.motion :as m]
             [pm.overlay :as overlay]
@@ -41,7 +42,7 @@
                    (let [before (:state-as-of @!world)]
                      (swap! !world overlay/apply-file f)
                      (when (not= before (:state-as-of @!world))
-                       (js/console.info "Prime Meridian: state from Hal as of" (:state-as-of @!world)))))))
+                       (js/console.info "Prime Meridian: state from your twin as of" (:state-as-of @!world)))))))
         (.catch (fn [_]))
         (.finally (fn [] (swap! !state-poll assoc :busy? false))))))
 
@@ -190,8 +191,8 @@
 
 (defn- fresh-start!
   "Testing aid: `?fresh` in the URL forgets the talk history and what was done
-   to sample creatures in this browser. Hal's state (and its cache) and the
-   voice setting are kept."
+   to sample creatures in this browser. The twin's state (and its cache) and
+   the voice setting are kept."
   []
   (when (.has (js/URLSearchParams. (.-search js/location)) "fresh")
     (try (.removeItem js/localStorage talk-key)
@@ -355,11 +356,12 @@
   (talk/gone? entry (:crew @!world) (js/Date.now)))
 
 (defn- talk-tick! [now]
-  (let [t  (:talk @!world)
+  (let [jum (j/names @!world)
+        t  (:talk @!world)
         t' (-> t
                (talk/observe @!world now)
                (talk/observe-crew (:crew @!world) now (talk/policy (:crew-talk @!world) (:hold @!world)))
-               (talk/observe-log (:crew-log @!world) (:crew @!world) now))]
+               (talk/observe-log (:crew-log @!world) (:crew @!world) now jum))]
     (when-not (identical? t' t)
       (swap! !world assoc :talk t'))
     (let [e (talk/caption t' now)]
@@ -385,14 +387,14 @@
         (when-not (and (identical? (:entries t') (:listed @!talk-ui)) (= bridge-on (:listed-bridge @!talk-ui)))
           (let [keep-scroll? (= (:n t') (:listed-n @!talk-ui))]
             (ui/render-panel! (:entries t') offset-of label-of pick! on-check keep-scroll?
-                               {:bridge-on? bridge-on :on-allow on-allow :on-deny on-deny} gone-fn)
+                               {:bridge-on? bridge-on :on-allow on-allow :on-deny on-deny :jumeaux jum} gone-fn)
             (swap! !talk-ui assoc :listed (:entries t') :listed-n (:n t') :listed-bridge bridge-on)))
         (swap! !talk-ui assoc :listed nil :listed-n nil :listed-bridge nil)))
     (let [rows (talk/crew-roster (:crew @!world) now (bridge-on?) (:crew-log @!world) (:expanded @!talk-ui))]
       (when (not= rows (:roster @!talk-ui))
-        (ui/render-roster! rows on-say on-expand offset-of)
+        (ui/render-roster! rows on-say on-expand offset-of jum)
         (swap! !talk-ui assoc :roster rows)))
-    (let [sw (talk/hold-switch (:hold @!world) (bridge-on?) @!hold-ui)]
+    (let [sw (talk/hold-switch (:hold @!world) (bridge-on?) @!hold-ui jum)]
       (when (not= sw (:hold-sw @!talk-ui))
         (ui/render-hold-switch! sw)
         (swap! !talk-ui assoc :hold-sw sw)))))
