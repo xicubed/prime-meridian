@@ -88,7 +88,7 @@ agent writes its output to a file the next step reads, and Hal reads each
 member's pane to know it finished. Agents never talk to each other directly;
 Hal is the hub, which keeps the round reproducible and logged.
 
-**The code.** The crew runs on [crew-up](https://github.com/xicubed/crew-up) (v0.2.1, [`a31137e`](https://github.com/xicubed/crew-up/commit/a31137e))
+**The code.** The crew runs on [crew-up](https://github.com/xicubed/crew-up) (v0.2.4, [`ffa94f2`](https://github.com/xicubed/crew-up/commit/ffa94f2))
 (raw orchestration in shell over Herdr's CLI; no framework):
 
 - `crew-up` starts every enabled member of [`.crew/crew.json`](../.crew/crew.json)
