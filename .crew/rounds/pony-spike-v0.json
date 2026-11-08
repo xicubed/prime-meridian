@@ -1,0 +1,57 @@
+{
+  "round": "pony-spike-v0",
+  "quest": ".crew/quests/pony-spike-v0.md",
+  "runDir": "crew/runs",
+  "gate": "bash .crew/gate.sh",
+  "fix": {
+    "who": "un-automate-monde",
+    "max": 2
+  },
+  "timeoutMinutes": 45,
+  "steps": [
+    {
+      "id": "spec",
+      "who": [
+        "un-architecte"
+      ],
+      "prompt": "New quest: read {quest} (and the code and docs it cites; the MuJoCo API is node_modules/@mujoco/mujoco/mujoco.d.ts). Write the spec to {run}/spec.md following your role card: numbered test cases with hand-checked expected values (body/joint/actuator counts and masses for both species, the accumulator and noise cases), the species file shape, the namespaces and who-touches-what table, and how the spike fits pm.motion's controller pattern. Reply when it's written.",
+      "expect": [
+        "{run}/spec.md"
+      ]
+    },
+    {
+      "id": "build",
+      "who": [
+        "un-automate-monde",
+        "le-testeur"
+      ],
+      "prompt": {
+        "un-automate-monde": "Spec: {run}/spec.md (quest: {quest}). Implement it in the source and data files the spec assigns the builder, and nothing else. Run .crew/gate.sh before replying.",
+        "le-testeur": "Spec: {run}/spec.md (quest: {quest}). Write its test cases in the test file(s) the spec assigns the tester, and nothing else, including the Node test that compiles both species in real MuJoCo. The builder is coding in parallel."
+      },
+      "expect": []
+    },
+    {
+      "id": "gate",
+      "who": [
+        "le-coureur"
+      ],
+      "verify": true,
+      "prompt": "Run the gate (.crew/gate.sh) and write the gate note to {run}/gate-note.md as your role card says.",
+      "expect": [
+        "{run}/gate-note.md"
+      ]
+    },
+    {
+      "id": "review",
+      "who": [
+        "le-critique"
+      ],
+      "prompt": "Review the round's changes against {run}/spec.md and {quest}: git diff for edited files, and read the new files (git status lists them). Check: nothing in code names a species (grep src for horse|dog|pony|juniper outside data); THREE only through pm.three; MuJoCo objects deleted when replaced; the fixed-step cap; z-up to y-up in one place; the ?pony flag leaves the normal game untouched; pure logic tested; the real-MuJoCo test really compiles both generated bodies. Write the review to {run}/review.md (at most 5 ranked findings).",
+      "expect": [
+        "{run}/review.md"
+      ]
+    }
+  ],
+  "onBlocked": "wait"
+}
