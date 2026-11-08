@@ -1,0 +1,311 @@
+), and
+│ +  `t43` re-checks several of those unchanged surfaces directly.
+│ +
+│ +## Boundary-table compliance
+│ +
+│ +Builder touched exactly: `src/pm/motion.cljs`, `src/pm/bricks.cljs` (`?paths` only — `walker-path-lines!`/
+│ +`build-paths!`/`update-paths!`, nothing else in the file changed), `src/pm/three.cljs`
+│ +(`set-line-color!` only, additive), `src/pm/scene.cljs` (3 new palette keys only),
+│ +`resources/estate.edn` (`:motion :senses`, exactly as specced). Tester touched only
+│ +`test/pm/senses_test.cljs`. No off-limits file was edited by this round.
+│ +
+│ +## Findings
+│ … omitted 6 diff line(s) across 1 additional file(s)/section(s)
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/senses-v0-20261107-1553/review.md. Verdict: pass, only a trivial style nit (no boundary violations this time — the diff was clean since prior rounds are now committed). Confirmed: noticed-only planner input, cone/heading math matches hand-worked spec values independently, hearing scale formula, time-based (not frame-based) reaction/forgetting with the floating-point tolerance, statics always known regardless of noticing, one-sided overtakes with head-on right-keeping preserved, no walker-name leakage, and public/vendor/resources/content untouched.
+
+done-3627
+────────────────────────────────────────
+
+─ 2m34s · edited 1 file · read 5 files · ran 7 commands · 4:19 PM
+  💾 Self-improvement review: Skill 'crew-round-review' patched
+
+
+────────────────────────────────────────
+❯ Review the round's changes against crew/runs/crew-dots-v0-20261107-1621/spec.md and .crew/quests/crew-dots-v0.md: git diff for edited files, and read the new files (git status lists them). Check in particular: the poll reuses the existing pattern and keeps the last good file; staleness turns dots hollow; colours come from data; no walker or agent names in code; nothing from the status file is shown beyond names and states; pure logic tested. Write the review to crew/runs/crew-dots-v0-20261107-1621/review.md.
+
+When you have completely finished, end your reply with a line containing only this: done-6698
+────────────────────────────────────────
+
+💻 $ echo "=== git log -3 ===" + 3 commands  0.7s
+📖 Read spec.md
+📖 Read crew-dots-v0.md
+📖 Read log.md
+📖 Read gate-note.md
+💻 $ cat crew/runs/crew-dots-v0-20261107-1621/gate-1.txt echo "=== mtimes ===" stat -f "%Sm %N" TASKS.md bb.edn resources/estate.edn src/pm/bricks.cljs src/pm/core.cljs src/pm/motion.cljs src/pm/scene.cljs src/pm/three.cljs src/pm/crew.cljs test/pm/crew_test.cljs test/pm/senses_test.cljs crew/runs/crew-dots-v0-20261107-1621/spec.md scripts/  0.3s
+✍️ Write /tmp/review-scratch/senses-estate.diff
+│ /private/tmp/review-scratch/senses-estate.diff
+│ @@ -0,0 +1,13 @@
+│ +--- a/resources/estate.edn
+│ ++++ b/resources/estate.edn
+│ +@@ -28,6 +28,10 @@
+│ +             :radius 0.3
+│ +             :horizon-s 2
+│ +             :display-scale 1.0   ; whole walker, both modes, and its avoidance radius (Hal tunes, ~1.4)
+│ ++            :senses {:sight-m 8 :sight-deg 110   ; sees others within 8 m inside ±55° of where it faces
+│ ++                     :hear-m 1.2                  ; hears others within 1.2 m (× their speed / walking pace, if faster)
+│ ++                     :react-s 0.4                 ; must perceive someone this long, continuously, to notice them
+│ ++                     :forget-s 1.5}               ; forgets them after this long unperceived
+│ +             :legs {:soma   {:left  ["LeftLeg" "LeftShin" "LeftFoot" "LeftToeBase"]
+│ +                             :right ["RightLeg" "RightShin" "RightFoot" "RightToeBase"]}
+│ +                    :mixamo {:left  ["mixamorig:LeftUpLeg" "mixamorig:LeftLeg" "mixamorig:LeftFoot" "mixamorig:LeftToeBase"]
+✍️ Write /tmp/review-scratch/senses-three.diff
+│ /private/tmp/review-scratch/senses-three.diff
+│ @@ -0,0 +1,17 @@
+│ +--- a/src/pm/three.cljs
+│ ++++ b/src/pm/three.cljs
+│ +@@ -486,6 +486,14 @@
+│ +         (.multiply r world)
+│ +         (set-world-quat! bone r)))))
+│ +
+│ ++(defn set-line-color!
+│ ++  "(.setHex (.-color (.-material line)) color). Returns nil."
+│ ++  [^js line color]
+│ ++  (let [^js mat (.-material line)
+│ ++        ^js col (.-color mat)]
+│ ++    (.setHex col color))
+│ ++  nil)
+│ ++
+│ + (defn tilt-bone!
+│ +   "The same as aim-bone!, with r = setFromAxisAngle(axis, angle)."
+│ +   [^js bone [ax ay az] angle]
+✍️ Write /tmp/review-scratch/senses-motion.diff
+│ /private/tmp/review-scratch/senses-motion.diff
+│ @@ -0,0 +1,198 @@
+│ +--- a/src/pm/motion.cljs
+│ ++++ b/src/pm/motion.cljs
+│ +@@ -17,6 +17,10 @@
+│ + (def default-radius 0.3)
+│ + (def default-rig :mixamo)
+│ + (def label-gap 0.35)
+│ ++(def default-senses {:sight-m 8 :sight-deg 110 :hear-m 1.2 :react-s 0.4 :forget-s 1.5})
+│ ++(def walk-pace 1.2)
+│ ++(def face-min-speed 0.05)
+│ ++(def ^:private senses-keys [:sight-m :sight-deg :hear-m :react-s :forget-s])
+│ +
+│ + (def figure
+│ +   "The kinematic figure, in pm.plan's look-part format (+x forward, degrees)."
+│ +@@ -51,6 +55,20 @@
+│ +         h (if (and (number? h) (pos? h)) h 2)]
+│ +     {:radius r :horizon-s h}))
+│ +
+│ ++(defn senses [base override]
+│ ++  (if (map? override)
+│ ++    (into {}
+│ ++          (map (fn [k]
+│ ++                 (let [v (get override k)]
+│ ++                   [k (if (and (number? v) (not (js/isNaN v)) (>= v 0))
+│ ++                        (if (= k :sight-deg) (min 360 v) v)
+│ ++                        (get base k))])))
+│ ++          senses-keys)
+│ ++    base))
+│ ++
+│ ++(defn senses-config [world]
+│ ++  (senses default-senses (get-in world [:motion :senses])))
+│ ++
+│ + (defn rig-key [rig]
+│ +   (when (keyword? rig)
+│ +     (let [[first-part & rest-parts] (str/split (name rig) #"-")]
+│ +@@ -94,21 +112,27 @@
+│ +             heading (if (>= (count route) 2)
+│ +                       (let [[x1 z1] (second route)]
+│ +                         (yaw (- x1 x0) (- z1 z0)))
+│ +-                      0)]
+│ ++                      0)
+│ ++            speed   (:speed entry)
+│ ++            speed   (when (and (number? speed) (pos? speed)) speed)]
+│ +         {:id id :name nm :route route :pause-s pause-s
+│ +          :pos [x0 z0] :heading heading :to 0 :dir 1 :pause pause-s :leg 0
+│ +          :ground nil :y nil
+│ +          :radius radius :vel [0 0] :aim nil :goal nil :side nil :wait 0 :waited false
+│ +-         :character (character (:character entry))}))))
+│ ++         :character (character (:character entry))
+│ ++         :senses (senses default-senses (:senses entry))
+│ ++         :speed speed :facing nil :aware {} :glance false}))))
+│ +
+│ + (defn walkers [world]
+│ +-  (let [cfg (avoid-config world)
+│ +-        ds  (display-scale world)]
+│ ++  (let [cfg  (avoid-config world)
+│ ++        ds   (display-scale world)
+│ ++        scfg (senses-config world)]
+│ +     (into []
+│ +           (keep (fn [entry]
+│ +                   (let [entry (if (and (number? (:radius entry)) (pos? (:radius entry)))
+│ +                                 entry
+│ +                                 (assoc entry :radius (:radius cfg)))
+│ ++                        entry (assoc entry :senses (senses scfg (:senses entry)))
+│ +                         w (walker entry)]
+│ +                     (when w (update w :radius * ds)))))
+│ +           (:walkers world))))
+│ +@@ -227,6 +251,96 @@
+│ +             (assoc w :aim nil)
+│ +             w))))))
+│ +
+│ ++;; -- Senses -------------------------------------------------------------
+│ ++
+│ ++(defn forward [heading]
+│ ++  [(js/Math.cos heading) (- (js/Math.sin heading))])
+│ ++
+│ ++(defn facing [w]
+│ ++  (or (:facing w) (:heading w)))
+│ ++
+│ … omitted 120 diff line(s) across 1 additional file(s)/section(s)
+✍️ Write /tmp/review-scratch/senses-bricks.diff
+│ /private/tmp/review-scratch/senses-bricks.diff
+│ @@ -0,0 +1,52 @@
+│ +--- a/src/pm/bricks.cljs
+│ ++++ b/src/pm/bricks.cljs
+│ +@@ -61,11 +61,17 @@
+│ + (defn- walker-path-lines! [w]
+│ +   (let [[x z] (:pos w) y (+ (or (:y w) 0) 0.05)
+│ +         gp    (m/goal-point w)
+│ +-        aim   (or (:aim w) (:pos w))]
+│ ++        aim   (or (:aim w) (:pos w))
+│ ++        s     (:senses w)]
+│ +     {:circle (t/polyline (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:radius w) 24))
+│ +                           (part-color :path-walker))
+│ +      :goal   (t/polyline [[x y z] [(first gp) y (second gp)]] (part-color :path-walker))
+│ +-     :aim    (t/polyline [[x y z] [(first aim) y (second aim)]] (part-color :path-aim))}))
+│ ++     :aim    (t/polyline [[x y z] [(first aim) y (second aim)]] (part-color :path-aim))
+│ ++     :cone   (t/polyline (mapv (fn [[cx cz]] [cx y cz])
+│ ++                                (m/cone-points [x z] (m/facing w) (:sight-m s) (:sight-deg s) 16))
+│ ++                          (part-color :path-sight))
+│ ++     :hear   (t/polyline (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:hear-m s) 24))
+│ ++                          (part-color :path-hear))}))
+│ +
+│ + (defn- build-paths! [^js root ground-meshes cfg statics walkers]
+│ +   (let [^js paths-root (t/group {:name "pm-paths"})
+│ +@@ -75,9 +81,9 @@
+│ +                                 l))
+│ +                             statics)
+│ +         walker-lines (mapv (fn [w]
+│ +-                              (let [{:keys [circle goal aim]} (walker-path-lines! w)]
+│ +-                                (t/add! paths-root circle goal aim)
+│ +-                                {:circle circle :goal goal :aim aim}))
+│ ++                              (let [{:keys [circle goal aim cone hear]} (walker-path-lines! w)]
+│ ++                                (t/add! paths-root circle goal aim cone hear)
+│ ++                                {:circle circle :goal goal :aim aim :cone cone :hear hear}))
+│ +                             walkers)]
+│ +     (t/add! root paths-root)
+│ +     {:root paths-root :statics static-lines :walkers walker-lines}))
+│ +@@ -87,10 +93,15 @@
+│ +     (doseq [[w lines] (map vector walkers (:walkers paths))]
+│ +       (let [[x z] (:pos w) y (+ (or (:y w) 0) 0.05)
+│ +             gp    (m/goal-point w)
+│ +-            aim   (or (:aim w) (:pos w))]
+│ ++            aim   (or (:aim w) (:pos w))
+│ ++            s     (:senses w)]
+│ +         (t/set-polyline! (:circle lines) (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:radius w) 24)))
+│ +         (t/set-polyline! (:goal lines) [[x y z] [(first gp) y (second gp)]])
+│ +-        (t/set-polyline! (:aim lines) [[x y z] [(first aim) y (second aim)]])))))
+│ ++        (t/set-polyline! (:aim lines) [[x y z] [(first aim) y (second aim)]])
+│ ++        (t/set-polyline! (:cone lines) (mapv (fn [[cx cz]] [cx y cz])
+│ ++                                              (m/cone-points [x z] (m/facing w) (:sight-m s) (:sight-deg s) 16)))
+│ ++        (t/set-polyline! (:hear lines) (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:hear-m s) 24)))
+│ ++        (t/set-line-color! (:hear lines) (part-color (if (:glance w) :path-glance :path-hear)))))))
+│ +
+│ + ;; -- glTF body loading ---------------------------------------------------------
+💻 $ mkdir -p a/src/pm a/resources git -C /Users/hal/src/prime-meridian show fbfbdea:resources/estate.edn git -C /Users/hal/src/prime-meridian show fbfbdea:src/pm/motion.cljs git -C /Users/hal/src/prime-meridian show fbfbdea:src/pm/bricks.cljs git -C /Users/hal/src/prime-meridian show fbfbdea:src/pm/three.cljs cp fbfbdea-estate.edn a/resources/estate.edn patch -p1 --input=senses-estate.diff a/resources/estate.edn -o senses-end-estate.edn  0.5s
+
+────────────────────────────────────────
+☤ Hermes
+Now let's isolate crew-dots-v0's own contribution:
+────────────────────────────────────────
+
+✗ $ echo "=== crew-dots-v0 contribution to estate.edn ===" diff -u senses-end-estate.edn /Users/hal/src/prime-meridian/resources/estate.edn echo "=== crew-dots-v0 contribution to three.cljs ===" diff -u senses-end-three.cljs /Users/hal/src/prime-meridian/src/pm/three.cljs  0.3s [exit 1]
+✗ $ echo "=== crew-dots-v0 contribution to motion.cljs ===" diff -u senses-end-motion.cljs /Users/hal/src/prime-meridian/src/pm/motion.cljs  0.3s [exit 1]
+💻 $ echo "=== crew-dots-v0 contribution to bricks.cljs ===" diff -u senses-end-bricks.cljs /Users/hal/src/prime-meridian/src/pm/bricks.cljs  0.2s
+💻 $ git diff -- src/pm/core.cljs  0.3s
+🔎 Grep defn- fetch-state|defn- start-state-poll  0.3s
+📖 Read crew.cljs
+📖 Read crew_test.cljs
+💻 $ echo "=== name leakage ===" + 2 commands  0.3s
+✍️ Write crew/runs/crew-dots-v0-20261107-1621/review.md
+│ crew/runs/crew-dots-v0-20261107-1621/review.md
+│ @@ -0,0 +1,70 @@
+│ +# Review: crew-dots-v0
+│ +
+│ +Gate re-checked against `gate-1.txt`: PASS, 0 warnings, 468 tests / 2120 assertions (up from
+│ +440/2043 at the end of `senses-v0`: +28 tests — exactly `test/pm/crew_test.cljs`'s `t01`–`t28`,
+│ +one per spec case).
+│ +
+│ +**Isolation method.** `resources/estate.edn`, `src/pm/motion.cljs`, `src/pm/bricks.cljs` and
+│ +`src/pm/three.cljs` are also `senses-v0`'s files, and `senses-v0` is still uncommitted (stacked on
+│ +top of the now-committed `avoid-v0`/`characters-v0`/`foot-ik-v0`), so a plain `git diff` mixes
+│ +both rounds' hunks. I reconstructed each file's `senses-v0`-end state (base commit `fbfbdea` +
+│ +`senses-v0`'s own diff, already verified against its spec in the prior review) and diffed that
+│ +against the current file to isolate only `crew-dots-v0`'s contribution. `src/pm/core.cljs` is new
+│ +territory for this round (untouched by any earlier uncommitted round) and `src/pm/scene.cljs`'s
+│ +diff is entirely `senses-v0`'s (its mtime, 16:08, predates this round's `spec` step, 16:21:28) —
+│ +confirms `scene.cljs` wasn't touched here, consistent with the boundary table not listing it.
+│ +`bb.edn`/`scripts/crew_status.clj`/`TASKS.md` also show as changed, but all three predate this
+│ +round's start (mtimes in the 16:08–16:12 window, before `spec` at 16:21:28) — the same `senses-v0`
+│ +concurrent-work artifacts flagged in the prior review; excluded here too.
+│ +
+│ +## Conformance checks
+│ +
+│ +- **The poll reuses the existing pattern, keeps the last good file:** `fetch-crew!` is structurally
+│ +  identical to `fetch-state!` — the same busy guard, `?t=` cache buster, `{:cache "no-store"}`,
+│ +  `.ok` check, `.catch` swallow, `.finally` clearing `:busy?`. On text it only swaps `:crew` into
+│ +  `!world` `(when-let [c (crew/parse text)] (when (not= c (:crew @!world)) ...))` — a 404 (`.ok`
+│ +  false → `nil` text), a missing file, or garbage all make `crew/parse` return `nil`, so the
+│ +  `when-let` never fires and the last good `:crew` value is untouched; it only goes stale later
+│ +  through `fresh?`'s own `:as-of` check. `start-crew-poll!` mirrors `start-state-poll!` (fetch now,
+│ +  then a 2 s `setInterval`), called right after it in `init!`.
+│ +- **Staleness turns dots hollow:** `dot` returns the hollow glyph whenever `(not (fresh? crew now))`
+│ +  *or* the agent is missing from `:agents` — a single `or`, so a stale file hollows every dot
+│ +  regardless of what's in it. `fresh?` uses `<=` against `stale-ms` (15000), matching the spec's
+│ +  "exactly 15000 is fresh, 15001 is stale" edge, confirmed by `t08`/`t15`.
+│ +- **Colours come from data:** `colors` starts from `default-colors` and only accepts a
+│ +  `:status-dots` override value that is an integer in `[0, 0xffffff]` (`t11` confirms `16777216`
+│ +  is rejected and `-1`/`"red"` fall back to the default); `resources/estate.edn`'s new
+│ +  `:status-dots` map matches §2.1 verbatim, and `set-dots!`/`walker-path-lines!`-style wiring reads
+│ +  the palette only through `(crew/colors world)`, never a literal hex in `pm.bricks`.
+│ +- **No walker or agent names in code:** `grep -rni "un-automate|le-testeur|un-architecte|le-coureur|polybot|astronaut|juniper|flora"`
+│ +  across every file this round touched (`crew.cljs`, `core.cljs`, `bricks.cljs`, `motion.cljs`,
+│ +  `three.cljs`) is empty. `pm.crew` reads agent ids only as the `:agent` key off whatever walker is
+│ +  passed in.
+│ +- **Nothing beyond names and states surfaces from the status file:** `parse` keeps only `:as-of`
+│ +  and `{agent-id {:status}}` — every other key at any level (`:host`, `:title`, `:screen`, a
+│ +  non-keyword agent id, a non-map entry) is dropped before the map ever reaches `!world` (`t06`).
+│ +  Nothing downstream (`dot`, `label-runs`, `hud-text`, `fetch-crew!`) ever logs or displays the raw
+│ +  file text or any field besides the walker's own name (from `estate.edn`, not the file) and the
+│ +  parsed status/dot.
+│ +- **Pure logic tested:** `pm.crew` has no `js/Date`, fetch or atoms (`now` is always an argument);
+│ +  every function in §3 has direct test coverage, and `pulse-alpha`'s hand-worked table (1, 0.9,
+│ +  0.7, 0.4, 0.7, 1, 0.9, 0.4 at t = 0..3000) matches both the spec's arithmetic and `t18` exactly
+│ +  — independently recomputed here, not just "the test the same author wrote passes."
+│ +
+│ +## Boundary-table compliance
+│ +
+│ +Builder touched exactly: `src/pm/crew.cljs` (new), `src/pm/motion.cljs` (`:agent` only — isolated
+│ +diff shows just the two new lines in `walker`, nothing else), `src/pm/three.cljs`
+│ +(`set-label-runs!` only, additive), `src/pm/bricks.cljs` (`:colors` state, `set-dots!`, the new
+│ +`require`), `src/pm/core.cljs` (the crew-poll block, `frame`, `hud-mirrors-suffix`, `init!`),
+│ +`resources/estate.edn` (`:status-dots` plus `:agent` on both walkers, exactly as specced — the
+│ +only extra is a one-word comment tweak, "Le Testeur: NVIDIA's mannequin...", harmless). Tester
+│ +touched only `test/pm/crew_test.cljs`. `src/pm/scene.cljs`, `public/index.html`, `public/vendor/`,
+│ +`resources/content/`, `scripts/crew_status.clj` and `public/state/` are all untouched by this
+│ +round.
+│ +
+│ +## Findings
+│ +
+│ +None rise above a style nit. Nothing to flag.
+│ +
+│ +**Verdict: pass.**
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/crew-dots-v0-20261107-1621/review.md. Verdict: pass, no findings. Confirmed the poll mirrors fetch-state!'s exact pattern and keeps the last good crew on garbage/404/missing-file; staleness unconditionally hollows every dot; palette colours are validated data, never hardcoded; no walker/agent names leak into any touched source file; only :as-of/agent-id/:status ever survive parsing (title/screen/host and friends are dropped); and pm.crew's pure functions (including the pulse-alpha table) check out against independent hand recomputation, not just the test suite its own author wrote.
+
+done-6698
+────────────────────────────────────────
+
+─ 3m21s · edited 5 files · read 6 files · ran 6 commands · searched 1 path · 4:33 PM
+──────────────────────────────────────────────────────────── Introduce name, job, and model ─
+crew ❯ Find and fix a failing test
+─────────────────────────────────────────────────────────────────────────────────────────────
+ ☤ claude-sonnet-5 · ~397K/1M · [████░░░░░░] ~40% · ◎ 91.9% · ◷ 11.7s · ↑ 87 t/s · 6h 37m...

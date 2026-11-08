@@ -1,0 +1,316 @@
+diff --git a/bb.edn b/bb.edn
+index 2691ee4..3ed122c 100644
+--- a/bb.edn
++++ b/bb.edn
+@@ -1,3 +1,5 @@
+ {:tasks
+- {content {:doc  "Generate game content from the GDD: bb content <request>|all [--dry-run]"
++ {crew-status {:doc  "Write the crew's Herdr states to public/state/crew.edn for the game: bb crew-status [--once]"
++               :task (apply shell "bb" "scripts/crew_status.clj" *command-line-args*)}
++  content {:doc  "Generate game content from the GDD: bb content <request>|all [--dry-run]"
+            :task (apply shell "bb" "content/pipeline.clj" *command-line-args*)}}}
+diff --git a/resources/estate.edn b/resources/estate.edn
+index be4afe1..62ef7fd 100644
+--- a/resources/estate.edn
++++ b/resources/estate.edn
+@@ -28,6 +28,10 @@
+             :radius 0.3
+             :horizon-s 2
+             :display-scale 1.0   ; whole walker, both modes, and its avoidance radius (Hal tunes, ~1.4)
++            :senses {:sight-m 8 :sight-deg 110   ; sees others within 8 m inside ±55° of where it faces
++                     :hear-m 1.2                  ; hears others within 1.2 m (× their speed / walking pace, if faster)
++                     :react-s 0.4                 ; must perceive someone this long, continuously, to notice them
++                     :forget-s 1.5}               ; forgets them after this long unperceived
+             :legs {:soma   {:left  ["LeftLeg" "LeftShin" "LeftFoot" "LeftToeBase"]
+                             :right ["RightLeg" "RightShin" "RightFoot" "RightToeBase"]}
+                    :mixamo {:left  ["mixamorig:LeftUpLeg" "mixamorig:LeftLeg" "mixamorig:LeftFoot" "mixamorig:LeftToeBase"]
+diff --git a/src/pm/bricks.cljs b/src/pm/bricks.cljs
+index 16520b6..554dea7 100644
+--- a/src/pm/bricks.cljs
++++ b/src/pm/bricks.cljs
+@@ -61,11 +61,17 @@
+ (defn- walker-path-lines! [w]
+   (let [[x z] (:pos w) y (+ (or (:y w) 0) 0.05)
+         gp    (m/goal-point w)
+-        aim   (or (:aim w) (:pos w))]
++        aim   (or (:aim w) (:pos w))
++        s     (:senses w)]
+     {:circle (t/polyline (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:radius w) 24))
+                           (part-color :path-walker))
+      :goal   (t/polyline [[x y z] [(first gp) y (second gp)]] (part-color :path-walker))
+-     :aim    (t/polyline [[x y z] [(first aim) y (second aim)]] (part-color :path-aim))}))
++     :aim    (t/polyline [[x y z] [(first aim) y (second aim)]] (part-color :path-aim))
++     :cone   (t/polyline (mapv (fn [[cx cz]] [cx y cz])
++                                (m/cone-points [x z] (m/facing w) (:sight-m s) (:sight-deg s) 16))
++                          (part-color :path-sight))
++     :hear   (t/polyline (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:hear-m s) 24))
++                          (part-color :path-hear))}))
+ 
+ (defn- build-paths! [^js root ground-meshes cfg statics walkers]
+   (let [^js paths-root (t/group {:name "pm-paths"})
+@@ -75,9 +81,9 @@
+                                 l))
+                             statics)
+         walker-lines (mapv (fn [w]
+-                              (let [{:keys [circle goal aim]} (walker-path-lines! w)]
+-                                (t/add! paths-root circle goal aim)
+-                                {:circle circle :goal goal :aim aim}))
++                              (let [{:keys [circle goal aim cone hear]} (walker-path-lines! w)]
++                                (t/add! paths-root circle goal aim cone hear)
++                                {:circle circle :goal goal :aim aim :cone cone :hear hear}))
+                             walkers)]
+     (t/add! root paths-root)
+     {:root paths-root :statics static-lines :walkers walker-lines}))
+@@ -87,10 +93,15 @@
+     (doseq [[w lines] (map vector walkers (:walkers paths))]
+       (let [[x z] (:pos w) y (+ (or (:y w) 0) 0.05)
+             gp    (m/goal-point w)
+-            aim   (or (:aim w) (:pos w))]
++            aim   (or (:aim w) (:pos w))
++            s     (:senses w)]
+         (t/set-polyline! (:circle lines) (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:radius w) 24)))
+         (t/set-polyline! (:goal lines) [[x y z] [(first gp) y (second gp)]])
+-        (t/set-polyline! (:aim lines) [[x y z] [(first aim) y (second aim)]])))))
++        (t/set-polyline! (:aim lines) [[x y z] [(first aim) y (second aim)]])
++        (t/set-polyline! (:cone lines) (mapv (fn [[cx cz]] [cx y cz])
++                                              (m/cone-points [x z] (m/facing w) (:sight-m s) (:sight-deg s) 16)))
++        (t/set-polyline! (:hear lines) (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:hear-m s) 24)))
++        (t/set-line-color! (:hear lines) (part-color (if (:glance w) :path-glance :path-hear)))))))
+ 
+ ;; -- glTF body loading ---------------------------------------------------------
+ 
+diff --git a/src/pm/motion.cljs b/src/pm/motion.cljs
+index 39b305f..408bd03 100644
+--- a/src/pm/motion.cljs
++++ b/src/pm/motion.cljs
+@@ -17,6 +17,10 @@
+ (def default-radius 0.3)
+ (def default-rig :mixamo)
+ (def label-gap 0.35)
++(def default-senses {:sight-m 8 :sight-deg 110 :hear-m 1.2 :react-s 0.4 :forget-s 1.5})
++(def walk-pace 1.2)
++(def face-min-speed 0.05)
++(def ^:private senses-keys [:sight-m :sight-deg :hear-m :react-s :forget-s])
+ 
+ (def figure
+   "The kinematic figure, in pm.plan's look-part format (+x forward, degrees)."
+@@ -51,6 +55,20 @@
+         h (if (and (number? h) (pos? h)) h 2)]
+     {:radius r :horizon-s h}))
+ 
++(defn senses [base override]
++  (if (map? override)
++    (into {}
++          (map (fn [k]
++                 (let [v (get override k)]
++                   [k (if (and (number? v) (not (js/isNaN v)) (>= v 0))
++                        (if (= k :sight-deg) (min 360 v) v)
++                        (get base k))])))
++          senses-keys)
++    base))
++
++(defn senses-config [world]
++  (senses default-senses (get-in world [:motion :senses])))
++
+ (defn rig-key [rig]
+   (when (keyword? rig)
+     (let [[first-part & rest-parts] (str/split (name rig) #"-")]
+@@ -94,21 +112,27 @@
+             heading (if (>= (count route) 2)
+                       (let [[x1 z1] (second route)]
+                         (yaw (- x1 x0) (- z1 z0)))
+-                      0)]
++                      0)
++            speed   (:speed entry)
++            speed   (when (and (number? speed) (pos? speed)) speed)]
+         {:id id :name nm :route route :pause-s pause-s
+          :pos [x0 z0] :heading heading :to 0 :dir 1 :pause pause-s :leg 0
+          :ground nil :y nil
+          :radius radius :vel [0 0] :aim nil :goal nil :side nil :wait 0 :waited false
+-         :character (character (:character entry))}))))
++         :character (character (:character entry))
++         :senses (senses default-senses (:senses entry))
++         :speed speed :facing nil :aware {} :glance false}))))
+ 
+ (defn walkers [world]
+-  (let [cfg (avoid-config world)
+-        ds  (display-scale world)]
++  (let [cfg  (avoid-config world)
++        ds   (display-scale world)
++        scfg (senses-config world)]
+     (into []
+           (keep (fn [entry]
+                   (let [entry (if (and (number? (:radius entry)) (pos? (:radius entry)))
+                                 entry
+                                 (assoc entry :radius (:radius cfg)))
++                        entry (assoc entry :senses (senses scfg (:senses entry)))
+                         w (walker entry)]
+                     (when w (update w :radius * ds)))))
+           (:walkers world))))
+@@ -227,6 +251,96 @@
+             (assoc w :aim nil)
+             w))))))
+ 
++;; -- Senses -------------------------------------------------------------
++
++(defn forward [heading]
++  [(js/Math.cos heading) (- (js/Math.sin heading))])
++
++(defn facing [w]
++  (or (:facing w) (:heading w)))
++
++(defn sees? [w o]
++  (let [s (or (:senses w) default-senses)
++        [wx wz] (:pos w) [ox oz] (:pos o)
++        dx (- ox wx) dz (- oz wz)
++        d  (js/Math.hypot dx dz)]
++    (cond
++      (> d (:sight-m s)) false
++      (zero? d) true
++      :else
++      (let [[fx fz] (forward (facing w))
++            dot  (/ (+ (* fx dx) (* fz dz)) d)
++            half (/ (* (:sight-deg s) (/ js/Math.PI 180)) 2)]
++        (>= dot (- (js/Math.cos half) 1e-9))))))
++
++(defn hear-range [w o]
++  (let [s (or (:senses w) default-senses)
++        [vx vz] (or (:vel o) [0 0])
++        speed (js/Math.hypot vx vz)]
++    (* (:hear-m s) (max 1 (/ speed walk-pace)))))
++
++(defn hears? [w o]
++  (let [[wx wz] (:pos w) [ox oz] (:pos o)
++        d (js/Math.hypot (- ox wx) (- oz wz))]
++    (<= d (hear-range w o))))
++
++(defn perceive [w others dt]
++  (let [dt'    (max 0 dt)
++        [vx vz] (:vel w)
++        speed  (js/Math.hypot vx vz)
++        w      (if (>= speed face-min-speed) (assoc w :facing (yaw vx vz)) w)
++        s      (or (:senses w) default-senses)
++        react-s  (:react-s s)
++        forget-s (:forget-s s)
++        aware  (:aware w)
++        by-id  (into {} (map (fn [o] [(:id o) o])) (remove #(= (:id %) (:id w)) others))
++        ids    (into (set (keys by-id)) (keys aware))
++        aware' (reduce
++                 (fn [acc id]
++                   (let [o     (get by-id id)
++                         e     (get aware id)
++                         seen  (and o (sees? w o))
++                         heard (and o (hears? w o))]
++                     (cond
++                       (or seen heard)
++                       (let [on' (+ (or (:on e) 0) dt')]
++                         (assoc acc id {:on on' :off 0
++                                        :noticed (or (true? (:noticed e))
++                                                     (>= on' (- react-s 1e-9)))
++                                        :how (if seen :sight :hear)}))
++
++                       (true? (:noticed e))
++                       (let [off' (+ (:off e) dt')]
++                         (if (>= off' (- forget-s 1e-9))
++                           acc
++                           (assoc acc id {:on 0 :off off' :noticed true :how nil})))
++
++                       :else
++                       acc)))
++                 {} ids)]
++    (assoc w :aware aware'
++             :glance (boolean (some #(and (:noticed %) (= :hear (:how %))) (vals aware'))))))
++
++(defn perceive-all [ws dt]
++  (let [ws (vec ws) n (count ws)]
++    (vec (map-indexed
++           (fn [i w]
++             (perceive w (into (subvec ws 0 i) (subvec ws (inc i) n)) dt))
++           ws))))
++
++(defn noticed [w others]
++  (filterv #(true? (get-in (:aware w) [(:id %) :noticed])) others))
++
++(defn cone-points [[x z] heading sight-m sight-deg n]
++  (let [n'   (max 1 n)
++        half (/ (* sight-deg (/ js/Math.PI 180)) 2)
++        step (/ (* 2 half) n')
++        rim  (mapv (fn [k]
++                      (let [a (+ (- heading half) (* k step))]
++                        [(+ x (* sight-m (js/Math.cos a))) (- z (* sight-m (js/Math.sin a)))]))
++                    (range (inc n')))]
++    (into (into [[x z]] rim) [[x z]])))
++
+ ;; -- Avoidance planning ------------------------------------------------------
+ 
+ (defn walkable? [g base step-max]
+@@ -243,7 +357,7 @@
+             w1 (assoc w :goal (when (not= g G) g))]
+         (if (<= (pt-dist P g) arrive-m)
+           (assoc w1 :aim nil)
+-          (let [speed      (:speed cfg)
++          (let [speed      (or (:speed w) (:speed cfg))
+                 horizon-s  (:horizon-s cfg)
+                 other-circles (mapv (fn [o] {:at (:pos o) :r (:radius o) :vel (:vel o)}) others)
+                 circles    (into statics other-circles)
+@@ -278,17 +392,19 @@
+   (let [ws (vec ws) n (count ws)]
+     (vec (map-indexed
+            (fn [i w]
+-             (plan w (into (subvec ws 0 i) (subvec ws (inc i) n)) statics cfg))
++             (let [others (into (subvec ws 0 i) (subvec ws (inc i) n))]
++               (plan w (noticed w others) statics cfg)))
+            ws))))
+ 
+ (defn replan [before after statics cfg dt acc]
+-  (if (or (>= (+ acc dt) (- plan-every-s 1e-9))
+-          (some (fn [[b a]] (not= (:leg b) (:leg a))) (map vector before after)))
+-    [(plan-all after statics cfg) 0]
+-    [after (+ acc dt)]))
++  (let [after (perceive-all after dt)]
++    (if (or (>= (+ acc dt) (- plan-every-s 1e-9))
++            (some (fn [[b a]] (not= (:leg b) (:leg a))) (map vector before after)))
++      [(plan-all after statics cfg) 0]
++      [after (+ acc dt)])))
+ 
+ (defn advance [ws statics cfg dt acc]
+-  (replan ws (mapv #(step % (:speed cfg) dt) ws) statics cfg dt acc))
++  (replan ws (mapv #(step % (or (:speed %) (:speed cfg)) dt) ws) statics cfg dt acc))
+ 
+ (defn detours [ws]
+   (count (filter #(some? (:aim %)) ws)))
+diff --git a/src/pm/scene.cljs b/src/pm/scene.cljs
+index 4c40f52..e8116a5 100644
+--- a/src/pm/scene.cljs
++++ b/src/pm/scene.cljs
+@@ -27,7 +27,10 @@
+    :path-static  0xf6ad55
+    :path-aim     0xf56565
+    :feet-ground  0x48bb78
+-   :feet-target  0xed64a6})
++   :feet-target  0xed64a6
++   :path-sight   0xfaf089
++   :path-hear    0x9f7aea
++   :path-glance  0x63b3ed})
+ 
+ (def label-height 0.3)
+ 
+diff --git a/src/pm/three.cljs b/src/pm/three.cljs
+index d248b31..19542ed 100644
+--- a/src/pm/three.cljs
++++ b/src/pm/three.cljs
+@@ -486,6 +486,14 @@
+         (.multiply r world)
+         (set-world-quat! bone r)))))
+ 
++(defn set-line-color!
++  "(.setHex (.-color (.-material line)) color). Returns nil."
++  [^js line color]
++  (let [^js mat (.-material line)
++        ^js col (.-color mat)]
++    (.setHex col color))
++  nil)
++
+ (defn tilt-bone!
+   "The same as aim-bone!, with r = setFromAxisAngle(axis, angle)."
+   [^js bone [ax ay az] angle]

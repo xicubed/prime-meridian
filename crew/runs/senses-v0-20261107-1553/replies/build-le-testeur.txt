@@ -1,0 +1,27 @@
+  (first-crossing for the head-on sign-flip
+  check, picks-of for the ping-pong pick
+  sequence). It covers §7 cases 1–43 as 43
+  deftests (t01-defaults …
+  t43-unchanged-surfaces): senses
+  config/merging/validation,
+  sees?/hear-range/hears? geometry, the full
+  perceive timing model (reaction delay,
+  continuity, forgetting, re-noticing,
+  glance, two others, self-ignoring,
+  facing-from-motion, follow interplay,
+  perceive-all one-sidedness), the changed
+  planner functions (plan-all noticed-only,
+  own-speed plan/advance, replan perceiving
+  every call), cone-points, and the four
+  scenario tests (overtake, mirrored
+  overtake, head-on, 120 s real-estate run).
+  Only the new test file was touched.
+
+  done-9540
+
+✻ Churned for 3m 10s · done 4:07 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

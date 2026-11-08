@@ -1,0 +1,27 @@
+  says.
+
+  When you have completely finished, end
+  your reply with a line containing only
+  this: done-2985
+
+  Ran 1 shell command
+
+⏺ Write(crew/runs/crew-dots-v0…/gate-note.md)
+  ⎿  Wrote 3 lines to crew/runs/crew-dot
+     s-v0-20261107-1621/gate-note.md
+      1 PASS
+      2 0 warnings
+      3 Ran 468 tests containing 2120
+        assertions. 0 failures, 0 erro
+        rs.
+
+⏺ PASS
+
+  done-2985
+
+✻ Brewed for 10s · done 4:30 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

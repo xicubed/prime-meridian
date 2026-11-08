@@ -1,0 +1,36 @@
+shadow-cljs - config: /Users/hal/src/prime-meridian/shadow-cljs.edn
+shadow-cljs - connected to server
+
+[:app] Compiling ...
+[:app] Build completed. (76 files, 0 compiled, 0 warnings, 0.72s)
+[:test] Compiling ...
+[:test] Build completed. (83 files, 1 compiled, 0 warnings, 0.62s)
+--- node out/test.js
+
+Testing pm.avoid-test
+
+Testing pm.characters-test
+
+Testing pm.chores-test
+
+Testing pm.content-test
+
+Testing pm.feet-test
+
+Testing pm.motion-test
+
+Testing pm.overlay-test
+
+Testing pm.plan-test
+
+Testing pm.requests-test
+
+Testing pm.senses-test
+
+Testing pm.talk-test
+
+Testing pm.world-test
+
+Ran 440 tests containing 2043 assertions.
+0 failures, 0 errors.
+GATE: PASS — 0 warnings; Ran 440 tests containing 2043 assertions.

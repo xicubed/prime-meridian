@@ -1,3 +1,5 @@
 {:tasks
- {content {:doc  "Generate game content from the GDD: bb content <request>|all [--dry-run]"
+ {crew-status {:doc  "Write the crew's Herdr states to public/state/crew.edn for the game: bb crew-status [--once]"
+               :task (apply shell "bb" "scripts/crew_status.clj" *command-line-args*)}
+  content {:doc  "Generate game content from the GDD: bb content <request>|all [--dry-run]"
            :task (apply shell "bb" "content/pipeline.clj" *command-line-args*)}}}

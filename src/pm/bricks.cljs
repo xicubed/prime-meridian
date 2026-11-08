@@ -10,12 +10,13 @@
             [pm.avoid :as a]
             [pm.plan :as p]
             [pm.scene :as scene]
-            [pm.feet :as f]))
+            [pm.feet :as f]
+            [pm.crew :as crew]))
 
 (defonce !state
   (atom {:status nil :walkers [] :views [] :ground-meshes [] :frame 0
          :cfg nil :statics [] :pcfg nil :plan-acc 0 :paths nil :ds 1.0
-         :root nil :started? false}))
+         :colors nil :root nil :started? false}))
 
 (defonce !gltf-loader (atom nil))
 
@@ -61,11 +62,17 @@
 (defn- walker-path-lines! [w]
   (let [[x z] (:pos w) y (+ (or (:y w) 0) 0.05)
         gp    (m/goal-point w)
-        aim   (or (:aim w) (:pos w))]
+        aim   (or (:aim w) (:pos w))
+        s     (:senses w)]
     {:circle (t/polyline (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:radius w) 24))
                           (part-color :path-walker))
      :goal   (t/polyline [[x y z] [(first gp) y (second gp)]] (part-color :path-walker))
-     :aim    (t/polyline [[x y z] [(first aim) y (second aim)]] (part-color :path-aim))}))
+     :aim    (t/polyline [[x y z] [(first aim) y (second aim)]] (part-color :path-aim))
+     :cone   (t/polyline (mapv (fn [[cx cz]] [cx y cz])
+                                (m/cone-points [x z] (m/facing w) (:sight-m s) (:sight-deg s) 16))
+                          (part-color :path-sight))
+     :hear   (t/polyline (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:hear-m s) 24))
+                          (part-color :path-hear))}))
 
 (defn- build-paths! [^js root ground-meshes cfg statics walkers]
   (let [^js paths-root (t/group {:name "pm-paths"})
@@ -75,9 +82,9 @@
                                 l))
                             statics)
         walker-lines (mapv (fn [w]
-                              (let [{:keys [circle goal aim]} (walker-path-lines! w)]
-                                (t/add! paths-root circle goal aim)
-                                {:circle circle :goal goal :aim aim}))
+                              (let [{:keys [circle goal aim cone hear]} (walker-path-lines! w)]
+                                (t/add! paths-root circle goal aim cone hear)
+                                {:circle circle :goal goal :aim aim :cone cone :hear hear}))
                             walkers)]
     (t/add! root paths-root)
     {:root paths-root :statics static-lines :walkers walker-lines}))
@@ -87,10 +94,15 @@
     (doseq [[w lines] (map vector walkers (:walkers paths))]
       (let [[x z] (:pos w) y (+ (or (:y w) 0) 0.05)
             gp    (m/goal-point w)
-            aim   (or (:aim w) (:pos w))]
+            aim   (or (:aim w) (:pos w))
+            s     (:senses w)]
         (t/set-polyline! (:circle lines) (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:radius w) 24)))
         (t/set-polyline! (:goal lines) [[x y z] [(first gp) y (second gp)]])
-        (t/set-polyline! (:aim lines) [[x y z] [(first aim) y (second aim)]])))))
+        (t/set-polyline! (:aim lines) [[x y z] [(first aim) y (second aim)]])
+        (t/set-polyline! (:cone lines) (mapv (fn [[cx cz]] [cx y cz])
+                                              (m/cone-points [x z] (m/facing w) (:sight-m s) (:sight-deg s) 16)))
+        (t/set-polyline! (:hear lines) (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:hear-m s) 24)))
+        (t/set-line-color! (:hear lines) (part-color (if (:glance w) :path-glance :path-hear)))))))
 
 ;; -- glTF body loading ---------------------------------------------------------
 
@@ -149,6 +161,7 @@
                        :ground-meshes ground-meshes :frame 0 :cfg cfg
                        :statics statics :pcfg pcfg :plan-acc 0 :paths paths :ds ds
                        :legs legs :fcfg fcfg :feet? feet?
+                       :colors (crew/colors world)
                        :root root :started? true})
       (when (and (m/bricks-flag? (.. js/window -location -search)) (:bricks cfg))
         (swap! !state assoc :status {:mode :loading :progress 0})
@@ -432,6 +445,21 @@
       (swap! !state update :status assoc :detours (m/detours (:walkers @!state)))
       (update-paths! (:paths @!state) (:walkers @!state))
       (swap! !state update :frame inc))))
+
+(defn set-dots!
+  "No-op before start!. Redraws a walker's label only when its runs change."
+  [crew-state now]
+  (when (:started? @!state)
+    (let [{:keys [walkers views colors]} @!state
+          views' (mapv
+                   (fn [w view]
+                     (let [runs (crew/label-runs (crew/dot crew-state (:agent w) now colors) (:name w) now)]
+                       (if (not= runs (:runs view))
+                         (do (t/set-label-runs! (:label view) runs)
+                             (assoc view :runs runs))
+                         view)))
+                   walkers views)]
+      (swap! !state assoc :views views'))))
 
 (defn hud-segment []
   (m/hud-text (:status @!state)))

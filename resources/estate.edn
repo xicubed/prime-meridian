@@ -28,17 +28,26 @@
             :radius 0.3
             :horizon-s 2
             :display-scale 1.0   ; whole walker, both modes, and its avoidance radius (Hal tunes, ~1.4)
+            :senses {:sight-m 8 :sight-deg 110   ; sees others within 8 m inside ±55° of where it faces
+                     :hear-m 1.2                  ; hears others within 1.2 m (× their speed / walking pace, if faster)
+                     :react-s 0.4                 ; must perceive someone this long, continuously, to notice them
+                     :forget-s 1.5}               ; forgets them after this long unperceived
+            :status-dots {:working 0xf2b134   ; Herdr's colours for the crew's states (dot before the name)
+                          :blocked 0xe5484d   ; also pulses slowly: waiting for a human
+                          :done    0x46a758
+                          :idle    0x9aa0a6
+                          :unknown 0x9aa0a6}
             :legs {:soma   {:left  ["LeftLeg" "LeftShin" "LeftFoot" "LeftToeBase"]
                             :right ["RightLeg" "RightShin" "RightFoot" "RightToeBase"]}
                    :mixamo {:left  ["mixamorig:LeftUpLeg" "mixamorig:LeftLeg" "mixamorig:LeftFoot" "mixamorig:LeftToeBase"]
                             :right ["mixamorig:RightUpLeg" "mixamorig:RightLeg" "mixamorig:RightFoot" "mixamorig:RightToeBase"]}}
             :feet {:drop-cap 0.35
                    :step-max 0.4}}
- :walkers [{:id :un-automate-monde :name "Un Automate"
+ :walkers [{:id :un-automate-monde :name "Un Automate" :agent :un-automate-monde
             :route [[-6.5 -6.5] [-6.0 -10.0] [-5.0 -14.0]] :pause-s 3
             :character {:file "/assets/characters/polybot.glb" :rig :mixamo}}
-           {:id :le-testeur :name "Le Testeur"
-            :route [[-5.0 -14.0] [-6.0 -10.0] [-6.5 -6.5]] :pause-s 5}]   ; NVIDIA's mannequin (Michael: the astronaut was too big)
+           {:id :le-testeur :name "Le Testeur" :agent :le-testeur
+            :route [[-5.0 -14.0] [-6.0 -10.0] [-6.5 -6.5]] :pause-s 5}]   ; Le Testeur: NVIDIA's mannequin (Michael: the astronaut was too big)
  ;; Display scale (standing rule): creatures and crew are drawn big enough to
  ;; see from the kit's camera views without zooming in, about the size of a
  ;; mid-size rock (~1 m). Real size doesn't matter; proportions do. Author a

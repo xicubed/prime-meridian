@@ -1,0 +1,27 @@
+     JAVA_HOME=/opt/homebrew/opt/openjdk@21
+     && .crew/gate.sh 2>&1 | tail -220
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ export PATH="/opt/homebrew/opt/openjdk@21
+ │ /bin:/opt/homebrew/bin:$PATH"
+ │ JAVA_HOME=/opt/homebrew/opt/openjdk@21 &&
+ │ .crew/gate.sh 2>&1 | tail -220
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ 'export' operand 'PATH=/opt/homebrew/opt/
+ │ openjdk@21/bin:/opt/homebrew/bin:${…}' is
+ │ runtime-determined and may carry an
+ │ array subscript — shell arith-evals
+ │ $(cmd) in subscripts
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend

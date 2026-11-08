@@ -10,7 +10,9 @@
             [pm.brook :as brook]
             [pm.chores :as chores]
             [pm.content :as content]
+            [pm.crew :as crew]
             [pm.kit :as kit]
+            [pm.motion :as m]
             [pm.overlay :as overlay]
             [pm.pick :as pick]
             [pm.scene :as scene]
@@ -46,6 +48,28 @@
   (when (nil? (:timer @!state-poll))
     (fetch-state!)
     (swap! !state-poll assoc :timer (js/setInterval fetch-state! state-poll-ms))))
+
+(def crew-url "/state/crew.edn")
+(def crew-poll-ms 2000)
+
+(defonce ^:private !crew-poll (atom {:timer nil :busy? false}))
+
+(defn- fetch-crew! []
+  (when-not (:busy? @!crew-poll)
+    (swap! !crew-poll assoc :busy? true)
+    (-> (js/fetch (str crew-url "?t=" (js/Date.now)) #js {:cache "no-store"})
+        (.then (fn [^js resp] (if (.-ok resp) (.text resp) nil)))
+        (.then (fn [text]
+                 (when-let [c (crew/parse text)]
+                   (when (not= c (:crew @!world))
+                     (swap! !world assoc :crew c)))))
+        (.catch (fn [_]))
+        (.finally (fn [] (swap! !crew-poll assoc :busy? false))))))
+
+(defn- start-crew-poll! []
+  (when (nil? (:timer @!crew-poll))
+    (fetch-crew!)
+    (swap! !crew-poll assoc :timer (js/setInterval fetch-crew! crew-poll-ms))))
 
 (def cache-key "pm.state.v1")
 (defonce ^:private !cache-text (atom nil)) ; last text read or written
@@ -158,6 +182,7 @@
       (when-let [m (content/mail-line content/sample-inbox)] (str " · " m))
       (when-let [s (scene/summary)] (str " · " s))
       (when-let [s (bricks/hud-segment)] (str " · " s))
+      (when-let [s (crew/hud-text (:crew w) (mapv :agent (m/walkers w)) now)] (str " · " s))
       (when-let [p @!probe] (str " · " p))
       (when-let [h (kit/handle)]
         (when-let [b (brook/status h)] (str " · " b))))))
@@ -227,6 +252,7 @@
     (reset! !last now)
     (tick! (min dt 0.1))
     (when-let [h (kit/handle)] (bricks/tick! h (min dt 0.1)))
+    (bricks/set-dots! (:crew @!world) (js/Date.now))
     (scene/update! @!world (js/Date.now))
     (talk-tick! (js/Date.now))
     (when (zero? (mod (swap! !frames inc) 30))
@@ -452,6 +478,7 @@
   (add-watch !world ::state-cache on-world-change!)
   (add-watch !world ::play-cache on-play-change!)
   (start-state-poll!)
+  (start-crew-poll!)
   (kit/load! start-kit! start-scaffold!))
 
 (defn reload!

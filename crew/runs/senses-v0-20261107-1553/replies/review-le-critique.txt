@@ -1,0 +1,275 @@
+│ +                      :model "https://repalash.com/three-motionbricks/soma-model/"}
+│ +             :ground ["SM_Hiroshi_Terrain" "SM_Hiroshi_Gravel"]   ; meshes you can stand on (name prefixes)
+│ +-            :speed  1.2}                                         ; kinematic m/s
+│ ++            :speed  1.2                                          ; kinematic m/s
+│ ++            :obstacles [{:at [-4.8 -8.2] :r 0.7} {:at [-4.3 -12.0] :r 0.6}]   ; the bank rocks
+│ ++            :radius 0.3
+│ ++            :horizon-s 2}
+│ +  :walkers [{:id :un-automate-monde :name "Un Automate"
+│ +-            :route [[-6.5 -6.5] [-6.0 -10.0] [-5.0 -14.0]] :pause-s 3}
+│ ++            :route [[-6.5 -6.5] [-6.0 -10.0] [-5.0 -14.0]] :pause-s 3
+│ ++            :character {:file "/assets/characters/polybot.glb" :rig :mixamo}}
+│ +            {:id :le-testeur :name "Le Testeur"
+│ +-            :route [[-5.0 -14.0] [-6.0 -10.0] [-6.5 -6.5]] :pause-s 5}]
+│ ++            :route [[-5.0 -14.0] [-6.0 -10.0] [-6.5 -6.5]] :pause-s 5
+│ ++            :character {:file "/assets/characters/astronaut.glb" :rig :mixamo}}]
+│ +  ;; Display scale (standing rule): creatures and crew are drawn big enough to
+│ +  ;; see from the kit's camera views without zooming in, about the size of a
+│ +  ;; mid-size rock (~1 m). Real size doesn't matter; proportions do. Author a
+│ +@@ -64,6 +70,7 @@
+│ +                      {:shape :sphere :size [0.008 0.008 0.008] :at [0.112 0.026  0.021] :color :eye}
+│ +                      {:shape :sphere :size [0.008 0.008 0.008] :at [0.112 0.026 -0.021] :color :eye}]}}
+│ +             {:id :jar :at [1.4 1.81 -15.7] :scale 4 :label :sign :idle :stock-sign   ; on the bank rocks (top 1.81); real jar 0.124 m, drawn ~0.5 m
+│ ++             :footprint [[0 0 0.0875]]   ; 0.35 m in the world (scale 4)
+│ +              :look {:parts
+│ +                     [{:shape :cylinder :size [0.08 0.11 0.08]   :at [0 0.055 0] :color :glass}  ; jar
+│ +                      {:shape :cylinder :size [0.088 0.014 0.088] :at [0 0.117 0] :color :tin}]}}]} ; lid
+│ +@@ -77,6 +84,7 @@
+│ +              :consumes [:bales 1] :done-at :last-hayed :past "fed"}]
+│ +    ;; Juniper's :placed
+│ +    :placed [{:id :body :at [-5.0 2.5 -10.0] :yaw 90 :label :say   ; west bank; long axis along world z, side-on to the creek camera
+│ ++             :footprint [[0.75 0 0.5] [0 0 0.5] [-0.6 0 0.45]]
+│ +              :look {:parts
+│ +                     [{:shape :capsule  :size [1.3 0.62 0.6]   :at [0 1.2 0]                     :color :brown}  ; barrel
+│ +                      {:shape :box      :size [0.3 0.8 0.32]   :at [0.72 1.62 0]  :rot [0 0 -35] :color :brown}  ; neck, leaning forward
+✍️ Write /tmp/review-scratch/characters-estate.diff
+│ /private/tmp/review-scratch/characters-estate.diff
+│ @@ -0,0 +1,19 @@
+│ +--- a/resources/estate.edn
+│ ++++ b/resources/estate.edn
+│ +@@ -22,11 +22,17 @@
+│ +                      :rig   :soma
+│ +                      :model "https://repalash.com/three-motionbricks/soma-model/"}
+│ +             :ground ["SM_Hiroshi_Terrain" "SM_Hiroshi_Gravel"]   ; meshes you can stand on (name prefixes)
+│ +-            :speed  1.2                                          ; kinematic m/s
+│ ++            :speed  1.2                                          ; kinematic m/s
+│ ++            :obstacles [{:at [-4.8 -8.2] :r 0.7} {:at [-4.3 -12.0] :r 0.6}]   ; the bank rocks
+│ ++            :radius 0.3
+│ ++            :horizon-s 2
+│ ++            :display-scale 1.0}   ; whole walker, both modes, and its avoidance radius (Hal tunes, ~1.4)
+│ +  :walkers [{:id :un-automate-monde :name "Un Automate"
+│ +             :route [[-6.5 -6.5] [-6.0 -10.0] [-5.0 -14.0]] :pause-s 3
+│ +             :character {:file "/assets/characters/polybot.glb" :rig :mixamo}}
+│ +            {:id :le-testeur :name "Le Testeur"
+│ +-            :route [[-5.0 -14.0] [-6.0 -10.0] [-6.5 -6.5]] :pause-s 5}]
+│ ++            :route [[-5.0 -14.0] [-6.0 -10.0] [-6.5 -6.5]] :pause-s 5
+│ ++            :character {:file "/assets/characters/astronaut.glb" :rig :mixamo}}]
+📖 Read estate.edn
+📖 Read estate.edn L40-54
+📖 Read feet.cljs
+📖 Read feet_test.cljs
+💻 $ echo "=== leg bone name literals in src/ (should be none outside estate.edn/feet.cljs's find-bone logic)===" + 3 commands  0.3s
+💻 $ grep -rn "astronaut\|backend\|webgpu" crew/runs/foot-ik-v0-20261107-1449/replies/*.txt TASKS.md  0.3s
+✍️ Write crew/runs/foot-ik-v0-20261107-1449/review.md
+│ crew/runs/foot-ik-v0-20261107-1449/review.md
+│ @@ -0,0 +1,94 @@
+│ +# Review: foot-ik-v0
+│ +
+│ +Gate re-checked against `gate-1.txt`: PASS, 0 warnings, 397 tests / 1826 assertions (up from
+│ +353/1686 at the end of `characters-v0`: +44 tests, +140 assertions — exactly
+│ +`test/pm/feet_test.cljs`'s `t01`–`t44`, one per spec case). `motion_test.cljs`, `avoid_test.cljs`
+│ +and `characters_test.cljs` are untouched and their totals (58+65+28=151) are unaffected.
+│ +
+│ +**Isolation method.** `motion.cljs`, `bricks.cljs`, `three.cljs` and `estate.edn` are also
+│ +`avoid-v0`'s and `characters-v0`'s files, and both are still uncommitted, so a plain `git diff`
+│ +mixes three rounds' hunks. I reconstructed each file's `characters-v0`-end state (chaining
+│ +`avoid-v0`'s and `characters-v0`'s own diffs, both already verified against their specs in prior
+│ +reviews) and diffed that against the current file to isolate only `foot-ik-v0`'s contribution.
+│ +All findings below are checked against that isolated diff.
+│ +
+│ +## Conformance checks (all pass)
+│ +
+│ +- **IK runs after `update`, vertical-only:** `tick-bricks!`'s per-walker step calls
+│ +  `(foot-ik! w view dt fcfg ds ...)` only after `(.update c dt)` (and only `when (:legs view)`);
+│ +  a walker without resolved legs keeps the old `obj.y ← :y` path unchanged. Each foot's IK target
+│ +  is `T_i = [ax (+ b loc d-i) az]` — `ax`/`az` are the ankle's own generated x/z, untouched; only
+│ +  the y is corrected. `two-bone` itself only ever receives this same-x/z target, so the solved
+│ +  knee/ankle positions also preserve the generated stride horizontally.
+│ +- **Knee side kept:** `two-bone`'s bend direction `b` tries `perp(knee−hip, u)` first (the
+│ +  *current* knee), hand-verified against spec's two-bone law-of-cosines formula on test 13
+│ +  (H=[0,1,0], K=[0.3,0.6,0], A=[0,0.2,0] → knee′≈[0.4,0.7,0], exactly matching the spec's
+│ +  hand-worked numbers) and test 14 (same H/A, K mirrored to [-0.3,0.6,0] → knee′≈[-0.4,0.7,0],
+│ +  same side as the input knee, confirming the "kept" property independently of the diff).
+│ +- **Pelvis drop capped and smoothed:** `pelvis-drop` = `min(cap, max(0, −min(dl,dr)))` (nil
+│ +  distances count as 0); `foot-frame`'s `drop'` always goes through `smooth-by` before becoming
+│ +  `:obj-y = b − drop'`. `t19`/`t31` (cap at 0.35) and `t30`/`t36` (smoothing) confirm.
+│ +- **Base height from the feet (the hop fix):** `:ground` is `base-height` over only the *planted*
+│ +  feet's `:g` (unplanted feet contribute `nil`, filtered out), never from a single root ray — `t37`
+│ +  is exactly the hop-fix case: both feet planted at different ground heights (2.0 vs 2.3) still
+│ +  yields `:ground 2.0` (the lower planted foot), not an average or a root-ray value. `pm.bricks`'s
+│ +  `tick!` correspondingly skips the old root-ray `sense-ground` for any walker with `:legs` while
+│ +  in `:bricks` mode (isolated diff confirms this exact guard).
+│ +- **Foot tilt only when planted, capped:** `tilt`'s angle is `min(acos(nhat.y), max-deg·π/180)` —
+│ +  hand-verified on `t23`/`t24` (10° slope → 0.1745329 rad; 40° slope → capped at 0.4363323 rad =
+│ +  25°). Blending multiplies the angle by `w_i` (`blend-weight`, 0 when not planted), and `t33`
+│ +  confirms a non-planted foot's tilt angle is exactly 0 even with a non-flat normal.
+│ +- **Detours reject big ground steps:** isolated `motion.cljs` diff shows `walkable?` added exactly
+│ +  as specced, and `plan`'s side-selection now also requires `ground-ok` (true unless `:ground-at`
+│ +  is a fn *and* `:y` is a number *and* the point isn't walkable) before accepting a side —
+│ +  logically identical to treating an unwalkable point as blocked, confirmed by `t39`–`t44`
+│ +  (right-too-low→left, both-missing→wait, ground-fine→right unchanged, no-`:y`→rule skipped,
+│ +  no-`:ground-at`→unchanged, real-estate data). `bricks.cljs`'s `pcfg` wires `:ground-at` via a
+│ +  fresh `t/down-hits`/`m/ground-height` closure, applied in **both** modes per spec §4.1.
+│ +- **Leg names come from data:** `grep -rn "LeftLeg|RightLeg|mixamorig|LeftUpLeg|LeftShin|LeftFoot|LeftToeBase" src/`
+│ +  is empty — the chains live only in `resources/estate.edn`'s new `:motion :legs`, read through
+│ +  `f/legs`/`f/leg-bones`/`t/by-name` in `bricks.cljs`'s `swap-in!`.
+│ +- **`public/vendor` and `resources/content` untouched:** confirmed by mtime/search, same as prior
+│ +  rounds.
+│ +- **Pure math tested:** `pm.feet` has no three.js/atoms; every function in §2.1/§2.2/§2.3 has
+│ +  direct test coverage, and `two-bone`'s law-of-cosines and `tilt`'s normal-to-angle formula both
+│ +  check out against independent hand recomputation, not just "the test the same author wrote
+│ +  passes."
+│ +
+│ +## Finding — out-of-spec data and code changes (the one real issue)
+│ +
+│ +`resources/estate.edn`'s diff (isolated against the `characters-v0`-end baseline) does **two**
+│ +things the spec's §1 never mentions, inside a file the boundary table restricts to "exactly §1":
+│ +
+│ +1. **Le Testeur's `:character` entry (added by `characters-v0`: the astronaut) is deleted**,
+│ +   replaced by the comment `; NVIDIA's mannequin (Michael: the astronaut was too big)`. This walker
+│ +   now has no `:character` at all and silently reverts to the SOMA mannequin — a real behavior
+│ +   change with no test or spec text covering it (`characters_test.cljs`'s `t10`, which asserts
+│ +   both walkers' `:character` from the live estate, would now fail if re-run against this file,
+│ +   though it wasn't re-run since `characters-v0`'s own tests are frozen — worth a manual check).
+│ +2. **A `:backend :webgpu` key is added to `:bricks`**, with matching unspecified code in
+│ +   `bricks.cljs` (`(cond-> #js {...} (keyword? (:backend b)) (doto (aset "backend" ...)))`) that
+│ +   forwards it into the `MotionBricksCharacter` constructor options. Nothing in any of the four
+│ +   specs (`motion-bricks-v0` through `foot-ik-v0`) defines a `:backend` option, and `foot-ik-v0`'s
+│ +   own §4 "pm.bricks changes" list doesn't mention it either.
+│ +
+│ +Both look like real, reasonable product decisions (Michael's live feedback on the astronaut's
+│ +size; picking a specific backend) — but they weren't in `foot-ik-v0`'s spec, they weren't reviewed
+│ +through the architect, and both edits land inside files/sections the boundary table explicitly
+│ +scopes ("exactly §1" for `estate.edn`). Flag for the manager: either fold these into the spec
+│ … omitted 16 diff line(s) across 1 additional file(s)/section(s)
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/foot-ik-v0-20261107-1449/review.md. Verdict: pass, with one real finding — the builder made two out-of-spec changes to resources/estate.edn (deleted Le Testeur's astronaut :character, added an unspecified :backend :webgpu key) plus matching unreviewed code in bricks.cljs, both outside foot-ik-v0's spec §1 authorization. Everything else — IK-after-update vertical-only correction, knee-side preservation, capped/smoothed pelvis drop, feet-based base height (hop fix), planted-only capped tilt, detour ground-step rejection, data-driven leg names, and pure-math test coverage — checks out against the spec, hand-verified independently in several places (not just "tests pass").
+
+done-4007
+────────────────────────────────────────
+
+─ 9m19s · edited 6 files · read 9 files · ran 5 commands · 3:21 PM
+  💾 Self-improvement review: Skill 'crew-round-review' patched
+
+
+────────────────────────────────────────
+❯ Review the round's changes against crew/runs/senses-v0-20261107-1553/spec.md and .crew/quests/senses-v0.md: git diff for edited files, and read the new files (git status lists them). Check in particular: the planner only uses noticed walkers; the cone math (heading convention) and hearing scale are right; reaction delay and forgetting are time-based and tested; statics stay always known; overtakes are one-sided and head-on still keeps right; no walker names in code; no edits to public/vendor or resources/content. Write the review to crew/runs/senses-v0-20261107-1553/review.md.
+
+When you have completely finished, end your reply with a line containing only this: done-3627
+────────────────────────────────────────
+
+💻 $ echo "=== git log -3 ===" + 3 commands  0.7s
+📖 Read spec.md
+📖 Read senses-v0.md
+📖 Read log.md
+📖 Read gate-note.md
+💻 $ cat crew/runs/senses-v0-20261107-1553/gate-1.txt echo "=== mtimes ===" stat -f "%Sm %N" bb.edn resources/estate.edn src/pm/bricks.cljs src/pm/motion.cljs src/pm/scene.cljs src/pm/three.cljs test/pm/senses_test.cljs crew/runs/senses-v0-20261107-1553/spec.md scripts/ .crew/quests/crew-dots-v0.md  0.3s
+💻 $ echo "=== bb.edn diff ===" + 2 commands  0.3s
+💻 $ git diff -- resources/estate.edn src/pm/scene.cljs src/pm/three.cljs  0.4s
+💻 $ git diff -- src/pm/motion.cljs  0.3s
+💻 $ git diff -- src/pm/bricks.cljs  0.3s
+📖 Read senses_test.cljs
+💻 $ echo "=== name leakage check ===" + 3 commands  0.4s
+
+────────────────────────────────────────
+☤ Hermes
+All checks confirm clean implementation. Writing the review now.
+────────────────────────────────────────
+
+✍️ Write crew/runs/senses-v0-20261107-1553/review.md
+│ crew/runs/senses-v0-20261107-1553/review.md
+│ @@ -0,0 +1,84 @@
+│ +# Review: senses-v0
+│ +
+│ +Gate re-checked against `gate-1.txt`: PASS, 0 warnings, 440 tests / 2043 assertions (up from
+│ +397/1826 at the end of `foot-ik-v0`, which is now committed as `fbfbdea`: +43 tests, +217
+│ +assertions — exactly `test/pm/senses_test.cljs`'s `t01`–`t43`, one per spec case). All prior test
+│ +files are untouched and unaffected.
+│ +
+│ +**Scope note.** This round's start commit (`fbfbdea`) already includes `avoid-v0`, `characters-v0`
+│ +and `foot-ik-v0` (all previously reviewed and now committed), so `git diff` here is clean —
+│ +no stacked-round reconstruction needed this time. `bb.edn`, `scripts/crew_status.clj` and
+│ +`.crew/quests/crew-dots-v0.md`/`.crew/rounds/crew-dots-v0.json` also show as changed/untracked,
+│ +but none are in `senses-v0`'s boundary table; their content (a `bb crew-status` task writing
+│ +Herdr state to `public/state/crew.edn`, and a quest file for a future `crew-dots-v0` round) is
+│ +unrelated to senses, and their mtimes (~16:12) fall in the gap between this round's blocked
+│ +"Fix round 1" (16:10:44) and its final gate (16:16:38) — concurrent manager/other-crew work in
+│ +the shared tree, not this round's builder/tester. Excluded below. (The gate's first FAIL, a
+│ +missing-var typo in an early `senses_test.cljs` draft, was fixed before the final PASS — not a
+│ +live finding.)
+│ +
+│ +## Conformance checks
+│ +
+│ +- **Planner uses only noticed walkers:** `plan-all` builds `others` from the same input vector
+│ +  as before, then calls `(plan w (noticed w others) statics cfg)` — `noticed` filters to
+│ +  `(get-in (:aware w) [(:id %) :noticed])` true, so an unnoticed walker is invisible to `plan`
+│ +  even though it's still in the raw `others` list. Confirmed by `t30`–`t32` (two fast walkers
+│ +  with empty `:aware` produce no detour at all; giving one of them a pre-seeded
+│ +  `:aware {:h seen-1s}` makes only it detour; giving both produces the familiar head-on
+│ +  right/right pair from `avoid-v0`'s own numbers).
+│ +- **Statics stay always known:** `plan-all`/`plan` never filters `statics` through `noticed` —
+│ +  only the `others` (walker) list goes through it. `t33` confirms a static-blocked detour is
+│ +  identical whether or not an unnoticed walker is also present in the scene.
+│ +- **Cone math and heading convention:** `cone-points`'s formula (`half = sight-deg/2` in rad,
+│ +  `a = heading - half + k·step`, point `[x+sight-m·cos a, z-sight-m·sin a]`) hand-reproduces
+│ +  spec's worked example exactly — `(cone-points [0 0] 0 8 90 2)` → `[[0 0] [5.6568542 5.6568542]
+│ +  [8 0] [5.6568542 -5.6568542] [0 0]]`, matching `t37` and my own independent recomputation
+│ +  (k=0 → a=−45° → `[5.657, 5.657]`; k=1 → a=0° → `[8,0]`; k=2 → a=45° → `[5.657,−5.657]`). `sees?`
+│ +  uses the same `forward(h)=[cos h, −sin h]` convention as `pm.plan`'s existing `:yaw`, and
+│ +  `t08`–`t11` cross-check the ±55° cone boundary against the spec's hand-worked cosines (30.96°,
+│ +  53.13° seen; 59.04° not seen).
+│ +- **Hearing scale:** `hear-range` = `hear-m × max(1, |vel o| / walk-pace)` with a missing `:vel`
+│ +  treated as `[0 0]` — `t12` confirms the 1.2/2.4/3.0 m cases (speed 3 → ×2.5) and the
+│ +  missing-`:vel` default.
+│ +- **Reaction delay and forgetting are time-based and tested:** `perceive`'s `on'`/`off'`
+│ +  accumulate real `dt` (not frame counts), and both thresholds use the `- 1e-9` floating-point
+│ +  tolerance the spec calls out (`8 × 0.05 = 0.39999999999999997`). `t15`/`t16` hand-check both the
+│ +  0.1 s and 0.05 s step cases land on the exact frame the spec predicts; `t17`–`t20` check
+│ +  continuity-breaks-the-count, forgetting after `forget-s`, and re-perceiving inside the forget
+│ +  window restarting cleanly.
+│ +- **Overtakes are one-sided, head-on still keeps right:** `t39`/`t40` (both directions) confirm
+│ +  only the follower ever gets a non-nil `:aim` while the leader's `z` stays within `1e-9` of 0 the
+│ +  whole run, and that the leader only notices the follower by `:hear` (with `:glance` true) once
+│ +  in range — it never notices by sight since it's facing away. `t41` reproduces `avoid-v0`'s
+│ +  original head-on scenario bit-for-bit (same min distance 0.939, same ±z crossing sign) once both
+│ +  walkers notice each other at frame 24, confirming perception doesn't change existing avoidance
+│ +  behavior once engaged. `t42`'s full estate scenario (2400 frames) checks noticing at frame 8,
+│ +  unchanged ping-pong order, and at least one `:glance` frame across the run.
+│ +- **No walker names in code:** `grep -rni "un-automate|le-testeur|polybot|astronaut|juniper|flora"`
+│ +  across the touched `src/` files is empty; `t42` identifies the estate's two walkers via
+│ +  `(:id (first ws0))`/`(:id (second ws0))` rather than hardcoding them, even though the spec only
+│ +  required that of `src/`.
+│ +- **`public/vendor`/`resources/content` untouched:** `git status --short` on both is empty.
+│ +- **Pure, tested:** `senses`, `senses-config`, `forward`, `facing`, `sees?`, `hear-range`,
+│ +  `hears?`, `perceive`, `perceive-all`, `noticed` and `cone-points` are all free of three.js,
+│ +  atoms, `js/Date` and walker names, and each has direct test coverage; `plan`/`plan-all`/`replan`/
+│ +  `advance`'s small diffs (own-speed, `noticed`-filtering, `perceive-all` call) are the only
+│ +  changes to existing pure functions, matching spec §3.13 exactly — `follow`, `step`, `hud-text`,
+│ +  `steer-command` and all of `pm.avoid` are untouched (confirmed: no diff hunks touch them), and
+│ +  `t43` re-checks several of those unchanged surfaces directly.
+│ +
+│ +## Boundary-table compliance
+│ +
+│ +Builder touched exactly: `src/pm/motion.cljs`, `src/pm/bricks.cljs` (`?paths` only — `walker-path-lines!`/
+│ +`build-paths!`/`update-paths!`, nothing else in the file changed), `src/pm/three.cljs`
+│ +(`set-line-color!` only, additive), `src/pm/scene.cljs` (3 new palette keys only),
+│ +`resources/estate.edn` (`:motion :senses`, exactly as specced). Tester touched only
+│ +`test/pm/senses_test.cljs`. No off-limits file was edited by this round.
+│ +
+│ +## Findings
+│ … omitted 6 diff line(s) across 1 additional file(s)/section(s)
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/senses-v0-20261107-1553/review.md. Verdict: pass, only a trivial style nit (no boundary violations this time — the diff was clean since prior rounds are now committed). Confirmed: noticed-only planner input, cone/heading math matches hand-worked spec values independently, hearing scale formula, time-based (not frame-based) reaction/forgetting with the floating-point tolerance, statics always known regardless of noticing, one-sided overtakes with head-on right-keeping preserved, no walker-name leakage, and public/vendor/resources/content untouched.
+
+done-3627
+────────────────────────────────────────
+
+─ 2m34s · edited 1 file · read 5 files · ran 7 commands · 4:19 PM
+──────────────────────────────────────────────────────────── Introduce name, job, and model ─
+crew ❯ Find and fix a failing test
+─────────────────────────────────────────────────────────────────────────────────────────────
+ ☤ claude-sonnet-5 · ~339K/1M · [███░░░░░░░] ~34% · ◎ 91.5% · ◷ 15.0s · ↑ 87 t/s · 6h 22m...

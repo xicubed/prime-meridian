@@ -1,0 +1,27 @@
+   TASKS.md             |   1 +
+   bb.edn               |   4 +-
+   resources/estate.edn |  15 ++++--
+   src/pm/bricks.cljs   |  46
+  +++++++++++++----
+   src/pm/core.cljs     |  27 ++++++++++
+   src/pm/motion.cljs   | 140 +++++++++++++++
+  ++++++++++++++++++++++++++++++++----
+   src/pm/scene.cljs    |   5 +-
+   src/pm/three.cljs    |  51
+  +++++++++++++++++++
+   8 files changed, 264 insertions(+), 25
+  deletions(-)
+   /dev/null => src/pm/crew.cljs | 66
+  +++++++++++++++++++++++++++++++++++++++++++
+  TASKS.md, bb.edn, and src/pm/scene.cljs
+  changes are from other crew members, not
+  touched by me this round.
+
+  done-9711
+
+✻ Cooked for 6m 5s · done 4:30 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

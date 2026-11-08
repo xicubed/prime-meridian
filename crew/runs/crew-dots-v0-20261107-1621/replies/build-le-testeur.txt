@@ -1,0 +1,27 @@
+  cases 1–28 as 28 deftests
+  (t01-parse-real-file …
+  t28-keep-the-last-good-file): parse
+  validation/garbage-dropping, fresh? edges,
+  colors from estate/validation, dot per
+  status/stale/missing/palette-override,
+  pulse-alpha table, label-text/label-runs
+  (including the pulsing and hollow cases),
+  hud-text/live-count, the new m/walker
+  :agent field, and the end-to-end
+  estate-walker scenario. Only the new test
+  file was touched.
+
+  Note: test/pm/senses_test.cljs was flagged
+  as changed on disk since I last wrote it
+  (presumably the builder or another process)
+  — I left it alone since this task only
+  concerns crew_test.cljs.
+
+  done-2212
+
+✻ Sautéed for 38s · done 4:24 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

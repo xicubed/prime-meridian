@@ -1,0 +1,512 @@
+diff --git a/TASKS.md b/TASKS.md
+index 8a07e6b..bc7c925 100644
+--- a/TASKS.md
++++ b/TASKS.md
+@@ -46,6 +46,7 @@ Plan of record: [`docs/session-2026-10-17.md`](docs/session-2026-10-17.md) §7.
+ - [ ] M-2 Take a seat: our own seated target pose (from the model's own standing pose, hips and knees bent, pelvis at seat height) wrapped as a 'sit' primitive, so the sit-down and stand-up are generated without NVIDIA's evaluation-only clips.
+ - [ ] M-3 Riding Juniper (Michael, Nov 7): rider parented to the saddle, foot IK to stirrup points, pelvis on a spring following his back, torso sway with his gait; mounting/dismounting as generated transitions from our own target poses. Needs Juniper to walk first (procedural quadruped legs).
+ - [ ] M-5 Bump and recover (Michael, Nov 7: "they aren't looking and collide, a force pushes each apart, and they recover naturally"): on overlap, an impulse on each root along the contact normal (by closing speed, decaying), a spring jolt on spine/shoulders added over the generated pose, then a MotionBricks "catch step" target (a balanced stance half a step along the push) so the stagger and recovery are generated; a glance back and an optional "sorry!" line. `?distracted` turns off one walker's avoidance to test it. Before the full ragdoll (M-4).
++- [ ] M-6 Personalities (Michael: "I love the awkward reactions almost better"): per-walker `:senses` (the builder slow to notice, the tester quick), which `senses-v0` already supports. Tried Nov 7: with the builder at react 0.55 s / hear 1.0 m, the crew's lap simulations (avoid t65, characters t17) had the attentive walker still walk into him, so one-sided avoidance needs to be robust to a walker that barely reacts (pass wider, slow down behind, yield), and M-5 should catch the rest. Then set the personalities.
+ - [ ] M-4 Physics later: a Rapier ragdoll that follows MotionBricks' motion and reacts to bumps (the "reference motion" pattern); a navigation mesh (recast-navigation, MIT) once there are buildings and doors.
+ ## Week 3 — Bridge v0 (real state)
+ - [ ] W3-0 The crew in the game (Michael, Nov 6): each real crew member (Herdr workspace `crew`: architect, builder, tester, runner, critic) is an avatar on the estate, its status from `herdr agent get` (working / idle / done / blocked). A member waiting at a permission prompt is **blocked** and wears the GDD's red "!" (§1 opening, §3.1 `ask_player`); clicking it shows the prompt and answers it (Yes / No), like `herdr agent send-keys`. Source: Herdr's API through the bridge (W3-1), not mock timers. This is the GDD's "snap", and tonight it would have saved three stuck rounds.
+diff --git a/bb.edn b/bb.edn
+index 2691ee4..3ed122c 100644
+--- a/bb.edn
++++ b/bb.edn
+@@ -1,3 +1,5 @@
+ {:tasks
+- {content {:doc  "Generate game content from the GDD: bb content <request>|all [--dry-run]"
++ {crew-status {:doc  "Write the crew's Herdr states to public/state/crew.edn for the game: bb crew-status [--once]"
++               :task (apply shell "bb" "scripts/crew_status.clj" *command-line-args*)}
++  content {:doc  "Generate game content from the GDD: bb content <request>|all [--dry-run]"
+            :task (apply shell "bb" "content/pipeline.clj" *command-line-args*)}}}
+diff --git a/resources/estate.edn b/resources/estate.edn
+index be4afe1..b58eb5a 100644
+--- a/resources/estate.edn
++++ b/resources/estate.edn
+@@ -28,17 +28,26 @@
+             :radius 0.3
+             :horizon-s 2
+             :display-scale 1.0   ; whole walker, both modes, and its avoidance radius (Hal tunes, ~1.4)
++            :senses {:sight-m 8 :sight-deg 110   ; sees others within 8 m inside ±55° of where it faces
++                     :hear-m 1.2                  ; hears others within 1.2 m (× their speed / walking pace, if faster)
++                     :react-s 0.4                 ; must perceive someone this long, continuously, to notice them
++                     :forget-s 1.5}               ; forgets them after this long unperceived
++            :status-dots {:working 0xf2b134   ; Herdr's colours for the crew's states (dot before the name)
++                          :blocked 0xe5484d   ; also pulses slowly: waiting for a human
++                          :done    0x46a758
++                          :idle    0x9aa0a6
++                          :unknown 0x9aa0a6}
+             :legs {:soma   {:left  ["LeftLeg" "LeftShin" "LeftFoot" "LeftToeBase"]
+                             :right ["RightLeg" "RightShin" "RightFoot" "RightToeBase"]}
+                    :mixamo {:left  ["mixamorig:LeftUpLeg" "mixamorig:LeftLeg" "mixamorig:LeftFoot" "mixamorig:LeftToeBase"]
+                             :right ["mixamorig:RightUpLeg" "mixamorig:RightLeg" "mixamorig:RightFoot" "mixamorig:RightToeBase"]}}
+             :feet {:drop-cap 0.35
+                    :step-max 0.4}}
+- :walkers [{:id :un-automate-monde :name "Un Automate"
++ :walkers [{:id :un-automate-monde :name "Un Automate" :agent :un-automate-monde
+             :route [[-6.5 -6.5] [-6.0 -10.0] [-5.0 -14.0]] :pause-s 3
+             :character {:file "/assets/characters/polybot.glb" :rig :mixamo}}
+-           {:id :le-testeur :name "Le Testeur"
+-            :route [[-5.0 -14.0] [-6.0 -10.0] [-6.5 -6.5]] :pause-s 5}]   ; NVIDIA's mannequin (Michael: the astronaut was too big)
++           {:id :le-testeur :name "Le Testeur" :agent :le-testeur
++            :route [[-5.0 -14.0] [-6.0 -10.0] [-6.5 -6.5]] :pause-s 5}]   ; Le Testeur: NVIDIA's mannequin (Michael: the astronaut was too big)
+  ;; Display scale (standing rule): creatures and crew are drawn big enough to
+  ;; see from the kit's camera views without zooming in, about the size of a
+  ;; mid-size rock (~1 m). Real size doesn't matter; proportions do. Author a
+diff --git a/src/pm/bricks.cljs b/src/pm/bricks.cljs
+index 16520b6..676a65d 100644
+--- a/src/pm/bricks.cljs
++++ b/src/pm/bricks.cljs
+@@ -10,12 +10,13 @@
+             [pm.avoid :as a]
+             [pm.plan :as p]
+             [pm.scene :as scene]
+-            [pm.feet :as f]))
++            [pm.feet :as f]
++            [pm.crew :as crew]))
+ 
+ (defonce !state
+   (atom {:status nil :walkers [] :views [] :ground-meshes [] :frame 0
+          :cfg nil :statics [] :pcfg nil :plan-acc 0 :paths nil :ds 1.0
+-         :root nil :started? false}))
++         :colors nil :root nil :started? false}))
+ 
+ (defonce !gltf-loader (atom nil))
+ 
+@@ -61,11 +62,17 @@
+ (defn- walker-path-lines! [w]
+   (let [[x z] (:pos w) y (+ (or (:y w) 0) 0.05)
+         gp    (m/goal-point w)
+-        aim   (or (:aim w) (:pos w))]
++        aim   (or (:aim w) (:pos w))
++        s     (:senses w)]
+     {:circle (t/polyline (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:radius w) 24))
+                           (part-color :path-walker))
+      :goal   (t/polyline [[x y z] [(first gp) y (second gp)]] (part-color :path-walker))
+-     :aim    (t/polyline [[x y z] [(first aim) y (second aim)]] (part-color :path-aim))}))
++     :aim    (t/polyline [[x y z] [(first aim) y (second aim)]] (part-color :path-aim))
++     :cone   (t/polyline (mapv (fn [[cx cz]] [cx y cz])
++                                (m/cone-points [x z] (m/facing w) (:sight-m s) (:sight-deg s) 16))
++                          (part-color :path-sight))
++     :hear   (t/polyline (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:hear-m s) 24))
++                          (part-color :path-hear))}))
+ 
+ (defn- build-paths! [^js root ground-meshes cfg statics walkers]
+   (let [^js paths-root (t/group {:name "pm-paths"})
+@@ -75,9 +82,9 @@
+                                 l))
+                             statics)
+         walker-lines (mapv (fn [w]
+-                              (let [{:keys [circle goal aim]} (walker-path-lines! w)]
+-                                (t/add! paths-root circle goal aim)
+-                                {:circle circle :goal goal :aim aim}))
++                              (let [{:keys [circle goal aim cone hear]} (walker-path-lines! w)]
++                                (t/add! paths-root circle goal aim cone hear)
++                                {:circle circle :goal goal :aim aim :cone cone :hear hear}))
+                             walkers)]
+     (t/add! root paths-root)
+     {:root paths-root :statics static-lines :walkers walker-lines}))
+@@ -87,10 +94,15 @@
+     (doseq [[w lines] (map vector walkers (:walkers paths))]
+       (let [[x z] (:pos w) y (+ (or (:y w) 0) 0.05)
+             gp    (m/goal-point w)
+-            aim   (or (:aim w) (:pos w))]
++            aim   (or (:aim w) (:pos w))
++            s     (:senses w)]
+         (t/set-polyline! (:circle lines) (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:radius w) 24)))
+         (t/set-polyline! (:goal lines) [[x y z] [(first gp) y (second gp)]])
+-        (t/set-polyline! (:aim lines) [[x y z] [(first aim) y (second aim)]])))))
++        (t/set-polyline! (:aim lines) [[x y z] [(first aim) y (second aim)]])
++        (t/set-polyline! (:cone lines) (mapv (fn [[cx cz]] [cx y cz])
++                                              (m/cone-points [x z] (m/facing w) (:sight-m s) (:sight-deg s) 16)))
++        (t/set-polyline! (:hear lines) (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:hear-m s) 24)))
++        (t/set-line-color! (:hear lines) (part-color (if (:glance w) :path-glance :path-hear)))))))
+ 
+ ;; -- glTF body loading ---------------------------------------------------------
+ 
+@@ -149,6 +161,7 @@
+                        :ground-meshes ground-meshes :frame 0 :cfg cfg
+                        :statics statics :pcfg pcfg :plan-acc 0 :paths paths :ds ds
+                        :legs legs :fcfg fcfg :feet? feet?
++                       :colors (crew/colors world)
+                        :root root :started? true})
+       (when (and (m/bricks-flag? (.. js/window -location -search)) (:bricks cfg))
+         (swap! !state assoc :status {:mode :loading :progress 0})
+@@ -433,6 +446,21 @@
+       (update-paths! (:paths @!state) (:walkers @!state))
+       (swap! !state update :frame inc))))
+ 
++(defn set-dots!
++  "No-op before start!. Redraws a walker's label only when its runs change."
++  [crew-state now]
++  (when (:started? @!state)
++    (let [{:keys [walkers views colors]} @!state
++          views' (mapv
++                   (fn [w view]
++                     (let [runs (crew/label-runs (crew/dot crew-state (:agent w) now colors) (:name w) now)]
++                       (if (not= runs (:runs view))
++                         (do (t/set-label-runs! (:label view) runs)
++                             (assoc view :runs runs))
++                         view)))
++                   walkers views)]
++      (swap! !state assoc :views views'))))
++
+ (defn hud-segment []
+   (m/hud-text (:status @!state)))
+ 
+diff --git a/src/pm/core.cljs b/src/pm/core.cljs
+index 6b64dee..cb546fe 100644
+--- a/src/pm/core.cljs
++++ b/src/pm/core.cljs
+@@ -10,7 +10,9 @@
+             [pm.brook :as brook]
+             [pm.chores :as chores]
+             [pm.content :as content]
++            [pm.crew :as crew]
+             [pm.kit :as kit]
++            [pm.motion :as m]
+             [pm.overlay :as overlay]
+             [pm.pick :as pick]
+             [pm.scene :as scene]
+@@ -47,6 +49,28 @@
+     (fetch-state!)
+     (swap! !state-poll assoc :timer (js/setInterval fetch-state! state-poll-ms))))
+ 
++(def crew-url "/state/crew.edn")
++(def crew-poll-ms 2000)
++
++(defonce ^:private !crew-poll (atom {:timer nil :busy? false}))
++
++(defn- fetch-crew! []
++  (when-not (:busy? @!crew-poll)
++    (swap! !crew-poll assoc :busy? true)
++    (-> (js/fetch (str crew-url "?t=" (js/Date.now)) #js {:cache "no-store"})
++        (.then (fn [^js resp] (if (.-ok resp) (.text resp) nil)))
++        (.then (fn [text]
++                 (when-let [c (crew/parse text)]
++                   (when (not= c (:crew @!world))
++                     (swap! !world assoc :crew c)))))
++        (.catch (fn [_]))
++        (.finally (fn [] (swap! !crew-poll assoc :busy? false))))))
++
++(defn- start-crew-poll! []
++  (when (nil? (:timer @!crew-poll))
++    (fetch-crew!)
++    (swap! !crew-poll assoc :timer (js/setInterval fetch-crew! crew-poll-ms))))
++
+ (def cache-key "pm.state.v1")
+ (defonce ^:private !cache-text (atom nil)) ; last text read or written
+ 
+@@ -158,6 +182,7 @@
+       (when-let [m (content/mail-line content/sample-inbox)] (str " · " m))
+       (when-let [s (scene/summary)] (str " · " s))
+       (when-let [s (bricks/hud-segment)] (str " · " s))
++      (when-let [s (crew/hud-text (:crew w) (mapv :agent (m/walkers w)) now)] (str " · " s))
+       (when-let [p @!probe] (str " · " p))
+       (when-let [h (kit/handle)]
+         (when-let [b (brook/status h)] (str " · " b))))))
+@@ -227,6 +252,7 @@
+     (reset! !last now)
+     (tick! (min dt 0.1))
+     (when-let [h (kit/handle)] (bricks/tick! h (min dt 0.1)))
++    (bricks/set-dots! (:crew @!world) (js/Date.now))
+     (scene/update! @!world (js/Date.now))
+     (talk-tick! (js/Date.now))
+     (when (zero? (mod (swap! !frames inc) 30))
+@@ -452,6 +478,7 @@
+   (add-watch !world ::state-cache on-world-change!)
+   (add-watch !world ::play-cache on-play-change!)
+   (start-state-poll!)
++  (start-crew-poll!)
+   (kit/load! start-kit! start-scaffold!))
+ 
+ (defn reload!
+diff --git a/src/pm/motion.cljs b/src/pm/motion.cljs
+index 39b305f..eb55e8a 100644
+--- a/src/pm/motion.cljs
++++ b/src/pm/motion.cljs
+@@ -17,6 +17,10 @@
+ (def default-radius 0.3)
+ (def default-rig :mixamo)
+ (def label-gap 0.35)
++(def default-senses {:sight-m 8 :sight-deg 110 :hear-m 1.2 :react-s 0.4 :forget-s 1.5})
++(def walk-pace 1.2)
++(def face-min-speed 0.05)
++(def ^:private senses-keys [:sight-m :sight-deg :hear-m :react-s :forget-s])
+ 
+ (def figure
+   "The kinematic figure, in pm.plan's look-part format (+x forward, degrees)."
+@@ -51,6 +55,20 @@
+         h (if (and (number? h) (pos? h)) h 2)]
+     {:radius r :horizon-s h}))
+ 
++(defn senses [base override]
++  (if (map? override)
++    (into {}
++          (map (fn [k]
++                 (let [v (get override k)]
++                   [k (if (and (number? v) (not (js/isNaN v)) (>= v 0))
++                        (if (= k :sight-deg) (min 360 v) v)
++                        (get base k))])))
++          senses-keys)
++    base))
++
++(defn senses-config [world]
++  (senses default-senses (get-in world [:motion :senses])))
++
+ (defn rig-key [rig]
+   (when (keyword? rig)
+     (let [[first-part & rest-parts] (str/split (name rig) #"-")]
+@@ -94,21 +112,29 @@
+             heading (if (>= (count route) 2)
+                       (let [[x1 z1] (second route)]
+                         (yaw (- x1 x0) (- z1 z0)))
+-                      0)]
++                      0)
++            speed   (:speed entry)
++            speed   (when (and (number? speed) (pos? speed)) speed)
++            agent   (:agent entry)
++            agent   (if (keyword? agent) agent id)]
+         {:id id :name nm :route route :pause-s pause-s
+          :pos [x0 z0] :heading heading :to 0 :dir 1 :pause pause-s :leg 0
+          :ground nil :y nil
+          :radius radius :vel [0 0] :aim nil :goal nil :side nil :wait 0 :waited false
+-         :character (character (:character entry))}))))
++         :character (character (:character entry))
++         :senses (senses default-senses (:senses entry))
++         :speed speed :facing nil :aware {} :glance false :agent agent}))))
+ 
+ (defn walkers [world]
+-  (let [cfg (avoid-config world)
+-        ds  (display-scale world)]
++  (let [cfg  (avoid-config world)
++        ds   (display-scale world)
++        scfg (senses-config world)]
+     (into []
+           (keep (fn [entry]
+                   (let [entry (if (and (number? (:radius entry)) (pos? (:radius entry)))
+                                 entry
+                                 (assoc entry :radius (:radius cfg)))
++                        entry (assoc entry :senses (senses scfg (:senses entry)))
+                         w (walker entry)]
+                     (when w (update w :radius * ds)))))
+           (:walkers world))))
+@@ -227,6 +253,96 @@
+             (assoc w :aim nil)
+             w))))))
+ 
++;; -- Senses -------------------------------------------------------------
++
++(defn forward [heading]
++  [(js/Math.cos heading) (- (js/Math.sin heading))])
++
++(defn facing [w]
++  (or (:facing w) (:heading w)))
++
++(defn sees? [w o]
++  (let [s (or (:senses w) default-senses)
++        [wx wz] (:pos w) [ox oz] (:pos o)
++        dx (- ox wx) dz (- oz wz)
++        d  (js/Math.hypot dx dz)]
++    (cond
++      (> d (:sight-m s)) false
++      (zero? d) true
++      :else
++      (let [[fx fz] (forward (facing w))
++            dot  (/ (+ (* fx dx) (* fz dz)) d)
++            half (/ (* (:sight-deg s) (/ js/Math.PI 180)) 2)]
++        (>= dot (- (js/Math.cos half) 1e-9))))))
++
++(defn hear-range [w o]
++  (let [s (or (:senses w) default-senses)
++        [vx vz] (or (:vel o) [0 0])
++        speed (js/Math.hypot vx vz)]
++    (* (:hear-m s) (max 1 (/ speed walk-pace)))))
++
++(defn hears? [w o]
++  (let [[wx wz] (:pos w) [ox oz] (:pos o)
++        d (js/Math.hypot (- ox wx) (- oz wz))]
++    (<= d (hear-range w o))))
++
++(defn perceive [w others dt]
++  (let [dt'    (max 0 dt)
++        [vx vz] (:vel w)
++        speed  (js/Math.hypot vx vz)
++        w      (if (>= speed face-min-speed) (assoc w :facing (yaw vx vz)) w)
++        s      (or (:senses w) default-senses)
++        react-s  (:react-s s)
++        forget-s (:forget-s s)
++        aware  (:aware w)
++        by-id  (into {} (map (fn [o] [(:id o) o])) (remove #(= (:id %) (:id w)) others))
++        ids    (into (set (keys by-id)) (keys aware))
++        aware' (reduce
++                 (fn [acc id]
++                   (let [o     (get by-id id)
++                         e     (get aware id)
++                         seen  (and o (sees? w o))
++                         heard (and o (hears? w o))]
++                     (cond
++                       (or seen heard)
++                       (let [on' (+ (or (:on e) 0) dt')]
++                         (assoc acc id {:on on' :off 0
++                                        :noticed (or (true? (:noticed e))
++                                                     (>= on' (- react-s 1e-9)))
++                                        :how (if seen :sight :hear)}))
++
++                       (true? (:noticed e))
++                       (let [off' (+ (:off e) dt')]
++                         (if (>= off' (- forget-s 1e-9))
++                           acc
++                           (assoc acc id {:on 0 :off off' :noticed true :how nil})))
++
++                       :else
++                       acc)))
++                 {} ids)]
++    (assoc w :aware aware'
++             :glance (boolean (some #(and (:noticed %) (= :hear (:how %))) (vals aware'))))))
++
++(defn perceive-all [ws dt]
++  (let [ws (vec ws) n (count ws)]
++    (vec (map-indexed
++           (fn [i w]
++             (perceive w (into (subvec ws 0 i) (subvec ws (inc i) n)) dt))
++           ws))))
++
++(defn noticed [w others]
++  (filterv #(true? (get-in (:aware w) [(:id %) :noticed])) others))
++
++(defn cone-points [[x z] heading sight-m sight-deg n]
++  (let [n'   (max 1 n)
++        half (/ (* sight-deg (/ js/Math.PI 180)) 2)
++        step (/ (* 2 half) n')
++        rim  (mapv (fn [k]
++                      (let [a (+ (- heading half) (* k step))]
++                        [(+ x (* sight-m (js/Math.cos a))) (- z (* sight-m (js/Math.sin a)))]))
++                    (range (inc n')))]
++    (into (into [[x z]] rim) [[x z]])))
++
+ ;; -- Avoidance planning ------------------------------------------------------
+ 
+ (defn walkable? [g base step-max]
+@@ -243,7 +359,7 @@
+             w1 (assoc w :goal (when (not= g G) g))]
+         (if (<= (pt-dist P g) arrive-m)
+           (assoc w1 :aim nil)
+-          (let [speed      (:speed cfg)
++          (let [speed      (or (:speed w) (:speed cfg))
+                 horizon-s  (:horizon-s cfg)
+                 other-circles (mapv (fn [o] {:at (:pos o) :r (:radius o) :vel (:vel o)}) others)
+                 circles    (into statics other-circles)
+@@ -278,17 +394,19 @@
+   (let [ws (vec ws) n (count ws)]
+     (vec (map-indexed
+            (fn [i w]
+-             (plan w (into (subvec ws 0 i) (subvec ws (inc i) n)) statics cfg))
++             (let [others (into (subvec ws 0 i) (subvec ws (inc i) n))]
++               (plan w (noticed w others) statics cfg)))
+            ws))))
+ 
+ (defn replan [before after statics cfg dt acc]
+-  (if (or (>= (+ acc dt) (- plan-every-s 1e-9))
+-          (some (fn [[b a]] (not= (:leg b) (:leg a))) (map vector before after)))
+-    [(plan-all after statics cfg) 0]
+-    [after (+ acc dt)]))
++  (let [after (perceive-all after dt)]
++    (if (or (>= (+ acc dt) (- plan-every-s 1e-9))
++            (some (fn [[b a]] (not= (:leg b) (:leg a))) (map vector before after)))
++      [(plan-all after statics cfg) 0]
++      [after (+ acc dt)])))
+ 
+ (defn advance [ws statics cfg dt acc]
+-  (replan ws (mapv #(step % (:speed cfg) dt) ws) statics cfg dt acc))
++  (replan ws (mapv #(step % (or (:speed %) (:speed cfg)) dt) ws) statics cfg dt acc))
+ 
+ (defn detours [ws]
+   (count (filter #(some? (:aim %)) ws)))
+diff --git a/src/pm/scene.cljs b/src/pm/scene.cljs
+index 4c40f52..e8116a5 100644
+--- a/src/pm/scene.cljs
++++ b/src/pm/scene.cljs
+@@ -27,7 +27,10 @@
+    :path-static  0xf6ad55
+    :path-aim     0xf56565
+    :feet-ground  0x48bb78
+-   :feet-target  0xed64a6})
++   :feet-target  0xed64a6
++   :path-sight   0xfaf089
++   :path-hear    0x9f7aea
++   :path-glance  0x63b3ed})
+ 
+ (def label-height 0.3)
+ 
+diff --git a/src/pm/three.cljs b/src/pm/three.cljs
+index d248b31..8169f84 100644
+--- a/src/pm/three.cljs
++++ b/src/pm/three.cljs
+@@ -208,6 +208,49 @@
+         (set! (.-needsUpdate tex) true)))
+     sprite))
+ 
++(defn set-label-runs!
++  "Redraw `sprite`'s canvas with `runs` ([{:text :color :alpha} ...], drawn
++   left to right, centred as a whole), or hide the sprite when `runs` is
++   empty/nil. Never makes a new texture or canvas. `set-label-text!` is
++   unchanged."
++  [^js sprite runs]
++  (let [^js data   (.-userData sprite)
++        ^js canvas (.-canvas data)
++        ^js ctx    (.getContext canvas "2d")
++        ^js tex    (.-texture data)
++        w          (.-width canvas)
++        h          (.-height canvas)
++        paper      (hex->css (.-paper data))
++        ink        (hex->css (.-ink data))]
++    (if (empty? runs)
++      (set! (.-visible sprite) false)
++      (do
++        (.clearRect ctx 0 0 w h)
++        (.beginPath ctx)
++        (set! (.-fillStyle ctx) paper)
++        (.roundRect ctx 0 0 w h 24)
++        (.fill ctx)
++        (set! (.-textBaseline ctx) "middle")
++        (loop [size 56]
++          (set! (.-font ctx) (str "bold " size "px sans-serif"))
++          (if (and (> size 12)
++                   (> (reduce + (map (fn [r] (.-width (.measureText ctx (:text r)))) runs)) 472))
++            (recur (dec size))
++            nil))
++        (set! (.-textAlign ctx) "left")
++        (let [total (reduce + (map (fn [r] (.-width (.measureText ctx (:text r)))) runs))]
++          (loop [x (/ (- w total) 2) rs runs]
++            (when (seq rs)
++              (let [r (first rs)]
++                (set! (.-fillStyle ctx) (if (:color r) (hex->css (:color r)) ink))
++                (set! (.-globalAlpha ctx) (:alpha r))
++                (.fillText ctx (:text r) x (/ h 2))
++                (recur (+ x (.-width (.measureText ctx (:text r)))) (rest rs))))))
++        (set! (.-globalAlpha ctx) 1)
++        (set! (.-visible sprite) true)
++        (set! (.-needsUpdate tex) true)))
++    sprite))
++
+ (defn label
+   "A Sprite that always faces the camera, showing `text` on a rounded-rect
+    paper background. Opts: :text (default \"\"), :height metres (default 0.3),
+@@ -486,6 +529,14 @@
+         (.multiply r world)
+         (set-world-quat! bone r)))))
+ 
++(defn set-line-color!
++  "(.setHex (.-color (.-material line)) color). Returns nil."
++  [^js line color]
++  (let [^js mat (.-material line)
++        ^js col (.-color mat)]
++    (.setHex col color))
++  nil)
++
+ (defn tilt-bone!
+   "The same as aim-bone!, with r = setFromAxisAngle(axis, angle)."
+   [^js bone [ax ay az] angle]

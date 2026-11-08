@@ -27,7 +27,10 @@
    :path-static  0xf6ad55
    :path-aim     0xf56565
    :feet-ground  0x48bb78
-   :feet-target  0xed64a6})
+   :feet-target  0xed64a6
+   :path-sight   0xfaf089
+   :path-hear    0x9f7aea
+   :path-glance  0x63b3ed})
 
 (def label-height 0.3)
 

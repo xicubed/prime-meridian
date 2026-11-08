@@ -208,6 +208,49 @@
         (set! (.-needsUpdate tex) true)))
     sprite))
 
+(defn set-label-runs!
+  "Redraw `sprite`'s canvas with `runs` ([{:text :color :alpha} ...], drawn
+   left to right, centred as a whole), or hide the sprite when `runs` is
+   empty/nil. Never makes a new texture or canvas. `set-label-text!` is
+   unchanged."
+  [^js sprite runs]
+  (let [^js data   (.-userData sprite)
+        ^js canvas (.-canvas data)
+        ^js ctx    (.getContext canvas "2d")
+        ^js tex    (.-texture data)
+        w          (.-width canvas)
+        h          (.-height canvas)
+        paper      (hex->css (.-paper data))
+        ink        (hex->css (.-ink data))]
+    (if (empty? runs)
+      (set! (.-visible sprite) false)
+      (do
+        (.clearRect ctx 0 0 w h)
+        (.beginPath ctx)
+        (set! (.-fillStyle ctx) paper)
+        (.roundRect ctx 0 0 w h 24)
+        (.fill ctx)
+        (set! (.-textBaseline ctx) "middle")
+        (loop [size 56]
+          (set! (.-font ctx) (str "bold " size "px sans-serif"))
+          (if (and (> size 12)
+                   (> (reduce + (map (fn [r] (.-width (.measureText ctx (:text r)))) runs)) 472))
+            (recur (dec size))
+            nil))
+        (set! (.-textAlign ctx) "left")
+        (let [total (reduce + (map (fn [r] (.-width (.measureText ctx (:text r)))) runs))]
+          (loop [x (/ (- w total) 2) rs runs]
+            (when (seq rs)
+              (let [r (first rs)]
+                (set! (.-fillStyle ctx) (if (:color r) (hex->css (:color r)) ink))
+                (set! (.-globalAlpha ctx) (:alpha r))
+                (.fillText ctx (:text r) x (/ h 2))
+                (recur (+ x (.-width (.measureText ctx (:text r)))) (rest rs))))))
+        (set! (.-globalAlpha ctx) 1)
+        (set! (.-visible sprite) true)
+        (set! (.-needsUpdate tex) true)))
+    sprite))
+
 (defn label
   "A Sprite that always faces the camera, showing `text` on a rounded-rect
    paper background. Opts: :text (default \"\"), :height metres (default 0.3),
@@ -485,6 +528,14 @@
             ^js world (world-quat bone)]
         (.multiply r world)
         (set-world-quat! bone r)))))
+
+(defn set-line-color!
+  "(.setHex (.-color (.-material line)) color). Returns nil."
+  [^js line color]
+  (let [^js mat (.-material line)
+        ^js col (.-color mat)]
+    (.setHex col color))
+  nil)
 
 (defn tilt-bone!
   "The same as aim-bone!, with r = setFromAxisAngle(axis, angle)."

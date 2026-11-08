@@ -1,0 +1,27 @@
+
+  ⎿  Added 3 lines, removed 4 lines
+      1 -FAIL
+      2 -1 error in compile
+      3 -File: /Users/hal/src/prime-me
+        -ridian/test/pm/senses_test.cl
+        -js:155:1
+      4 -Unable to resolve var: t15-re
+        -action-delay-dt-0 in this con
+        -text at line 155 pm/senses_te
+        -st.cljs
+      1 +PASS
+      2 +0 warnings
+      3 +Ran 440 tests containing 2043
+        + assertions. 0 failures, 0 er
+        +rors.
+
+⏺ PASS
+
+  done-1500
+
+✻ Crunched for 11s · done 4:16 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

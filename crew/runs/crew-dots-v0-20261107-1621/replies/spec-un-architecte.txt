@@ -1,0 +1,27 @@
+     (0x9aa0a6).toString(10),(0xf2b134),(0xe5
+     484d),(0x46a758))'
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Check pulse alpha values and colour
+ integers
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ node -e 'const a=t=>Math.round((0.4+0.6*(
+ │ 0.5+0.5*Math.cos(2*Math.PI*t/2000)))*10)/
+ │ 10;console.log([0,250,500,1000,1500,2000,
+ │ 2250,3000].map(a));console.log(Number.isI
+ │ nteger(1794097290232), (0x9aa0a6).toStrin
+ │ g(10),(0xf2b134),(0xe5484d),(0x46a758))'
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: node *
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
