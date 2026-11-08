@@ -71,6 +71,30 @@
     (fetch-crew!)
     (swap! !crew-poll assoc :timer (js/setInterval fetch-crew! crew-poll-ms))))
 
+(def bridge-url-file "/state/bridge.edn")
+(def bridge-poll-ms 5000)
+
+(defonce ^:private !bridge-poll (atom {:timer nil :busy? false}))
+
+(defn- fetch-bridge! []
+  (when-not (:busy? @!bridge-poll)
+    (swap! !bridge-poll assoc :busy? true)
+    (-> (js/fetch (str bridge-url-file "?t=" (js/Date.now)) #js {:cache "no-store"})
+        (.then (fn [^js resp] (if (.-ok resp) (.text resp) nil)))
+        (.then (fn [text]
+                 (if (nil? text)
+                   (swap! !world assoc :bridge nil)
+                   (let [b (crew/parse-bridge text)]
+                     (when (not= b (:bridge @!world))
+                       (swap! !world assoc :bridge b))))))
+        (.catch (fn [_]))
+        (.finally (fn [] (swap! !bridge-poll assoc :busy? false))))))
+
+(defn- start-bridge-poll! []
+  (when (nil? (:timer @!bridge-poll))
+    (fetch-bridge!)
+    (swap! !bridge-poll assoc :timer (js/setInterval fetch-bridge! bridge-poll-ms))))
+
 (def cache-key "pm.state.v1")
 (defonce ^:private !cache-text (atom nil)) ; last text read or written
 
@@ -187,7 +211,8 @@
       (when-let [h (kit/handle)]
         (when-let [b (brook/status h)] (str " · " b))))))
 
-(defonce ^:private !talk-ui (atom {:shown nil :badge nil :listed nil :listed-n nil}))
+(defonce ^:private !talk-ui (atom {:shown nil :badge nil :alert nil
+                                    :listed nil :listed-n nil :listed-bridge nil :roster nil}))
 
 (defn- tz-offset-min []
   (- (.getTimezoneOffset (js/Date.))))
@@ -218,9 +243,50 @@
                           (chores/untick w content/hal-lines (:n e) (js/Date.now)))))
   (swap! !talk-ui assoc :listed nil))
 
+(defn- bridge-on? []
+  (crew/bridge-on? (:bridge @!world) (js/Date.now)))
+
+(defn- post-crew!
+  "POSTs action to the bridge for member, then resolves talk entry n with
+   the outcome. Resolves as a network/bridge-off error when there is no
+   bridge to post to."
+  [member action prompt-id text n]
+  (if-let [b (:bridge @!world)]
+    (-> (js/fetch (crew/bridge-url b member)
+                  #js {:method "POST" :headers #js {"Content-Type" "application/json"}
+                       :body (js/JSON.stringify (clj->js (crew/request-body b action prompt-id text)))})
+        (.then (fn [^js resp]
+                 (-> (.json resp)
+                     (.then (fn [^js json] [(.-status resp) (.-reason json)]))
+                     (.catch (fn [_] [(.-status resp) nil])))))
+        (.then (fn [[status reason]]
+                 (swap! !world update :talk talk/crew-result n (crew/outcome status reason) (js/Date.now))))
+        (.catch (fn [_]
+                  (swap! !world update :talk talk/crew-result n (crew/outcome nil nil) (js/Date.now)))))
+    (swap! !world update :talk talk/crew-result n (crew/outcome nil nil) (js/Date.now))))
+
+(defn- on-allow [n]
+  (swap! !world update :talk talk/crew-send n :allow nil)
+  (let [e (talk/entry (:talk @!world) n)]
+    (when (= :sending (:state e))
+      (post-crew! (:member e) :allow (:id (:prompt e)) nil n))))
+
+(defn- on-deny [n note]
+  (swap! !world update :talk talk/crew-send n :deny note)
+  (let [e (talk/entry (:talk @!world) n)]
+    (when (= :sending (:state e))
+      (post-crew! (:member e) :deny (:id (:prompt e)) (:note e) n))))
+
+(defn- on-say [member who text]
+  (let [before-n (:n (:talk @!world))]
+    (swap! !world update :talk talk/crew-say member who text (js/Date.now))
+    (let [t (:talk @!world) n (:n t)]
+      (when (> n before-n)
+        (post-crew! member :say nil (:text (talk/entry t n)) n)))))
+
 (defn- talk-tick! [now]
   (let [t  (:talk @!world)
-        t' (talk/observe t @!world now)]
+        t' (-> t (talk/observe @!world now) (talk/observe-crew (:crew @!world) now))]
     (when-not (identical? t' t)
       (swap! !world assoc :talk t'))
     (let [e (talk/caption t' now)]
@@ -236,16 +302,23 @@
         (do
           (ui/hide-caption!)
           (swap! !talk-ui assoc :shown nil))))
-    (let [badge (talk/badge-text t')]
-      (when (not= badge (:badge @!talk-ui))
-        (ui/set-badge! badge)
-        (swap! !talk-ui assoc :badge badge)))
-    (if (:open? t')
-      (when-not (identical? (:entries t') (:listed @!talk-ui))
-        (let [keep-scroll? (= (:n t') (:listed-n @!talk-ui))]
-          (ui/render-panel! (:entries t') offset-of label-of pick! on-check keep-scroll?)
-          (swap! !talk-ui assoc :listed (:entries t') :listed-n (:n t'))))
-      (swap! !talk-ui assoc :listed nil :listed-n nil))))
+    (let [badge  (talk/badge-text t')
+          alert? (talk/prompt-waiting? t')]
+      (when (or (not= badge (:badge @!talk-ui)) (not= alert? (:alert @!talk-ui)))
+        (ui/set-badge! badge alert?)
+        (swap! !talk-ui assoc :badge badge :alert alert?)))
+    (let [bridge-on (bridge-on?)]
+      (if (:open? t')
+        (when-not (and (identical? (:entries t') (:listed @!talk-ui)) (= bridge-on (:listed-bridge @!talk-ui)))
+          (let [keep-scroll? (= (:n t') (:listed-n @!talk-ui))]
+            (ui/render-panel! (:entries t') offset-of label-of pick! on-check keep-scroll?
+                               {:bridge-on? bridge-on :on-allow on-allow :on-deny on-deny})
+            (swap! !talk-ui assoc :listed (:entries t') :listed-n (:n t') :listed-bridge bridge-on)))
+        (swap! !talk-ui assoc :listed nil :listed-n nil :listed-bridge nil)))
+    (let [rows (talk/crew-roster (:crew @!world) now (bridge-on?))]
+      (when (not= rows (:roster @!talk-ui))
+        (ui/render-roster! rows on-say)
+        (swap! !talk-ui assoc :roster rows)))))
 
 (defn frame [now]
   (let [dt (if-let [l @!last] (/ (- now l) 1000) 0)]
@@ -479,6 +552,7 @@
   (add-watch !world ::play-cache on-play-change!)
   (start-state-poll!)
   (start-crew-poll!)
+  (start-bridge-poll!)
   (kit/load! start-kit! start-scaffold!))
 
 (defn reload!

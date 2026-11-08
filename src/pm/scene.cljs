@@ -19,7 +19,7 @@
    :stand-in     0xb8b0a6
    :bubble-paper 0xfffaf0
    :bubble-ink   0x3a2d22
-   :sign-paper   0xe9d3a8
+   :sign-paper   0xf6ead0   ; lighter parchment (was 0xe9d3a8), for contrast
    :sign-ink     0x4a3420
    :crew         0x5b7fa3
    :crew-head    0xf0e6d6
@@ -32,7 +32,11 @@
    :path-hear    0x9f7aea
    :path-glance  0x63b3ed})
 
-(def label-height 0.3)
+(def label-height 0.3)   ; the old size; positions in tests and walker heads still key off it
+
+;; Every label (creature speech, signs, walker nameplates) shares one look:
+;; bigger, lighter, outlined, so it reads at a distance (Michael, Nov 7).
+(def plate {:height 0.4 :canvas [640 128] :font-max 78})
 
 (defn- color [kw]
   (get palette kw (:stand-in palette)))
@@ -43,11 +47,12 @@
   (let [[paper ink] (if (= label-kind :sign)
                        [:sign-paper :sign-ink]
                        [:bubble-paper :bubble-ink])]
-    {:text   text
-     :height label-height
-     :paper  (color paper)
-     :ink    (color ink)
-     :pos    pos}))
+    (assoc plate
+           :text   text
+           :paper  (color paper)
+           :ink    (color ink)
+           :border (color ink)
+           :pos    pos)))
 
 (defn- mount-item! [root item]
   (let [{:keys [key at yaw parts label label-at text]} item

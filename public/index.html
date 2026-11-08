@@ -64,6 +64,23 @@
     #talk-list li.chore input { margin: 0 6px 0 0; vertical-align: middle; }
     #talk-list li.chore.undone .text { text-decoration: line-through; opacity: .6; }
     #talk-list li.request .text { font-weight: 500; }
+    #talk-toggle.alert #talk-badge { background: #e5484d; color: #fff; border-radius: 9px; padding: 0 5px; }
+    #crew-roster { list-style: none; margin: 0; padding: 8px 12px 0; display: flex; flex-direction: column; gap: 4px;
+      border-bottom: 1px solid rgba(255,255,255,.15); }
+    #crew-roster .row { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+    #crew-roster input[type=text] { flex: 1; min-width: 0; font: inherit; background: rgba(255,255,255,.08); color: inherit;
+      border: 1px solid rgba(255,255,255,.2); border-radius: 6px; padding: 2px 6px; }
+    #talk-list li.crew { cursor: default; }
+    #talk-list li.crew .row { display: flex; align-items: center; gap: 6px; }
+    #talk-list li.crew .text { flex: 1; }
+    #talk-list li.crew .risky { color: #e5484d; }
+    #talk-list li.crew .hint { opacity: .6; font-size: 12px; margin-left: 6px; }
+    #talk-list li.crew button.deny { font: inherit; border: 1px solid #777; background: #2b3040; color: #e8e4d8;
+      border-radius: 6px; padding: 0 6px; cursor: pointer; }
+    #talk-list li.crew input[type=text] { font: inherit; background: rgba(255,255,255,.08); color: inherit;
+      border: 1px solid rgba(255,255,255,.2); border-radius: 6px; padding: 1px 6px; width: 7em; }
+    #talk-list li.crew button:disabled,
+    #talk-list li.crew input:disabled { opacity: .4; cursor: default; }
   </style>
 </head>
 <body>
@@ -81,7 +98,7 @@
   </div>
   <div id="caption" aria-live="polite"><b id="caption-who"></b><span id="caption-text"></span></div>
   <button id="talk-toggle" title="What was said">💭<span id="talk-badge"></span></button>
-  <div id="talk-panel" hidden><ol id="talk-list"></ol></div>
+  <div id="talk-panel" hidden><div id="crew-roster"></div><ol id="talk-list"></ol></div>
   <script src="/js/main.js"></script>
 </body>
 </html>

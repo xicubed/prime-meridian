@@ -40,8 +40,12 @@
         y     (:y w)
         ^js fig (build-figure! (:heading w))
         _       (t/set-scale! fig ds)
-        ^js lbl (t/label {:text (:name w) :height scene/label-height
-                           :paper (part-color :sign-paper) :ink (part-color :sign-ink)
+        ;; Nameplates: bigger and lighter than the creatures' signs, so names and
+        ;; status dots read at a distance (Michael: "the contrast is low").
+        ^js lbl (t/label {:text (:name w) :height (:height scene/plate)
+                           :canvas (:canvas scene/plate) :font-max (:font-max scene/plate)
+                           :border (part-color :bubble-ink)
+                           :paper (part-color :bubble-paper) :ink (part-color :bubble-ink)
                            :pos [0 (m/label-height nil ds) 0]})
         ^js anchor (t/group {:name (str "pm-walkers/" (name (:id w))) :pos [x (or y 0) z]})]
     (t/add! anchor fig lbl)
@@ -453,7 +457,8 @@
     (let [{:keys [walkers views colors]} @!state
           views' (mapv
                    (fn [w view]
-                     (let [runs (crew/label-runs (crew/dot crew-state (:agent w) now colors) (:name w) now)]
+                     (let [runs (-> (crew/label-runs (crew/dot crew-state (:agent w) now colors) (:name w) now)
+                                (update 0 assoc :scale 1.4))]   ; the dot, bigger than the name
                        (if (not= runs (:runs view))
                          (do (t/set-label-runs! (:label view) runs)
                              (assoc view :runs runs))

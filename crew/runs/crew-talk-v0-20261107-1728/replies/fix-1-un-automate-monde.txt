@@ -1,0 +1,27 @@
+  ++++++++++++++++++++++++++++++++----
+   src/pm/three.cljs       |  74
+  ++++++++-----
+   src/pm/ui.cljs          | 102
+  ++++++++++++++++--
+   13 files changed, 643 insertions(+), 106
+  deletions(-)
+  Plus one tracked-but-not-yet-committed test
+  edit (authorized this round):
+  test/pm/crew_talk_test.cljs (1 line
+  changed, t21-validate-check-order's first
+  assertion). New untracked files unchanged
+  from before: src/pm/prompt.cljc,
+  src/pm/bridge.cljc,
+  scripts/crew_bridge.clj. .gitignore,
+  shadow-cljs.edn, src/pm/bricks.cljs,
+  src/pm/scene.cljs are concurrent edits from
+  others, not mine.
+
+  done-2364
+
+✻ Sautéed for 59s · done 6:10 PM
+                      1% until auto-compact
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

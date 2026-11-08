@@ -176,8 +176,9 @@
 
 (defn set-label-text!
   "Redraw `sprite`'s canvas with `text` (a rounded paper rectangle with the
-   text centred in ink), or hide the sprite when `text` is empty/nil. Never
-   makes a new texture or canvas."
+   text centred in ink, plus the label's `:border` outline if any), or hide
+   the sprite when `text` is empty/nil. Uses the label's `:font-max` (see
+   `label`). Never makes a new texture or canvas."
   [^js sprite text]
   (let [^js data   (.-userData sprite)
         ^js canvas (.-canvas data)
@@ -186,21 +187,27 @@
         w          (.-width canvas)
         h          (.-height canvas)
         paper      (hex->css (.-paper data))
-        ink        (hex->css (.-ink data))]
+        ink        (hex->css (.-ink data))
+        font-max   (or (.-fontMax data) 56)
+        border     (.-border data)]
     (if (or (nil? text) (= text ""))
       (set! (.-visible sprite) false)
       (do
         (.clearRect ctx 0 0 w h)
         (.beginPath ctx)
         (set! (.-fillStyle ctx) paper)
-        (.roundRect ctx 0 0 w h 24)
+        (.roundRect ctx 3 3 (- w 6) (- h 6) (* 0.22 h))
         (.fill ctx)
+        (when border
+          (set! (.-strokeStyle ctx) (hex->css border))
+          (set! (.-lineWidth ctx) 4)
+          (.stroke ctx))
         (set! (.-fillStyle ctx) ink)
         (set! (.-textAlign ctx) "center")
         (set! (.-textBaseline ctx) "middle")
-        (loop [size 56]
+        (loop [size font-max]
           (set! (.-font ctx) (str "bold " size "px sans-serif"))
-          (if (and (> size 12) (> (.-width (.measureText ctx text)) 472))
+          (if (and (> size 12) (> (.-width (.measureText ctx text)) (- w (* 0.3 h))))
             (recur (dec size))
             nil))
         (.fillText ctx text (/ w 2) (/ h 2))
@@ -209,10 +216,11 @@
     sprite))
 
 (defn set-label-runs!
-  "Redraw `sprite`'s canvas with `runs` ([{:text :color :alpha} ...], drawn
-   left to right, centred as a whole), or hide the sprite when `runs` is
-   empty/nil. Never makes a new texture or canvas. `set-label-text!` is
-   unchanged."
+  "Redraw `sprite`'s canvas with `runs` ([{:text :color :alpha :scale} ...],
+   drawn left to right, centred as a whole; `:scale` sizes a run's font
+   relative to the rest, default 1), or hide the sprite when `runs` is
+   empty/nil. Uses the label's `:font-max` and `:border` (see `label`).
+   Never makes a new texture or canvas. `set-label-text!` is unchanged."
   [^js sprite runs]
   (let [^js data   (.-userData sprite)
         ^js canvas (.-canvas data)
@@ -221,31 +229,39 @@
         w          (.-width canvas)
         h          (.-height canvas)
         paper      (hex->css (.-paper data))
-        ink        (hex->css (.-ink data))]
+        ink        (hex->css (.-ink data))
+        font-max   (or (.-fontMax data) 56)
+        border     (.-border data)
+        font!      (fn [size r] (set! (.-font ctx) (str "bold " (js/Math.round (* size (or (:scale r) 1))) "px sans-serif")))
+        widths     (fn [size] (mapv (fn [r] (font! size r) (.-width (.measureText ctx (:text r)))) runs))]
     (if (empty? runs)
       (set! (.-visible sprite) false)
       (do
         (.clearRect ctx 0 0 w h)
         (.beginPath ctx)
         (set! (.-fillStyle ctx) paper)
-        (.roundRect ctx 0 0 w h 24)
+        (.roundRect ctx 3 3 (- w 6) (- h 6) (* 0.22 h))
         (.fill ctx)
+        (when border
+          (set! (.-strokeStyle ctx) (hex->css border))
+          (set! (.-lineWidth ctx) 4)
+          (.stroke ctx))
         (set! (.-textBaseline ctx) "middle")
-        (loop [size 56]
-          (set! (.-font ctx) (str "bold " size "px sans-serif"))
-          (if (and (> size 12)
-                   (> (reduce + (map (fn [r] (.-width (.measureText ctx (:text r)))) runs)) 472))
-            (recur (dec size))
-            nil))
         (set! (.-textAlign ctx) "left")
-        (let [total (reduce + (map (fn [r] (.-width (.measureText ctx (:text r)))) runs))]
-          (loop [x (/ (- w total) 2) rs runs]
+        (let [size  (loop [size font-max]
+                      (if (and (> size 12) (> (reduce + (widths size)) (- w (* 0.3 h))))
+                        (recur (dec size))
+                        size))
+              ws    (widths size)
+              total (reduce + ws)]
+          (loop [x (/ (- w total) 2) rs runs ws ws]
             (when (seq rs)
               (let [r (first rs)]
+                (font! size r)
                 (set! (.-fillStyle ctx) (if (:color r) (hex->css (:color r)) ink))
                 (set! (.-globalAlpha ctx) (:alpha r))
                 (.fillText ctx (:text r) x (/ h 2))
-                (recur (+ x (.-width (.measureText ctx (:text r)))) (rest rs))))))
+                (recur (+ x (first ws)) (rest rs) (rest ws))))))
         (set! (.-globalAlpha ctx) 1)
         (set! (.-visible sprite) true)
         (set! (.-needsUpdate tex) true)))
@@ -254,24 +270,28 @@
 (defn label
   "A Sprite that always faces the camera, showing `text` on a rounded-rect
    paper background. Opts: :text (default \"\"), :height metres (default 0.3),
-   :paper :ink ints, :pos [x y z]."
-  [{:keys [text height paper ink pos] :or {text "" height 0.3}}]
+   :paper :ink ints, :pos [x y z]; for `set-label-runs!` also :canvas [w h]
+   pixels (default [512 128]; the sprite keeps that aspect), :font-max px
+   (default 56) and :border (an ink int for a thin outline, default none)."
+  [{:keys [text height paper ink pos font-max border] [cw ch] :canvas :or {text "" height 0.3}}]
   (let [[x y z] pos
-        width      (* 4 height)
+        cw         (or cw 512)
+        ch         (or ch 128)
+        width      (* height (/ cw ch))
         ^js T      (three)
         ^js Sprite (.-Sprite T)
         ^js SpriteMaterial (.-SpriteMaterial T)
         ^js CanvasTexture (.-CanvasTexture T)
         ^js canvas (js/document.createElement "canvas")
-        _          (set! (.-width canvas) 512)
-        _          (set! (.-height canvas) 128)
+        _          (set! (.-width canvas) cw)
+        _          (set! (.-height canvas) ch)
         ^js tex    (CanvasTexture. canvas)
         _          (set! (.-colorSpace tex) (.-SRGBColorSpace T))
         ^js mat    (SpriteMaterial. #js {:map tex :transparent true :depthWrite false})
         ^js s      (Sprite. mat)]
     (.set (.-scale s) width height 1)
     (.set (.-position s) x y z)
-    (set! (.-userData s) #js {:canvas canvas :texture tex :paper paper :ink ink})
+    (set! (.-userData s) #js {:canvas canvas :texture tex :paper paper :ink ink :fontMax font-max :border border})
     (set-label-text! s text)
     s))
 

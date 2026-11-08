@@ -1,11 +1,16 @@
 (ns pm.talk
-  "The talk log: what Hal and the creatures said, captioned and spoken. Pure:
-   no atoms, no js/Date, no DOM. Never names a mirror."
+  "The talk log: what Hal, the creatures and the crew said, captioned and
+   spoken. Pure: no atoms, no js/Date, no DOM. Never names a mirror."
   (:require [cljs.reader :as reader]
             [clojure.string :as str]
-            [pm.world :as w]))
+            [pm.world :as w]
+            [pm.crew :as crew]))
 
 (def hal-name "Hal")
+(def crew-kinds #{:crew-prompt :crew-status :crew-say})
+(def prompt-states #{:pending :sending :allowed :declined :stale})
+(def say-states #{:sending :sent :failed})
+(def you "You")
 (def cap 100)
 (def caption-min-ms 2500)
 (def caption-max-ms 9000)
@@ -25,7 +30,7 @@
 
 (def empty-talk
   {:entries [] :n 0 :seen 0 :open? false :voice? false :queue-end 0
-   :last-hal nil :last-say {}})
+   :last-hal nil :last-say {} :crew-last {}})
 
 (defn caption-ms [text]
   (let [len (if (string? text) (count text) 0)]
@@ -305,6 +310,194 @@
         base))
     :else nil))
 
+(defn- append-crew
+  "Append a crew-line entry. No show keys (never captioned), and
+   :queue-end is untouched."
+  [talk crew-entry]
+  (let [{:keys [n open?]} talk
+        n'      (inc n)
+        entry'  (assoc crew-entry :n n')
+        entries (vec (take-last cap (conj (:entries talk) entry')))]
+    (cond-> (assoc talk :entries entries :n n')
+      open? (assoc :seen n'))))
+
+(defn- crew-prompt-text [p]
+  (if (= :bash (:kind p))
+    (str "wants to run " (:text p))
+    (str "is waiting at a prompt: " (str/replace (:text p) "\n" " / "))))
+
+(defn- stale-pending [entries member eff]
+  (mapv (fn [e]
+          (if (and (= :crew-prompt (:kind e)) (= member (:member e)) (= :pending (:state e))
+                   (not= eff (:id (:prompt e))))
+            (assoc e :state :stale)
+            e))
+        entries))
+
+(defn- stale-missing [entries agent-ids]
+  (mapv (fn [e]
+          (if (and (= :crew-prompt (:kind e)) (= :pending (:state e))
+                   (not (contains? agent-ids (:member e))))
+            (assoc e :state :stale)
+            e))
+        entries))
+
+(defn observe-crew
+  "talk, folding in the latest crew.edn: a prompt line per newly blocked
+   member, a status line when one finishes, and staling of prompt lines
+   that no longer apply. Identical to `talk` when nothing changes."
+  [talk crew-state now]
+  (let [talk (or talk empty-talk)]
+    (if (or (nil? crew-state) (not (crew/fresh? crew-state now)))
+      talk
+      (let [agents (:agents crew-state)
+            titles (:titles crew-state)
+            talk1  (update talk :entries stale-missing (set (keys agents)))
+            result (reduce
+                     (fn [t m]
+                       (let [s    (:status (get agents m))
+                             p    (:prompt (get agents m))
+                             last (get-in t [:crew-last m])
+                             who  (get titles m (name m))
+                             eff  (cond
+                                    (and (= s :blocked) p) (:id p)
+                                    (= s :blocked) (:prompt-id last)
+                                    :else nil)
+                             t    (update t :entries stale-pending m eff)
+                             t    (if (and (= s :blocked) p (not= (:id p) (:prompt-id last)))
+                                    (append-crew t {:who who :text (crew-prompt-text p) :at now
+                                                     :kind :crew-prompt :member m :prompt p :state :pending})
+                                    t)
+                             t    (if (and (= s :done) (some? last) (not= :done (:status last)))
+                                    (append-crew t {:who who :text "done" :at now :kind :crew-status :member m})
+                                    t)]
+                         (assoc-in t [:crew-last m] {:status s :prompt-id eff})))
+                     talk1
+                     (sort (keys agents)))]
+        (if (= result talk) talk result)))))
+
+(defn allowable-kind?
+  [e]
+  (and (= :bash (:kind (:prompt e))) (false? (:risky (:prompt e)))))
+
+(defn allowable? [e]
+  (and (= :crew-prompt (:kind e)) (= :pending (:state e)) (allowable-kind? e)))
+
+(defn- clean-note [note]
+  (when (string? note)
+    (let [t (str/trim note)]
+      (when-not (str/blank? t) t))))
+
+(defn crew-send
+  "Allow, deny or reply to a pending crew-prompt entry n. Only that entry
+   changes; anything else leaves talk unchanged (identical)."
+  [talk n action note]
+  (let [talk (or talk empty-talk)
+        e    (entry talk n)]
+    (if-not (and e (= :crew-prompt (:kind e)) (= :pending (:state e))
+                 (contains? #{:allow :deny} action)
+                 (or (= action :deny) (allowable? e)))
+      talk
+      (let [note' (when (= action :deny) (clean-note note))]
+        (if (and note' (> (count note') 1000))
+          talk
+          (let [idx (first (keep-indexed (fn [i x] (when (= n (:n x)) i)) (:entries talk)))]
+            (update-in talk [:entries idx]
+                       (fn [x] (cond-> (-> x (dissoc :error :note) (assoc :state :sending :action action))
+                                 note' (assoc :note note'))))))))))
+
+(defn crew-result
+  "Resolve a :sending crew-prompt or crew-say entry n with the bridge's
+   outcome. Anything else leaves talk unchanged (identical)."
+  [talk n outcome now]
+  (let [talk (or talk empty-talk)
+        e    (entry talk n)]
+    (if-not (and e (= :sending (:state e)))
+      talk
+      (let [idx    (first (keep-indexed (fn [i x] (when (= n (:n x)) i)) (:entries talk)))
+            result (:result outcome)
+            reason (:reason outcome)]
+        (update-in talk [:entries idx]
+                   (fn [x]
+                     (case (:kind x)
+                       :crew-prompt
+                       (case result
+                         :ok (assoc x :state (if (= :allow (:action x)) :allowed :declined) :answered-at now)
+                         :stale (assoc x :state :stale)
+                         :error (-> x (dissoc :action :note) (assoc :state :pending :error reason))
+                         x)
+                       :crew-say
+                       (case result
+                         :ok (assoc x :state :sent)
+                         (:stale :error) (assoc x :state :failed :error (or reason "refused"))
+                         x)
+                       x)))))))
+
+(defn crew-say
+  "Append a You → member line, in :sending state."
+  [talk member who text now]
+  (let [talk (or talk empty-talk)
+        t    (when (string? text) (str/trim text))]
+    (if-not (and (keyword? member) (non-blank-str? who) (string? t) (not (str/blank? t)) (<= (count t) 1000))
+      talk
+      (append-crew talk {:who you :text t :at now :kind :crew-say :member member :to who :state :sending}))))
+
+(defn prompt-waiting?
+  "True when some crew-prompt entry is waiting on the player or the
+   bridge: drives the red badge."
+  [talk]
+  (let [talk (or talk empty-talk)]
+    (boolean (some #(and (= :crew-prompt (:kind %)) (contains? #{:pending :sending} (:state %)))
+                   (:entries talk)))))
+
+(defn crew-controls [e bridge-on?]
+  (when (and (= :crew-prompt (:kind e)) (contains? #{:pending :sending} (:state e)))
+    (case (:state e)
+      :sending {:allow? (allowable-kind? e) :disabled? true :hint "sending…"}
+      :pending {:allow? (allowable? e) :disabled? (not bridge-on?) :hint (when-not bridge-on? "bridge off")})))
+
+(defn crew-label
+  "The line for a crew entry, or nil for a non-crew entry."
+  [e offset-min]
+  (case (:kind e)
+    :crew-prompt
+    (let [risky (:risky (:prompt e))
+          base  (str (when risky "⚠ ") (:who e) " · " (:text e))]
+      (str base
+           (case (:state e)
+             :pending   (str (when risky " · Hal reviews this one")
+                              (when-let [err (:error e)] (str " · not sent: " err)))
+             :sending   " · sending…"
+             :allowed   (str " · ☑ allowed " (clock-text (:answered-at e) offset-min))
+             :declined  (str " · ✕ declined " (clock-text (:answered-at e) offset-min)
+                              (when-let [note (:note e)] (str " · “" note "”")))
+             :stale     " · already answered"
+             "")))
+    :crew-status (str (:who e) " · " (:text e))
+    :crew-say
+    (str "You → " (:to e) ": " (:text e)
+         (case (:state e)
+           :sending " · sending…"
+           :sent    ""
+           :failed  (str " · not sent: " (:error e))
+           ""))
+    nil))
+
+(defn crew-roster
+  "The 💭 roster strip: every crew member, walker or not."
+  [crew-state now bridge-on?]
+  (if (nil? crew-state)
+    []
+    (let [fresh?  (crew/fresh? crew-state now)
+          agents  (:agents crew-state)
+          titles  (:titles crew-state)
+          members (sort (into (set (keys titles)) (keys agents)))]
+      (mapv (fn [m]
+              (let [st (if (and fresh? (contains? agents m)) (:status (get agents m)) :unknown)]
+                {:member m :who (get titles m (name m)) :status st
+                 :say? (and bridge-on? (contains? #{:idle :done} st))}))
+            members))))
+
 (defn- valid-rate? [v] (and (number? v) (<= 0.1 v 10)))
 (defn- valid-pitch? [v] (and (number? v) (<= 0 v 2)))
 (defn- valid-lang? [v] (non-blank-str? v))
@@ -324,8 +517,9 @@
 
 (defn save-text [talk]
   (let [talk (or talk empty-talk)]
-    (pr-str {:v 1 :n (:n talk) :seen (:seen talk)
-             :entries (mapv #(select-keys % [:n :who :text :at :kind :mirror :event :chore :done? :asks])
+    (pr-str {:v 1 :n (:n talk) :seen (:seen talk) :crew-last (:crew-last talk)
+             :entries (mapv #(select-keys % [:n :who :text :at :kind :mirror :event :chore :done? :asks
+                                               :member :prompt :state :action :note :answered-at :error :to])
                              (:entries talk))})))
 
 (defn- valid-restored-entry? [e]
@@ -335,30 +529,55 @@
        (non-blank-str? (:text e))
        (finite-number? (:at e))
        (keyword? (:kind e))
-       (if (= :chore (:kind e))
+       (cond
+         (= :chore (:kind e))
          (and (some? (chore-record (:chore e))) (boolean? (:done? e)))
-         true)))
+
+         (contains? crew-kinds (:kind e))
+         (and (keyword? (:member e))
+              (case (:kind e)
+                :crew-prompt (and (crew/valid-prompt? (:prompt e)) (contains? prompt-states (:state e)))
+                :crew-status true
+                :crew-say (and (non-blank-str? (:to e)) (contains? say-states (:state e)))))
+
+         :else true)))
 
 (defn- clean-restored-entry [e]
-  (let [base (cond-> (select-keys e [:n :who :text :at :kind])
-               (keyword? (:mirror e)) (assoc :mirror (:mirror e))
-               (keyword? (:event e))  (assoc :event (:event e))
-               (= :chore (:kind e))   (assoc :chore (chore-record (:chore e)) :done? (:done? e)))]
-    (if (keyword? (:asks e))
-      (let [cleaned-chore (chore-record (:chore e))]
-        (cond-> (assoc base :asks (:asks e)
-                       :done? (and (true? (:done? e)) (some? cleaned-chore)))
-          cleaned-chore (assoc :chore cleaned-chore)))
-      base)))
+  (if (contains? crew-kinds (:kind e))
+    (case (:kind e)
+      :crew-prompt
+      (let [sending? (= :sending (:state e))
+            base     (select-keys e [:n :who :text :at :kind :member :prompt])]
+        (cond-> (assoc base :state (if sending? :pending (:state e)))
+          (and (not sending?) (keyword? (:action e)))       (assoc :action (:action e))
+          (and (not sending?) (string? (:note e)))          (assoc :note (:note e))
+          (and (not sending?) (number? (:answered-at e)))   (assoc :answered-at (:answered-at e))))
+      :crew-status (select-keys e [:n :who :text :at :kind :member])
+      :crew-say
+      (let [sending? (= :sending (:state e))
+            state    (if sending? :failed (:state e))]
+        (cond-> (assoc (select-keys e [:n :who :text :at :kind :member :to]) :state state)
+          sending? (assoc :error "not confirmed")
+          (and (not sending?) (string? (:error e))) (assoc :error (:error e)))))
+    (let [base (cond-> (select-keys e [:n :who :text :at :kind])
+                 (keyword? (:mirror e)) (assoc :mirror (:mirror e))
+                 (keyword? (:event e))  (assoc :event (:event e))
+                 (= :chore (:kind e))   (assoc :chore (chore-record (:chore e)) :done? (:done? e)))]
+      (if (keyword? (:asks e))
+        (let [cleaned-chore (chore-record (:chore e))]
+          (cond-> (assoc base :asks (:asks e)
+                         :done? (and (true? (:done? e)) (some? cleaned-chore)))
+            cleaned-chore (assoc :chore cleaned-chore)))
+        base))))
 
 (defn- drop-repeats
   "Drop an entry when the same speaker said the same text as its previous
    entry within quiet-ms (reloads used to log the scene again). Boxes
-   (chore lines and requests) pass through untouched and aren't tracked, so
-   two boxes with the same text a minute apart both stay."
+   (chore lines and requests) and crew lines pass through untouched and
+   aren't tracked, so two with the same text a minute apart both stay."
   [entries]
   (:out (reduce (fn [{:keys [out last]} e]
-                  (if (box? e)
+                  (if (or (box? e) (contains? crew-kinds (:kind e)))
                     {:out (conj out e) :last last}
                     (let [k [(:who e) (:mirror e)]
                           p (get last k)]
@@ -367,6 +586,19 @@
                         {:out (conj out e) :last (assoc last k e)}))))
                 {:out [] :last {}}
                 entries)))
+
+(defn- valid-crew-last-entry? [v]
+  (and (map? v)
+       (contains? crew/statuses (:status v))
+       (let [p (:prompt-id v)]
+         (or (nil? p) (and (string? p) (boolean (re-matches #"^[0-9a-f]{40}$" p)))))))
+
+(defn- clean-crew-last [m]
+  (if (map? m)
+    (into {}
+          (keep (fn [[k v]] (when (and (keyword? k) (valid-crew-last-entry? v)) [k v])))
+          m)
+    {}))
 
 (defn- last-says
   "What each creature last said, from the history: a standing bubble that
@@ -397,4 +629,5 @@
                           (-> seen-m (max 0) (min n))
                           n)]
         (assoc empty-talk :entries entries :n n :seen seen
-               :last-say (last-says entries))))))
+               :last-say (last-says entries)
+               :crew-last (clean-crew-last (:crew-last m)))))))

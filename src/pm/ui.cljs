@@ -44,9 +44,13 @@
   (when-let [^js cap-el (el "caption")]
     (.remove (.-classList cap-el) "show")))
 
-(defn set-badge! [text]
+(defn set-badge! [text alert?]
   (when-let [^js b (el "talk-badge")]
-    (set! (.-textContent b) text)))
+    (set! (.-textContent b) text))
+  (when-let [^js btn (el "talk-toggle")]
+    (if alert?
+      (.add (.-classList btn) "alert")
+      (.remove (.-classList btn) "alert"))))
 
 (defn- focused-checkbox-n []
   (let [^js active (.-activeElement js/document)]
@@ -92,25 +96,111 @@
     (.appendChild li who-span)
     (.appendChild li text-span)))
 
-(defn render-panel! [entries offset-of label-of on-pick on-check keep-scroll?]
+(defn- render-crew-row! [^js li entry offset-of crew]
+  (let [{:keys [bridge-on? on-allow on-deny]} crew
+        controls (talk/crew-controls entry bridge-on?)
+        ^js time-span (js/document.createElement "span")
+        ^js row       (js/document.createElement "div")
+        ^js text-span (js/document.createElement "span")]
+    (set! (.-className li) "crew")
+    (set! (.-className time-span) "time")
+    (set! (.-textContent time-span) (talk/clock-text (:at entry) (offset-of (:at entry))))
+    (set! (.-className row) "row")
+    (when (and controls (:allow? controls))
+      (let [^js cb (js/document.createElement "input")]
+        (set! (.-type cb) "checkbox")
+        (set! (.-disabled cb) (boolean (:disabled? controls)))
+        (.addEventListener cb "change" (fn [^js e] (when (.. e -target -checked) (on-allow (:n entry)))))
+        (.appendChild row cb)))
+    (set! (.-className text-span) (str "text" (when (:risky (:prompt entry)) " risky")))
+    (set! (.-textContent text-span) (talk/crew-label entry (offset-of (:at entry))))
+    (.appendChild row text-span)
+    (when controls
+      (let [^js x   (js/document.createElement "button")
+            ^js inp (js/document.createElement "input")]
+        (set! (.-className x) "deny")
+        (set! (.-textContent x) "✕")
+        (set! (.-disabled x) (boolean (:disabled? controls)))
+        (.addEventListener x "click" (fn [_] (on-deny (:n entry) nil)))
+        (set! (.-type inp) "text")
+        (.setAttribute inp "placeholder" "reply…")
+        (.setAttribute inp "data-n" (str (:n entry)))
+        (set! (.-disabled inp) (boolean (:disabled? controls)))
+        (.addEventListener inp "keydown"
+          (fn [^js e] (when (= "Enter" (.-key e))
+                        (on-deny (:n entry) (.. e -target -value)))))
+        (.appendChild row x)
+        (.appendChild row inp)))
+    (.appendChild li time-span)
+    (.appendChild li row)
+    (when (and controls (:hint controls))
+      (let [^js hint (js/document.createElement "span")]
+        (set! (.-className hint) "hint")
+        (set! (.-textContent hint) (:hint controls))
+        (.appendChild li hint)))))
+
+(defn render-panel! [entries offset-of label-of on-pick on-check keep-scroll? crew]
   (when-let [^js list-el (el "talk-list")]
     (let [^js panel      (el "talk-panel")
           focused-n      (focused-checkbox-n)
+          focused-value  (let [^js active (.-activeElement js/document)]
+                           (when (and active (= "INPUT" (.-tagName active)) (= "text" (.-type active)))
+                             (not-empty (.-value active))))
           prev-scroll    (when panel (.-scrollTop panel))]
       (set! (.-innerHTML list-el) "")
       (doseq [entry entries]
         (let [^js li (js/document.createElement "li")]
-          (if (talk/box? entry)
-            (render-chore-row! li entry offset-of label-of on-check)
-            (render-say-row! li entry offset-of on-pick))
+          (cond
+            (talk/box? entry) (render-chore-row! li entry offset-of label-of on-check)
+            (contains? talk/crew-kinds (:kind entry)) (render-crew-row! li entry offset-of crew)
+            :else (render-say-row! li entry offset-of on-pick))
           (.appendChild list-el li)))
       (when focused-n
         (when-let [^js refocus (.querySelector list-el (str "input[data-n=\"" focused-n "\"]"))]
+          (when (and focused-value (= "text" (.-type refocus)))
+            (set! (.-value refocus) focused-value))
           (.focus refocus)))
       (when panel
         (if keep-scroll?
           (set! (.-scrollTop panel) prev-scroll)
           (set! (.-scrollTop panel) (.-scrollHeight panel)))))))
+
+(defn render-roster!
+  "Fills #crew-roster with one row per member: its dot, the title, and a
+   say… input enabled only when :say?. Enter calls (on-say member who
+   value). A re-render keeps a typed value too."
+  [rows on-say]
+  (when-let [^js root (el "crew-roster")]
+    (let [^js active    (.-activeElement js/document)
+          focused-m     (when (and active (= "INPUT" (.-tagName active)))
+                          (not-empty (.getAttribute active "data-member")))
+          focused-value (when (and active (= "INPUT" (.-tagName active)) (= "text" (.-type active)))
+                          (not-empty (.-value active)))]
+      (set! (.-innerHTML root) "")
+      (doseq [row rows]
+        (let [^js r     (js/document.createElement "div")
+              ^js glyph (js/document.createElement "span")
+              ^js who   (js/document.createElement "span")
+              ^js inp   (js/document.createElement "input")]
+          (set! (.-className r) "row")
+          (set! (.-textContent glyph) (if (= :unknown (:status row)) "○" "●"))
+          (set! (.-textContent who) (:who row))
+          (set! (.-type inp) "text")
+          (.setAttribute inp "placeholder" "say…")
+          (.setAttribute inp "data-member" (name (:member row)))
+          (set! (.-disabled inp) (not (:say? row)))
+          (.addEventListener inp "keydown"
+            (fn [^js e] (when (= "Enter" (.-key e))
+                          (on-say (:member row) (:who row) (.. e -target -value))
+                          (set! (.-value (.-target e)) ""))))
+          (.appendChild r glyph)
+          (.appendChild r who)
+          (.appendChild r inp)
+          (.appendChild root r)))
+      (when focused-m
+        (when-let [^js refocus (.querySelector root (str "input[data-member=\"" focused-m "\"]"))]
+          (when focused-value (set! (.-value refocus) focused-value))
+          (.focus refocus))))))
 
 (defn set-panel-open! [open?]
   (when-let [^js panel (el "talk-panel")]

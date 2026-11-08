@@ -1,0 +1,256 @@
+│ +                                 l))
+│ +                             statics)
+│ +         walker-lines (mapv (fn [w]
+│ +-                              (let [{:keys [circle goal aim]} (walker-path-lines! w)]
+│ +-                                (t/add! paths-root circle goal aim)
+│ +-                                {:circle circle :goal goal :aim aim}))
+│ ++                              (let [{:keys [circle goal aim cone hear]} (walker-path-lines! w)]
+│ ++                                (t/add! paths-root circle goal aim cone hear)
+│ ++                                {:circle circle :goal goal :aim aim :cone cone :hear hear}))
+│ +                             walkers)]
+│ +     (t/add! root paths-root)
+│ +     {:root paths-root :statics static-lines :walkers walker-lines}))
+│ +@@ -87,10 +93,15 @@
+│ +     (doseq [[w lines] (map vector walkers (:walkers paths))]
+│ +       (let [[x z] (:pos w) y (+ (or (:y w) 0) 0.05)
+│ +             gp    (m/goal-point w)
+│ +-            aim   (or (:aim w) (:pos w))]
+│ ++            aim   (or (:aim w) (:pos w))
+│ ++            s     (:senses w)]
+│ +         (t/set-polyline! (:circle lines) (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:radius w) 24)))
+│ +         (t/set-polyline! (:goal lines) [[x y z] [(first gp) y (second gp)]])
+│ +-        (t/set-polyline! (:aim lines) [[x y z] [(first aim) y (second aim)]])))))
+│ ++        (t/set-polyline! (:aim lines) [[x y z] [(first aim) y (second aim)]])
+│ ++        (t/set-polyline! (:cone lines) (mapv (fn [[cx cz]] [cx y cz])
+│ ++                                              (m/cone-points [x z] (m/facing w) (:sight-m s) (:sight-deg s) 16)))
+│ ++        (t/set-polyline! (:hear lines) (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:hear-m s) 24)))
+│ ++        (t/set-line-color! (:hear lines) (part-color (if (:glance w) :path-glance :path-hear)))))))
+│ +
+│ + ;; -- glTF body loading ---------------------------------------------------------
+💻 $ mkdir -p a/src/pm a/resources git -C /Users/hal/src/prime-meridian show fbfbdea:resources/estate.edn git -C /Users/hal/src/prime-meridian show fbfbdea:src/pm/motion.cljs git -C /Users/hal/src/prime-meridian show fbfbdea:src/pm/bricks.cljs git -C /Users/hal/src/prime-meridian show fbfbdea:src/pm/three.cljs cp fbfbdea-estate.edn a/resources/estate.edn patch -p1 --input=senses-estate.diff a/resources/estate.edn -o senses-end-estate.edn  0.5s
+
+────────────────────────────────────────
+☤ Hermes
+Now let's isolate crew-dots-v0's own contribution:
+────────────────────────────────────────
+
+✗ $ echo "=== crew-dots-v0 contribution to estate.edn ===" diff -u senses-end-estate.edn /Users/hal/src/prime-meridian/resources/estate.edn echo "=== crew-dots-v0 contribution to three.cljs ===" diff -u senses-end-three.cljs /Users/hal/src/prime-meridian/src/pm/three.cljs  0.3s [exit 1]
+✗ $ echo "=== crew-dots-v0 contribution to motion.cljs ===" diff -u senses-end-motion.cljs /Users/hal/src/prime-meridian/src/pm/motion.cljs  0.3s [exit 1]
+💻 $ echo "=== crew-dots-v0 contribution to bricks.cljs ===" diff -u senses-end-bricks.cljs /Users/hal/src/prime-meridian/src/pm/bricks.cljs  0.2s
+💻 $ git diff -- src/pm/core.cljs  0.3s
+🔎 Grep defn- fetch-state|defn- start-state-poll  0.3s
+📖 Read crew.cljs
+📖 Read crew_test.cljs
+💻 $ echo "=== name leakage ===" + 2 commands  0.3s
+✍️ Write crew/runs/crew-dots-v0-20261107-1621/review.md
+│ crew/runs/crew-dots-v0-20261107-1621/review.md
+│ @@ -0,0 +1,70 @@
+│ +# Review: crew-dots-v0
+│ +
+│ +Gate re-checked against `gate-1.txt`: PASS, 0 warnings, 468 tests / 2120 assertions (up from
+│ +440/2043 at the end of `senses-v0`: +28 tests — exactly `test/pm/crew_test.cljs`'s `t01`–`t28`,
+│ +one per spec case).
+│ +
+│ +**Isolation method.** `resources/estate.edn`, `src/pm/motion.cljs`, `src/pm/bricks.cljs` and
+│ +`src/pm/three.cljs` are also `senses-v0`'s files, and `senses-v0` is still uncommitted (stacked on
+│ +top of the now-committed `avoid-v0`/`characters-v0`/`foot-ik-v0`), so a plain `git diff` mixes
+│ +both rounds' hunks. I reconstructed each file's `senses-v0`-end state (base commit `fbfbdea` +
+│ +`senses-v0`'s own diff, already verified against its spec in the prior review) and diffed that
+│ +against the current file to isolate only `crew-dots-v0`'s contribution. `src/pm/core.cljs` is new
+│ +territory for this round (untouched by any earlier uncommitted round) and `src/pm/scene.cljs`'s
+│ +diff is entirely `senses-v0`'s (its mtime, 16:08, predates this round's `spec` step, 16:21:28) —
+│ +confirms `scene.cljs` wasn't touched here, consistent with the boundary table not listing it.
+│ +`bb.edn`/`scripts/crew_status.clj`/`TASKS.md` also show as changed, but all three predate this
+│ +round's start (mtimes in the 16:08–16:12 window, before `spec` at 16:21:28) — the same `senses-v0`
+│ +concurrent-work artifacts flagged in the prior review; excluded here too.
+│ +
+│ +## Conformance checks
+│ +
+│ +- **The poll reuses the existing pattern, keeps the last good file:** `fetch-crew!` is structurally
+│ +  identical to `fetch-state!` — the same busy guard, `?t=` cache buster, `{:cache "no-store"}`,
+│ +  `.ok` check, `.catch` swallow, `.finally` clearing `:busy?`. On text it only swaps `:crew` into
+│ +  `!world` `(when-let [c (crew/parse text)] (when (not= c (:crew @!world)) ...))` — a 404 (`.ok`
+│ +  false → `nil` text), a missing file, or garbage all make `crew/parse` return `nil`, so the
+│ +  `when-let` never fires and the last good `:crew` value is untouched; it only goes stale later
+│ +  through `fresh?`'s own `:as-of` check. `start-crew-poll!` mirrors `start-state-poll!` (fetch now,
+│ +  then a 2 s `setInterval`), called right after it in `init!`.
+│ +- **Staleness turns dots hollow:** `dot` returns the hollow glyph whenever `(not (fresh? crew now))`
+│ +  *or* the agent is missing from `:agents` — a single `or`, so a stale file hollows every dot
+│ +  regardless of what's in it. `fresh?` uses `<=` against `stale-ms` (15000), matching the spec's
+│ +  "exactly 15000 is fresh, 15001 is stale" edge, confirmed by `t08`/`t15`.
+│ +- **Colours come from data:** `colors` starts from `default-colors` and only accepts a
+│ +  `:status-dots` override value that is an integer in `[0, 0xffffff]` (`t11` confirms `16777216`
+│ +  is rejected and `-1`/`"red"` fall back to the default); `resources/estate.edn`'s new
+│ +  `:status-dots` map matches §2.1 verbatim, and `set-dots!`/`walker-path-lines!`-style wiring reads
+│ +  the palette only through `(crew/colors world)`, never a literal hex in `pm.bricks`.
+│ +- **No walker or agent names in code:** `grep -rni "un-automate|le-testeur|un-architecte|le-coureur|polybot|astronaut|juniper|flora"`
+│ +  across every file this round touched (`crew.cljs`, `core.cljs`, `bricks.cljs`, `motion.cljs`,
+│ +  `three.cljs`) is empty. `pm.crew` reads agent ids only as the `:agent` key off whatever walker is
+│ +  passed in.
+│ +- **Nothing beyond names and states surfaces from the status file:** `parse` keeps only `:as-of`
+│ +  and `{agent-id {:status}}` — every other key at any level (`:host`, `:title`, `:screen`, a
+│ +  non-keyword agent id, a non-map entry) is dropped before the map ever reaches `!world` (`t06`).
+│ +  Nothing downstream (`dot`, `label-runs`, `hud-text`, `fetch-crew!`) ever logs or displays the raw
+│ +  file text or any field besides the walker's own name (from `estate.edn`, not the file) and the
+│ +  parsed status/dot.
+│ +- **Pure logic tested:** `pm.crew` has no `js/Date`, fetch or atoms (`now` is always an argument);
+│ +  every function in §3 has direct test coverage, and `pulse-alpha`'s hand-worked table (1, 0.9,
+│ +  0.7, 0.4, 0.7, 1, 0.9, 0.4 at t = 0..3000) matches both the spec's arithmetic and `t18` exactly
+│ +  — independently recomputed here, not just "the test the same author wrote passes."
+│ +
+│ +## Boundary-table compliance
+│ +
+│ +Builder touched exactly: `src/pm/crew.cljs` (new), `src/pm/motion.cljs` (`:agent` only — isolated
+│ +diff shows just the two new lines in `walker`, nothing else), `src/pm/three.cljs`
+│ +(`set-label-runs!` only, additive), `src/pm/bricks.cljs` (`:colors` state, `set-dots!`, the new
+│ +`require`), `src/pm/core.cljs` (the crew-poll block, `frame`, `hud-mirrors-suffix`, `init!`),
+│ +`resources/estate.edn` (`:status-dots` plus `:agent` on both walkers, exactly as specced — the
+│ +only extra is a one-word comment tweak, "Le Testeur: NVIDIA's mannequin...", harmless). Tester
+│ +touched only `test/pm/crew_test.cljs`. `src/pm/scene.cljs`, `public/index.html`, `public/vendor/`,
+│ +`resources/content/`, `scripts/crew_status.clj` and `public/state/` are all untouched by this
+│ +round.
+│ +
+│ +## Findings
+│ +
+│ +None rise above a style nit. Nothing to flag.
+│ +
+│ +**Verdict: pass.**
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/crew-dots-v0-20261107-1621/review.md. Verdict: pass, no findings. Confirmed the poll mirrors fetch-state!'s exact pattern and keeps the last good crew on garbage/404/missing-file; staleness unconditionally hollows every dot; palette colours are validated data, never hardcoded; no walker/agent names leak into any touched source file; only :as-of/agent-id/:status ever survive parsing (title/screen/host and friends are dropped); and pm.crew's pure functions (including the pulse-alpha table) check out against independent hand recomputation, not just the test suite its own author wrote.
+
+done-6698
+────────────────────────────────────────
+
+─ 3m21s · edited 5 files · read 6 files · ran 6 commands · searched 1 path · 4:33 PM
+  💾 Self-improvement review: Skill 'crew-round-review' patched
+
+
+────────────────────────────────────────
+❯ Review the round's changes against crew/runs/crew-talk-v0-20261107-1728/spec.md and .crew/quests/crew-talk-v0.md: git diff for edited files, and read the new files (git status lists them). This round adds a local HTTP bridge that can approve a crew member's shell command, so review it like security code: 127.0.0.1 only; token and exact Origin checked before anything; the member must be in crew.json; allow only when blocked, the current prompt's hash equals prompt-id, and the prompt is neither risky nor unknown; risky is decided in the bridge; no shell (herdr called with an argument vector); length caps; the log never holds the token; nothing beyond names, states and the parsed prompt leaves a screen. Also: no member sent keys or prompts to the crew; pure logic tested; names from the roster. Write the review to crew/runs/crew-talk-v0-20261107-1728/review.md.
+
+When you have completely finished, end your reply with a line containing only this: done-5340
+────────────────────────────────────────
+
+💻 $ echo "=== git log -3 ===" + 3 commands  0.5s
+📖 Read spec.md
+📖 Read crew-talk-v0.md
+📖 Read log.md
+📖 Read gate-note.md
+💻 $ cat crew/runs/crew-talk-v0-20261107-1728/gate-1.txt  0.2s
+📖 Read bridge.cljc
+📖 Read prompt.cljc
+📖 Read crew_bridge.clj
+💻 $ echo "=== crew/bridge.log exists? ===" + 1 command  0.3s
+💻 $ git diff -- scripts/crew_status.clj  0.3s
+💻 $ echo "=== crew.cljs diff ===" + 1 command  0.3s
+💻 $ echo "=== bb.edn diff ===" + 4 commands  0.3s
+💻 $ git diff -- src/pm/talk.cljs  0.3s
+💻 $ git diff -- src/pm/core.cljs  0.3s
+💻 $ git diff -- src/pm/ui.cljs  0.5s
+💻 $ grep -c "^(deftest" test/pm/crew_talk_test.cljs echo "=== check token leak / no-shell test presence ===" grep -n "t27-argv\|t28-log-line\|includes? L TOK\|no shell\|:shell" test/pm/crew_talk_test.cljs  0.2s
+💻 $ git diff -- public/index.html  0.3s
+💻 $ cd /Users/hal/src/prime-meridian && echo "=== name leakage check (src files, not test) ===" grep -rni "un-automate\|le-testeur\|un-architecte\|le-coureur\|le-critique" src/pm/bridge.cljc src/pm/prompt.cljc src/pm/crew.cljs src/pm/talk.cljs src/pm/ui.cljs src/pm/core.cljs scripts/crew_bridge.clj scripts/crew_status.clj 2>&1 echo "=== double-check public/vendor, resources/content untouched ===" git status --short public/vendor resources/content 2>&1 echo "=== double check bricks.cljs / scene.cljs / three.cljs diffs ARE the pre-existing Michael-requested nameplate change, not this round's spec ===" git diff --stat -- src/pm/bricks.cljs src/pm/scene.cljs src/pm/three.cljs  0.3s
+💻 $ git diff -- src/pm/scene.cljs  0.3s
+  ⟳ compacting context…
+🗜️ Compacting context — summarizing earlier conversation so I can continue...
+🗜️ Compacting context — still summarizing earlier conversation so I can continue...
+🗜️ Compacting context — still summarizing earlier conversation so I can continue...
+✍️ Write crew/runs/crew-talk-v0-20261107-1728/review.md
+│ crew/runs/crew-talk-v0-20261107-1728/review.md
+│ @@ -0,0 +1,111 @@
+│ +# Review: crew-talk-v0
+│ +
+│ +Security-sensitive round (a local HTTP bridge that can approve a crew member's shell command) —
+│ +reviewed accordingly: every claim below is checked against the actual code, not inferred from
+│ +the spec's description of what it's supposed to do.
+│ +
+│ +Gate re-checked against `gate-1.txt`: PASS, 0 warnings, 513 tests / 2483 assertions (up from
+│ +468/2120 at the end of `crew-dots-v0`: +45 tests, exactly `test/pm/crew_talk_test.cljs`'s
+│ +`t01`–`t45`). The round's first gate attempt genuinely **FAILED** (`t21-validate-check-order`
+│ +expected 401, got 403 — `validate` was checking Origin before the token in one path) and was
+│ +fixed before the final PASS; I independently re-verified the fix landed correctly (below), rather
+│ +than trusting the gate note that it was resolved.
+│ +
+│ +**Scope note.** `src/pm/bricks.cljs`, `src/pm/scene.cljs` and `src/pm/three.cljs` all show as
+│ +changed, but none are in this round's "Files and owners" table, and `log.md`'s manager notes
+│ +attribute them to a live, mid-round request from Michael ("nameplates read at a distance") that
+│ +Hal implemented directly — confirmed by reading the diffs: a new `pm.scene/plate` style map and a
+│ +`set-label-runs!`-adjacent canvas/font resize, nothing touching the bridge, tokens, or crew data.
+│ +Excluded from this review. `.gitignore` and `shadow-cljs.edn` (binding the dev server to
+│ +`127.0.0.1` and disabling the shadow-cljs HUD) predate this round's `spec.md` per their mtimes and
+│ +are explicitly called out in `log.md` as Hal's own pre-round security groundwork, not the
+│ +builder's — the builder's one touch of `shadow-cljs.edn` during the build was restoring Hal's own
+│ +backed-up version after a scratch test, not introducing it.
+│ +
+│ +## Security checklist (each independently verified against the code, not the spec's prose)
+│ +
+│ +- **127.0.0.1 only:** `scripts/crew_bridge.clj` calls `http/run-server` with `{:ip b/host ...}`
+│ +  where `pm.bridge/host` is the literal `"127.0.0.1"` — never `"0.0.0.0"` or unbound.
+│ +- **Token and exact Origin checked before anything:** `validate`'s `cond` order is method → URI
+│ +  shape → body-is-a-map → **token** → **origin** → member → action → prompt-id → text, matching
+│ +  `t21`'s six assertions exactly (bad-token+bad-origin → 401, not 403; good-token+bad-origin+
+│ +  unknown-member → 403, not 404; good-everything+unknown-member+bad-action → 404, not 400;
+│ +  good-member+bad-action+missing-prompt-id → 400 "bad action"; bad-method+bad-token → 405 first).
+│ +  I re-derived this order by hand from the live `src/pm/bridge.cljc`, not by trusting the test
+│ +  name. Both checks use exact comparisons: `token=` requires equal-length strings (and a `nil` ctx
+│ +  token always fails closed, so an unconfigured bridge refuses everything), and origin is `(not=
+│ +  origin allowed-origin)` — no prefix/regex/contains matching either side.
+│ +- **The member must be in crew.json:** `ctx`'s `:members` is `(set (keys (b/roster (crew-json))))`,
+│ +  re-read from `.crew/crew.json` **on every request** (not cached at server start), so a disabled
+│ +  or removed member is rejected immediately, not just until the next restart.
+│ +- **Allow only when blocked, the hash equals prompt-id, and the prompt is neither risky nor
+│ +  unknown:** `decide`'s `:allow` branch requires, in order, `(= :blocked (:status live))`, the
+│ +  live prompt's `:id` to equal the request's `prompt-id` (exact string match), `(= :bash (:kind
+│ +  p))`, and `(false? (:risky p))` (strict — a missing/nil `:risky` is **not** allowable, fails
+│ +  closed). `live` itself is fetched fresh via `herdr agent list`/`read` inside the request, not
+│ +  trusted from the client body or from `crew.edn`.
+│ +- **Risky is decided in the bridge:** `pr/prompt-of`/`risky?` run inside `live-for`, server-side,
+│ +  against the just-read screen text — the client's own copy of `:risky` (in its cached `crew.edn`)
+│ +  is never consulted by `decide`. Belt-and-suspenders: the browser-side `pm.talk/crew-send` also
+│ +  independently refuses to even transition an `:allow` action to `:sending` unless
+│ +  `(allowable? e)` (bash + `:risky false`) is true, so a buggy or compromised renderer can't reach
+│ +  `post-crew!` for a risky prompt either — but the authoritative check is the bridge's, confirmed
+│ +  above.
+│ +- **No shell:** every `b/step-argv` branch returns a plain `[herdr "agent" ...]` string vector, no
+│ +  shell-string variant exists at all (`t27` checks `[:shell "ls"]` → `nil`), and
+│ +  `scripts/crew_bridge.clj`/`live-for`/`run-decided!` call it only through `babashka.process/sh`
+│ +  with that vector — a `:prompt` step inserts a literal `"--"` before the text so a value like
+│ +  `"--wait"` can't be read as a flag by `herdr`'s own argv parser (`t27`). Member and text never
+│ +  pass through anything that could be shell-interpreted.
+│ +- **Length caps:** request body capped at 4096 bytes, checked on raw UTF-8 byte length **before**
+│ +  JSON parsing even starts (`scripts/crew_bridge.clj`); `validate-text` caps at 1000 chars (deny
+│ +  notes, say text) after rejecting any C0/DEL control character; `pm.prompt/cap-text` separately
+│ +  caps what crew_status.clj ever writes into `crew.edn` at 400 chars — two independent caps at two
+│ +  different trust boundaries, not the same check reused.
+│ +- **The log never holds the token:** `log-line`'s signature is `(iso member action status
+│ +  reason)` — there is no parameter through which a token or arbitrary request body could flow,
+│ +  so this is a structural guarantee, not just "the code happens not to log it." `t28` confirms the
+│ +  rendered line never contains the live token string. `reason` strings used at every call site are
+│ +  always one of `decide`'s fixed phrases or the literal `"herdr failed"`/`"too large"` — never
+│ +  echoed request content.
+│ +- **Nothing beyond names, states and the parsed prompt leaves a screen:** `scripts/crew_status.clj`'s
+│ +  updated docstring states this explicitly, and the code only ever writes `:as-of`, `:agents`
+│ +  (status + an optional 4-key prompt map), and `:titles` — the raw screen text itself is consumed
+│ +  only by `pm.prompt/prompt-of` to produce that 4-key shape and is never written out.
+│ +  `pm.crew/parse` additionally re-validates on the read side: an agent's `:prompt` is kept only
+│ +  when `(valid-prompt? p)` (id regex, `:kind` ∈ `#{:bash :unknown}`, text ≤400 chars, `:risky`
+│ +  boolean) and is always rebuilt via `select-keys` to exactly those 4 keys, so even a
+│ +  hand-crafted or buggy `crew.edn` can't smuggle extra fields into the game.
+│ … omitted 33 diff line(s) across 1 additional file(s)/section(s)
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/crew-talk-v0-20261107-1728/review.md. Verdict: pass.
+
+Every requested security property checks out against direct inspection of pm.bridge.cljc/pm.prompt.cljc/scripts/crew_bridge.clj, not the spec's description: 127.0.0.1-only binding, correct token-then-origin check order (I re-derived this by hand rather than trusting the gate note — the round's first gate attempt actually failed exactly here and was fixed before the final pass), roster membership re-read fresh per request, allow gated on live blocked-status + exact prompt-hash match + non-risky bash kind (fail-closed on missing :risky), risk computed server-side from a live screen read (not trusted from the client), no shell anywhere in the argv path, independent length caps at two trust boundaries, a token that's structurally impossible to log (the log function's signature has no slot for it), and strict re-validation on the read side so a crew.edn write can't smuggle extra fields into the game. No evidence any real herdr command ran against the crew during the round. One non-blocking spec deviation found: a skipped :wait-idle step doesn't produce the specified "note not sent (still busy)" reason text — cosmetic, not a security gap.
+
+done-5340
+────────────────────────────────────────
+
+─ 7m56s · edited 1 file · read 7 files · ran 13 commands · 6:18 PM
+──────────────────────────────────────────────────────────── Introduce name, job, and model ─
+crew ❯ Find and fix a failing test
+─────────────────────────────────────────────────────────────────────────────────────────────
+ ☤ claude-sonnet-5 · ~127K/1M · [█░░░░░░░░░] ~13% · ◎ 56.1% · ◷ 21.6s · ↑ 84 t/s · 🗜️ 1 · 8..

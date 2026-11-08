@@ -1,5 +1,8 @@
-{:tasks
+{:paths ["src"]
+ :tasks
  {crew-status {:doc  "Write the crew's Herdr states to public/state/crew.edn for the game: bb crew-status [--once]"
                :task (apply shell "bb" "scripts/crew_status.clj" *command-line-args*)}
+  crew-bridge {:doc  "Local bridge for the game's 💭: allow / no / reply to crew prompts (127.0.0.1:8091)"
+               :task (apply shell "bb" "scripts/crew_bridge.clj" *command-line-args*)}
   content {:doc  "Generate game content from the GDD: bb content <request>|all [--dry-run]"
            :task (apply shell "bb" "content/pipeline.clj" *command-line-args*)}}}

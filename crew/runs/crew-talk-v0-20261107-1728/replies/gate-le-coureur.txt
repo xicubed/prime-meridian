@@ -1,0 +1,27 @@
+  ⎿  Added 2 lines, removed 3 lines
+      1 -FAIL
+      1 +PASS
+      2  0 warnings
+      3 -Ran 513 tests containing 2483
+        - assertions. 1 failures, 0 er
+        -rors.
+      4 -t21-validate-check-order: exp
+        -ected (= 401 (:status (b/vali
+        -date (assoc (rq "le-testeur"
+        -ALLOW) :token "bad" :origin "
+        -http://evil.example") CTX)))
+        -actual: (not (= 401 403))
+      3 +Ran 513 tests containing 2483
+        + assertions. 0 failures, 0 er
+        +rors.
+
+⏺ PASS
+
+  done-9401
+
+✻ Churned for 9s · done 6:10 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

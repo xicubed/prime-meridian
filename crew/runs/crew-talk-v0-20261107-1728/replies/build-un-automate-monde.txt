@@ -1,0 +1,27 @@
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ node -e 'try { console.log(new
+ │ RegExp("(?i)\\bgit\\b").test("GIT")); }
+ │ catch(e){ console.log("ERR", e.message);
+ │ }'
+ │ node --version
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: node -e
+      'try { console.log(new
+      RegExp("(?i)\\bgit\\b").test("GIT")); }
+      catch(e){ console.log("ERR",
+      e.message); }'
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend

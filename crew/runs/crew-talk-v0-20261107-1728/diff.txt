@@ -1,0 +1,1130 @@
+diff --git a/.crew/crew.json b/.crew/crew.json
+index 1a6901a..1da4904 100644
+--- a/.crew/crew.json
++++ b/.crew/crew.json
+@@ -252,6 +252,11 @@
+       "name": "crew-status",
+       "cmd": "bb crew-status",
+       "note": "Herdr states → public/state/crew.edn for the game's status dots"
++    },
++    {
++      "name": "crew-bridge",
++      "cmd": "bb crew-bridge",
++      "note": "127.0.0.1:8091: the game's 💭 allow / no / reply → herdr (token in public/state/bridge.edn)"
+     }
+   ]
+ }
+diff --git a/.gitignore b/.gitignore
+index 6f81b81..55246d6 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -23,3 +23,6 @@ assets/private/
+ .claude/settings.local.json
+ /public/kit/
+ /public/state/
++
++# the crew bridge's request log (local)
++/crew/bridge.log
+diff --git a/bb.edn b/bb.edn
+index 3ed122c..a5e2af3 100644
+--- a/bb.edn
++++ b/bb.edn
+@@ -1,5 +1,8 @@
+-{:tasks
++{:paths ["src"]
++ :tasks
+  {crew-status {:doc  "Write the crew's Herdr states to public/state/crew.edn for the game: bb crew-status [--once]"
+                :task (apply shell "bb" "scripts/crew_status.clj" *command-line-args*)}
++  crew-bridge {:doc  "Local bridge for the game's 💭: allow / no / reply to crew prompts (127.0.0.1:8091)"
++               :task (apply shell "bb" "scripts/crew_bridge.clj" *command-line-args*)}
+   content {:doc  "Generate game content from the GDD: bb content <request>|all [--dry-run]"
+            :task (apply shell "bb" "content/pipeline.clj" *command-line-args*)}}}
+diff --git a/public/index.html b/public/index.html
+index e493f0b..8e1a9d2 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -64,6 +64,23 @@
+     #talk-list li.chore input { margin: 0 6px 0 0; vertical-align: middle; }
+     #talk-list li.chore.undone .text { text-decoration: line-through; opacity: .6; }
+     #talk-list li.request .text { font-weight: 500; }
++    #talk-toggle.alert #talk-badge { background: #e5484d; color: #fff; border-radius: 9px; padding: 0 5px; }
++    #crew-roster { list-style: none; margin: 0; padding: 8px 12px 0; display: flex; flex-direction: column; gap: 4px;
++      border-bottom: 1px solid rgba(255,255,255,.15); }
++    #crew-roster .row { display: flex; align-items: center; gap: 6px; font-size: 14px; }
++    #crew-roster input[type=text] { flex: 1; min-width: 0; font: inherit; background: rgba(255,255,255,.08); color: inherit;
++      border: 1px solid rgba(255,255,255,.2); border-radius: 6px; padding: 2px 6px; }
++    #talk-list li.crew { cursor: default; }
++    #talk-list li.crew .row { display: flex; align-items: center; gap: 6px; }
++    #talk-list li.crew .text { flex: 1; }
++    #talk-list li.crew .risky { color: #e5484d; }
++    #talk-list li.crew .hint { opacity: .6; font-size: 12px; margin-left: 6px; }
++    #talk-list li.crew button.deny { font: inherit; border: 1px solid #777; background: #2b3040; color: #e8e4d8;
++      border-radius: 6px; padding: 0 6px; cursor: pointer; }
++    #talk-list li.crew input[type=text] { font: inherit; background: rgba(255,255,255,.08); color: inherit;
++      border: 1px solid rgba(255,255,255,.2); border-radius: 6px; padding: 1px 6px; width: 7em; }
++    #talk-list li.crew button:disabled,
++    #talk-list li.crew input:disabled { opacity: .4; cursor: default; }
+   </style>
+ </head>
+ <body>
+@@ -81,7 +98,7 @@
+   </div>
+   <div id="caption" aria-live="polite"><b id="caption-who"></b><span id="caption-text"></span></div>
+   <button id="talk-toggle" title="What was said">💭<span id="talk-badge"></span></button>
+-  <div id="talk-panel" hidden><ol id="talk-list"></ol></div>
++  <div id="talk-panel" hidden><div id="crew-roster"></div><ol id="talk-list"></ol></div>
+   <script src="/js/main.js"></script>
+ </body>
+ </html>
+diff --git a/scripts/crew_status.clj b/scripts/crew_status.clj
+index 3c3c79a..fec7314 100644
+--- a/scripts/crew_status.clj
++++ b/scripts/crew_status.clj
+@@ -1,50 +1,73 @@
+ #!/usr/bin/env bb
+-;; Crew status for the game: ask Herdr for every agent's lifecycle state and write it to
+-;; public/state/crew.edn (gitignored, like Hal's mirrors.edn), which the game polls.
++;; Crew status for the game: ask Herdr for every agent's lifecycle state, and for a
++;; blocked member also read its screen and parse its permission prompt, then write it all
++;; to public/state/crew.edn (gitignored, like Hal's mirrors.edn), which the game polls.
+ ;;
+ ;;   bb crew-status          # every 2 s until stopped
+ ;;   bb crew-status --once   # one write
+ ;;
+-;; Writes only names and states, nothing from the panes (no titles, no screens):
+-;;   {:as-of 1794100000000 :agents {:un-automate-monde {:status :working} ...}}
++;; Writes names, states, titles and parsed prompts only — never a raw screen:
++;;   {:as-of 1794100000000 :agents {:un-automate-monde {:status :blocked
++;;                                                       :prompt {:id .. :kind :bash :text .. :risky false}}}
++;;    :titles {:un-automate-monde "Un Automate (monde)" ...}}
+ ;; States are Herdr's: :idle :working :blocked :done :unknown. Herdr not running → :agents {}.
+ 
+ (require '[babashka.process :as p]
+          '[cheshire.core :as json]
+-         '[clojure.java.io :as io])
++         '[clojure.java.io :as io]
++         '[pm.bridge :as b]
++         '[pm.prompt :as pr])
+ 
+ (def out-file "public/state/crew.edn")
++(def crew-json-file ".crew/crew.json")
+ (def every-ms 2000)
+ (def herdr (or (System/getenv "HERDR") "herdr"))
+ 
++(defn- repo-path []
++  (.getCanonicalPath (io/file ".")))
++
++(defn- crew-json []
++  (try (json/parse-string (slurp crew-json-file) true) (catch Exception _ nil)))
++
+ (defn agents []
+   (try
+     (let [{:keys [exit out]} (p/sh [herdr "agent" "list"])]
+       (if (zero? exit)
+-        (into (sorted-map)
+-              (for [a (get-in (json/parse-string out true) [:result :agents])
+-                    :let [n (:name a) s (:agent_status a)]
+-                    :when (and (string? n) (re-matches #"[a-z][a-z0-9_-]{0,31}" n))]
+-                [(keyword n) {:status (keyword (or s "unknown"))}]))
++        (b/agent-statuses (json/parse-string out true))
+         {}))
+     (catch Exception _ {})))
+ 
+-(defn write! [m]
++(defn- screen-for [member]
++  (try
++    (let [{:keys [exit out]} (p/sh (b/step-argv herdr member [:read]))]
++      (when (zero? exit) out))
++    (catch Exception _ nil)))
++
++(defn with-screens [agents members]
++  (let [to-read (pr/screens-to-read agents members)
++        screens (into {} (map (fn [m] [m (screen-for m)]) to-read))]
++    (pr/with-prompts agents screens (repo-path))))
++
++(defn write! [m titles]
+   (let [f   (io/file out-file)
+         tmp (io/file (str out-file ".tmp"))]
+     (io/make-parents f)
+-    (spit tmp (pr-str {:as-of (System/currentTimeMillis) :agents m}))
++    (spit tmp (pr-str {:as-of (System/currentTimeMillis) :agents m :titles titles}))
+     (.renameTo tmp f)))
+ 
+ (defn -main [& args]
+   (if (some #{"--once"} args)
+-    (write! (agents))
++    (let [members (b/roster (crew-json))
++          a       (with-screens (agents) (set (keys members)))]
++      (write! a members))
+     (loop [last nil]
+-      (let [m (agents)]
+-        ;; rewrite when something changed, and every 10 s anyway so :as-of stays fresh
+-        (when (or (not= m last) (zero? (mod (quot (System/currentTimeMillis) every-ms) 5)))
+-          (write! m))
++      (let [members (b/roster (crew-json))
++            a       (with-screens (agents) (set (keys members)))]
++        ;; rewrite when something changed (a prompt change counts), and every 10 s anyway
++        ;; so :as-of stays fresh
++        (when (or (not= a last) (zero? (mod (quot (System/currentTimeMillis) every-ms) 5)))
++          (write! a members))
+         (Thread/sleep every-ms)
+-        (recur m)))))
++        (recur a)))))
+ 
+ (apply -main *command-line-args*)
+diff --git a/shadow-cljs.edn b/shadow-cljs.edn
+index 10ab0ee..31bddd2 100644
+--- a/shadow-cljs.edn
++++ b/shadow-cljs.edn
+@@ -1,12 +1,16 @@
+ {:source-paths ["src" "test" "resources"]
+  :dependencies []
+- :dev-http {8080 "public"}
++ :dev-http {8080 {:root "public" :host "localhost"}}   ; this Mac only: public/state holds real state, crew prompts, the bridge token
+  :builds
+  {:app {:target :browser
+         :output-dir "public/js"
+         :asset-path "/js"
+         :modules {:main {:init-fn pm.core/init!}}
+-        :devtools {:after-load pm.core/reload!}}
++        :devtools {:after-load pm.core/reload!
++                   ;; no warning/error box over the game: the crew edits live in this checkout,
++                   ;; so half-finished saves would flash it at Michael. The watcher terminal and
++                   ;; the gate (0 warnings) still catch everything.
++                   :hud false}}
+   ;; Unit tests for the pure namespaces (pm.world, ...): *-test namespaces under test/.
+   :test {:target    :node-test
+          :output-to "out/test.js"
+diff --git a/src/pm/bricks.cljs b/src/pm/bricks.cljs
+index 676a65d..dfecb88 100644
+--- a/src/pm/bricks.cljs
++++ b/src/pm/bricks.cljs
+@@ -40,8 +40,12 @@
+         y     (:y w)
+         ^js fig (build-figure! (:heading w))
+         _       (t/set-scale! fig ds)
+-        ^js lbl (t/label {:text (:name w) :height scene/label-height
+-                           :paper (part-color :sign-paper) :ink (part-color :sign-ink)
++        ;; Nameplates: bigger and lighter than the creatures' signs, so names and
++        ;; status dots read at a distance (Michael: "the contrast is low").
++        ^js lbl (t/label {:text (:name w) :height (:height scene/plate)
++                           :canvas (:canvas scene/plate) :font-max (:font-max scene/plate)
++                           :border (part-color :bubble-ink)
++                           :paper (part-color :bubble-paper) :ink (part-color :bubble-ink)
+                            :pos [0 (m/label-height nil ds) 0]})
+         ^js anchor (t/group {:name (str "pm-walkers/" (name (:id w))) :pos [x (or y 0) z]})]
+     (t/add! anchor fig lbl)
+@@ -453,7 +457,8 @@
+     (let [{:keys [walkers views colors]} @!state
+           views' (mapv
+                    (fn [w view]
+-                     (let [runs (crew/label-runs (crew/dot crew-state (:agent w) now colors) (:name w) now)]
++                     (let [runs (-> (crew/label-runs (crew/dot crew-state (:agent w) now colors) (:name w) now)
++                                (update 0 assoc :scale 1.4))]   ; the dot, bigger than the name
+                        (if (not= runs (:runs view))
+                          (do (t/set-label-runs! (:label view) runs)
+                              (assoc view :runs runs))
+diff --git a/src/pm/core.cljs b/src/pm/core.cljs
+index cb546fe..882b945 100644
+--- a/src/pm/core.cljs
++++ b/src/pm/core.cljs
+@@ -71,6 +71,30 @@
+     (fetch-crew!)
+     (swap! !crew-poll assoc :timer (js/setInterval fetch-crew! crew-poll-ms))))
+ 
++(def bridge-url-file "/state/bridge.edn")
++(def bridge-poll-ms 5000)
++
++(defonce ^:private !bridge-poll (atom {:timer nil :busy? false}))
++
++(defn- fetch-bridge! []
++  (when-not (:busy? @!bridge-poll)
++    (swap! !bridge-poll assoc :busy? true)
++    (-> (js/fetch (str bridge-url-file "?t=" (js/Date.now)) #js {:cache "no-store"})
++        (.then (fn [^js resp] (if (.-ok resp) (.text resp) nil)))
++        (.then (fn [text]
++                 (if (nil? text)
++                   (swap! !world assoc :bridge nil)
++                   (let [b (crew/parse-bridge text)]
++                     (when (not= b (:bridge @!world))
++                       (swap! !world assoc :bridge b))))))
++        (.catch (fn [_]))
++        (.finally (fn [] (swap! !bridge-poll assoc :busy? false))))))
++
++(defn- start-bridge-poll! []
++  (when (nil? (:timer @!bridge-poll))
++    (fetch-bridge!)
++    (swap! !bridge-poll assoc :timer (js/setInterval fetch-bridge! bridge-poll-ms))))
++
+ (def cache-key "pm.state.v1")
+ (defonce ^:private !cache-text (atom nil)) ; last text read or written
+ 
+@@ -187,7 +211,8 @@
+       (when-let [h (kit/handle)]
+         (when-let [b (brook/status h)] (str " · " b))))))
+ 
+-(defonce ^:private !talk-ui (atom {:shown nil :badge nil :listed nil :listed-n nil}))
++(defonce ^:private !talk-ui (atom {:shown nil :badge nil :alert nil
++                                    :listed nil :listed-n nil :listed-bridge nil :roster nil}))
+ 
+ (defn- tz-offset-min []
+   (- (.getTimezoneOffset (js/Date.))))
+@@ -218,9 +243,50 @@
+                           (chores/untick w content/hal-lines (:n e) (js/Date.now)))))
+   (swap! !talk-ui assoc :listed nil))
+ 
++(defn- bridge-on? []
++  (crew/bridge-on? (:bridge @!world) (js/Date.now)))
++
++(defn- post-crew!
++  "POSTs action to the bridge for member, then resolves talk entry n with
++   the outcome. Resolves as a network/bridge-off error when there is no
++   bridge to post to."
++  [member action prompt-id text n]
++  (if-let [b (:bridge @!world)]
++    (-> (js/fetch (crew/bridge-url b member)
++                  #js {:method "POST" :headers #js {"Content-Type" "application/json"}
++                       :body (js/JSON.stringify (clj->js (crew/request-body b action prompt-id text)))})
++        (.then (fn [^js resp]
++                 (-> (.json resp)
++                     (.then (fn [^js json] [(.-status resp) (.-reason json)]))
++                     (.catch (fn [_] [(.-status resp) nil])))))
++        (.then (fn [[status reason]]
++                 (swap! !world update :talk talk/crew-result n (crew/outcome status reason) (js/Date.now))))
++        (.catch (fn [_]
++                  (swap! !world update :talk talk/crew-result n (crew/outcome nil nil) (js/Date.now)))))
++    (swap! !world update :talk talk/crew-result n (crew/outcome nil nil) (js/Date.now))))
++
++(defn- on-allow [n]
++  (swap! !world update :talk talk/crew-send n :allow nil)
++  (let [e (talk/entry (:talk @!world) n)]
++    (when (= :sending (:state e))
++      (post-crew! (:member e) :allow (:id (:prompt e)) nil n))))
++
++(defn- on-deny [n note]
++  (swap! !world update :talk talk/crew-send n :deny note)
++  (let [e (talk/entry (:talk @!world) n)]
++    (when (= :sending (:state e))
++      (post-crew! (:member e) :deny (:id (:prompt e)) (:note e) n))))
++
++(defn- on-say [member who text]
++  (let [before-n (:n (:talk @!world))]
++    (swap! !world update :talk talk/crew-say member who text (js/Date.now))
++    (let [t (:talk @!world) n (:n t)]
++      (when (> n before-n)
++        (post-crew! member :say nil (:text (talk/entry t n)) n)))))
++
+ (defn- talk-tick! [now]
+   (let [t  (:talk @!world)
+-        t' (talk/observe t @!world now)]
++        t' (-> t (talk/observe @!world now) (talk/observe-crew (:crew @!world) now))]
+     (when-not (identical? t' t)
+       (swap! !world assoc :talk t'))
+     (let [e (talk/caption t' now)]
+@@ -236,16 +302,23 @@
+         (do
+           (ui/hide-caption!)
+           (swap! !talk-ui assoc :shown nil))))
+-    (let [badge (talk/badge-text t')]
+-      (when (not= badge (:badge @!talk-ui))
+-        (ui/set-badge! badge)
+-        (swap! !talk-ui assoc :badge badge)))
+-    (if (:open? t')
+-      (when-not (identical? (:entries t') (:listed @!talk-ui))
+-        (let [keep-scroll? (= (:n t') (:listed-n @!talk-ui))]
+-          (ui/render-panel! (:entries t') offset-of label-of pick! on-check keep-scroll?)
+-          (swap! !talk-ui assoc :listed (:entries t') :listed-n (:n t'))))
+-      (swap! !talk-ui assoc :listed nil :listed-n nil))))
++    (let [badge  (talk/badge-text t')
++          alert? (talk/prompt-waiting? t')]
++      (when (or (not= badge (:badge @!talk-ui)) (not= alert? (:alert @!talk-ui)))
++        (ui/set-badge! badge alert?)
++        (swap! !talk-ui assoc :badge badge :alert alert?)))
++    (let [bridge-on (bridge-on?)]
++      (if (:open? t')
++        (when-not (and (identical? (:entries t') (:listed @!talk-ui)) (= bridge-on (:listed-bridge @!talk-ui)))
++          (let [keep-scroll? (= (:n t') (:listed-n @!talk-ui))]
++            (ui/render-panel! (:entries t') offset-of label-of pick! on-check keep-scroll?
++                               {:bridge-on? bridge-on :on-allow on-allow :on-deny on-deny})
++            (swap! !talk-ui assoc :listed (:entries t') :listed-n (:n t') :listed-bridge bridge-on)))
++        (swap! !talk-ui assoc :listed nil :listed-n nil :listed-bridge nil)))
++    (let [rows (talk/crew-roster (:crew @!world) now (bridge-on?))]
++      (when (not= rows (:roster @!talk-ui))
++        (ui/render-roster! rows on-say)
++        (swap! !talk-ui assoc :roster rows)))))
+ 
+ (defn frame [now]
+   (let [dt (if-let [l @!last] (/ (- now l) 1000) 0)]
+@@ -479,6 +552,7 @@
+   (add-watch !world ::play-cache on-play-change!)
+   (start-state-poll!)
+   (start-crew-poll!)
++  (start-bridge-poll!)
+   (kit/load! start-kit! start-scaffold!))
+ 
+ (defn reload!
+diff --git a/src/pm/crew.cljs b/src/pm/crew.cljs
+index 99a97ae..d24ae3c 100644
+--- a/src/pm/crew.cljs
++++ b/src/pm/crew.cljs
+@@ -1,7 +1,8 @@
+ (ns pm.crew
+-  "Pure rules for the Herdr crew-status dot: parsing public/state/crew.edn,
+-   freshness, a dot per agent, label runs/text, HUD text, and the pulse. No
+-   js/Date, no fetch, no atoms — `now` is always an argument, in ms."
++  "Pure rules for the Herdr crew-status dot and bridge: parsing
++   public/state/crew.edn and public/state/bridge.edn, freshness, a dot per
++   agent, label runs/text, HUD text, and the pulse. No js/Date, no fetch, no
++   atoms — `now` is always an argument, in ms."
+   (:require [cljs.reader :as reader]
+             [clojure.string :as str]))
+ 
+@@ -10,6 +11,27 @@
+ (def pulse-ms 2000)
+ (def default-colors {:working 0xf2b134 :blocked 0xe5484d :done 0x46a758 :idle 0x9aa0a6 :unknown 0x9aa0a6})
+ 
++(def ^:private prompt-id-re #"^[0-9a-f]{40}$")
++(def ^:private prompt-kinds #{:bash :unknown})
++(def ^:private token-re #"^[0-9a-f]{64}$")
++
++(defn valid-prompt?
++  "Also used by pm.talk to vet a saved prompt on restore."
++  [p]
++  (and (map? p)
++       (string? (:id p)) (boolean (re-matches prompt-id-re (:id p)))
++       (contains? prompt-kinds (:kind p))
++       (string? (:text p)) (<= (count (:text p)) 400)
++       (boolean? (:risky p))))
++
++(defn- clean-titles [titles]
++  (when (map? titles)
++    (into {}
++          (keep (fn [[k v]]
++                  (when (and (keyword? k) (string? v) (not (str/blank? v)) (<= (count v) 64))
++                    [k v])))
++          titles)))
++
+ (defn parse [text]
+   (when (string? text)
+     (let [v (try (reader/read-string text) (catch :default _ nil))]
+@@ -19,10 +41,16 @@
+         (let [agents (into {}
+                             (keep (fn [[k vv]]
+                                     (when (and (keyword? k) (map? vv))
+-                                      [k {:status (let [s (:status vv)]
+-                                                    (if (contains? statuses s) s :unknown))}])))
+-                            (:agents v))]
+-          {:as-of (:as-of v) :agents agents})))))
++                                      (let [s (:status vv)
++                                            s (if (contains? statuses s) s :unknown)
++                                            p (:prompt vv)]
++                                        [k (cond-> {:status s}
++                                             (and (= s :blocked) (valid-prompt? p))
++                                             (assoc :prompt (select-keys p [:id :kind :text :risky])))]))))
++                            (:agents v))
++              titles (clean-titles (:titles v))]
++          (cond-> {:as-of (:as-of v) :agents agents}
++            (map? (:titles v)) (assoc :titles titles)))))))
+ 
+ (defn fresh? [crew now]
+   (and (map? crew) (<= (- now (:as-of crew)) stale-ms)))
+@@ -64,3 +92,30 @@
+     (nil? crew)               "crew: no status"
+     (not (fresh? crew now))   "crew: stale"
+     :else (str "crew: " (live-count crew agents now) "/" (count agents) " live")))
++
++(defn parse-bridge [text]
++  (when (string? text)
++    (let [v (try (reader/read-string text) (catch :default _ nil))]
++      (when (and (map? v)
++                 (integer? (:port v)) (<= 1 (:port v) 65535)
++                 (string? (:token v)) (re-matches token-re (:token v))
++                 (integer? (:as-of v)) (not (neg? (:as-of v))))
++        {:port (:port v) :token (:token v) :as-of (:as-of v)}))))
++
++(defn bridge-on? [bridge now]
++  (and (map? bridge) (<= (- now (:as-of bridge)) stale-ms)))
++
++(defn bridge-url [bridge member]
++  (str "http://127.0.0.1:" (:port bridge) "/crew/" (name member)))
++
++(defn request-body [bridge action prompt-id text]
++  (cond-> {"token" (:token bridge) "action" (name action)}
++    (some? prompt-id) (assoc "prompt-id" prompt-id)
++    (some? text) (assoc "text" text)))
++
++(defn outcome [status reason]
++  (cond
++    (nil? status) {:result :error :reason "bridge off"}
++    (<= 200 status 299) {:result :ok}
++    (= status 409) {:result :stale :reason reason}
++    :else {:result :error :reason (or reason "refused")}))
+diff --git a/src/pm/scene.cljs b/src/pm/scene.cljs
+index e8116a5..22ba1f4 100644
+--- a/src/pm/scene.cljs
++++ b/src/pm/scene.cljs
+@@ -19,7 +19,7 @@
+    :stand-in     0xb8b0a6
+    :bubble-paper 0xfffaf0
+    :bubble-ink   0x3a2d22
+-   :sign-paper   0xe9d3a8
++   :sign-paper   0xf6ead0   ; lighter parchment (was 0xe9d3a8), for contrast
+    :sign-ink     0x4a3420
+    :crew         0x5b7fa3
+    :crew-head    0xf0e6d6
+@@ -32,7 +32,11 @@
+    :path-hear    0x9f7aea
+    :path-glance  0x63b3ed})
+ 
+-(def label-height 0.3)
++(def label-height 0.3)   ; the old size; positions in tests and walker heads still key off it
++
++;; Every label (creature speech, signs, walker nameplates) shares one look:
++;; bigger, lighter, outlined, so it reads at a distance (Michael, Nov 7).
++(def plate {:height 0.4 :canvas [640 128] :font-max 78})
+ 
+ (defn- color [kw]
+   (get palette kw (:stand-in palette)))
+@@ -43,11 +47,12 @@
+   (let [[paper ink] (if (= label-kind :sign)
+                        [:sign-paper :sign-ink]
+                        [:bubble-paper :bubble-ink])]
+-    {:text   text
+-     :height label-height
+-     :paper  (color paper)
+-     :ink    (color ink)
+-     :pos    pos}))
++    (assoc plate
++           :text   text
++           :paper  (color paper)
++           :ink    (color ink)
++           :border (color ink)
++           :pos    pos)))
+ 
+ (defn- mount-item! [root item]
+   (let [{:keys [key at yaw parts label label-at text]} item
+diff --git a/src/pm/talk.cljs b/src/pm/talk.cljs
+index 0dec894..94bf5c6 100644
+--- a/src/pm/talk.cljs
++++ b/src/pm/talk.cljs
+@@ -1,11 +1,16 @@
+ (ns pm.talk
+-  "The talk log: what Hal and the creatures said, captioned and spoken. Pure:
+-   no atoms, no js/Date, no DOM. Never names a mirror."
++  "The talk log: what Hal, the creatures and the crew said, captioned and
++   spoken. Pure: no atoms, no js/Date, no DOM. Never names a mirror."
+   (:require [cljs.reader :as reader]
+             [clojure.string :as str]
+-            [pm.world :as w]))
++            [pm.world :as w]
++            [pm.crew :as crew]))
+ 
+ (def hal-name "Hal")
++(def crew-kinds #{:crew-prompt :crew-status :crew-say})
++(def prompt-states #{:pending :sending :allowed :declined :stale})
++(def say-states #{:sending :sent :failed})
++(def you "You")
+ (def cap 100)
+ (def caption-min-ms 2500)
+ (def caption-max-ms 9000)
+@@ -25,7 +30,7 @@
+ 
+ (def empty-talk
+   {:entries [] :n 0 :seen 0 :open? false :voice? false :queue-end 0
+-   :last-hal nil :last-say {}})
++   :last-hal nil :last-say {} :crew-last {}})
+ 
+ (defn caption-ms [text]
+   (let [len (if (string? text) (count text) 0)]
+@@ -305,6 +310,194 @@
+         base))
+     :else nil))
+ 
++(defn- append-crew
++  "Append a crew-line entry. No show keys (never captioned), and
++   :queue-end is untouched."
++  [talk crew-entry]
++  (let [{:keys [n open?]} talk
++        n'      (inc n)
++        entry'  (assoc crew-entry :n n')
++        entries (vec (take-last cap (conj (:entries talk) entry')))]
++    (cond-> (assoc talk :entries entries :n n')
++      open? (assoc :seen n'))))
++
++(defn- crew-prompt-text [p]
++  (if (= :bash (:kind p))
++    (str "wants to run " (:text p))
++    (str "is waiting at a prompt: " (str/replace (:text p) "\n" " / "))))
++
++(defn- stale-pending [entries member eff]
++  (mapv (fn [e]
++          (if (and (= :crew-prompt (:kind e)) (= member (:member e)) (= :pending (:state e))
++                   (not= eff (:id (:prompt e))))
++            (assoc e :state :stale)
++            e))
++        entries))
++
++(defn- stale-missing [entries agent-ids]
++  (mapv (fn [e]
++          (if (and (= :crew-prompt (:kind e)) (= :pending (:state e))
++                   (not (contains? agent-ids (:member e))))
++            (assoc e :state :stale)
++            e))
++        entries))
++
++(defn observe-crew
++  "talk, folding in the latest crew.edn: a prompt line per newly blocked
++   member, a status line when one finishes, and staling of prompt lines
++   that no longer apply. Identical to `talk` when nothing changes."
++  [talk crew-state now]
++  (let [talk (or talk empty-talk)]
++    (if (or (nil? crew-state) (not (crew/fresh? crew-state now)))
++      talk
++      (let [agents (:agents crew-state)
++            titles (:titles crew-state)
++            talk1  (update talk :entries stale-missing (set (keys agents)))
++            result (reduce
++                     (fn [t m]
++                       (let [s    (:status (get agents m))
++                             p    (:prompt (get agents m))
++                             last (get-in t [:crew-last m])
++                             who  (get titles m (name m))
++                             eff  (cond
++                                    (and (= s :blocked) p) (:id p)
++                                    (= s :blocked) (:prompt-id last)
++                                    :else nil)
++                             t    (update t :entries stale-pending m eff)
++                             t    (if (and (= s :blocked) p (not= (:id p) (:prompt-id last)))
++                                    (append-crew t {:who who :text (crew-prompt-text p) :at now
++                                                     :kind :crew-prompt :member m :prompt p :state :pending})
++                                    t)
++                             t    (if (and (= s :done) (some? last) (not= :done (:status last)))
++                                    (append-crew t {:who who :text "done" :at now :kind :crew-status :member m})
++                                    t)]
++                         (assoc-in t [:crew-last m] {:status s :prompt-id eff})))
++                     talk1
++                     (sort (keys agents)))]
++        (if (= result talk) talk result)))))
++
++(defn allowable-kind?
++  [e]
++  (and (= :bash (:kind (:prompt e))) (false? (:risky (:prompt e)))))
++
++(defn allowable? [e]
++  (and (= :crew-prompt (:kind e)) (= :pending (:state e)) (allowable-kind? e)))
++
++(defn- clean-note [note]
++  (when (string? note)
++    (let [t (str/trim note)]
++      (when-not (str/blank? t) t))))
++
++(defn crew-send
++  "Allow, deny or reply to a pending crew-prompt entry n. Only that entry
++   changes; anything else leaves talk unchanged (identical)."
++  [talk n action note]
++  (let [talk (or talk empty-talk)
++        e    (entry talk n)]
++    (if-not (and e (= :crew-prompt (:kind e)) (= :pending (:state e))
++                 (contains? #{:allow :deny} action)
++                 (or (= action :deny) (allowable? e)))
++      talk
++      (let [note' (when (= action :deny) (clean-note note))]
++        (if (and note' (> (count note') 1000))
++          talk
++          (let [idx (first (keep-indexed (fn [i x] (when (= n (:n x)) i)) (:entries talk)))]
++            (update-in talk [:entries idx]
++                       (fn [x] (cond-> (-> x (dissoc :error :note) (assoc :state :sending :action action))
++                                 note' (assoc :note note'))))))))))
++
++(defn crew-result
++  "Resolve a :sending crew-prompt or crew-say entry n with the bridge's
++   outcome. Anything else leaves talk unchanged (identical)."
++  [talk n outcome now]
++  (let [talk (or talk empty-talk)
++        e    (entry talk n)]
++    (if-not (and e (= :sending (:state e)))
++      talk
++      (let [idx    (first (keep-indexed (fn [i x] (when (= n (:n x)) i)) (:entries talk)))
++            result (:result outcome)
++            reason (:reason outcome)]
++        (update-in talk [:entries idx]
++                   (fn [x]
++                     (case (:kind x)
++                       :crew-prompt
++                       (case result
++                         :ok (assoc x :state (if (= :allow (:action x)) :allowed :declined) :answered-at now)
++                         :stale (assoc x :state :stale)
++                         :error (-> x (dissoc :action :note) (assoc :state :pending :error reason))
++                         x)
++                       :crew-say
++                       (case result
++                         :ok (assoc x :state :sent)
++                         (:stale :error) (assoc x :state :failed :error (or reason "refused"))
++                         x)
++                       x)))))))
++
++(defn crew-say
++  "Append a You → member line, in :sending state."
++  [talk member who text now]
++  (let [talk (or talk empty-talk)
++        t    (when (string? text) (str/trim text))]
++    (if-not (and (keyword? member) (non-blank-str? who) (string? t) (not (str/blank? t)) (<= (count t) 1000))
++      talk
++      (append-crew talk {:who you :text t :at now :kind :crew-say :member member :to who :state :sending}))))
++
++(defn prompt-waiting?
++  "True when some crew-prompt entry is waiting on the player or the
++   bridge: drives the red badge."
++  [talk]
++  (let [talk (or talk empty-talk)]
++    (boolean (some #(and (= :crew-prompt (:kind %)) (contains? #{:pending :sending} (:state %)))
++                   (:entries talk)))))
++
++(defn crew-controls [e bridge-on?]
++  (when (and (= :crew-prompt (:kind e)) (contains? #{:pending :sending} (:state e)))
++    (case (:state e)
++      :sending {:allow? (allowable-kind? e) :disabled? true :hint "sending…"}
++      :pending {:allow? (allowable? e) :disabled? (not bridge-on?) :hint (when-not bridge-on? "bridge off")})))
++
++(defn crew-label
++  "The line for a crew entry, or nil for a non-crew entry."
++  [e offset-min]
++  (case (:kind e)
++    :crew-prompt
++    (let [risky (:risky (:prompt e))
++          base  (str (when risky "⚠ ") (:who e) " · " (:text e))]
++      (str base
++           (case (:state e)
++             :pending   (str (when risky " · Hal reviews this one")
++                              (when-let [err (:error e)] (str " · not sent: " err)))
++             :sending   " · sending…"
++             :allowed   (str " · ☑ allowed " (clock-text (:answered-at e) offset-min))
++             :declined  (str " · ✕ declined " (clock-text (:answered-at e) offset-min)
++                              (when-let [note (:note e)] (str " · “" note "”")))
++             :stale     " · already answered"
++             "")))
++    :crew-status (str (:who e) " · " (:text e))
++    :crew-say
++    (str "You → " (:to e) ": " (:text e)
++         (case (:state e)
++           :sending " · sending…"
++           :sent    ""
++           :failed  (str " · not sent: " (:error e))
++           ""))
++    nil))
++
++(defn crew-roster
++  "The 💭 roster strip: every crew member, walker or not."
++  [crew-state now bridge-on?]
++  (if (nil? crew-state)
++    []
++    (let [fresh?  (crew/fresh? crew-state now)
++          agents  (:agents crew-state)
++          titles  (:titles crew-state)
++          members (sort (into (set (keys titles)) (keys agents)))]
++      (mapv (fn [m]
++              (let [st (if (and fresh? (contains? agents m)) (:status (get agents m)) :unknown)]
++                {:member m :who (get titles m (name m)) :status st
++                 :say? (and bridge-on? (contains? #{:idle :done} st))}))
++            members))))
++
+ (defn- valid-rate? [v] (and (number? v) (<= 0.1 v 10)))
+ (defn- valid-pitch? [v] (and (number? v) (<= 0 v 2)))
+ (defn- valid-lang? [v] (non-blank-str? v))
+@@ -324,8 +517,9 @@
+ 
+ (defn save-text [talk]
+   (let [talk (or talk empty-talk)]
+-    (pr-str {:v 1 :n (:n talk) :seen (:seen talk)
+-             :entries (mapv #(select-keys % [:n :who :text :at :kind :mirror :event :chore :done? :asks])
++    (pr-str {:v 1 :n (:n talk) :seen (:seen talk) :crew-last (:crew-last talk)
++             :entries (mapv #(select-keys % [:n :who :text :at :kind :mirror :event :chore :done? :asks
++                                               :member :prompt :state :action :note :answered-at :error :to])
+                              (:entries talk))})))
+ 
+ (defn- valid-restored-entry? [e]
+@@ -335,30 +529,55 @@
+        (non-blank-str? (:text e))
+        (finite-number? (:at e))
+        (keyword? (:kind e))
+-       (if (= :chore (:kind e))
++       (cond
++         (= :chore (:kind e))
+          (and (some? (chore-record (:chore e))) (boolean? (:done? e)))
+-         true)))
++
++         (contains? crew-kinds (:kind e))
++         (and (keyword? (:member e))
++              (case (:kind e)
++                :crew-prompt (and (crew/valid-prompt? (:prompt e)) (contains? prompt-states (:state e)))
++                :crew-status true
++                :crew-say (and (non-blank-str? (:to e)) (contains? say-states (:state e)))))
++
++         :else true)))
+ 
+ (defn- clean-restored-entry [e]
+-  (let [base (cond-> (select-keys e [:n :who :text :at :kind])
+-               (keyword? (:mirror e)) (assoc :mirror (:mirror e))
+-               (keyword? (:event e))  (assoc :event (:event e))
+-               (= :chore (:kind e))   (assoc :chore (chore-record (:chore e)) :done? (:done? e)))]
+-    (if (keyword? (:asks e))
+-      (let [cleaned-chore (chore-record (:chore e))]
+-        (cond-> (assoc base :asks (:asks e)
+-                       :done? (and (true? (:done? e)) (some? cleaned-chore)))
+-          cleaned-chore (assoc :chore cleaned-chore)))
+-      base)))
++  (if (contains? crew-kinds (:kind e))
++    (case (:kind e)
++      :crew-prompt
++      (let [sending? (= :sending (:state e))
++            base     (select-keys e [:n :who :text :at :kind :member :prompt])]
++        (cond-> (assoc base :state (if sending? :pending (:state e)))
++          (and (not sending?) (keyword? (:action e)))       (assoc :action (:action e))
++          (and (not sending?) (string? (:note e)))          (assoc :note (:note e))
++          (and (not sending?) (number? (:answered-at e)))   (assoc :answered-at (:answered-at e))))
++      :crew-status (select-keys e [:n :who :text :at :kind :member])
++      :crew-say
++      (let [sending? (= :sending (:state e))
++            state    (if sending? :failed (:state e))]
++        (cond-> (assoc (select-keys e [:n :who :text :at :kind :member :to]) :state state)
++          sending? (assoc :error "not confirmed")
++          (and (not sending?) (string? (:error e))) (assoc :error (:error e)))))
++    (let [base (cond-> (select-keys e [:n :who :text :at :kind])
++                 (keyword? (:mirror e)) (assoc :mirror (:mirror e))
++                 (keyword? (:event e))  (assoc :event (:event e))
++                 (= :chore (:kind e))   (assoc :chore (chore-record (:chore e)) :done? (:done? e)))]
++      (if (keyword? (:asks e))
++        (let [cleaned-chore (chore-record (:chore e))]
++          (cond-> (assoc base :asks (:asks e)
++                         :done? (and (true? (:done? e)) (some? cleaned-chore)))
++            cleaned-chore (assoc :chore cleaned-chore)))
++        base))))
+ 
+ (defn- drop-repeats
+   "Drop an entry when the same speaker said the same text as its previous
+    entry within quiet-ms (reloads used to log the scene again). Boxes
+-   (chore lines and requests) pass through untouched and aren't tracked, so
+-   two boxes with the same text a minute apart both stay."
++   (chore lines and requests) and crew lines pass through untouched and
++   aren't tracked, so two with the same text a minute apart both stay."
+   [entries]
+   (:out (reduce (fn [{:keys [out last]} e]
+-                  (if (box? e)
++                  (if (or (box? e) (contains? crew-kinds (:kind e)))
+                     {:out (conj out e) :last last}
+                     (let [k [(:who e) (:mirror e)]
+                           p (get last k)]
+@@ -368,6 +587,19 @@
+                 {:out [] :last {}}
+                 entries)))
+ 
++(defn- valid-crew-last-entry? [v]
++  (and (map? v)
++       (contains? crew/statuses (:status v))
++       (let [p (:prompt-id v)]
++         (or (nil? p) (and (string? p) (boolean (re-matches #"^[0-9a-f]{40}$" p)))))))
++
++(defn- clean-crew-last [m]
++  (if (map? m)
++    (into {}
++          (keep (fn [[k v]] (when (and (keyword? k) (valid-crew-last-entry? v)) [k v])))
++          m)
++    {}))
++
+ (defn- last-says
+   "What each creature last said, from the history: a standing bubble that
+    hasn't changed since isn't logged again. Boxes aren't bubbles."
+@@ -397,4 +629,5 @@
+                           (-> seen-m (max 0) (min n))
+                           n)]
+         (assoc empty-talk :entries entries :n n :seen seen
+-               :last-say (last-says entries))))))
++               :last-say (last-says entries)
++               :crew-last (clean-crew-last (:crew-last m)))))))
+diff --git a/src/pm/three.cljs b/src/pm/three.cljs
+index 8169f84..5f3388d 100644
+--- a/src/pm/three.cljs
++++ b/src/pm/three.cljs
+@@ -176,8 +176,9 @@
+ 
+ (defn set-label-text!
+   "Redraw `sprite`'s canvas with `text` (a rounded paper rectangle with the
+-   text centred in ink), or hide the sprite when `text` is empty/nil. Never
+-   makes a new texture or canvas."
++   text centred in ink, plus the label's `:border` outline if any), or hide
++   the sprite when `text` is empty/nil. Uses the label's `:font-max` (see
++   `label`). Never makes a new texture or canvas."
+   [^js sprite text]
+   (let [^js data   (.-userData sprite)
+         ^js canvas (.-canvas data)
+@@ -186,21 +187,27 @@
+         w          (.-width canvas)
+         h          (.-height canvas)
+         paper      (hex->css (.-paper data))
+-        ink        (hex->css (.-ink data))]
++        ink        (hex->css (.-ink data))
++        font-max   (or (.-fontMax data) 56)
++        border     (.-border data)]
+     (if (or (nil? text) (= text ""))
+       (set! (.-visible sprite) false)
+       (do
+         (.clearRect ctx 0 0 w h)
+         (.beginPath ctx)
+         (set! (.-fillStyle ctx) paper)
+-        (.roundRect ctx 0 0 w h 24)
++        (.roundRect ctx 3 3 (- w 6) (- h 6) (* 0.22 h))
+         (.fill ctx)
++        (when border
++          (set! (.-strokeStyle ctx) (hex->css border))
++          (set! (.-lineWidth ctx) 4)
++          (.stroke ctx))
+         (set! (.-fillStyle ctx) ink)
+         (set! (.-textAlign ctx) "center")
+         (set! (.-textBaseline ctx) "middle")
+-        (loop [size 56]
++        (loop [size font-max]
+           (set! (.-font ctx) (str "bold " size "px sans-serif"))
+-          (if (and (> size 12) (> (.-width (.measureText ctx text)) 472))
++          (if (and (> size 12) (> (.-width (.measureText ctx text)) (- w (* 0.3 h))))
+             (recur (dec size))
+             nil))
+         (.fillText ctx text (/ w 2) (/ h 2))
+@@ -209,10 +216,11 @@
+     sprite))
+ 
+ (defn set-label-runs!
+-  "Redraw `sprite`'s canvas with `runs` ([{:text :color :alpha} ...], drawn
+-   left to right, centred as a whole), or hide the sprite when `runs` is
+-   empty/nil. Never makes a new texture or canvas. `set-label-text!` is
+-   unchanged."
++  "Redraw `sprite`'s canvas with `runs` ([{:text :color :alpha :scale} ...],
++   drawn left to right, centred as a whole; `:scale` sizes a run's font
++   relative to the rest, default 1), or hide the sprite when `runs` is
++   empty/nil. Uses the label's `:font-max` and `:border` (see `label`).
++   Never makes a new texture or canvas. `set-label-text!` is unchanged."
+   [^js sprite runs]
+   (let [^js data   (.-userData sprite)
+         ^js canvas (.-canvas data)
+@@ -221,31 +229,39 @@
+         w          (.-width canvas)
+         h          (.-height canvas)
+         paper      (hex->css (.-paper data))
+-        ink        (hex->css (.-ink data))]
++        ink        (hex->css (.-ink data))
++        font-max   (or (.-fontMax data) 56)
++        border     (.-border data)
++        font!      (fn [size r] (set! (.-font ctx) (str "bold " (js/Math.round (* size (or (:scale r) 1))) "px sans-serif")))
++        widths     (fn [size] (mapv (fn [r] (font! size r) (.-width (.measureText ctx (:text r)))) runs))]
+     (if (empty? runs)
+       (set! (.-visible sprite) false)
+       (do
+         (.clearRect ctx 0 0 w h)
+         (.beginPath ctx)
+         (set! (.-fillStyle ctx) paper)
+-        (.roundRect ctx 0 0 w h 24)
++        (.roundRect ctx 3 3 (- w 6) (- h 6) (* 0.22 h))
+         (.fill ctx)
++        (when border
++          (set! (.-strokeStyle ctx) (hex->css border))
++          (set! (.-lineWidth ctx) 4)
++          (.stroke ctx))
+         (set! (.-textBaseline ctx) "middle")
+-        (loop [size 56]
+-          (set! (.-font ctx) (str "bold " size "px sans-serif"))
+-          (if (and (> size 12)
+-                   (> (reduce + (map (fn [r] (.-width (.measureText ctx (:text r)))) runs)) 472))
+-            (recur (dec size))
+-            nil))
+         (set! (.-textAlign ctx) "left")
+-        (let [total (reduce + (map (fn [r] (.-width (.measureText ctx (:text r)))) runs))]
+-          (loop [x (/ (- w total) 2) rs runs]
++        (let [size  (loop [size font-max]
++                      (if (and (> size 12) (> (reduce + (widths size)) (- w (* 0.3 h))))
++                        (recur (dec size))
++                        size))
++              ws    (widths size)
++              total (reduce + ws)]
++          (loop [x (/ (- w total) 2) rs runs ws ws]
+             (when (seq rs)
+               (let [r (first rs)]
++                (font! size r)
+                 (set! (.-fillStyle ctx) (if (:color r) (hex->css (:color r)) ink))
+                 (set! (.-globalAlpha ctx) (:alpha r))
+                 (.fillText ctx (:text r) x (/ h 2))
+-                (recur (+ x (.-width (.measureText ctx (:text r)))) (rest rs))))))
++                (recur (+ x (first ws)) (rest rs) (rest ws))))))
+         (set! (.-globalAlpha ctx) 1)
+         (set! (.-visible sprite) true)
+         (set! (.-needsUpdate tex) true)))
+@@ -254,24 +270,28 @@
+ (defn label
+   "A Sprite that always faces the camera, showing `text` on a rounded-rect
+    paper background. Opts: :text (default \"\"), :height metres (default 0.3),
+-   :paper :ink ints, :pos [x y z]."
+-  [{:keys [text height paper ink pos] :or {text "" height 0.3}}]
++   :paper :ink ints, :pos [x y z]; for `set-label-runs!` also :canvas [w h]
++   pixels (default [512 128]; the sprite keeps that aspect), :font-max px
++   (default 56) and :border (an ink int for a thin outline, default none)."
++  [{:keys [text height paper ink pos font-max border] [cw ch] :canvas :or {text "" height 0.3}}]
+   (let [[x y z] pos
+-        width      (* 4 height)
++        cw         (or cw 512)
++        ch         (or ch 128)
++        width      (* height (/ cw ch))
+         ^js T      (three)
+         ^js Sprite (.-Sprite T)
+         ^js SpriteMaterial (.-SpriteMaterial T)
+         ^js CanvasTexture (.-CanvasTexture T)
+         ^js canvas (js/document.createElement "canvas")
+-        _          (set! (.-width canvas) 512)
+-        _          (set! (.-height canvas) 128)
++        _          (set! (.-width canvas) cw)
++        _          (set! (.-height canvas) ch)
+         ^js tex    (CanvasTexture. canvas)
+         _          (set! (.-colorSpace tex) (.-SRGBColorSpace T))
+         ^js mat    (SpriteMaterial. #js {:map tex :transparent true :depthWrite false})
+         ^js s      (Sprite. mat)]
+     (.set (.-scale s) width height 1)
+     (.set (.-position s) x y z)
+-    (set! (.-userData s) #js {:canvas canvas :texture tex :paper paper :ink ink})
++    (set! (.-userData s) #js {:canvas canvas :texture tex :paper paper :ink ink :fontMax font-max :border border})
+     (set-label-text! s text)
+     s))
+ 
+diff --git a/src/pm/ui.cljs b/src/pm/ui.cljs
+index 53dc3b5..7afe0ab 100644
+--- a/src/pm/ui.cljs
++++ b/src/pm/ui.cljs
+@@ -44,9 +44,13 @@
+   (when-let [^js cap-el (el "caption")]
+     (.remove (.-classList cap-el) "show")))
+ 
+-(defn set-badge! [text]
++(defn set-badge! [text alert?]
+   (when-let [^js b (el "talk-badge")]
+-    (set! (.-textContent b) text)))
++    (set! (.-textContent b) text))
++  (when-let [^js btn (el "talk-toggle")]
++    (if alert?
++      (.add (.-classList btn) "alert")
++      (.remove (.-classList btn) "alert"))))
+ 
+ (defn- focused-checkbox-n []
+   (let [^js active (.-activeElement js/document)]
+@@ -92,26 +96,112 @@
+     (.appendChild li who-span)
+     (.appendChild li text-span)))
+ 
+-(defn render-panel! [entries offset-of label-of on-pick on-check keep-scroll?]
++(defn- render-crew-row! [^js li entry offset-of crew]
++  (let [{:keys [bridge-on? on-allow on-deny]} crew
++        controls (talk/crew-controls entry bridge-on?)
++        ^js time-span (js/document.createElement "span")
++        ^js row       (js/document.createElement "div")
++        ^js text-span (js/document.createElement "span")]
++    (set! (.-className li) "crew")
++    (set! (.-className time-span) "time")
++    (set! (.-textContent time-span) (talk/clock-text (:at entry) (offset-of (:at entry))))
++    (set! (.-className row) "row")
++    (when (and controls (:allow? controls))
++      (let [^js cb (js/document.createElement "input")]
++        (set! (.-type cb) "checkbox")
++        (set! (.-disabled cb) (boolean (:disabled? controls)))
++        (.addEventListener cb "change" (fn [^js e] (when (.. e -target -checked) (on-allow (:n entry)))))
++        (.appendChild row cb)))
++    (set! (.-className text-span) (str "text" (when (:risky (:prompt entry)) " risky")))
++    (set! (.-textContent text-span) (talk/crew-label entry (offset-of (:at entry))))
++    (.appendChild row text-span)
++    (when controls
++      (let [^js x   (js/document.createElement "button")
++            ^js inp (js/document.createElement "input")]
++        (set! (.-className x) "deny")
++        (set! (.-textContent x) "✕")
++        (set! (.-disabled x) (boolean (:disabled? controls)))
++        (.addEventListener x "click" (fn [_] (on-deny (:n entry) nil)))
++        (set! (.-type inp) "text")
++        (.setAttribute inp "placeholder" "reply…")
++        (.setAttribute inp "data-n" (str (:n entry)))
++        (set! (.-disabled inp) (boolean (:disabled? controls)))
++        (.addEventListener inp "keydown"
++          (fn [^js e] (when (= "Enter" (.-key e))
++                        (on-deny (:n entry) (.. e -target -value)))))
++        (.appendChild row x)
++        (.appendChild row inp)))
++    (.appendChild li time-span)
++    (.appendChild li row)
++    (when (and controls (:hint controls))
++      (let [^js hint (js/document.createElement "span")]
++        (set! (.-className hint) "hint")
++        (set! (.-textContent hint) (:hint controls))
++        (.appendChild li hint)))))
++
++(defn render-panel! [entries offset-of label-of on-pick on-check keep-scroll? crew]
+   (when-let [^js list-el (el "talk-list")]
+     (let [^js panel      (el "talk-panel")
+           focused-n      (focused-checkbox-n)
++          focused-value  (let [^js active (.-activeElement js/document)]
++                           (when (and active (= "INPUT" (.-tagName active)) (= "text" (.-type active)))
++                             (not-empty (.-value active))))
+           prev-scroll    (when panel (.-scrollTop panel))]
+       (set! (.-innerHTML list-el) "")
+       (doseq [entry entries]
+         (let [^js li (js/document.createElement "li")]
+-          (if (talk/box? entry)
+-            (render-chore-row! li entry offset-of label-of on-check)
+-            (render-say-row! li entry offset-of on-pick))
++          (cond
++            (talk/box? entry) (render-chore-row! li entry offset-of label-of on-check)
++            (contains? talk/crew-kinds (:kind entry)) (render-crew-row! li entry offset-of crew)
++            :else (render-say-row! li entry offset-of on-pick))
+           (.appendChild list-el li)))
+       (when focused-n
+         (when-let [^js refocus (.querySelector list-el (str "input[data-n=\"" focused-n "\"]"))]
++          (when (and focused-value (= "text" (.-type refocus)))
++            (set! (.-value refocus) focused-value))
+           (.focus refocus)))
+       (when panel
+         (if keep-scroll?
+           (set! (.-scrollTop panel) prev-scroll)
+           (set! (.-scrollTop panel) (.-scrollHeight panel)))))))
+ 
++(defn render-roster!
++  "Fills #crew-roster with one row per member: its dot, the title, and a
++   say… input enabled only when :say?. Enter calls (on-say member who
++   value). A re-render keeps a typed value too."
++  [rows on-say]
++  (when-let [^js root (el "crew-roster")]
++    (let [^js active    (.-activeElement js/document)
++          focused-m     (when (and active (= "INPUT" (.-tagName active)))
++                          (not-empty (.getAttribute active "data-member")))
++          focused-value (when (and active (= "INPUT" (.-tagName active)) (= "text" (.-type active)))
++                          (not-empty (.-value active)))]
++      (set! (.-innerHTML root) "")
++      (doseq [row rows]
++        (let [^js r     (js/document.createElement "div")
++              ^js glyph (js/document.createElement "span")
++              ^js who   (js/document.createElement "span")
++              ^js inp   (js/document.createElement "input")]
++          (set! (.-className r) "row")
++          (set! (.-textContent glyph) (if (= :unknown (:status row)) "○" "●"))
++          (set! (.-textContent who) (:who row))
++          (set! (.-type inp) "text")
++          (.setAttribute inp "placeholder" "say…")
++          (.setAttribute inp "data-member" (name (:member row)))
++          (set! (.-disabled inp) (not (:say? row)))
++          (.addEventListener inp "keydown"
++            (fn [^js e] (when (= "Enter" (.-key e))
++                          (on-say (:member row) (:who row) (.. e -target -value))
++                          (set! (.-value (.-target e)) ""))))
++          (.appendChild r glyph)
++          (.appendChild r who)
++          (.appendChild r inp)
++          (.appendChild root r)))
++      (when focused-m
++        (when-let [^js refocus (.querySelector root (str "input[data-member=\"" focused-m "\"]"))]
++          (when focused-value (set! (.-value refocus) focused-value))
++          (.focus refocus))))))
++
+ (defn set-panel-open! [open?]
+   (when-let [^js panel (el "talk-panel")]
+     (if open?

@@ -1,0 +1,27 @@
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Look at existing tests, scripts dir, bb and
+ herdr
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ head -60 test/pm/talk_test.cljs; grep -n
+ │ deftest test/pm/talk_test.cljs | wc -l;
+ │ head -30 test/pm/crew_test.cljs; ls
+ │ scripts; ls content 2>/dev/null | head;
+ │ which bb; bb --version; herdr --help 2>&1
+ │ | head -30
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don't ask again for bb
+      --version and herdr --help commands in
+      /Users/hal/src/prime-meridian
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend

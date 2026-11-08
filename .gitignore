@@ -23,3 +23,6 @@ assets/private/
 .claude/settings.local.json
 /public/kit/
 /public/state/
+
+# the crew bridge's request log (local)
+/crew/bridge.log

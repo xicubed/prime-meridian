@@ -1,0 +1,27 @@
+  - pm.talk crew lines (t33–t45): first
+    sighting, identical-no-op cases,
+    done-on-transition, prompt lifecycle
+    (stale/new/returning), allow/deny round
+    trips (with/without note), risky/unknown
+    blocking allow, stale/error outcomes and
+    invalid calls, say lifecycle,
+    badge/crew-controls, roster strip,
+    persistence (save/restore round trips,
+    bad-entry dropping), and the
+    mirror-talk-untouched check reusing
+    pm.world/pm.fixtures.
+
+  Everything is transcribed from the spec's
+  exact fixtures and expected values; it will
+  fail to compile until the builder's
+  pm.prompt, pm.bridge, and the
+  pm.crew/pm.talk changes land.
+
+  done-5855
+
+✻ Brewed for 2m 59s · done 5:46 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

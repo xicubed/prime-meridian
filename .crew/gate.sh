@@ -8,7 +8,9 @@ export PATH="/opt/homebrew/opt/openjdk@21/bin:/opt/homebrew/bin:$HOME/.local/bin
 [ -d /opt/homebrew/opt/openjdk@21 ] && export JAVA_HOME=/opt/homebrew/opt/openjdk@21
 cd "$(dirname "$0")/.."
 
-out="$(npx shadow-cljs compile app test 2>&1)"; rc=$?
+# The app compiles into out/gate-js, never public/js: that one belongs to the running
+# `watch app`, and overwriting it mid-session hands the open game a mix of old and new code.
+out="$(npx shadow-cljs compile app test --config-merge '{:output-dir "out/gate-js" :asset-path "/gate-js"}' 2>&1)"; rc=$?
 echo "$out" | tail -40
 [ $rc = 0 ] || { echo "GATE: FAIL compile (exit $rc)"; exit 1; }
 builds="$(echo "$out" | grep -c 'Build completed')"

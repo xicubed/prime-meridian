@@ -1,0 +1,56 @@
+{
+  "round": "crew-talk-v0",
+  "quest": ".crew/quests/crew-talk-v0.md",
+  "runDir": "crew/runs",
+  "gate": "bash .crew/gate.sh",
+  "fix": {
+    "who": "un-automate-monde",
+    "max": 2
+  },
+  "timeoutMinutes": 40,
+  "steps": [
+    {
+      "id": "spec",
+      "who": [
+        "un-architecte"
+      ],
+      "prompt": "New quest: read {quest} (and the GDD sections and code it cites). Write the spec to {run}/spec.md following your role card, with numbered test cases and hand-checked expected values. Reply when it's written.",
+      "expect": [
+        "{run}/spec.md"
+      ]
+    },
+    {
+      "id": "build",
+      "who": [
+        "un-automate-monde",
+        "le-testeur"
+      ],
+      "prompt": {
+        "un-automate-monde": "Spec: {run}/spec.md (quest: {quest}). Implement it in the source files the spec assigns the builder, and nothing else. Run .crew/gate.sh before replying.",
+        "le-testeur": "Spec: {run}/spec.md (quest: {quest}). Write its test cases in the test file the spec assigns the tester, and nothing else. The builder is coding in parallel."
+      },
+      "expect": []
+    },
+    {
+      "id": "gate",
+      "who": [
+        "le-coureur"
+      ],
+      "verify": true,
+      "prompt": "Run the gate (.crew/gate.sh) and write the gate note to {run}/gate-note.md as your role card says.",
+      "expect": [
+        "{run}/gate-note.md"
+      ]
+    },
+    {
+      "id": "review",
+      "who": [
+        "le-critique"
+      ],
+      "prompt": "Review the round's changes against {run}/spec.md and {quest}: git diff for edited files, and read the new files (git status lists them). This round adds a local HTTP bridge that can approve a crew member's shell command, so review it like security code: 127.0.0.1 only; token and exact Origin checked before anything; the member must be in crew.json; allow only when blocked, the current prompt's hash equals prompt-id, and the prompt is neither risky nor unknown; risky is decided in the bridge; no shell (herdr called with an argument vector); length caps; the log never holds the token; nothing beyond names, states and the parsed prompt leaves a screen. Also: no member sent keys or prompts to the crew; pure logic tested; names from the roster. Write the review to {run}/review.md.",
+      "expect": [
+        "{run}/review.md"
+      ]
+    }
+  ]
+}
