@@ -246,5 +246,12 @@
       ],
       "note": "docs (the crew's memory): crew/README.md, session notes. Off until a round needs it."
     }
+  ],
+  "services": [
+    {
+      "name": "crew-status",
+      "cmd": "bb crew-status",
+      "note": "Herdr states → public/state/crew.edn for the game's status dots"
+    }
   ]
 }
