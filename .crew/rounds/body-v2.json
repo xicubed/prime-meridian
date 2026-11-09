@@ -1,0 +1,57 @@
+{
+  "round": "body-v2",
+  "quest": ".crew/quests/body-v2.md",
+  "runDir": "crew/runs",
+  "gate": "bash .crew/gate.sh",
+  "fix": {
+    "who": "un-automate-monde",
+    "max": 2
+  },
+  "timeoutMinutes": 45,
+  "steps": [
+    {
+      "id": "spec",
+      "who": [
+        "un-architecte"
+      ],
+      "prompt": "New quest: read {quest} (and the code it cites; the MuJoCo API is node_modules/@mujoco/mujoco/mujoco.d.ts). Write the spec to {run}/spec.md following your role card: the new species data for horse and dog (every joint: name, parent body, axis, range, sign convention), numbered test cases with hand-checked expected values (joint counts, masses before/after, the kinematic splay check, the existing real-MuJoCo checks, and the stand-hold measurement with the numbers you ran in your scratchpad, including the smallest :kp that holds if today's doesn't), and a who-touches-what table. Reply when it's written.",
+      "expect": [
+        "{run}/spec.md"
+      ]
+    },
+    {
+      "id": "build",
+      "who": [
+        "un-automate-monde",
+        "le-testeur"
+      ],
+      "prompt": {
+        "un-automate-monde": "Spec: {run}/spec.md (quest: {quest}). Implement it in the source and data files the spec assigns the builder, regenerate creatures/bodies/*.xml with bb creature-mjcf (never hand-edit them), and nothing else. Don't change :kp unless the spec says Michael decided it. Run .crew/gate.sh before replying.",
+        "le-testeur": "Spec: {run}/spec.md (quest: {quest}). Write its test cases in the test file(s) the spec assigns the tester, and nothing else, including the real-MuJoCo Node test (load MuJoCo with js/require as test/pm/creature_mujoco_test.cljs does). The builder is coding in parallel."
+      },
+      "expect": []
+    },
+    {
+      "id": "gate",
+      "who": [
+        "le-coureur"
+      ],
+      "verify": true,
+      "prompt": "Run the gate (.crew/gate.sh) and write the gate note to {run}/gate-note.md as your role card says.",
+      "expect": [
+        "{run}/gate-note.md"
+      ]
+    },
+    {
+      "id": "review",
+      "who": [
+        "le-critique"
+      ],
+      "prompt": "Review the round's changes against {run}/spec.md and {quest}: git diff for edited files, and read the new files (git status lists them). Check: 18 joints per species with the spec's axes, ranges and signs; the root body is still :torso; nothing reads joints by a fixed count or a species name; the generated XMLs come from bb creature-mjcf; the old real-MuJoCo checks still run unchanged in intent; the stand-hold measurement is real and reported, and :kp wasn't silently raised. Write the review to {run}/review.md (at most 5 ranked findings).",
+      "expect": [
+        "{run}/review.md"
+      ]
+    }
+  ],
+  "onBlocked": "wait"
+}

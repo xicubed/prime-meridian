@@ -55,6 +55,7 @@ Plan of record: [`docs/session-2026-10-17.md`](docs/session-2026-10-17.md) §7. 
 - [x] 2026-11-08 M-11 Head reflex (round `head-reflex-v0`): a lying foal lifts its head and holds it level (Michael, Nov 8); species `:reflexes`, Jacobian-transpose, same for the dog. Then: roll onto the chest, then stand (training).
 - [x] M-12 Effort (Michael: "head up, just stationary, not like it's struggling to raise"): a weak neck, a tremor that fades as he steadies, fatigue (head sinks, rests, tries again); all species data; plus limp muscles at rest so a lying foal settles on the ground (round `effort-v0`).
 - [ ] M-13 Walkers go around the foal (round `creature-obstacle-v0`, Michael: "just make the walkers avoid it"): the creature as a perceived moving circle in the planner.
+- [ ] M-14 Body v2 (round `body-v2`, Michael: "idk if it would help if his body was more flexible"): sideways shoulders/hips, wider leg swing, a two-joint spine; 12 → 18 joints; measure whether he can hold a stand.
 - [x] 2026-11-08 U-1 Remember the camera across page reloads (Michael, Nov 8: "leave the camera where it was between runs"): save the kit camera's pose to localStorage, restore when the kit is ready; probe the kit's camera controller first.
 - [ ] M-4 Physics later: a Rapier ragdoll that follows MotionBricks' motion and reacts to bumps (the "reference motion" pattern); a navigation mesh (recast-navigation, MIT) once there are buildings and doors.
 ## Week 3 — Bridge v0 (real state)
