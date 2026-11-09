@@ -1,0 +1,167 @@
+{
+  "task": "FoalGetUp",
+  "control_timestep": 0.02,
+  "simulation_timestep": 0.002,
+  "episode_length_secs": 6.0,
+  "joint_order": [
+    "neck-bend",
+    "neck-pitch",
+    "head-pitch",
+    "head-roll",
+    "fl-upper",
+    "fl-lower",
+    "fr-upper",
+    "fr-lower",
+    "hl-upper",
+    "hl-lower",
+    "hr-upper",
+    "hr-lower"
+  ],
+  "observation": {
+    "total_dim": 42,
+    "input_name": "obs",
+    "layout": [
+      {
+        "name": "joint_pos",
+        "size": 12,
+        "order": [
+          "neck-bend",
+          "neck-pitch",
+          "head-pitch",
+          "head-roll",
+          "fl-upper",
+          "fl-lower",
+          "fr-upper",
+          "fr-lower",
+          "hl-upper",
+          "hl-lower",
+          "hr-upper",
+          "hr-lower"
+        ]
+      },
+      {
+        "name": "joint_vel",
+        "size": 12,
+        "order": [
+          "neck-bend",
+          "neck-pitch",
+          "head-pitch",
+          "head-roll",
+          "fl-upper",
+          "fl-lower",
+          "fr-upper",
+          "fr-lower",
+          "hl-upper",
+          "hl-lower",
+          "hr-upper",
+          "hr-lower"
+        ]
+      },
+      {
+        "name": "gravity_b",
+        "size": 3,
+        "note": "gravity direction (unit vector, world -z) rotated into the torso body frame"
+      },
+      {
+        "name": "ang_vel",
+        "size": 3,
+        "note": "torso angular velocity, torso (body) frame"
+      },
+      {
+        "name": "last_action",
+        "size": 12,
+        "order": [
+          "neck-bend",
+          "neck-pitch",
+          "head-pitch",
+          "head-roll",
+          "fl-upper",
+          "fl-lower",
+          "fr-upper",
+          "fr-lower",
+          "hl-upper",
+          "hl-lower",
+          "hr-upper",
+          "hr-lower"
+        ],
+        "note": "previous raw policy output, pre scale/offset/clip"
+      }
+    ],
+    "note": "Concatenate groups in this order into one (1, 42) float32 tensor; the ONNX graph's own obs_normalizer (running mean/std, baked in at export) handles normalization -- feed it raw, unnormalized values."
+  },
+  "action": {
+    "output_name": "actions",
+    "size": 12,
+    "order": [
+      "neck-bend",
+      "neck-pitch",
+      "head-pitch",
+      "head-roll",
+      "fl-upper",
+      "fl-lower",
+      "fr-upper",
+      "fr-lower",
+      "hl-upper",
+      "hl-lower",
+      "hr-upper",
+      "hr-lower"
+    ],
+    "note": "Raw policy output is in roughly [-1, 1] (it is what action_rate/history are computed on). To get the actuator ctrl target: target = clip(action * scale + offset, lo, hi), per joint, using the arrays below (same order as joint_order).",
+    "scale": [
+      1.2217299938201904,
+      0.741765022277832,
+      1.0471980571746826,
+      1.2217299938201904,
+      0.785398006439209,
+      0.9599310159683228,
+      0.785398006439209,
+      0.9599310159683228,
+      0.785398006439209,
+      0.9599310159683228,
+      0.785398006439209,
+      0.9599310159683228
+    ],
+    "offset": [
+      0.0,
+      0.04363301396369934,
+      0.0,
+      0.0,
+      0.0,
+      0.785398006439209,
+      0.0,
+      0.785398006439209,
+      0.0,
+      -0.785398006439209,
+      0.0,
+      -0.785398006439209
+    ],
+    "ctrlrange_lo": [
+      -1.2217299938201904,
+      -0.6981319785118103,
+      -1.0471980571746826,
+      -1.2217299938201904,
+      -0.785398006439209,
+      -0.17453299462795258,
+      -0.785398006439209,
+      -0.17453299462795258,
+      -0.785398006439209,
+      -1.7453290224075317,
+      -0.785398006439209,
+      -1.7453290224075317
+    ],
+    "ctrlrange_hi": [
+      1.2217299938201904,
+      0.785398006439209,
+      1.0471980571746826,
+      1.2217299938201904,
+      0.785398006439209,
+      1.7453290224075317,
+      0.785398006439209,
+      1.7453290224075317,
+      0.785398006439209,
+      0.17453299462795258,
+      0.785398006439209,
+      0.17453299462795258
+    ]
+  }
+}
