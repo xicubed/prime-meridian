@@ -34,3 +34,4 @@ assets/private/
 /public/models/
 # MuJoCo WebAssembly (11 MB): copied from node_modules by npm postinstall, pinned by package-lock
 /public/vendor/mujoco/
+/public/vendor/onnxruntime/

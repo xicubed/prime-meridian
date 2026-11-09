@@ -7,13 +7,14 @@
     "dev": "shadow-cljs watch app",
     "build": "shadow-cljs release app",
     "serve": "bb serve",
-    "postinstall": "node -e \"const fs=require('fs');const s='node_modules/@mujoco/mujoco/',t='public/vendor/mujoco/';fs.mkdirSync(t,{recursive:true});for(const f of ['mujoco.js','mujoco.wasm'])fs.copyFileSync(s+f,t+f)\""
+    "postinstall": "node -e \"const fs=require('fs');const cp=(s,t,fs_)=>{fs.mkdirSync(t,{recursive:true});for(const f of fs_)fs.copyFileSync(s+f,t+f)};cp('node_modules/@mujoco/mujoco/','public/vendor/mujoco/',['mujoco.js','mujoco.wasm']);cp('node_modules/onnxruntime-web/dist/','public/vendor/onnxruntime/',['ort.wasm.min.mjs','ort-wasm-simd-threaded.mjs','ort-wasm-simd-threaded.wasm'])\""
   },
   "devDependencies": {
     "shadow-cljs": "^2.28.0"
   },
   "dependencies": {
     "@mujoco/mujoco": "4.0.0",
+    "onnxruntime-web": "1.31.1",
     "three": "^0.186.1"
   }
 }

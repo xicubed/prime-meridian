@@ -1,0 +1,57 @@
+{
+  "round": "foal-policy-v0",
+  "quest": ".crew/quests/foal-policy-v0.md",
+  "runDir": "crew/runs",
+  "gate": "bash .crew/gate.sh",
+  "fix": {
+    "who": "un-automate-monde",
+    "max": 2
+  },
+  "timeoutMinutes": 60,
+  "steps": [
+    {
+      "id": "spec",
+      "who": [
+        "un-architecte"
+      ],
+      "prompt": "New quest: read {quest} and what it cites, especially creatures/foal/task.py (how training builds the 60-dim observation and applies actions: the ground truth), public/creatures/horse/policy.json and policy_reference.json, src/pm/creature_spike.cljs's loop, and the onnxruntime-web API in node_modules/onnxruntime-web/types.d.ts (or lib/). Write the spec to {run}/spec.md following your role card: the :brain species data, the control schedule (how physics waits for an async inference at the 0.02 s boundary), the pure obs/action functions with their exact index math (qpos/qvel addresses, free-joint angular velocity frame, gravity in the torso frame), how ages and 'drop again' work, numbered test cases with expected values checked against policy_reference.json in your scratchpad, and a who-touches-what table. Reply when it's written.",
+      "expect": [
+        "{run}/spec.md"
+      ]
+    },
+    {
+      "id": "build",
+      "who": [
+        "un-automate-monde",
+        "le-testeur"
+      ],
+      "prompt": {
+        "un-automate-monde": "Spec: {run}/spec.md (quest: {quest}). Implement it in the source and data files the spec assigns the builder, and nothing else. Don't install anything (onnxruntime-web is already installed). Run .crew/gate.sh before replying.",
+        "le-testeur": "Spec: {run}/spec.md (quest: {quest}). Write its test cases in the test file(s) the spec assigns the tester, and nothing else, including the real-MuJoCo + onnxruntime Node tests (load both with js/require as test/pm/creature_mujoco_test.cljs does for MuJoCo; onnxruntime-web needs ort.env.wasm.numThreads = 1 and the .onnx.data passed as externalData). The builder is coding in parallel."
+      },
+      "expect": []
+    },
+    {
+      "id": "gate",
+      "who": [
+        "le-coureur"
+      ],
+      "verify": true,
+      "prompt": "Run the gate (.crew/gate.sh) and write the gate note to {run}/gate-note.md as your role card says.",
+      "expect": [
+        "{run}/gate-note.md"
+      ]
+    },
+    {
+      "id": "review",
+      "who": [
+        "le-critique"
+      ],
+      "prompt": "Review the round's changes against {run}/spec.md and {quest}: git diff for edited files, and read the new files (git status lists them). Check: obs/action math matches creatures/foal/task.py and policy.json exactly; the control schedule can't drift with frame pacing; the parity tests really use policy_reference.json; age 0 doesn't stand and 9499 does in the real-MuJoCo test; the species without :brain is untouched; no species names in code. Write the review to {run}/review.md (at most 5 ranked findings).",
+      "expect": [
+        "{run}/review.md"
+      ]
+    }
+  ],
+  "onBlocked": "wait"
+}
