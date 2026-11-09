@@ -3,8 +3,8 @@
 
     uv run python eval_foal.py runs/foal-getup/model_0.pt ... \
         --variant=v1 --logdir=runs/foal-getup
-    uv run python eval_foal.py runs/foal-getup-r2/model_0.pt ... \
-        --variant=v2 --logdir=runs/foal-getup-r2
+    uv run python eval_foal.py runs/foal-getup-r3/model_0.pt ... \
+        --variant=v3 --logdir=runs/foal-getup-r3
 
 For each checkpoint, runs N resets for a full 6s episode and reports, at the
 final step: how many of the N ended standing (torso height > 0.7m and torso
@@ -12,10 +12,11 @@ up-axis world-z > 0.5), the mean final torso height/upright, and mean
 per-foot ground contact fraction (to check the "lying with feet on the
 grass" hypothesis).
 
-For --variant=v2 (unless --sternal-fraction is given explicitly), each
-checkpoint is evaluated twice: once with the regular drop-only reset
-(sternal_fraction=0, matching run 1's protocol exactly, for comparison) and
-once all-sternal (sternal_fraction=1, "started on the chest").
+Unless --sternal-fraction/--standing-fraction are given explicitly, each
+checkpoint is evaluated once per start type the variant uses: v1 is
+drop-only; v2 adds an all-sternal ("chest") batch; v3 adds an all-standing
+batch too. Each batch forces one start type for all N resets, regardless of
+what fraction the variant trained with.
 """
 import argparse
 import dataclasses
@@ -37,7 +38,11 @@ SEED = 0
 
 
 def evaluate(
-    ckpt_path: str, device_str: str, variant: str, sternal_fraction: float
+    ckpt_path: str,
+    device_str: str,
+    variant: str,
+    sternal_fraction: float,
+    standing_fraction: float,
 ) -> dict:
   torch.manual_seed(SEED)
 
@@ -50,6 +55,7 @@ def evaluate(
       device=device_str,
       variant=variant,
       sternal_fraction=sternal_fraction,
+      standing_fraction=standing_fraction,
   )
   wrapped = vecenv_wrapper.RslRlVecEnvWrapper(
       env, clip_actions=agent_cfg.clip_actions, cfg=agent_cfg.vecenv_wrapper_cfg
@@ -90,6 +96,7 @@ def evaluate(
       "checkpoint": ckpt_path,
       "variant": variant,
       "sternal_fraction": sternal_fraction,
+      "standing_fraction": standing_fraction,
       "n_drops": N_WORLDS,
       "standing_count": int(standing.sum().item()),
       "standing_rate": float(standing.float().mean().item()),
@@ -106,23 +113,26 @@ def evaluate(
 def main():
   parser = argparse.ArgumentParser()
   parser.add_argument("checkpoints", nargs="+")
-  parser.add_argument("--variant", default="v1", choices=["v1", "v2"])
+  parser.add_argument("--variant", default="v1", choices=["v1", "v2", "v3"])
   parser.add_argument("--sternal-fraction", type=float, default=None)
+  parser.add_argument("--standing-fraction", type=float, default=None)
   parser.add_argument("--logdir", default="runs/foal-getup")
   args = parser.parse_args()
 
-  if args.sternal_fraction is not None:
-    batches = [("eval", args.sternal_fraction)]
+  if args.sternal_fraction is not None or args.standing_fraction is not None:
+    batches = [("eval", args.sternal_fraction or 0.0, args.standing_fraction or 0.0)]
+  elif args.variant == "v3":
+    batches = [("drop", 0.0, 0.0), ("chest", 1.0, 0.0), ("standing", 0.0, 1.0)]
   elif args.variant == "v2":
-    batches = [("drop", 0.0), ("chest", 1.0)]
+    batches = [("drop", 0.0, 0.0), ("chest", 1.0, 0.0)]
   else:
-    batches = [("drop", 0.0)]
+    batches = [("drop", 0.0, 0.0)]
 
   device_str = xpu.resolve_device(None)
   results = []
   for ckpt_path in args.checkpoints:
-    for label, sternal_fraction in batches:
-      r = evaluate(ckpt_path, device_str, args.variant, sternal_fraction)
+    for label, sternal_fraction, standing_fraction in batches:
+      r = evaluate(ckpt_path, device_str, args.variant, sternal_fraction, standing_fraction)
       r["label"] = label
       print(json.dumps(r, indent=2))
       results.append(r)
