@@ -71,3 +71,18 @@ ends standing (torso up, torso height > 0.7 m, still up at 6 s); the exported fi
 `policy.json`; and anything that looked like "the RL walk" (odd gaits, exploits: e.g. balancing
 on his knees) honestly described. Reply in your pane with the REPORT's summary, `git status
 --short creatures/`, and a last line containing only `foal-gym-done`.
+
+## Restart notes (Nov 9)
+
+The first attempt was lost with the box's drive; rebuild from this quest.
+
+- **Worlds: 4,096.** Use that for the proof loop and the real run. Don't search for the GPU's
+  maximum; Michael raises it later if training is too slow.
+- **Milestones: stop and reply at each one,** with `milestone: <name>` on its own line, then wait for
+  Hal before continuing. Hal copies `creatures/` (not `runs/`) to the Mac and commits it each time:
+  1. `task-built`: the env builds, resets and steps on the GPU.
+  2. `loop-proven`: a short training run completes with checkpoints.
+  3. `first-checkpoint`: the real run's first saved checkpoint.
+  4. `exported`: the ONNX files, `policy.json` and `REPORT.md`.
+- **If anything looks like a drive or I/O error** (`Input/output error`, read-only filesystem): stop
+  immediately and say so. Don't retry.
