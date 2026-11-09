@@ -34,6 +34,9 @@
                  {:name :a2 :parent :a :at [0 0 -0.1] :joint {:axis [0 1 0] :range [0 90]}
                   :capsule {:from [0 0 0] :to [0 0 -0.1] :r 0.02} :color :c}]})
 
+(defn no-effort [sp]
+  (update sp :reflexes (fn [rx] (mapv #(dissoc % :effort) rx))))
+
 ;; C1
 
 (deftest c01-shipped-species-valid
@@ -229,7 +232,7 @@
       (is (contains? trimmed "<joint name=\"neck-bend\" type=\"hinge\" axis=\"0 0 1\" limited=\"true\" range=\"-1.22173 1.22173\" damping=\"5\"/>"))
       (is (contains? trimmed "<joint name=\"neck-pitch\" type=\"hinge\" axis=\"0 1 0\" limited=\"true\" range=\"-0.698132 0.785398\" damping=\"5\"/>"))
       (is (contains? trimmed "<joint name=\"head-roll\" type=\"hinge\" axis=\"1 0 0\" limited=\"true\" range=\"-1.22173 1.22173\" damping=\"5\"/>"))
-      (is (contains? trimmed "<position name=\"head-pitch\" joint=\"head-pitch\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-1.047198 1.047198\"/>"))
+      (is (contains? trimmed "<position name=\"head-pitch\" joint=\"head-pitch\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-1.047198 1.047198\" forcelimited=\"true\" forcerange=\"-35 35\"/>"))
       (is (not (contains? trimmed "<position name=\"neck\" joint=\"neck\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-0.698132 0.523599\"/>"))))
     (let [lines (str/split-lines x)
           idx (first (keep-indexed (fn [i l] (when (str/includes? l "<body name=\"neck\" pos=\"0.3 0 0.08\">") i)) lines))]
@@ -258,7 +261,7 @@
       (is (contains? trimmed "<geom name=\"fl-upper\" type=\"capsule\" fromto=\"0 0 0 0 0 -0.2\" size=\"0.035\" density=\"1000\" contype=\"0\" conaffinity=\"1\"/>"))
       (is (contains? trimmed "<position name=\"hr-lower\" joint=\"hr-lower\" kp=\"40\" ctrllimited=\"true\" ctrlrange=\"-1.745329 0.174533\"/>"))
       (is (contains? trimmed "<joint name=\"neck-pitch\" type=\"hinge\" axis=\"0 1 0\" limited=\"true\" range=\"-0.698132 0.785398\" damping=\"1.5\"/>"))
-      (is (contains? trimmed "<position name=\"neck-bend\" joint=\"neck-bend\" kp=\"40\" ctrllimited=\"true\" ctrlrange=\"-1.22173 1.22173\"/>")))))
+      (is (contains? trimmed "<position name=\"neck-bend\" joint=\"neck-bend\" kp=\"40\" ctrllimited=\"true\" ctrlrange=\"-1.22173 1.22173\" forcelimited=\"true\" forcerange=\"-9 9\"/>")))))
 
 ;; C22
 
@@ -424,12 +427,21 @@
                          :qpos [7 8 9 10]
                          :dofs [6 7 8 9]
                          :ranges [[-1.22173 1.22173] [-0.698132 0.785398] [-1.047198 1.047198] [-1.22173 1.22173]]
-                         :lift-m 0.25 :gain 2 :w-lift 40 :onset-s 1.5}]
-    (is (approx= [expected-horse] (c/reflexes horse)))
-    (is (approx= [(-> expected-horse
-                       (assoc :capsule {:from [0 0 0] :to [0.12 0 -0.05] :r 0.05})
-                       (assoc :lift-m 0.15))]
-                 (c/reflexes dog))))
+                         :lift-m 0.25 :gain 2 :w-lift 40 :onset-s 1.5}
+        expected-horse-effort (assoc expected-horse
+                                      :effort {:strength 0.35 :torque-nm 100 :tremor-deg 6 :steady-s 90
+                                               :energy-s 2.5 :recover-s 4 :low 0.15 :high 0.6 :seed-salt 7
+                                               :ramp-s 0.5 :tremor-speed 8 :rest-frac 0.1})
+        expected-dog-effort (-> expected-horse
+                                 (assoc :capsule {:from [0 0 0] :to [0.12 0 -0.05] :r 0.05})
+                                 (assoc :lift-m 0.15)
+                                 (assoc :effort {:strength 0.9 :torque-nm 10 :tremor-deg 1 :steady-s 30
+                                                  :energy-s 30 :recover-s 4 :low 0.15 :high 0.6 :seed-salt 3
+                                                  :ramp-s 0.5 :tremor-speed 8 :rest-frac 0.1}))]
+    (is (approx= [expected-horse-effort] (c/reflexes horse)))
+    (is (approx= [expected-dog-effort] (c/reflexes dog)))
+    (is (approx= [expected-horse] (c/reflexes (no-effort horse))))
+    (is (not (contains? (first (c/reflexes (no-effort horse))) :effort))))
   (is (= [] (c/reflexes f))))
 
 ;; C38
@@ -465,3 +477,93 @@
         roll0 (set (map str/trim (str/split-lines (c/mjcf horse {:at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4 :roll 0}))))]
     (is (contains? no-roll "<body name=\"torso\" pos=\"4.5 8 3.03\" quat=\"1 0 0 0\">"))
     (is (contains? roll0 "<body name=\"torso\" pos=\"4.5 8 3.03\" quat=\"1 0 0 0\">"))))
+
+;; F1
+
+(deftest f1-valid-species-with-effort
+  (is (= [] (c/problems horse)))
+  (is (= [] (c/problems dog)))
+  (is (= [] (c/problems (no-effort horse)))))
+
+;; F2
+
+(deftest f2-effort-field-validation
+  (is (= ["reflex 0: :effort :low must be below :high"]
+         (c/problems (assoc-in horse [:reflexes 0 :effort :low] 0.7))))
+  (is (= ["reflex 0: :effort :low must be below :high"]
+         (c/problems (assoc-in horse [:reflexes 0 :effort :low] 0.6))))
+  (is (= ["reflex 0: :effort :strength must be a number in (0, 1]"]
+         (c/problems (assoc-in horse [:reflexes 0 :effort :strength] 0))))
+  (is (= ["reflex 0: :effort :strength must be a number in (0, 1]"]
+         (c/problems (assoc-in horse [:reflexes 0 :effort :strength] 1.2))))
+  (is (= ["reflex 0: :effort :torque-nm must be a positive number"]
+         (c/problems (assoc-in horse [:reflexes 0 :effort :torque-nm] -5))))
+  (is (= ["reflex 0: :effort :tremor-deg must be a number >= 0"]
+         (c/problems (assoc-in horse [:reflexes 0 :effort :tremor-deg] -1))))
+  (is (= ["reflex 0: :effort :steady-s must be a positive number"]
+         (c/problems (assoc-in horse [:reflexes 0 :effort :steady-s] 0))))
+  (is (= ["reflex 0: :effort :seed-salt must be an integer"]
+         (c/problems (assoc-in horse [:reflexes 0 :effort :seed-salt] 1.5))))
+  (is (= ["reflex 0: :effort :ramp-s must be a positive number"]
+         (c/problems (assoc-in horse [:reflexes 0 :effort :ramp-s] 0))))
+  (is (= ["reflex 0: :effort :tremor-speed must be a positive number"]
+         (c/problems (assoc-in horse [:reflexes 0 :effort :tremor-speed] -8))))
+  (is (= ["reflex 0: :effort :high must be a number in [0, 1]"]
+         (c/problems (assoc-in horse [:reflexes 0 :effort :high] 1.5)))))
+
+;; F3
+
+(deftest f3-effort-must-be-map-and-collects-both
+  (is (= ["reflex 0: :effort must be a map"]
+         (c/problems (assoc-in horse [:reflexes 0 :effort] 3))))
+  (is (= ["reflex 0: :effort :energy-s must be a positive number"
+          "reflex 0: :effort :recover-s must be a positive number"]
+         (c/problems (-> horse
+                          (assoc-in [:reflexes 0 :effort :energy-s] 0)
+                          (update-in [:reflexes 0 :effort] dissoc :recover-s))))))
+
+;; F4
+
+(deftest f4-parse-throws-on-bad-effort
+  (let [e (try (c/parse (pr-str (assoc-in horse [:reflexes 0 :effort :low] 0.9))) (catch :default e e))]
+    (is (= "bad species :horse: reflex 0: :effort :low must be below :high" (ex-message e)))))
+
+;; F5
+
+(deftest f5-force-limits-in-xml
+  (let [x (c/mjcf horse {:at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4})
+        trimmed (set (map str/trim (str/split-lines x)))]
+    (is (= 4 (count-substr x "forcerange=")))
+    (is (contains? trimmed "<position name=\"neck-bend\" joint=\"neck-bend\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-1.22173 1.22173\" forcelimited=\"true\" forcerange=\"-35 35\"/>"))
+    (is (contains? trimmed "<position name=\"head-roll\" joint=\"head-roll\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-1.22173 1.22173\" forcelimited=\"true\" forcerange=\"-35 35\"/>"))
+    (is (contains? trimmed "<position name=\"fl-upper\" joint=\"fl-upper\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-0.785398 0.785398\"/>")))
+  (let [y (c/mjcf dog {:at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4})]
+    (is (= 4 (count-substr y "forcerange=\"-9 9\"")))))
+
+;; F6
+
+(deftest f6-no-effort-byte-identical
+  (let [x (c/mjcf (no-effort horse) {:at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4})]
+    (is (= 0 (count-substr x "forcerange=")))
+    (is (str/includes? x "<position name=\"head-pitch\" joint=\"head-pitch\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-1.047198 1.047198\"/>"))))
+
+;; G1
+
+(deftest g1-rest-stiffness-validation
+  (is (= [":rest-kp must be a number in (0, :kp]"] (c/problems (assoc horse :rest-kp 0))))
+  (is (= [":rest-kp must be a number in (0, :kp]"] (c/problems (assoc horse :rest-kp 151))))
+  (is (= [] (c/problems (assoc horse :rest-kp 150))))
+  (is (= [":kick-above must be a number in [0, 1]"] (c/problems (assoc dog :kick-above 1.5))))
+  (is (= [] (c/problems (dissoc horse :rest-kp :kick-above))))
+  (let [place {:at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4}]
+    (is (= (c/mjcf horse place) (c/mjcf (dissoc horse :rest-kp :kick-above) place)))))
+
+;; G2
+
+(deftest g2-rest-fraction-and-kick-above
+  (is (approx= 0.1 (c/rest-fraction horse)))
+  (is (approx= 0.1 (c/rest-fraction dog)))
+  (is (= 1 (c/rest-fraction (dissoc horse :rest-kp))))
+  (is (= 0.8 (c/kick-above horse)))
+  (is (= 0.8 (c/kick-above (dissoc horse :kick-above))))
+  (is (approx= 0.1 (:rest-frac (:effort (first (c/reflexes horse)))))))

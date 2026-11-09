@@ -1,0 +1,56 @@
+=== prompt 1 (15:35:19)
+ │                 break
+ │             o, ol = stack.pop()
+ │             pairs = {'(': ')', '[': ']',
+ │ '{': '}'}
+ │             if pairs[o] != c:
+ │                 print(f, f"MISMATCH open
+ │ {o} at {ol} close {c} at {line}")
+ │                 ok = False
+ │                 break
+ │         i += 1
+ │     if stack:
+ │         print(f, "UNCLOSED:", stack[:5])
+ │         ok = False
+ │     if ok:
+ │         print(f, "OK, lines", line)
+ │ EOF
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Contains brace with quote character
+ (expansion obfuscation)
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 1 (15:42:31)
+  echo "---" && ls …
+  ⎿  $ md5sum crew/runs/effort-v0-20261108-15
+     17/spec.md 2>/dev/null || shasum crew/ru
+     ns/effort-v0-20261108-1517/spec.md
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ md5sum
+ │ crew/runs/effort-v0-20261108-1517/spec.md
+ │ 2>/dev/null || shasum
+ │ crew/runs/effort-v0-20261108-1517/spec.md
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: shasum cr
+      ew/runs/effort-v0-20261108-1517/spec.md
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend

@@ -121,6 +121,54 @@
 (defn- valid-up? [up]
   (or (nil? up) (and (valid-vec3? up) (not (every? zero? up)))))
 
+(defn- effort-problems
+  "F-a..F-m for a reflex's :effort, prefixed strings. [] with no :effort key."
+  [tag e]
+  (cond
+    (nil? e) []
+    (not (map? e)) [(str tag ": :effort must be a map")]
+    :else
+    (let [low      (:low e)
+          high     (:high e)
+          low-ok?   (and (number? low) (<= 0 low 1))
+          high-ok?  (and (number? high) (<= 0 high 1))]
+      (cond-> []
+        (not (and (number? (:strength e)) (< 0 (:strength e)) (<= (:strength e) 1)))
+        (conj (str tag ": :effort :strength must be a number in (0, 1]"))
+
+        (not (and (number? (:torque-nm e)) (pos? (:torque-nm e))))
+        (conj (str tag ": :effort :torque-nm must be a positive number"))
+
+        (not (and (number? (:tremor-deg e)) (>= (:tremor-deg e) 0)))
+        (conj (str tag ": :effort :tremor-deg must be a number >= 0"))
+
+        (not (and (number? (:steady-s e)) (pos? (:steady-s e))))
+        (conj (str tag ": :effort :steady-s must be a positive number"))
+
+        (not (and (number? (:energy-s e)) (pos? (:energy-s e))))
+        (conj (str tag ": :effort :energy-s must be a positive number"))
+
+        (not (and (number? (:recover-s e)) (pos? (:recover-s e))))
+        (conj (str tag ": :effort :recover-s must be a positive number"))
+
+        (not low-ok?)
+        (conj (str tag ": :effort :low must be a number in [0, 1]"))
+
+        (not high-ok?)
+        (conj (str tag ": :effort :high must be a number in [0, 1]"))
+
+        (and low-ok? high-ok? (not (< low high)))
+        (conj (str tag ": :effort :low must be below :high"))
+
+        (not (integer? (:seed-salt e)))
+        (conj (str tag ": :effort :seed-salt must be an integer"))
+
+        (and (contains? e :ramp-s) (not (and (number? (:ramp-s e)) (pos? (:ramp-s e)))))
+        (conj (str tag ": :effort :ramp-s must be a positive number"))
+
+        (and (contains? e :tremor-speed) (not (and (number? (:tremor-speed e)) (pos? (:tremor-speed e)))))
+        (conj (str tag ": :effort :tremor-speed must be a positive number"))))))
+
 (defn- reflex-entry-problems [i r body-names known-joint-names]
   (let [tag (str "reflex " i)]
     (cond-> []
@@ -151,7 +199,10 @@
       (conj (str tag ": :w-lift must be a number >= 0"))
 
       (not (and (number? (:onset-s r)) (>= (:onset-s r) 0)))
-      (conj (str tag ": :onset-s must be a number >= 0")))))
+      (conj (str tag ": :onset-s must be a number >= 0"))
+
+      true
+      (into (effort-problems tag (:effort r))))))
 
 (defn- reflex-problems [sp known-joint-names]
   (let [rx (:reflexes sp)]
@@ -185,7 +236,15 @@
               (not density-ok?) (conj ":density must be a positive number")
               (not kp-ok?)      (conj ":kp must be a positive number")
               (not damping-ok?) (conj ":damping must be a number >= 0")
-              (not colors-ok?)  (conj ":colors must map keywords to 0xRRGGBB ints"))]
+              (not colors-ok?)  (conj ":colors must map keywords to 0xRRGGBB ints")
+
+              (and kp-ok? (contains? sp :rest-kp)
+                   (not (and (number? (:rest-kp sp)) (< 0 (:rest-kp sp)) (<= (:rest-kp sp) kp))))
+              (conj ":rest-kp must be a number in (0, :kp]")
+
+              (and (contains? sp :kick-above)
+                   (not (and (number? (:kick-above sp)) (<= 0 (:kick-above sp) 1))))
+              (conj ":kick-above must be a number in [0, 1]"))]
     (if-not bodies-ok?
       (conj top ":bodies must be a non-empty vector")
       (let [[body-probs _]
@@ -275,6 +334,16 @@
         nj (count (joints sp))]
     {:nbody (inc nb) :njnt (inc nj) :nu nj :nq (+ 7 nj) :nv (+ 6 nj) :ngeom (inc nb)}))
 
+(defn rest-fraction
+  "σ = :rest-kp / :kp, or 1 (everything stiff) when :rest-kp is absent."
+  [sp]
+  (if-let [rk (:rest-kp sp)] (/ rk (:kp sp)) 1))
+
+(defn kick-above
+  "The |:to| a twitch segment needs to count as a kick (full :kp); 0.8 by default."
+  [sp]
+  (or (:kick-above sp) 0.8))
+
 (defn reflexes
   "The compiled :reflexes vector ([] when there is no :reflexes key), with
    indices resolved from `joints`. Assumes `sp` is valid."
@@ -288,20 +357,22 @@
     (mapv
       (fn [r]
         (let [acts (mapv k-of (:joints r))]
-          {:kind    (:kind r)
-           :body    (:body r)
-           :body-id (inc (get idx-of (:body r)))
-           :capsule (:capsule (get by-name (:body r)))
-           :up      (or (:up r) [0 0 1])
-           :joints  (vec (:joints r))
-           :acts    acts
-           :qpos    (mapv #(+ 7 %) acts)
-           :dofs    (mapv #(+ 6 %) acts)
-           :ranges  (mapv ranges acts)
-           :lift-m  (:lift-m r)
-           :gain    (:gain r)
-           :w-lift  (:w-lift r)
-           :onset-s (:onset-s r)}))
+          (cond-> {:kind    (:kind r)
+                   :body    (:body r)
+                   :body-id (inc (get idx-of (:body r)))
+                   :capsule (:capsule (get by-name (:body r)))
+                   :up      (or (:up r) [0 0 1])
+                   :joints  (vec (:joints r))
+                   :acts    acts
+                   :qpos    (mapv #(+ 7 %) acts)
+                   :dofs    (mapv #(+ 6 %) acts)
+                   :ranges  (mapv ranges acts)
+                   :lift-m  (:lift-m r)
+                   :gain    (:gain r)
+                   :w-lift  (:w-lift r)
+                   :onset-s (:onset-s r)}
+            (:effort r) (assoc :effort (-> (merge {:ramp-s 0.5 :tremor-speed 8} (:effort r))
+                                            (assoc :rest-frac (rest-fraction sp)))))))
       (:reflexes sp))))
 
 (defn- vec3-sub [[ax ay az] [bx by bz]] [(- ax bx) (- ay by) (- az bz)])
@@ -418,11 +489,23 @@
                          close     (str (ind lvl) "</body>")]
                      (into [open] (concat joint-l [(geom inner b)] kid-lines [close]))))
         jnts     (joints sp)
-        actuator-lines (mapv (fn [j]
+        force-limits (reduce
+                       (fn [m r]
+                         (if-let [e (:effort r)]
+                           (let [f (fmt (* (:strength e) (:torque-nm e)))]
+                             (reduce (fn [m k] (if (contains? m k) m (assoc m k f))) m (:acts r)))
+                           m))
+                       {}
+                       (reflexes sp))
+        actuator-lines (mapv (fn [k j]
                                 (str (ind 2) "<position name=\"" (name (:name j)) "\" joint=\"" (name (:name j))
                                      "\" kp=\"" (fmt kp) "\" ctrllimited=\"true\" ctrlrange=\""
-                                     (fmt (first (:range j))) " " (fmt (second (:range j))) "\"/>"))
-                              jnts)
+                                     (fmt (first (:range j))) " " (fmt (second (:range j))) "\""
+                                     (if-let [f (get force-limits k)]
+                                       (str " forcelimited=\"true\" forcerange=\"-" f " " f "\"")
+                                       "")
+                                     "/>"))
+                              (range (count jnts)) jnts)
         lines (concat
                 [(str "<mujoco model=\"" (name (:kind sp)) "\">")
                  (str (ind 1) "<compiler angle=\"radian\" autolimits=\"true\"/>")

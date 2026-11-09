@@ -1,0 +1,56 @@
+=== prompt 1 (15:31:13)
+ │ Math.max(target, st.level-delta);
+ │   else levelP = st.level;
+ │   return {energy: energyP, mode: modeP,
+ │ level: clamp(levelP,0,1)};
+ │ }
+ │ const e = {"energy-s":2,"recover-s":4,"lo
+ │ w":0.25,"high":0.6,"ramp-s":0.5};
+ │ let st = {energy:1, mode:"active",
+ │ level:1};
+ │ for (let i=1;i<=20;i++){
+ │   st = step(st, e, 1, 0.1);
+ │   if ([14,15,16,20].includes(i))
+ │ console.log(i, st);
+ │ }
+ │ '
+ │
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: node *
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 1 (15:42:29)
+     JAVA_HOME=/opt/homebrew/opt/openjdk@21
+     && bash .crew/gate.sh 2>&1 | tail -200
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ export PATH="/opt/homebrew/opt/openjdk@21
+ │ /bin:/opt/homebrew/bin:$PATH"
+ │ JAVA_HOME=/opt/homebrew/opt/openjdk@21 &&
+ │ bash .crew/gate.sh 2>&1 | tail -200
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ 'export' operand 'PATH=/opt/homebrew/opt/
+ │ openjdk@21/bin:/opt/homebrew/bin:${…}' is
+ │ runtime-determined and may carry an
+ │ array subscript — shell arith-evals
+ │ $(cmd) in subscripts
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend

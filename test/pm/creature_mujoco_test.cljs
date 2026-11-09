@@ -19,6 +19,9 @@
 (def horse (c/parse (get species/texts :horse)))
 (def dog (c/parse (get species/texts :dog)))
 
+(defn no-effort [sp]
+  (update sp :reflexes (fn [rx] (mapv #(dissoc % :effort) rx))))
+
 (defn import-mj []
   ;; require(), not import(): shadow's :node-test runs in a vm context with no dynamic-import
   ;; callback (ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING); Node 22.12+ can require() this ESM
@@ -197,7 +200,7 @@
   (async done
     (-> (import-mj)
         (.then (fn [^js mj]
-                 (doseq [[sp need-clear] [[horse 0.175] [dog 0.105]]
+                 (doseq [[sp need-clear] [[(no-effort horse) 0.175] [(no-effort dog) 0.105]]
                          roll [90 -90]]
                    (let [{:keys [sense finite?]} (run-reflex-on mj sp roll)]
                      (is finite?)
@@ -224,7 +227,7 @@
   (async done
     (-> (import-mj)
         (.then (fn [^js mj]
-                 (doseq [[sp need-clear] [[horse 0.175] [dog 0.105]]]
+                 (doseq [[sp need-clear] [[(no-effort horse) 0.175] [(no-effort dog) 0.105]]]
                    (let [s (run-reflex-off mj sp 90)]
                      (is (> (cm/tilt-deg (:up s)) 20))
                      (is (< (:clearance s) need-clear))))
@@ -288,5 +291,207 @@
                        (is (every? true? (for [i (range (* 3 nv))] (= 0 (aget jp2 i)))))
                        (is (every? true? (for [i (range (* 3 nv))] (= 0 (aget jr2 i))))))
                      (.delete data2) (.delete model2)))
+                 (done)))
+        (.catch (fn [e] (is false (str e)) (done))))))
+
+;; R9
+
+(deftest r9-force-limits-compiled
+  (async done
+    (-> (import-mj)
+        (.then (fn [^js mj]
+                 (doseq [[sp f] [[horse 35] [dog 9]]]
+                   (let [^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp P))
+                         ^js fr (.-actuator_forcerange model)
+                         ^js fl (.-actuator_forcelimited model)]
+                     (dotimes [k 4]
+                       (is (approx= (- f) (aget fr (* 2 k))))
+                       (is (approx= f (aget fr (+ (* 2 k) 1))))
+                       (is (= 1 (aget fl k))))
+                     (doseq [k (range 4 12)]
+                       (is (= 0 (aget fl k))))
+                     (.delete model)))
+                 (done)))
+        (.catch (fn [e] (is false (str e)) (done))))))
+
+;; R10, R11
+
+(defn run-session [^js mj sp lift-m]
+  (let [place (assoc P :roll 90)
+        ^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp place))
+        ^js data (new (.-MjData mj) model)
+        _ (.mj_forward mj model data)
+        rx (c/reflexes sp)
+        r (first rx)
+        nv (.-nv model)
+        ^js jp (new (.-DoubleBuffer mj) (* 3 nv))
+        ^js jr (new (.-DoubleBuffer mj) (* 3 nv))
+        ranges (c/ctrl-ranges sp)
+        nu (count ranges)
+        acts (:acts r)
+        acts-set (set acts)
+        torso-cap (:capsule (first (c/bodies sp)))]
+    (loop [i 0
+           ctrl (cm/reflex-controller (cm/controller :still nu 1) rx 1)
+           armed true
+           clears 0
+           ever-resting? false
+           active-after-resting? false
+           max-force 0.0
+           all-finite? true
+           held-s 0.0
+           torso-ok? true]
+      (if (>= i 15000)
+        (let [final-energy (:energy (first (:efforts ctrl)))]
+          (.delete jp) (.delete jr) (.delete data) (.delete model)
+          {:clears clears :ever-resting? ever-resting? :active-after-resting? active-after-resting?
+           :max-force max-force :all-finite? all-finite? :held-s held-s :final-energy final-energy
+           :torso-ok? torso-ok?})
+        (do
+          (.mj_jacBody mj model data jp jr (:body-id r))
+          (let [s (cm/sense r (.-xpos data) (.-xmat data) (.GetView jp) (.GetView jr) ground-z)
+                obs {:nv nv :qpos (.-qpos data) :senses [s] :forces (.-actuator_force data)}
+                [ctrl' a] (cm/act ctrl obs c/timestep)
+                vals (cm/actions->ctrl a ranges)
+                mode (:mode (first (:efforts ctrl')))
+                t (* (inc i) 0.002)
+                step-force (reduce max 0.0 (map #(js/Math.abs (aget (.-actuator_force data) %)) acts))
+                clearance (:clearance s)
+                tilt (cm/tilt-deg (:up s))]
+            (dotimes [k nu]
+              (aset (.-ctrl data) k (if (contains? acts-set k) (nth vals k) 0)))
+            (.mj_step mj model data)
+            (let [^js qpos (.-qpos data)
+                  nq (.-nq model)
+                  finite-now? (every? true? (for [j (range nq)] (not (js/isNaN (aget qpos j)))))
+                  gated? (>= t 1.0)
+                  armed' (if gated?
+                           (cond
+                             (and armed (>= clearance lift-m)) false
+                             (and (not armed) (< clearance (* 0.5 lift-m))) true
+                             :else armed)
+                           armed)
+                  clears' (if (and gated? armed (>= clearance lift-m)) (inc clears) clears)
+                  resting-now? (= mode :resting)
+                  held?' (and (>= clearance (* 0.7 lift-m)) (<= tilt 20))
+                  torso-low (cm/capsule-clearance (.-xpos data) (.-xmat data) 1 torso-cap ground-z)
+                  torso-ok?' (if (>= t 3.0) (and torso-ok? (<= torso-low 0.02)) torso-ok?)]
+              (recur (inc i) ctrl' armed' clears'
+                     (or ever-resting? resting-now?)
+                     (or active-after-resting? (and ever-resting? (= mode :active)))
+                     (max max-force step-force)
+                     (and all-finite? finite-now?)
+                     (if held?' (+ held-s 0.002) held-s)
+                     torso-ok?'))))))))
+
+(deftest r10-horse-tries-rests-tries-again
+  (async done
+    (-> (import-mj)
+        (.then (fn [^js mj]
+                 (let [{:keys [clears ever-resting? active-after-resting? max-force all-finite? torso-ok?]}
+                       (run-session mj horse 0.25)]
+                   (is (>= clears 2))
+                   (is ever-resting?)
+                   (is active-after-resting?)
+                   (is all-finite?)
+                   (is (<= max-force (+ 35 1e-6)))
+                   (is (>= max-force 34.9))
+                   (is torso-ok?))
+                 (done)))
+        (.catch (fn [e] (is false (str e)) (done))))))
+
+(deftest r11-dog-strong-and-steady
+  (async done
+    (-> (import-mj)
+        (.then (fn [^js mj]
+                 (let [{:keys [held-s ever-resting? final-energy max-force all-finite? torso-ok?]}
+                       (run-session mj dog 0.15)]
+                   (is (>= held-s 20))
+                   (is (not ever-resting?))
+                   (is (> final-energy 0.8))
+                   (is (<= max-force (+ 9 1e-6)))
+                   (is all-finite?)
+                   (is torso-ok?))
+                 (done)))
+        (.catch (fn [e] (is false (str e)) (done))))))
+
+;; R12
+
+(defn run-drop [^js mj sp]
+  (let [place (assoc P :roll 0)
+        ^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp place))
+        ^js data (new (.-MjData mj) model)
+        _ (.mj_forward mj model data)
+        rx (c/reflexes sp)
+        r (first rx)
+        nv (.-nv model)
+        ^js jp (new (.-DoubleBuffer mj) (* 3 nv))
+        ^js jr (new (.-DoubleBuffer mj) (* 3 nv))
+        ranges (c/ctrl-ranges sp)
+        nu (count ranges)
+        sigma (c/rest-fraction sp)
+        kick (c/kick-above sp)
+        torso-cap (:capsule (first (c/bodies sp)))]
+    (loop [i 0
+           ctrl (cm/reflex-controller (cm/controller :twitch nu 1) rx 1)
+           torso-ok? true
+           all-finite? true]
+      (if (>= i 15000)
+        (do
+          (.delete jp) (.delete jr) (.delete data) (.delete model)
+          {:torso-ok? torso-ok? :all-finite? all-finite?})
+        (do
+          (.mj_jacBody mj model data jp jr (:body-id r))
+          (let [s (cm/sense r (.-xpos data) (.-xmat data) (.GetView jp) (.GetView jr) ground-z)
+                obs {:nv nv :qpos (.-qpos data) :senses [s] :forces (.-actuator_force data)}
+                [ctrl' a] (cm/act ctrl obs c/timestep)
+                tg (cm/actions->ctrl a ranges)
+                vals (cm/limp tg (.-qpos data) (cm/stiffness ctrl' sigma kick))]
+            (dotimes [k nu] (aset (.-ctrl data) k (nth vals k)))
+            (.mj_step mj model data)
+            (let [t (* (inc i) 0.002)
+                  ^js qpos (.-qpos data)
+                  nq (.-nq model)
+                  finite-now? (every? true? (for [j (range nq)] (not (js/isNaN (aget qpos j)))))
+                  torso-low (cm/capsule-clearance (.-xpos data) (.-xmat data) 1 torso-cap ground-z)
+                  ok-now? (if (>= t 5.0) (<= torso-low 0.02) true)]
+              (recur (inc i) ctrl' (and torso-ok? ok-now?) (and all-finite? finite-now?)))))))))
+
+(deftest r12-game-drop-lies-down
+  (async done
+    (-> (import-mj)
+        (.then (fn [^js mj]
+                 (doseq [sp [horse dog]]
+                   (let [{:keys [torso-ok? all-finite?]} (run-drop mj sp)]
+                     (is torso-ok?)
+                     (is all-finite?)))
+                 (done)))
+        (.catch (fn [e] (is false (str e)) (done))))))
+
+;; R13
+
+(defn run-table [^js mj sp sigma]
+  (let [place (assoc P :roll 0)
+        ^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp place))
+        ^js data (new (.-MjData mj) model)
+        _ (.mj_forward mj model data)
+        nu (count (c/ctrl-ranges sp))
+        torso-cap (:capsule (first (c/bodies sp)))
+        sig-vec (vec (repeat nu sigma))
+        zeros (vec (repeat nu 0))]
+    (dotimes [_ 15000]
+      (let [vals (cm/limp zeros (.-qpos data) sig-vec)]
+        (dotimes [k nu] (aset (.-ctrl data) k (nth vals k)))
+        (.mj_step mj model data)))
+    (let [low (cm/capsule-clearance (.-xpos data) (.-xmat data) 1 torso-cap ground-z)]
+      (.delete data) (.delete model)
+      low)))
+
+(deftest r13-table-contrast-dog-only
+  (async done
+    (-> (import-mj)
+        (.then (fn [^js mj]
+                 (is (> (run-table mj dog 1) 0.3))
+                 (is (<= (run-table mj dog 0.1) 0.02))
                  (done)))
         (.catch (fn [e] (is false (str e)) (done))))))

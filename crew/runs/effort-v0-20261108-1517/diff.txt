@@ -1,0 +1,859 @@
+diff --git a/resources/creatures/dog.edn b/resources/creatures/dog.edn
+index 907d28e..3c8c5db 100644
+--- a/resources/creatures/dog.edn
++++ b/resources/creatures/dog.edn
+@@ -4,6 +4,8 @@
+  :density 1000          ; kg/m³: each body's mass = its capsule's volume × density
+  :kp      40            ; position-actuator stiffness, N·m/rad (one actuator per joint)
+  :damping 1.5           ; joint damping, N·m·s/rad
++ :rest-kp    4          ; N·m/rad: muscles that aren't working are soft (10 % of :kp), so he lies, not stands
++ :kick-above 0.8        ; a twitch segment whose random target |to| >= this is a kick (full :kp); else rest stiffness
+  :colors  {:coat 0xc49a6c :dark 0x6b4a32}
+  :bodies
+  [{:name :torso :capsule {:from [-0.22 0 0] :to [0.22 0 0] :r 0.1} :color :coat}
+@@ -44,4 +46,7 @@
+  ;; (same comment as horse.edn)
+  :reflexes [{:kind :head-level :body :head
+              :joints [:neck-bend :neck-pitch :head-pitch :head-roll]
+-             :up [0 0 1] :lift-m 0.15 :gain 2 :w-lift 40 :onset-s 1.5}]}
++             :up [0 0 1] :lift-m 0.15 :gain 2 :w-lift 40 :onset-s 1.5
++             ;; A grown dog: strong and steady, so little tremor and long holds.
++             :effort {:strength 0.9 :torque-nm 10 :tremor-deg 1 :steady-s 30
++                      :energy-s 30 :recover-s 4 :low 0.15 :high 0.6 :seed-salt 3}}]}
+diff --git a/resources/creatures/horse.edn b/resources/creatures/horse.edn
+index 9c69f2f..6f98437 100644
+--- a/resources/creatures/horse.edn
++++ b/resources/creatures/horse.edn
+@@ -4,6 +4,8 @@
+  :density 1000          ; kg/m³: each body's mass = its capsule's volume × density
+  :kp      150           ; position-actuator stiffness, N·m/rad (one actuator per joint)
+  :damping 5             ; joint damping, N·m·s/rad
++ :rest-kp    15         ; N·m/rad: muscles that aren't working are soft (10 % of :kp), so he lies, not stands
++ :kick-above 0.8        ; a twitch segment whose random target |to| >= this is a kick (full :kp); else rest stiffness
+  :colors  {:coat 0x9b6b43 :dark 0x4a3426 :hoof 0x2e2622}
+  :bodies
+  [{:name :torso :capsule {:from [-0.3 0 0] :to [0.3 0 0] :r 0.15} :color :coat}
+@@ -46,4 +48,10 @@
+  ;; by Jacobian transpose on :joints only; strength ramps 0 -> 1 over :onset-s after the drop.
+  :reflexes [{:kind :head-level :body :head
+              :joints [:neck-bend :neck-pitch :head-pitch :head-roll]
+-             :up [0 0 1] :lift-m 0.25 :gain 2 :w-lift 40 :onset-s 1.5}]}
++             :up [0 0 1] :lift-m 0.25 :gain 2 :w-lift 40 :onset-s 1.5
++             ;; A newborn's neck: weak, shaky, tires fast (pm.creature-motion effort).
++             ;; force cap = :strength × :torque-nm on each reflex actuator (MJCF forcerange);
++             ;; tremor :tremor-deg fades with time awake (÷e every :steady-s); energy 1 → 0 at
++             ;; full effort in :energy-s, refills 0 → 1 in :recover-s; lets go below :low, tries again above :high.
++             :effort {:strength 0.35 :torque-nm 100 :tremor-deg 6 :steady-s 90
++                      :energy-s 2.5 :recover-s 4 :low 0.15 :high 0.6 :seed-salt 7}}]}
+diff --git a/src/pm/creature.cljc b/src/pm/creature.cljc
+index 53c6ccd..81cb46a 100644
+--- a/src/pm/creature.cljc
++++ b/src/pm/creature.cljc
+@@ -121,6 +121,54 @@
+ (defn- valid-up? [up]
+   (or (nil? up) (and (valid-vec3? up) (not (every? zero? up)))))
+ 
++(defn- effort-problems
++  "F-a..F-m for a reflex's :effort, prefixed strings. [] with no :effort key."
++  [tag e]
++  (cond
++    (nil? e) []
++    (not (map? e)) [(str tag ": :effort must be a map")]
++    :else
++    (let [low      (:low e)
++          high     (:high e)
++          low-ok?   (and (number? low) (<= 0 low 1))
++          high-ok?  (and (number? high) (<= 0 high 1))]
++      (cond-> []
++        (not (and (number? (:strength e)) (< 0 (:strength e)) (<= (:strength e) 1)))
++        (conj (str tag ": :effort :strength must be a number in (0, 1]"))
++
++        (not (and (number? (:torque-nm e)) (pos? (:torque-nm e))))
++        (conj (str tag ": :effort :torque-nm must be a positive number"))
++
++        (not (and (number? (:tremor-deg e)) (>= (:tremor-deg e) 0)))
++        (conj (str tag ": :effort :tremor-deg must be a number >= 0"))
++
++        (not (and (number? (:steady-s e)) (pos? (:steady-s e))))
++        (conj (str tag ": :effort :steady-s must be a positive number"))
++
++        (not (and (number? (:energy-s e)) (pos? (:energy-s e))))
++        (conj (str tag ": :effort :energy-s must be a positive number"))
++
++        (not (and (number? (:recover-s e)) (pos? (:recover-s e))))
++        (conj (str tag ": :effort :recover-s must be a positive number"))
++
++        (not low-ok?)
++        (conj (str tag ": :effort :low must be a number in [0, 1]"))
++
++        (not high-ok?)
++        (conj (str tag ": :effort :high must be a number in [0, 1]"))
++
++        (and low-ok? high-ok? (not (< low high)))
++        (conj (str tag ": :effort :low must be below :high"))
++
++        (not (integer? (:seed-salt e)))
++        (conj (str tag ": :effort :seed-salt must be an integer"))
++
++        (and (contains? e :ramp-s) (not (and (number? (:ramp-s e)) (pos? (:ramp-s e)))))
++        (conj (str tag ": :effort :ramp-s must be a positive number"))
++
++        (and (contains? e :tremor-speed) (not (and (number? (:tremor-speed e)) (pos? (:tremor-speed e)))))
++        (conj (str tag ": :effort :tremor-speed must be a positive number"))))))
++
+ (defn- reflex-entry-problems [i r body-names known-joint-names]
+   (let [tag (str "reflex " i)]
+     (cond-> []
+@@ -151,7 +199,10 @@
+       (conj (str tag ": :w-lift must be a number >= 0"))
+ 
+       (not (and (number? (:onset-s r)) (>= (:onset-s r) 0)))
+-      (conj (str tag ": :onset-s must be a number >= 0")))))
++      (conj (str tag ": :onset-s must be a number >= 0"))
++
++      true
++      (into (effort-problems tag (:effort r))))))
+ 
+ (defn- reflex-problems [sp known-joint-names]
+   (let [rx (:reflexes sp)]
+@@ -185,7 +236,15 @@
+               (not density-ok?) (conj ":density must be a positive number")
+               (not kp-ok?)      (conj ":kp must be a positive number")
+               (not damping-ok?) (conj ":damping must be a number >= 0")
+-              (not colors-ok?)  (conj ":colors must map keywords to 0xRRGGBB ints"))]
++              (not colors-ok?)  (conj ":colors must map keywords to 0xRRGGBB ints")
++
++              (and kp-ok? (contains? sp :rest-kp)
++                   (not (and (number? (:rest-kp sp)) (< 0 (:rest-kp sp)) (<= (:rest-kp sp) kp))))
++              (conj ":rest-kp must be a number in (0, :kp]")
++
++              (and (contains? sp :kick-above)
++                   (not (and (number? (:kick-above sp)) (<= 0 (:kick-above sp) 1))))
++              (conj ":kick-above must be a number in [0, 1]"))]
+     (if-not bodies-ok?
+       (conj top ":bodies must be a non-empty vector")
+       (let [[body-probs _]
+@@ -275,6 +334,16 @@
+         nj (count (joints sp))]
+     {:nbody (inc nb) :njnt (inc nj) :nu nj :nq (+ 7 nj) :nv (+ 6 nj) :ngeom (inc nb)}))
+ 
++(defn rest-fraction
++  "σ = :rest-kp / :kp, or 1 (everything stiff) when :rest-kp is absent."
++  [sp]
++  (if-let [rk (:rest-kp sp)] (/ rk (:kp sp)) 1))
++
++(defn kick-above
++  "The |:to| a twitch segment needs to count as a kick (full :kp); 0.8 by default."
++  [sp]
++  (or (:kick-above sp) 0.8))
++
+ (defn reflexes
+   "The compiled :reflexes vector ([] when there is no :reflexes key), with
+    indices resolved from `joints`. Assumes `sp` is valid."
+@@ -288,20 +357,22 @@
+     (mapv
+       (fn [r]
+         (let [acts (mapv k-of (:joints r))]
+-          {:kind    (:kind r)
+-           :body    (:body r)
+-           :body-id (inc (get idx-of (:body r)))
+-           :capsule (:capsule (get by-name (:body r)))
+-           :up      (or (:up r) [0 0 1])
+-           :joints  (vec (:joints r))
+-           :acts    acts
+-           :qpos    (mapv #(+ 7 %) acts)
+-           :dofs    (mapv #(+ 6 %) acts)
+-           :ranges  (mapv ranges acts)
+-           :lift-m  (:lift-m r)
+-           :gain    (:gain r)
+-           :w-lift  (:w-lift r)
+-           :onset-s (:onset-s r)}))
++          (cond-> {:kind    (:kind r)
++                   :body    (:body r)
++                   :body-id (inc (get idx-of (:body r)))
++                   :capsule (:capsule (get by-name (:body r)))
++                   :up      (or (:up r) [0 0 1])
++                   :joints  (vec (:joints r))
++                   :acts    acts
++                   :qpos    (mapv #(+ 7 %) acts)
++                   :dofs    (mapv #(+ 6 %) acts)
++                   :ranges  (mapv ranges acts)
++                   :lift-m  (:lift-m r)
++                   :gain    (:gain r)
++                   :w-lift  (:w-lift r)
++                   :onset-s (:onset-s r)}
++            (:effort r) (assoc :effort (-> (merge {:ramp-s 0.5 :tremor-speed 8} (:effort r))
++                                            (assoc :rest-frac (rest-fraction sp)))))))
+       (:reflexes sp))))
+ 
+ (defn- vec3-sub [[ax ay az] [bx by bz]] [(- ax bx) (- ay by) (- az bz)])
+@@ -418,11 +489,23 @@
+                          close     (str (ind lvl) "</body>")]
+                      (into [open] (concat joint-l [(geom inner b)] kid-lines [close]))))
+         jnts     (joints sp)
+-        actuator-lines (mapv (fn [j]
++        force-limits (reduce
++                       (fn [m r]
++                         (if-let [e (:effort r)]
++                           (let [f (fmt (* (:strength e) (:torque-nm e)))]
++                             (reduce (fn [m k] (if (contains? m k) m (assoc m k f))) m (:acts r)))
++                           m))
++                       {}
++                       (reflexes sp))
++        actuator-lines (mapv (fn [k j]
+                                 (str (ind 2) "<position name=\"" (name (:name j)) "\" joint=\"" (name (:name j))
+                                      "\" kp=\"" (fmt kp) "\" ctrllimited=\"true\" ctrlrange=\""
+-                                     (fmt (first (:range j))) " " (fmt (second (:range j))) "\"/>"))
+-                              jnts)
++                                     (fmt (first (:range j))) " " (fmt (second (:range j))) "\""
++                                     (if-let [f (get force-limits k)]
++                                       (str " forcelimited=\"true\" forcerange=\"-" f " " f "\"")
++                                       "")
++                                     "/>"))
++                              (range (count jnts)) jnts)
+         lines (concat
+                 [(str "<mujoco model=\"" (name (:kind sp)) "\">")
+                  (str (ind 1) "<compiler angle=\"radian\" autolimits=\"true\"/>")
+diff --git a/src/pm/creature_motion.cljs b/src/pm/creature_motion.cljs
+index 0d61a99..3ce3f87 100644
+--- a/src/pm/creature_motion.cljs
++++ b/src/pm/creature_motion.cljs
+@@ -133,13 +133,102 @@
+   (let [mid (/ (+ lo hi) 2) half (/ (- hi lo) 2)]
+     (/ (- target mid) half)))
+ 
++;; -- Effort: energy with hysteresis and tremor (§5.1, §5.2, pure) -------------
++
++(defn effort-init [] {:energy 1 :mode :active :level 1})
++
++(defn effort-amount
++  "clamp(Σ|forces[k]| / (count(acts)·fmax), 0, 1). 0 when forces is nil, acts
++   is empty or fmax <= 0."
++  [forces acts fmax]
++  (if (or (nil? forces) (empty? acts) (not (pos? fmax)))
++    0
++    (clamp (/ (reduce + (map #(js/Math.abs (aget forces %)) acts)) (* (count acts) fmax)) 0 1)))
++
++(defn effort-step [st e amount dt]
++  (if-not (and (number? dt) (js/isFinite dt) (pos? dt))
++    st
++    (let [a       (clamp amount 0 1)
++          energy  (:energy st)
++          mode    (:mode st)
++          energy' (if (= mode :active)
++                    (max 0 (- energy (/ (* dt a) (:energy-s e))))
++                    (min 1 (+ energy (/ dt (:recover-s e)))))
++          eps     1e-6                                  ; threshold tolerance: a boundary this
++                                                          ; close is floating-point noise, not a crossing
++          mode'   (cond
++                    (and (= mode :active) (< energy' (- (:low e) eps))) :resting
++                    (and (= mode :resting) (> energy' (+ (:high e) eps))) :active
++                    :else mode)
++          target  (if (= mode' :active) 1 0)
++          delta   (/ dt (:ramp-s e))
++          level   (:level st)
++          level'  (clamp (cond
++                            (< level target) (min target (+ level delta))
++                            (> level target) (max target (- level delta))
++                            :else level)
++                          0 1)]
++      {:energy energy' :mode mode' :level level'})))
++
++(defn effort-label [st r sense]
++  (cond
++    (= (:mode st) :resting) "resting"
++    (and (>= (:clearance sense) (:lift-m r)) (<= (tilt-deg (:up sense)) 20)) "holding"
++    :else "trying"))
++
++(defn tremor-deg-at [e t]
++  (* (:tremor-deg e) (js/Math.exp (/ (- (max 0 t)) (:steady-s e)))))
++
+ ;; -- The controller interface (§5.3) -----------------------------------------
+ 
+ (defn controller [kind n seed]
+   (if (= kind :twitch) (twitch-init n seed) {:kind kind :n n}))
+ 
+-(defn reflex-controller [inner reflexes]
+-  {:kind :reflex :n (:n inner) :inner inner :reflexes reflexes :t 0})
++(defn reflex-controller
++  ([inner reflexes] (reflex-controller inner reflexes 1))
++  ([inner reflexes seed]
++   (let [base {:kind :reflex :n (:n inner) :inner inner :reflexes reflexes :t 0}]
++     (if (some :effort reflexes)
++       (assoc base :efforts
++              (mapv (fn [r]
++                      (when-let [e (:effort r)]
++                        (assoc (effort-init) :tremor
++                               (twitch-init (count (:joints r)) (+ seed (:seed-salt e))))))
++                    reflexes))
++       base))))
++
++(defn- reflex-actions
++  "[a' efforts'] for one reflex `r` at index `i`, folding into `a`/`efforts`."
++  [a efforts i r se obs t' dt']
++  (let [q  (mapv #(aget (:qpos obs) %) (:qpos r))
++        nv (:nv obs)]
++    (if-let [e (:effort r)]
++      (let [st      (nth efforts i)
++            fmax    (* (:strength e) (:torque-nm e))
++            amount  (effort-amount (:forces obs) (:acts r) fmax)
++            st1     (effort-step st e amount dt')
++            tremor' (twitch-step (:tremor st) (* dt' (:tremor-speed e)))
++            s       (* (reflex-strength t' (:onset-s r)) (:strength e))
++            targets (reflex-targets r se q s nv)
++            amp     (* (/ js/Math.PI 180) (tremor-deg-at e t') (:level st1))
++            v       (twitch-actions tremor')
++            level   (:level st1)
++            sigma   (:rest-frac e)]
++        [(reduce (fn [a j]
++                   (let [[lo hi] (nth (:ranges r) j)
++                         qj      (nth q j)
++                         tj      (clamp (+ (nth targets j) (* amp (nth v j))) lo hi)
++                         final   (+ (* level tj) (* (- 1 level) (+ qj (* sigma (- 0 qj)))))]
++                     (assoc a (nth (:acts r) j) (target->action final (nth (:ranges r) j)))))
++                 a (range (count (:acts r))))
++         (assoc efforts i (assoc st1 :tremor tremor'))])
++      (let [s       (reflex-strength t' (:onset-s r))
++            targets (reflex-targets r se q s nv)]
++        [(reduce (fn [a j]
++                   (assoc a (nth (:acts r) j)
++                          (target->action (nth targets j) (nth (:ranges r) j))))
++                 a (range (count (:acts r))))
++         efforts]))))
+ 
+ (defn act [ctrl obs dt]
+   (case (:kind ctrl)
+@@ -152,27 +241,42 @@
+           ctrl' (assoc ctrl :inner inner' :t t')]
+       (if (nil? obs)
+         [ctrl' a]
+-        (let [a' (reduce
+-                    (fn [a [i r]]
+-                      (let [se      (nth (:senses obs) i)
+-                            q       (mapv #(aget (:qpos obs) %) (:qpos r))
+-                            s       (reflex-strength t' (:onset-s r))
+-                            targets (reflex-targets r se q s (:nv obs))]
+-                        (reduce (fn [a j]
+-                                  (assoc a (nth (:acts r) j)
+-                                         (target->action (nth targets j) (nth (:ranges r) j))))
+-                                a
+-                                (range (count (:acts r))))))
+-                    a
+-                    (map-indexed vector (:reflexes ctrl)))]
+-          [ctrl' a'])))
++        (let [[a' efforts']
++              (reduce
++                (fn [[a efforts] [i r]]
++                  (reflex-actions a efforts i r (nth (:senses obs) i) obs t' dt'))
++                [a (:efforts ctrl)]
++                (map-indexed vector (:reflexes ctrl)))]
++          [(if (contains? ctrl :efforts) (assoc ctrl' :efforts efforts') ctrl') a'])))
+ 
+     [ctrl (vec (repeat (:n ctrl) 0))]))
+ 
+ (defn actions->ctrl [actions ranges]
+   (mapv (fn [a [lo hi]] (+ (/ (+ lo hi) 2) (* (clamp a -1 1) (/ (- hi lo) 2)))) actions ranges))
+ 
+-;; -- Fixed physics step (§5.4) ------------------------------------------------
++;; -- Limp when not trying (§5.4, pure, output shaping between act and MuJoCo) -
++
++(defn limp
++  "ctrl[k] = q + sigma·(target − q), a servo of stiffness sigma·kp toward the
++   same target (the MuJoCo model's kp is untouched). sigma 1 passes target."
++  [targets qpos sigmas]
++  (mapv (fn [k t sigma]
++          (let [q (aget qpos (+ 7 k))]
++            (+ q (* sigma (- t q)))))
++        (range) targets sigmas))
++
++(defn stiffness
++  "One sigma per actuator: 1 for a twitch kick (|:to| >= kick-above) or a
++   reflex's own acts (it already blends its own rest), else rest-frac."
++  [ctrl rest-frac kick-above]
++  (case (:kind ctrl)
++    :twitch (mapv (fn [ch] (if (>= (js/Math.abs (:to ch)) kick-above) 1 rest-frac)) (:chans ctrl))
++    :reflex (let [base (stiffness (:inner ctrl) rest-frac kick-above)
++                  acts (into #{} (mapcat :acts) (:reflexes ctrl))]
++              (mapv (fn [k sigma] (if (contains? acts k) 1 sigma)) (range) base))
++    (vec (repeat (:n ctrl) rest-frac))))
++
++;; -- Fixed physics step (§5.6) ------------------------------------------------
+ 
+ (def step-s c/timestep)
+ (def max-steps 25)
+@@ -208,16 +312,19 @@
+       :loading (str (:flag status) ": " (name (:kind status)) " loading")
+ 
+       :running
+-      (let [stats (:stats status)
+-            ms    (:ms stats)
+-            torso (:torso status)
+-            head  (:head status)]
++      (let [stats  (:stats status)
++            ms     (:ms stats)
++            torso  (:torso status)
++            head   (:head status)
++            effort (:effort status)]
+         (str (:flag status) ": " (name (:kind status)) " · "
+              (if (number? ms) (.toFixed ms 1) "-") " ms/frame · "
+              (:steps stats) " steps · " (:dropped stats) " dropped · torso "
+              (if (number? torso) (.toFixed torso 2) "-") " m"
+              (when (map? head)
+-               (str " · head " (.toFixed (:clearance head) 2) " m " (js/Math.round (:tilt head)) "°"))))
++               (str " · head " (.toFixed (:clearance head) 2) " m " (js/Math.round (:tilt head)) "°"))
++             (when (map? effort)
++               (str " · energy " (.toFixed (:energy effort) 2) " · " (:label effort)))))
+ 
+       :failed
+       (str (:flag status) ": " (name (:kind status)) " failed (" (m/short-reason (:reason status)) ")")
+diff --git a/src/pm/creature_spike.cljs b/src/pm/creature_spike.cljs
+index 056ab07..11c56b3 100644
+--- a/src/pm/creature_spike.cljs
++++ b/src/pm/creature_spike.cljs
+@@ -91,7 +91,8 @@
+                                        :mj mj :model model :data data :sp sp :ranges ranges
+                                        :ground-z ground-z
+                                        :rx rx :nv nv :jacs jacs
+-                                       :ctrl (if (seq rx) (cm/reflex-controller tw rx) tw)
++                                       :rest-frac (c/rest-fraction sp) :kick (c/kick-above sp)
++                                       :ctrl (if (seq rx) (cm/reflex-controller tw rx (:seed req)) tw)
+                                        :acc 0 :stats cm/empty-stats :root root :groups groups
+                                        :status {:mode :running :flag flag :kind kind
+                                                  :stats cm/empty-stats :torso nil})))))
+@@ -102,7 +103,7 @@
+ (defn tick! [dt now-ms]
+   (when (= :running (:mode (:status @!state)))
+     (try
+-      (let [{:keys [ranges ctrl ground-z groups stats status rx jacs nv]} @!state
++      (let [{:keys [ranges ctrl ground-z groups stats status rx jacs nv rest-frac kick]} @!state
+             ^js mj    (:mj @!state)
+             ^js model (:model @!state)
+             ^js data  (:data @!state)
+@@ -115,13 +116,14 @@
+                 (let [obs (when (seq jacs)
+                             (doseq [[r [^js jp ^js jr]] (map vector rx jacs)]
+                               (.mj_jacBody mj model data jp jr (:body-id r)))
+-                            {:nv nv :qpos (.-qpos data)
++                            {:nv nv :qpos (.-qpos data) :forces (.-actuator_force data)
+                              :senses (mapv (fn [r [^js jp ^js jr]]
+                                              (cm/sense r (.-xpos data) (.-xmat data)
+                                                        (.GetView jp) (.GetView jr) ground-z))
+                                            rx jacs)})
+                       [c2 actions] (cm/act c' obs c/timestep)
+-                      ctrl-vals    (cm/actions->ctrl actions ranges)
++                      tg           (cm/actions->ctrl actions ranges)
++                      ctrl-vals    (cm/limp tg (.-qpos data) (cm/stiffness c2 rest-frac kick))
+                       ^js dctrl    (.-ctrl data)]
+                   (doseq [[idx v] (map-indexed vector ctrl-vals)] (aset dctrl idx v))
+                   (.mj_step mj model data)
+@@ -131,14 +133,16 @@
+             ^js xquat (.-xquat data)
+             torso  (- (aget xpos 5) ground-z)
+             stats' (cm/stats-tick stats now-ms (- t1 t0) steps dropped)
+-            head   (when s0 {:clearance (:clearance s0) :tilt (cm/tilt-deg (:up s0))})]
++            head   (when s0 {:clearance (:clearance s0) :tilt (cm/tilt-deg (:up s0))})
++            st0    (first (:efforts ctrl'))
++            effort (when (and st0 s0) {:energy (:energy st0) :label (cm/effort-label st0 (first rx) s0)})]
+         (dotimes [i (count groups)]
+           (let [{:keys [pos quat]} (cm/body-pose xpos xquat (inc i))]
+             (t/set-pos! (nth groups i) pos)
+             (t/set-quat! (nth groups i) quat)))
+         (swap! !state assoc :ctrl ctrl' :acc acc :stats stats'
+                :status {:mode :running :flag (:flag status) :kind (:kind status)
+-                        :stats stats' :torso torso :head head}))
++                        :stats stats' :torso torso :head head :effort effort}))
+       (catch :default e (fail! e)))))
+ 
+ (defn hud-segment []
+diff --git a/test/pm/creature_mujoco_test.cljs b/test/pm/creature_mujoco_test.cljs
+index ba2a2c7..36d2eae 100644
+--- a/test/pm/creature_mujoco_test.cljs
++++ b/test/pm/creature_mujoco_test.cljs
+@@ -19,6 +19,9 @@
+ (def horse (c/parse (get species/texts :horse)))
+ (def dog (c/parse (get species/texts :dog)))
+ 
++(defn no-effort [sp]
++  (update sp :reflexes (fn [rx] (mapv #(dissoc % :effort) rx))))
++
+ (defn import-mj []
+   ;; require(), not import(): shadow's :node-test runs in a vm context with no dynamic-import
+   ;; callback (ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING); Node 22.12+ can require() this ESM
+@@ -197,7 +200,7 @@
+   (async done
+     (-> (import-mj)
+         (.then (fn [^js mj]
+-                 (doseq [[sp need-clear] [[horse 0.175] [dog 0.105]]
++                 (doseq [[sp need-clear] [[(no-effort horse) 0.175] [(no-effort dog) 0.105]]
+                          roll [90 -90]]
+                    (let [{:keys [sense finite?]} (run-reflex-on mj sp roll)]
+                      (is finite?)
+@@ -224,7 +227,7 @@
+   (async done
+     (-> (import-mj)
+         (.then (fn [^js mj]
+-                 (doseq [[sp need-clear] [[horse 0.175] [dog 0.105]]]
++                 (doseq [[sp need-clear] [[(no-effort horse) 0.175] [(no-effort dog) 0.105]]]
+                    (let [s (run-reflex-off mj sp 90)]
+                      (is (> (cm/tilt-deg (:up s)) 20))
+                      (is (< (:clearance s) need-clear))))
+@@ -290,3 +293,205 @@
+                      (.delete data2) (.delete model2)))
+                  (done)))
+         (.catch (fn [e] (is false (str e)) (done))))))
++
++;; R9
++
++(deftest r9-force-limits-compiled
++  (async done
++    (-> (import-mj)
++        (.then (fn [^js mj]
++                 (doseq [[sp f] [[horse 35] [dog 9]]]
++                   (let [^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp P))
++                         ^js fr (.-actuator_forcerange model)
++                         ^js fl (.-actuator_forcelimited model)]
++                     (dotimes [k 4]
++                       (is (approx= (- f) (aget fr (* 2 k))))
++                       (is (approx= f (aget fr (+ (* 2 k) 1))))
++                       (is (= 1 (aget fl k))))
++                     (doseq [k (range 4 12)]
++                       (is (= 0 (aget fl k))))
++                     (.delete model)))
++                 (done)))
++        (.catch (fn [e] (is false (str e)) (done))))))
++
++;; R10, R11
++
++(defn run-session [^js mj sp lift-m]
++  (let [place (assoc P :roll 90)
++        ^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp place))
++        ^js data (new (.-MjData mj) model)
++        _ (.mj_forward mj model data)
++        rx (c/reflexes sp)
++        r (first rx)
++        nv (.-nv model)
++        ^js jp (new (.-DoubleBuffer mj) (* 3 nv))
++        ^js jr (new (.-DoubleBuffer mj) (* 3 nv))
++        ranges (c/ctrl-ranges sp)
++        nu (count ranges)
++        acts (:acts r)
++        acts-set (set acts)
++        torso-cap (:capsule (first (c/bodies sp)))]
++    (loop [i 0
++           ctrl (cm/reflex-controller (cm/controller :still nu 1) rx 1)
++           armed true
++           clears 0
++           ever-resting? false
++           active-after-resting? false
++           max-force 0.0
++           all-finite? true
++           held-s 0.0
++           torso-ok? true]
++      (if (>= i 15000)
++        (let [final-energy (:energy (first (:efforts ctrl)))]
++          (.delete jp) (.delete jr) (.delete data) (.delete model)
++          {:clears clears :ever-resting? ever-resting? :active-after-resting? active-after-resting?
++           :max-force max-force :all-finite? all-finite? :held-s held-s :final-energy final-energy
++           :torso-ok? torso-ok?})
++        (do
++          (.mj_jacBody mj model data jp jr (:body-id r))
++          (let [s (cm/sense r (.-xpos data) (.-xmat data) (.GetView jp) (.GetView jr) ground-z)
++                obs {:nv nv :qpos (.-qpos data) :senses [s] :forces (.-actuator_force data)}
++                [ctrl' a] (cm/act ctrl obs c/timestep)
++                vals (cm/actions->ctrl a ranges)
++                mode (:mode (first (:efforts ctrl')))
++                t (* (inc i) 0.002)
++                step-force (reduce max 0.0 (map #(js/Math.abs (aget (.-actuator_force data) %)) acts))
++                clearance (:clearance s)
++                tilt (cm/tilt-deg (:up s))]
++            (dotimes [k nu]
++              (aset (.-ctrl data) k (if (contains? acts-set k) (nth vals k) 0)))
++            (.mj_step mj model data)
++            (let [^js qpos (.-qpos data)
++                  nq (.-nq model)
++                  finite-now? (every? true? (for [j (range nq)] (not (js/isNaN (aget qpos j)))))
++                  gated? (>= t 1.0)
++                  armed' (if gated?
++                           (cond
++                             (and armed (>= clearance lift-m)) false
++                             (and (not armed) (< clearance (* 0.5 lift-m))) true
++                             :else armed)
++                           armed)
++                  clears' (if (and gated? armed (>= clearance lift-m)) (inc clears) clears)
++                  resting-now? (= mode :resting)
++                  held?' (and (>= clearance (* 0.7 lift-m)) (<= tilt 20))
++                  torso-low (cm/capsule-clearance (.-xpos data) (.-xmat data) 1 torso-cap ground-z)
++                  torso-ok?' (if (>= t 3.0) (and torso-ok? (<= torso-low 0.02)) torso-ok?)]
++              (recur (inc i) ctrl' armed' clears'
++                     (or ever-resting? resting-now?)
++                     (or active-after-resting? (and ever-resting? (= mode :active)))
++                     (max max-force step-force)
++                     (and all-finite? finite-now?)
++                     (if held?' (+ held-s 0.002) held-s)
++                     torso-ok?'))))))))
++
++(deftest r10-horse-tries-rests-tries-again
++  (async done
++    (-> (import-mj)
++        (.then (fn [^js mj]
++                 (let [{:keys [clears ever-resting? active-after-resting? max-force all-finite? torso-ok?]}
++                       (run-session mj horse 0.25)]
++                   (is (>= clears 2))
++                   (is ever-resting?)
++                   (is active-after-resting?)
++                   (is all-finite?)
++                   (is (<= max-force (+ 35 1e-6)))
++                   (is (>= max-force 34.9))
++                   (is torso-ok?))
++                 (done)))
++        (.catch (fn [e] (is false (str e)) (done))))))
++
++(deftest r11-dog-strong-and-steady
++  (async done
++    (-> (import-mj)
++        (.then (fn [^js mj]
++                 (let [{:keys [held-s ever-resting? final-energy max-force all-finite? torso-ok?]}
++                       (run-session mj dog 0.15)]
++                   (is (>= held-s 20))
++                   (is (not ever-resting?))
++                   (is (> final-energy 0.8))
++                   (is (<= max-force (+ 9 1e-6)))
++                   (is all-finite?)
++                   (is torso-ok?))
++                 (done)))
++        (.catch (fn [e] (is false (str e)) (done))))))
++
++;; R12
++
++(defn run-drop [^js mj sp]
++  (let [place (assoc P :roll 0)
++        ^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp place))
++        ^js data (new (.-MjData mj) model)
++        _ (.mj_forward mj model data)
++        rx (c/reflexes sp)
++        r (first rx)
++        nv (.-nv model)
++        ^js jp (new (.-DoubleBuffer mj) (* 3 nv))
++        ^js jr (new (.-DoubleBuffer mj) (* 3 nv))
++        ranges (c/ctrl-ranges sp)
++        nu (count ranges)
++        sigma (c/rest-fraction sp)
++        kick (c/kick-above sp)
++        torso-cap (:capsule (first (c/bodies sp)))]
++    (loop [i 0
++           ctrl (cm/reflex-controller (cm/controller :twitch nu 1) rx 1)
++           torso-ok? true
++           all-finite? true]
++      (if (>= i 15000)
++        (do
++          (.delete jp) (.delete jr) (.delete data) (.delete model)
++          {:torso-ok? torso-ok? :all-finite? all-finite?})
++        (do
++          (.mj_jacBody mj model data jp jr (:body-id r))
++          (let [s (cm/sense r (.-xpos data) (.-xmat data) (.GetView jp) (.GetView jr) ground-z)
++                obs {:nv nv :qpos (.-qpos data) :senses [s] :forces (.-actuator_force data)}
++                [ctrl' a] (cm/act ctrl obs c/timestep)
++                tg (cm/actions->ctrl a ranges)
++                vals (cm/limp tg (.-qpos data) (cm/stiffness ctrl' sigma kick))]
++            (dotimes [k nu] (aset (.-ctrl data) k (nth vals k)))
++            (.mj_step mj model data)
++            (let [t (* (inc i) 0.002)
++                  ^js qpos (.-qpos data)
++                  nq (.-nq model)
++                  finite-now? (every? true? (for [j (range nq)] (not (js/isNaN (aget qpos j)))))
++                  torso-low (cm/capsule-clearance (.-xpos data) (.-xmat data) 1 torso-cap ground-z)
++                  ok-now? (if (>= t 5.0) (<= torso-low 0.02) true)]
++              (recur (inc i) ctrl' (and torso-ok? ok-now?) (and all-finite? finite-now?)))))))))
++
++(deftest r12-game-drop-lies-down
++  (async done
++    (-> (import-mj)
++        (.then (fn [^js mj]
++                 (doseq [sp [horse dog]]
++                   (let [{:keys [torso-ok? all-finite?]} (run-drop mj sp)]
++                     (is torso-ok?)
++                     (is all-finite?)))
++                 (done)))
++        (.catch (fn [e] (is false (str e)) (done))))))
++
++;; R13
++
++(defn run-table [^js mj sp sigma]
++  (let [place (assoc P :roll 0)
++        ^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp place))
++        ^js data (new (.-MjData mj) model)
++        _ (.mj_forward mj model data)
++        nu (count (c/ctrl-ranges sp))
++        torso-cap (:capsule (first (c/bodies sp)))
++        sig-vec (vec (repeat nu sigma))
++        zeros (vec (repeat nu 0))]
++    (dotimes [_ 15000]
++      (let [vals (cm/limp zeros (.-qpos data) sig-vec)]
++        (dotimes [k nu] (aset (.-ctrl data) k (nth vals k)))
++        (.mj_step mj model data)))
++    (let [low (cm/capsule-clearance (.-xpos data) (.-xmat data) 1 torso-cap ground-z)]
++      (.delete data) (.delete model)
++      low)))
++
++(deftest r13-table-contrast-dog-only
++  (async done
++    (-> (import-mj)
++        (.then (fn [^js mj]
++                 (is (> (run-table mj dog 1) 0.3))
++                 (is (<= (run-table mj dog 0.1) 0.02))
++                 (done)))
++        (.catch (fn [e] (is false (str e)) (done))))))
+diff --git a/test/pm/creature_test.cljs b/test/pm/creature_test.cljs
+index bb17ff1..5c119e5 100644
+--- a/test/pm/creature_test.cljs
++++ b/test/pm/creature_test.cljs
+@@ -34,6 +34,9 @@
+                  {:name :a2 :parent :a :at [0 0 -0.1] :joint {:axis [0 1 0] :range [0 90]}
+                   :capsule {:from [0 0 0] :to [0 0 -0.1] :r 0.02} :color :c}]})
+ 
++(defn no-effort [sp]
++  (update sp :reflexes (fn [rx] (mapv #(dissoc % :effort) rx))))
++
+ ;; C1
+ 
+ (deftest c01-shipped-species-valid
+@@ -229,7 +232,7 @@
+       (is (contains? trimmed "<joint name=\"neck-bend\" type=\"hinge\" axis=\"0 0 1\" limited=\"true\" range=\"-1.22173 1.22173\" damping=\"5\"/>"))
+       (is (contains? trimmed "<joint name=\"neck-pitch\" type=\"hinge\" axis=\"0 1 0\" limited=\"true\" range=\"-0.698132 0.785398\" damping=\"5\"/>"))
+       (is (contains? trimmed "<joint name=\"head-roll\" type=\"hinge\" axis=\"1 0 0\" limited=\"true\" range=\"-1.22173 1.22173\" damping=\"5\"/>"))
+-      (is (contains? trimmed "<position name=\"head-pitch\" joint=\"head-pitch\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-1.047198 1.047198\"/>"))
++      (is (contains? trimmed "<position name=\"head-pitch\" joint=\"head-pitch\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-1.047198 1.047198\" forcelimited=\"true\" forcerange=\"-35 35\"/>"))
+       (is (not (contains? trimmed "<position name=\"neck\" joint=\"neck\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-0.698132 0.523599\"/>"))))
+     (let [lines (str/split-lines x)
+           idx (first (keep-indexed (fn [i l] (when (str/includes? l "<body name=\"neck\" pos=\"0.3 0 0.08\">") i)) lines))]
+@@ -258,7 +261,7 @@
+       (is (contains? trimmed "<geom name=\"fl-upper\" type=\"capsule\" fromto=\"0 0 0 0 0 -0.2\" size=\"0.035\" density=\"1000\" contype=\"0\" conaffinity=\"1\"/>"))
+       (is (contains? trimmed "<position name=\"hr-lower\" joint=\"hr-lower\" kp=\"40\" ctrllimited=\"true\" ctrlrange=\"-1.745329 0.174533\"/>"))
+       (is (contains? trimmed "<joint name=\"neck-pitch\" type=\"hinge\" axis=\"0 1 0\" limited=\"true\" range=\"-0.698132 0.785398\" damping=\"1.5\"/>"))
+-      (is (contains? trimmed "<position name=\"neck-bend\" joint=\"neck-bend\" kp=\"40\" ctrllimited=\"true\" ctrlrange=\"-1.22173 1.22173\"/>")))))
++      (is (contains? trimmed "<position name=\"neck-bend\" joint=\"neck-bend\" kp=\"40\" ctrllimited=\"true\" ctrlrange=\"-1.22173 1.22173\" forcelimited=\"true\" forcerange=\"-9 9\"/>")))))
+ 
+ ;; C22
+ 
+@@ -424,12 +427,21 @@
+                          :qpos [7 8 9 10]
+                          :dofs [6 7 8 9]
+                          :ranges [[-1.22173 1.22173] [-0.698132 0.785398] [-1.047198 1.047198] [-1.22173 1.22173]]
+-                         :lift-m 0.25 :gain 2 :w-lift 40 :onset-s 1.5}]
+-    (is (approx= [expected-horse] (c/reflexes horse)))
+-    (is (approx= [(-> expected-horse
+-                       (assoc :capsule {:from [0 0 0] :to [0.12 0 -0.05] :r 0.05})
+-                       (assoc :lift-m 0.15))]
+-                 (c/reflexes dog))))
++                         :lift-m 0.25 :gain 2 :w-lift 40 :onset-s 1.5}
++        expected-horse-effort (assoc expected-horse
++                                      :effort {:strength 0.35 :torque-nm 100 :tremor-deg 6 :steady-s 90
++                                               :energy-s 2.5 :recover-s 4 :low 0.15 :high 0.6 :seed-salt 7
++                                               :ramp-s 0.5 :tremor-speed 8 :rest-frac 0.1})
++        expected-dog-effort (-> expected-horse
++                                 (assoc :capsule {:from [0 0 0] :to [0.12 0 -0.05] :r 0.05})
++                                 (assoc :lift-m 0.15)
++                                 (assoc :effort {:strength 0.9 :torque-nm 10 :tremor-deg 1 :steady-s 30
++                                                  :energy-s 30 :recover-s 4 :low 0.15 :high 0.6 :seed-salt 3
++                                                  :ramp-s 0.5 :tremor-speed 8 :rest-frac 0.1}))]
++    (is (approx= [expected-horse-effort] (c/reflexes horse)))
++    (is (approx= [expected-dog-effort] (c/reflexes dog)))
++    (is (approx= [expected-horse] (c/reflexes (no-effort horse))))
++    (is (not (contains? (first (c/reflexes (no-effort horse))) :effort))))
+   (is (= [] (c/reflexes f))))
+ 
+ ;; C38
+@@ -465,3 +477,93 @@
+         roll0 (set (map str/trim (str/split-lines (c/mjcf horse {:at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4 :roll 0}))))]
+     (is (contains? no-roll "<body name=\"torso\" pos=\"4.5 8 3.03\" quat=\"1 0 0 0\">"))
+     (is (contains? roll0 "<body name=\"torso\" pos=\"4.5 8 3.03\" quat=\"1 0 0 0\">"))))
++
++;; F1
++
++(deftest f1-valid-species-with-effort
++  (is (= [] (c/problems horse)))
++  (is (= [] (c/problems dog)))
++  (is (= [] (c/problems (no-effort horse)))))
++
++;; F2
++
++(deftest f2-effort-field-validation
++  (is (= ["reflex 0: :effort :low must be below :high"]
++         (c/problems (assoc-in horse [:reflexes 0 :effort :low] 0.7))))
++  (is (= ["reflex 0: :effort :low must be below :high"]
++         (c/problems (assoc-in horse [:reflexes 0 :effort :low] 0.6))))
++  (is (= ["reflex 0: :effort :strength must be a number in (0, 1]"]
++         (c/problems (assoc-in horse [:reflexes 0 :effort :strength] 0))))
++  (is (= ["reflex 0: :effort :strength must be a number in (0, 1]"]
++         (c/problems (assoc-in horse [:reflexes 0 :effort :strength] 1.2))))
++  (is (= ["reflex 0: :effort :torque-nm must be a positive number"]
++         (c/problems (assoc-in horse [:reflexes 0 :effort :torque-nm] -5))))
++  (is (= ["reflex 0: :effort :tremor-deg must be a number >= 0"]
++         (c/problems (assoc-in horse [:reflexes 0 :effort :tremor-deg] -1))))
++  (is (= ["reflex 0: :effort :steady-s must be a positive number"]
++         (c/problems (assoc-in horse [:reflexes 0 :effort :steady-s] 0))))
++  (is (= ["reflex 0: :effort :seed-salt must be an integer"]
++         (c/problems (assoc-in horse [:reflexes 0 :effort :seed-salt] 1.5))))
++  (is (= ["reflex 0: :effort :ramp-s must be a positive number"]
++         (c/problems (assoc-in horse [:reflexes 0 :effort :ramp-s] 0))))
++  (is (= ["reflex 0: :effort :tremor-speed must be a positive number"]
++         (c/problems (assoc-in horse [:reflexes 0 :effort :tremor-speed] -8))))
++  (is (= ["reflex 0: :effort :high must be a number in [0, 1]"]
++         (c/problems (assoc-in horse [:reflexes 0 :effort :high] 1.5)))))
++
++;; F3
++
++(deftest f3-effort-must-be-map-and-collects-both
++  (is (= ["reflex 0: :effort must be a map"]
++         (c/problems (assoc-in horse [:reflexes 0 :effort] 3))))
++  (is (= ["reflex 0: :effort :energy-s must be a positive number"
++          "reflex 0: :effort :recover-s must be a positive number"]
++         (c/problems (-> horse
++                          (assoc-in [:reflexes 0 :effort :energy-s] 0)
++                          (update-in [:reflexes 0 :effort] dissoc :recover-s))))))
++
++;; F4
++
++(deftest f4-parse-throws-on-bad-effort
++  (let [e (try (c/parse (pr-str (assoc-in horse [:reflexes 0 :effort :low] 0.9))) (catch :default e e))]
++    (is (= "bad species :horse: reflex 0: :effort :low must be below :high" (ex-message e)))))
++
++;; F5
++
++(deftest f5-force-limits-in-xml
++  (let [x (c/mjcf horse {:at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4})
++        trimmed (set (map str/trim (str/split-lines x)))]
++    (is (= 4 (count-substr x "forcerange=")))
++    (is (contains? trimmed "<position name=\"neck-bend\" joint=\"neck-bend\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-1.22173 1.22173\" forcelimited=\"true\" forcerange=\"-35 35\"/>"))
++    (is (contains? trimmed "<position name=\"head-roll\" joint=\"head-roll\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-1.22173 1.22173\" forcelimited=\"true\" forcerange=\"-35 35\"/>"))
++    (is (contains? trimmed "<position name=\"fl-upper\" joint=\"fl-upper\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-0.785398 0.785398\"/>")))
++  (let [y (c/mjcf dog {:at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4})]
++    (is (= 4 (count-substr y "forcerange=\"-9 9\"")))))
++
++;; F6
++
++(deftest f6-no-effort-byte-identical
++  (let [x (c/mjcf (no-effort horse) {:at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4})]
++    (is (= 0 (count-substr x "forcerange=")))
++    (is (str/includes? x "<position name=\"head-pitch\" joint=\"head-pitch\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-1.047198 1.047198\"/>"))))
++
++;; G1
++
++(deftest g1-rest-stiffness-validation
++  (is (= [":rest-kp must be a number in (0, :kp]"] (c/problems (assoc horse :rest-kp 0))))
++  (is (= [":rest-kp must be a number in (0, :kp]"] (c/problems (assoc horse :rest-kp 151))))
++  (is (= [] (c/problems (assoc horse :rest-kp 150))))
++  (is (= [":kick-above must be a number in [0, 1]"] (c/problems (assoc dog :kick-above 1.5))))
++  (is (= [] (c/problems (dissoc horse :rest-kp :kick-above))))
++  (let [place {:at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4}]
++    (is (= (c/mjcf horse place) (c/mjcf (dissoc horse :rest-kp :kick-above) place)))))
++
++;; G2
++
++(deftest g2-rest-fraction-and-kick-above
++  (is (approx= 0.1 (c/rest-fraction horse)))
++  (is (approx= 0.1 (c/rest-fraction dog)))
++  (is (= 1 (c/rest-fraction (dissoc horse :rest-kp))))
++  (is (= 0.8 (c/kick-above horse)))
++  (is (= 0.8 (c/kick-above (dissoc horse :kick-above))))
++  (is (approx= 0.1 (:rest-frac (:effort (first (c/reflexes horse)))))))

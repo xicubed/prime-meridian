@@ -1,0 +1,27 @@
+  your reply with a line containing only
+  this: done-4060
+
+  Ran 1 shell command
+
+⏺ Write(crew/runs/effort-v0-20…/gate-note.md)
+  ⎿  Added 1 line, removed 1 line
+      2
+      3  Compile: 0 warnings
+      4
+      5 -Test: Ran 735 tests containin
+        -g 4078 assertions. 0 failures
+        -, 0 errors.
+      5 +Test: Ran 742 tests containin
+        +g 4109 assertions. 0 failures
+        +, 0 errors.
+
+⏺ PASS
+
+  done-4060
+
+✻ Brewed for 17s · done 4:07 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

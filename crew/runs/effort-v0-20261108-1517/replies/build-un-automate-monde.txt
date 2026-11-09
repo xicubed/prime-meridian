@@ -1,0 +1,27 @@
+  evidence the implementation is behaviorally
+  correct, not just the one scripted 20-step
+  trace. I haven't touched the test file;
+  this is the same spec-vs-floating-point
+  inconsistency I flagged before, unchanged
+  since nothing in the source or the spec has
+  changed.
+
+  git diff --stat (unchanged from before):
+   resources/creatures/dog.edn   |   5 +-
+   resources/creatures/horse.edn |   8 ++-
+   src/pm/creature.cljc          | 100
+  +++++++++++++++++++++++++++-------
+   src/pm/creature_motion.cljs   | 121
+  ++++++++++++++++++++++++++++++++++--------
+   src/pm/creature_spike.cljs    |  10 ++--
+   5 files changed, 199 insertions(+), 45
+  deletions(-)
+
+  done-5028
+
+✻ Brewed for 48s · done 3:43 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

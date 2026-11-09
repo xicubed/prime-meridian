@@ -1,0 +1,27 @@
+  0.05 past :low, R10/R11's real MuJoCo
+  dynamics) are untouched since they clear
+  the threshold by orders of magnitude more
+  than 1e-6.
+
+  Gate: GATE: PASS — 0 warnings; Ran 735
+  tests containing 4078 assertions.
+
+  git diff --stat:
+   resources/creatures/dog.edn   |   5 +-
+   resources/creatures/horse.edn |   8 ++-
+   src/pm/creature.cljc          | 100
+  +++++++++++++++++++++++++++-------
+   src/pm/creature_motion.cljs   | 123
+  ++++++++++++++++++++++++++++++++++--------
+   src/pm/creature_spike.cljs    |  10 ++--
+   5 files changed, 201 insertions(+), 45
+  deletions(-)
+
+  done-9727
+
+✻ Cogitated for 1m 40s · done 3:45 PM
+
+─────────────────────────────────────────────
+❯ re-run .crew/gate.sh and confirm it still …
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

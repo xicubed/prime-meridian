@@ -91,7 +91,8 @@
                                        :mj mj :model model :data data :sp sp :ranges ranges
                                        :ground-z ground-z
                                        :rx rx :nv nv :jacs jacs
-                                       :ctrl (if (seq rx) (cm/reflex-controller tw rx) tw)
+                                       :rest-frac (c/rest-fraction sp) :kick (c/kick-above sp)
+                                       :ctrl (if (seq rx) (cm/reflex-controller tw rx (:seed req)) tw)
                                        :acc 0 :stats cm/empty-stats :root root :groups groups
                                        :status {:mode :running :flag flag :kind kind
                                                  :stats cm/empty-stats :torso nil})))))
@@ -102,7 +103,7 @@
 (defn tick! [dt now-ms]
   (when (= :running (:mode (:status @!state)))
     (try
-      (let [{:keys [ranges ctrl ground-z groups stats status rx jacs nv]} @!state
+      (let [{:keys [ranges ctrl ground-z groups stats status rx jacs nv rest-frac kick]} @!state
             ^js mj    (:mj @!state)
             ^js model (:model @!state)
             ^js data  (:data @!state)
@@ -115,13 +116,14 @@
                 (let [obs (when (seq jacs)
                             (doseq [[r [^js jp ^js jr]] (map vector rx jacs)]
                               (.mj_jacBody mj model data jp jr (:body-id r)))
-                            {:nv nv :qpos (.-qpos data)
+                            {:nv nv :qpos (.-qpos data) :forces (.-actuator_force data)
                              :senses (mapv (fn [r [^js jp ^js jr]]
                                              (cm/sense r (.-xpos data) (.-xmat data)
                                                        (.GetView jp) (.GetView jr) ground-z))
                                            rx jacs)})
                       [c2 actions] (cm/act c' obs c/timestep)
-                      ctrl-vals    (cm/actions->ctrl actions ranges)
+                      tg           (cm/actions->ctrl actions ranges)
+                      ctrl-vals    (cm/limp tg (.-qpos data) (cm/stiffness c2 rest-frac kick))
                       ^js dctrl    (.-ctrl data)]
                   (doseq [[idx v] (map-indexed vector ctrl-vals)] (aset dctrl idx v))
                   (.mj_step mj model data)
@@ -131,14 +133,16 @@
             ^js xquat (.-xquat data)
             torso  (- (aget xpos 5) ground-z)
             stats' (cm/stats-tick stats now-ms (- t1 t0) steps dropped)
-            head   (when s0 {:clearance (:clearance s0) :tilt (cm/tilt-deg (:up s0))})]
+            head   (when s0 {:clearance (:clearance s0) :tilt (cm/tilt-deg (:up s0))})
+            st0    (first (:efforts ctrl'))
+            effort (when (and st0 s0) {:energy (:energy st0) :label (cm/effort-label st0 (first rx) s0)})]
         (dotimes [i (count groups)]
           (let [{:keys [pos quat]} (cm/body-pose xpos xquat (inc i))]
             (t/set-pos! (nth groups i) pos)
             (t/set-quat! (nth groups i) quat)))
         (swap! !state assoc :ctrl ctrl' :acc acc :stats stats'
                :status {:mode :running :flag (:flag status) :kind (:kind status)
-                        :stats stats' :torso torso :head head}))
+                        :stats stats' :torso torso :head head :effort effort}))
       (catch :default e (fail! e)))))
 
 (defn hud-segment []

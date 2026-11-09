@@ -133,13 +133,102 @@
   (let [mid (/ (+ lo hi) 2) half (/ (- hi lo) 2)]
     (/ (- target mid) half)))
 
+;; -- Effort: energy with hysteresis and tremor (§5.1, §5.2, pure) -------------
+
+(defn effort-init [] {:energy 1 :mode :active :level 1})
+
+(defn effort-amount
+  "clamp(Σ|forces[k]| / (count(acts)·fmax), 0, 1). 0 when forces is nil, acts
+   is empty or fmax <= 0."
+  [forces acts fmax]
+  (if (or (nil? forces) (empty? acts) (not (pos? fmax)))
+    0
+    (clamp (/ (reduce + (map #(js/Math.abs (aget forces %)) acts)) (* (count acts) fmax)) 0 1)))
+
+(defn effort-step [st e amount dt]
+  (if-not (and (number? dt) (js/isFinite dt) (pos? dt))
+    st
+    (let [a       (clamp amount 0 1)
+          energy  (:energy st)
+          mode    (:mode st)
+          energy' (if (= mode :active)
+                    (max 0 (- energy (/ (* dt a) (:energy-s e))))
+                    (min 1 (+ energy (/ dt (:recover-s e)))))
+          eps     1e-6                                  ; threshold tolerance: a boundary this
+                                                          ; close is floating-point noise, not a crossing
+          mode'   (cond
+                    (and (= mode :active) (< energy' (- (:low e) eps))) :resting
+                    (and (= mode :resting) (> energy' (+ (:high e) eps))) :active
+                    :else mode)
+          target  (if (= mode' :active) 1 0)
+          delta   (/ dt (:ramp-s e))
+          level   (:level st)
+          level'  (clamp (cond
+                            (< level target) (min target (+ level delta))
+                            (> level target) (max target (- level delta))
+                            :else level)
+                          0 1)]
+      {:energy energy' :mode mode' :level level'})))
+
+(defn effort-label [st r sense]
+  (cond
+    (= (:mode st) :resting) "resting"
+    (and (>= (:clearance sense) (:lift-m r)) (<= (tilt-deg (:up sense)) 20)) "holding"
+    :else "trying"))
+
+(defn tremor-deg-at [e t]
+  (* (:tremor-deg e) (js/Math.exp (/ (- (max 0 t)) (:steady-s e)))))
+
 ;; -- The controller interface (§5.3) -----------------------------------------
 
 (defn controller [kind n seed]
   (if (= kind :twitch) (twitch-init n seed) {:kind kind :n n}))
 
-(defn reflex-controller [inner reflexes]
-  {:kind :reflex :n (:n inner) :inner inner :reflexes reflexes :t 0})
+(defn reflex-controller
+  ([inner reflexes] (reflex-controller inner reflexes 1))
+  ([inner reflexes seed]
+   (let [base {:kind :reflex :n (:n inner) :inner inner :reflexes reflexes :t 0}]
+     (if (some :effort reflexes)
+       (assoc base :efforts
+              (mapv (fn [r]
+                      (when-let [e (:effort r)]
+                        (assoc (effort-init) :tremor
+                               (twitch-init (count (:joints r)) (+ seed (:seed-salt e))))))
+                    reflexes))
+       base))))
+
+(defn- reflex-actions
+  "[a' efforts'] for one reflex `r` at index `i`, folding into `a`/`efforts`."
+  [a efforts i r se obs t' dt']
+  (let [q  (mapv #(aget (:qpos obs) %) (:qpos r))
+        nv (:nv obs)]
+    (if-let [e (:effort r)]
+      (let [st      (nth efforts i)
+            fmax    (* (:strength e) (:torque-nm e))
+            amount  (effort-amount (:forces obs) (:acts r) fmax)
+            st1     (effort-step st e amount dt')
+            tremor' (twitch-step (:tremor st) (* dt' (:tremor-speed e)))
+            s       (* (reflex-strength t' (:onset-s r)) (:strength e))
+            targets (reflex-targets r se q s nv)
+            amp     (* (/ js/Math.PI 180) (tremor-deg-at e t') (:level st1))
+            v       (twitch-actions tremor')
+            level   (:level st1)
+            sigma   (:rest-frac e)]
+        [(reduce (fn [a j]
+                   (let [[lo hi] (nth (:ranges r) j)
+                         qj      (nth q j)
+                         tj      (clamp (+ (nth targets j) (* amp (nth v j))) lo hi)
+                         final   (+ (* level tj) (* (- 1 level) (+ qj (* sigma (- 0 qj)))))]
+                     (assoc a (nth (:acts r) j) (target->action final (nth (:ranges r) j)))))
+                 a (range (count (:acts r))))
+         (assoc efforts i (assoc st1 :tremor tremor'))])
+      (let [s       (reflex-strength t' (:onset-s r))
+            targets (reflex-targets r se q s nv)]
+        [(reduce (fn [a j]
+                   (assoc a (nth (:acts r) j)
+                          (target->action (nth targets j) (nth (:ranges r) j))))
+                 a (range (count (:acts r))))
+         efforts]))))
 
 (defn act [ctrl obs dt]
   (case (:kind ctrl)
@@ -152,27 +241,42 @@
           ctrl' (assoc ctrl :inner inner' :t t')]
       (if (nil? obs)
         [ctrl' a]
-        (let [a' (reduce
-                    (fn [a [i r]]
-                      (let [se      (nth (:senses obs) i)
-                            q       (mapv #(aget (:qpos obs) %) (:qpos r))
-                            s       (reflex-strength t' (:onset-s r))
-                            targets (reflex-targets r se q s (:nv obs))]
-                        (reduce (fn [a j]
-                                  (assoc a (nth (:acts r) j)
-                                         (target->action (nth targets j) (nth (:ranges r) j))))
-                                a
-                                (range (count (:acts r))))))
-                    a
-                    (map-indexed vector (:reflexes ctrl)))]
-          [ctrl' a'])))
+        (let [[a' efforts']
+              (reduce
+                (fn [[a efforts] [i r]]
+                  (reflex-actions a efforts i r (nth (:senses obs) i) obs t' dt'))
+                [a (:efforts ctrl)]
+                (map-indexed vector (:reflexes ctrl)))]
+          [(if (contains? ctrl :efforts) (assoc ctrl' :efforts efforts') ctrl') a'])))
 
     [ctrl (vec (repeat (:n ctrl) 0))]))
 
 (defn actions->ctrl [actions ranges]
   (mapv (fn [a [lo hi]] (+ (/ (+ lo hi) 2) (* (clamp a -1 1) (/ (- hi lo) 2)))) actions ranges))
 
-;; -- Fixed physics step (§5.4) ------------------------------------------------
+;; -- Limp when not trying (§5.4, pure, output shaping between act and MuJoCo) -
+
+(defn limp
+  "ctrl[k] = q + sigma·(target − q), a servo of stiffness sigma·kp toward the
+   same target (the MuJoCo model's kp is untouched). sigma 1 passes target."
+  [targets qpos sigmas]
+  (mapv (fn [k t sigma]
+          (let [q (aget qpos (+ 7 k))]
+            (+ q (* sigma (- t q)))))
+        (range) targets sigmas))
+
+(defn stiffness
+  "One sigma per actuator: 1 for a twitch kick (|:to| >= kick-above) or a
+   reflex's own acts (it already blends its own rest), else rest-frac."
+  [ctrl rest-frac kick-above]
+  (case (:kind ctrl)
+    :twitch (mapv (fn [ch] (if (>= (js/Math.abs (:to ch)) kick-above) 1 rest-frac)) (:chans ctrl))
+    :reflex (let [base (stiffness (:inner ctrl) rest-frac kick-above)
+                  acts (into #{} (mapcat :acts) (:reflexes ctrl))]
+              (mapv (fn [k sigma] (if (contains? acts k) 1 sigma)) (range) base))
+    (vec (repeat (:n ctrl) rest-frac))))
+
+;; -- Fixed physics step (§5.6) ------------------------------------------------
 
 (def step-s c/timestep)
 (def max-steps 25)
@@ -208,16 +312,19 @@
       :loading (str (:flag status) ": " (name (:kind status)) " loading")
 
       :running
-      (let [stats (:stats status)
-            ms    (:ms stats)
-            torso (:torso status)
-            head  (:head status)]
+      (let [stats  (:stats status)
+            ms     (:ms stats)
+            torso  (:torso status)
+            head   (:head status)
+            effort (:effort status)]
         (str (:flag status) ": " (name (:kind status)) " · "
              (if (number? ms) (.toFixed ms 1) "-") " ms/frame · "
              (:steps stats) " steps · " (:dropped stats) " dropped · torso "
              (if (number? torso) (.toFixed torso 2) "-") " m"
              (when (map? head)
-               (str " · head " (.toFixed (:clearance head) 2) " m " (js/Math.round (:tilt head)) "°"))))
+               (str " · head " (.toFixed (:clearance head) 2) " m " (js/Math.round (:tilt head)) "°"))
+             (when (map? effort)
+               (str " · energy " (.toFixed (:energy effort) 2) " · " (:label effort)))))
 
       :failed
       (str (:flag status) ": " (name (:kind status)) " failed (" (m/short-reason (:reason status)) ")")

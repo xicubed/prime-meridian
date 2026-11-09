@@ -1,0 +1,173 @@
+collapses to "hold current angle" rather than the spec's soft-spring-to-neutral blend); creature_spike.cljs's tick! still drives the legs at full table-leg stiffness. The tester's own reply reports exactly 27 of the spec's 34 new test cases as "complete" — missing precisely G1–G2, K1–K3, and R12–R13, the cases that would have caught this gap — and GATE: PASS only holds because those tests were never written.
+
+Finding 2: Everything that was delivered (energy/hysteresis state machine, tremor, force limits from data, the no-:effort byte-identical path, buffer reuse, and the real-MuJoCo horse-tries/rests/tries-again and dog-holds tests) matches the spec exactly on hand-inspection.
+
+Gate independently re-verified (PASS, 735/4078, 0 warnings) — but that result should not be read as evidence the quest is satisfied.
+
+done-3060
+────────────────────────────────────────
+
+─ 9m26s · edited 1 file · read 9 files · ran 11 commands · searched 2 paths · 3:55 PM
+  💾 Self-improvement review: Skill 'crew-round-review' patched
+
+
+────────────────────────────────────────
+❯ Review the round's changes against crew/runs/effort-v0-20261108-1517/spec.md and .crew/quests/effort-v0.md: git diff for edited files, and read the new files (git status lists them). Check: all effort numbers come from species data (no species/body names in code); a reflex without :effort is byte-for-byte the old behaviour; the energy state machine is pure, takes time as an argument, and has hysteresis; actuator force limits generated from data; buffers still allocated once; the real-MuJoCo test really shows lift, rest, lift for the horse and a long hold for the dog. Write the review to crew/runs/effort-v0-20261108-1517/review.md (at most 5 ranked findings).
+
+When you have completely finished, end your reply with a line containing only this: done-6496
+────────────────────────────────────────
+
+💻 $ git status + 2 commands  0.8s
+💻 $ grep -rn "rest-kp\|kick-above\|rest-frac\|defn limp\|defn stiffness\|cm/limp\|cm/stiffness" src/ test/ resources/creatures/  0.3s
+📖 Read log.md
+📖 Read gate-note.md
+💻 $ bash .crew/gate.sh  11.9s
+💻 $ git diff -- src/pm/creature.cljc + 1 command  0.3s
+💻 $ git diff -- src/pm/creature_motion.cljs + 1 command  0.4s
+💻 $ git diff -- src/pm/creature_spike.cljs  0.3s
+📖 Read creature_cljc.diff
+📖 Read creature_motion.diff
+💻 $ git diff -- resources/creatures/horse.edn resources/creatures/dog.edn  0.3s
+💻 $ sed -n '1,10p' resources/creatures/horse.edn + 1 command  0.4s
+
+────────────────────────────────────────
+☤ Hermes
+Both species files now carry :rest-kp/:kick-above verbatim as spec §3 requires. Now let's check the test files for G1/G2, K1–K3, and R12/R13.
+────────────────────────────────────────
+
+💻 $ git diff -- test/pm/creature_test.cljs  0.3s
+💻 $ sed -n '240,280p' test/pm/creature_effort_test.cljs  0.3s
+
+────────────────────────────────────────
+☤ Hermes
+G1, G2, K1, K2, K3 all present now. Let's check R12/R13 in the mujoco test file and confirm the C37 update includes :rest-frac.
+────────────────────────────────────────
+
+💻 $ grep -n "deftest r1[0-3]\|deftest r9" test/pm/creature_mujoco_test.cljs  0.4s
+💻 $ sed -n '300,520p' test/pm/creature_mujoco_test.cljs  0.3s
+💻 $ sed -n '415,445p' test/pm/creature_test.cljs  0.3s
+
+────────────────────────────────────────
+☤ Hermes
+:rest-frac 0.1 now correctly present in both expected maps. Everything checks out. Let's do a final full gate re-run and verify total case count, then verify no stray leaks/regressions one more time comprehensively.
+────────────────────────────────────────
+
+💻 $ grep -c "^(deftest" test/pm/creature_effort_test.cljs test/pm/creature_test.cljs test/pm/creature_mujoco_test.cljs  0.3s
+💻 $ grep -rniE 'horse|dog|pony|juniper|neck|head-' src/pm/creature*.cljs src/pm/creature.cljc  0.4s
+💻 $ git status --porcelain + 1 command  11.4s
+
+────────────────────────────────────────
+☤ Hermes
+Boundary table unchanged (same files as before), gate independently re-confirmed PASS (742 tests / 4109 assertions, 0 warnings). Now writing the updated review.
+────────────────────────────────────────
+
+✗ Write crew/runs/effort-v0-20261108-1517/review.md [Refusing to overwrite crew/runs/effort-v0-202...]
+📖 Read review.md
+
+────────────────────────────────────────
+☤ Hermes
+Now I can write the updated review.
+────────────────────────────────────────
+
+✍️ Write crew/runs/effort-v0-20261108-1517/review.md
+│ crew/runs/effort-v0-20261108-1517/review.md
+│ @@ -2,91 +2,104 @@
+│
+│  ## Conformance summary
+│
+│ -Gate: PASS after 1 fix round (gate-1 FAIL: 1 assertion, a floating-point boundary issue in the
+│ -energy/hysteresis tests unrelated to the finding below; gate-2 PASS, 735 tests / 4078 assertions,
+│ -0 warnings — re-ran `bash .crew/gate.sh` myself and confirmed the identical result).
+│ +This supersedes my prior review of this round (below, for context: it found the "limp when not
+│ +trying" half of the spec entirely unbuilt despite `GATE: PASS`). Per `log.md`, Hal re-prompted
+│ +the builder and tester with the exact missing sections/cases and resumed from `gate`; I
+│ +re-reviewed the full diff from scratch against the current `spec.md` rather than trusting that
+│ +the resolution happened.
+│
+│ -Boundary table (spec §2): builder touched exactly `src/pm/creature.cljc`,
+│ -`src/pm/creature_motion.cljs`, `src/pm/creature_spike.cljs`, and the two `resources/creatures/
+│ -*.edn` files; tester touched the required test files. None of the "nobody edits" files
+│ -(`package.json`, `public/vendor/`, `creatures/`, `pm.core`, `pm.three`, `pm.species`, the estate,
+│ -`bb.edn`, `docs/GDD.md`, `assets/private/`, `public/kit/`) appear in `git status`.
+│ +Gate: PASS (re-ran `bash .crew/gate.sh` myself: 742 tests / 4109 assertions, 0 warnings, matching
+│ +`gate-note.md`/`gate-1.txt` exactly — up from 735/4078 before the fix, consistent with 7 more
+│ +`deftest`s). Counted `deftest` forms directly: `creature_effort_test.cljs` has 21 (E1–E9=9,
+│ +T1–T4=4, A1–A3=3, L1=1, H1=1, **K1–K3=3**), `creature_test.cljs` has 48 (27 existing + C28–C40=13
+│ ++ F1–F6=6 + **G1–G2=2**), `creature_mujoco_test.cljs` has 13 (R1–R8=8 + R9–R13=5, **including
+│ +R12–R13**) — 34 new cases total, exactly matching spec §7's "Count: 34 new numbered cases."
+│ +Every case the prior review flagged as missing (G1–G2, K1–K3, R12–R13) is now present.
+│ +
+│ +Boundary table (spec §2) unchanged from the prior review: builder touched exactly
+│ +`src/pm/creature.cljc`, `src/pm/creature_motion.cljs`, `src/pm/creature_spike.cljs`, and the two
+│ +`resources/creatures/*.edn` files; tester touched the required test files. None of the "nobody
+│ +edits" files appear in `git status`.
+│ +
+│ +Checks from the task, re-verified against the current diff:
+│ +- **All effort numbers come from species data; no species/body names in code.**
+│ +  `grep -rniE 'horse|dog|pony|juniper|neck|head-' src/pm/creature*.cljs src/pm/creature.cljc`
+│ +  still shows only the same two pre-existing hits as head-reflex-v0 (`head-up`, the generic
+│ +  sensing function, and `:head-level`, the reflex-kind literal) — both specified verbatim by an
+│ +  earlier round's spec and already flagged in that round's own review as an architect-naming
+│ +  issue, not something introduced here. `:rest-kp`, `:kick-above`, `:strength`, `:torque-nm`, and
+│ +  every other effort/limp number live only in `resources/creatures/{horse,dog}.edn`; the code
+│ +  reads them generically (`rest-fraction`, `kick-above`, `force-limits` in `mjcf`).
+│ +- **A reflex without `:effort` is byte-for-byte the old behavior.** `reflexes` only adds the
+│ +  `:effort` key (with `:rest-frac` folded in) via `cond->` when `(:effort r)` is truthy;
+│ +  `reflex-controller` only adds `:efforts` when `(some :effort reflexes)`; `act`'s `:reflex`
+│ +  branch only re-attaches `:efforts` to `ctrl'` `(if (contains? ctrl :efforts) ...)`, so a
+│ +  no-effort reflex's controller map is structurally identical to before. Confirmed against F6
+│ +  (0 `forcerange=` in the no-effort MJCF) and A2 (`(cm/reflex-controller inner [r-x11] 5)` has no
+│ +  `:efforts` key and equals the 5-less call).
+│ +- **The energy state machine (`effort-step`) is pure, takes time as an argument, and has real
+│ +  hysteresis.** No atoms, no `js/Date`; `dt` is an explicit argument and a non-finite/non-positive
+│ +  `dt` returns the state unchanged (E8). Mode flips only `:active`→`:resting` below `:low` and
+│ +  `:resting`→`:active` above `:high` (with a 1e-6 epsilon noted in a comment as float-noise
+│ +  tolerance, not a behavioral loosening — the spec itself flags the exact-boundary case as
+│ +  unassertable for the same reason); between the thresholds nothing changes, confirmed by E5's
+│ +  alternating-amount case staying `:active` throughout.
+│ +- **Actuator force limits are generated from data.** `mjcf`'s `force-limits` map is built purely
+│ +  from each reflex's own `:effort {:strength :torque-nm}` (`fmt (* strength torque-nm)`) and
+│ +  applied only to that reflex's own `:acts`; confirmed against F5/R9 (horse 35 N·m × 4 actuators,
+│ +  dog 9 N·m × 4, `actuator_forcelimited` 1 only on those 4, 0 on the rest, in real MuJoCo).
+│ +- **`mj_jacBody` buffers are still allocated once.** This round's diff to `creature_spike.cljs`
+│ +  only added `:rest-frac`/`:kick` to `start!`'s stored state, the 3-arity
+│ +  `reflex-controller`/seed call, `:forces` to `obs`, and the `limp`/`stiffness` wrap around the
+│ +  ctrl-vals write in `tick!` — the `:jacs` `DoubleBuffer` allocation block (one pair per reflex,
+│ +  created once in `start!`, reused every step) is untouched.
+│ +- **Limp when not trying is now actually implemented**, and matches the spec's formulas on
+│ +  inspection, not just by name:
+│ +  - `limp` (`ctrl[k] = q + σ·(target−q)`) and `stiffness` (`:twitch`→1 for a kick else
+│ +    `rest-frac`; `:reflex`→inner's stiffness with every reflex `:acts` index forced to 1;
+│ +    anything else→`rest-frac` everywhere) match §5.4 exactly, confirmed against K1/K2.
+│ +  - The reflex layer's step-5 blend (`final = level·T + (1−level)·(q + σ·(0−q))`, with `σ =
+│ +    (:rest-frac e)`) is now present in `reflex-actions`, replacing the prior fix's incomplete
+│ +    "fold level into gain" shortcut — confirmed against K3 (`0.3·0.1 + 0.7·0.09 = 0.093`, the
+│ +    exact post-step-level blend the spec requires).
+│ +  - `creature_spike.cljs`'s `tick!` now writes `(cm/limp tg (.-qpos data) (cm/stiffness c2
+│ +    rest-frac kick))` instead of the raw `actions->ctrl` output, and `start!` stores
+│ +    `:rest-frac`/`:kick` from `(c/rest-fraction sp)`/`(c/kick-above sp)` — matching §6 exactly.
+│ +- **The real-MuJoCo test genuinely shows lift/rest/lift for the horse and a long hold for the
+│ +  dog, now with the torso-on-the-ground assertion the spec actually asks for.** R10 (horse)
+│ +  tracks `clears ≥ 2`, `:resting` reached and left again, peak force within [34.9, 35+1e-6], and
+│ +  — newly present — `torso-ok?` (capsule-clearance of the torso body ≤ 0.02 m for every step with
+│ … omitted 104 diff line(s) across 1 additional file(s)/section(s)
+  ⟳ compacting context…
+🗜️ Compacting context — summarizing earlier conversation so I can continue...
+🗜️ Compacting context — still summarizing earlier conversation so I can continue...
+🗜️ Compacting context — still summarizing earlier conversation so I can continue...
+
+────────────────────────────────────────
+☤ Hermes
+Review updated: the "limp when not trying" gap my prior review flagged is now fully fixed and verified by fresh inspection, not just by the gate going green.
+
+Confirmed present and correct: :rest-kp/:kick-above in both species' data; G-a/G-b validation, rest-fraction/kick-above functions, and :rest-frac correctly nested in the compiled :effort map in creature.cljc; limp/stiffness functions and the proper step-5 target blend (level·T + (1−level)·(q + σ·(0−q)), replacing the earlier incomplete "fold level into gain" shortcut) in creature_motion.cljs; creature_spike.cljs's tick! now wraps ctrl writes in cm/limp/cm/stiffness. Test counts match the spec's "34 new cases" exactly, including the previously-missing G1–G2, K1–K3, and R12–R13 — R10–R12 now carry the torso-low-point-≤0.02m assertion that would have caught the original gap, and R13 shows the dog standing at full stiffness vs. lying flat at rest stiffness in real MuJoCo.
+
+All other requested checks (species-data-only numbers, byte-identical no-:effort path, pure/hysteretic energy state machine, data-driven force limits, single-allocation Jacobian buffers, real horse lift/rest/lift and dog long-hold) re-verified clean. Gate independently re-run: PASS, 742 tests / 4109 assertions, 0 warnings. No findings this time.
+
+done-6496
+────────────────────────────────────────
+
+─ 5m14s · edited 1 file · read 5 files · ran 16 commands · 4:12 PM
+──── Security review of crew-talk-v1 round ─
+crew ❯ What changed in this repo recently?
+ ☤ claude-sonnet-5 · 6h 47m

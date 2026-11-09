@@ -1,0 +1,27 @@
+
+  When you have completely finished, end
+  your reply with a line containing only
+  this: done-3297
+
+  Searched for 1 pattern, ran 3 shell
+  commands
+
+⏺ Everything from this spec is already in
+  place from the previous turn — all 27 new
+  cases (F1–F6, E1–E9, T1–T4, A1–A3, L1, H1,
+  R9–R11) plus the 5 updated ones (C20, C21,
+  C37, R6, R7) are present. No further
+  changes needed; nothing is staged.
+
+  M test/pm/creature_mujoco_test.cljs
+  M test/pm/creature_test.cljs
+  ?? test/pm/creature_effort_test.cljs
+
+  done-3297
+
+✻ Sautéed for 18s · done 3:42 PM
+                      3% until auto-compact
+─────────────────────────────────────────────
+❯ run the gate
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

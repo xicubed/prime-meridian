@@ -1,0 +1,27 @@
+    N·m; a 14 N·m cap never got it up.
+  - Fatigue: horse :energy-s is 2.5, not the
+    example's 6. Holding level is cheap, so
+    at 6 a single hold lasted about 20 s.
+  - Dog: strength 0.9, torque 10, tremor 1°,
+    energy-s 30.
+
+  Things you'd want to know:
+  - Old tests keep passing. A reflex without
+    :effort produces the same XML, controller
+    and actions as before. R6 and R7 now run
+    on the species with :effort removed, and
+    pass unchanged.
+  - "Holds get a little longer" is weak. As
+    the tremor fades it wastes slightly less
+    force, so the effect exists, but a clear
+    trend needs minutes, which belongs to the
+    age/checkpoint round.
+
+  done-4308
+
+✻ Crunched for 8m 5s · done 3:27 PM
+
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

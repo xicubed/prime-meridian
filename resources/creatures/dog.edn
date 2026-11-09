@@ -4,6 +4,8 @@
  :density 1000          ; kg/m³: each body's mass = its capsule's volume × density
  :kp      40            ; position-actuator stiffness, N·m/rad (one actuator per joint)
  :damping 1.5           ; joint damping, N·m·s/rad
+ :rest-kp    4          ; N·m/rad: muscles that aren't working are soft (10 % of :kp), so he lies, not stands
+ :kick-above 0.8        ; a twitch segment whose random target |to| >= this is a kick (full :kp); else rest stiffness
  :colors  {:coat 0xc49a6c :dark 0x6b4a32}
  :bodies
  [{:name :torso :capsule {:from [-0.22 0 0] :to [0.22 0 0] :r 0.1} :color :coat}
@@ -44,4 +46,7 @@
  ;; (same comment as horse.edn)
  :reflexes [{:kind :head-level :body :head
              :joints [:neck-bend :neck-pitch :head-pitch :head-roll]
-             :up [0 0 1] :lift-m 0.15 :gain 2 :w-lift 40 :onset-s 1.5}]}
+             :up [0 0 1] :lift-m 0.15 :gain 2 :w-lift 40 :onset-s 1.5
+             ;; A grown dog: strong and steady, so little tremor and long holds.
+             :effort {:strength 0.9 :torque-nm 10 :tremor-deg 1 :steady-s 30
+                      :energy-s 30 :recover-s 4 :low 0.15 :high 0.6 :seed-salt 3}}]}
