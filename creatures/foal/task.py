@@ -49,8 +49,9 @@ _HEAD_LOCAL_POS = (0.24, 0.0, -0.1)  # matches the head capsule's far end
 
 ROOT_JOINT_NAME = "root"
 
-# Reward weights, in one place (quest rule).
-REWARD_WEIGHTS: dict[str, float] = {
+# Reward weights, in one place (quest rule). Run 1 ("v1", the default -- kept
+# reproducible) vs. run 2 ("v2"): see foal_getup_env(variant=...).
+REWARD_WEIGHTS_V1: dict[str, float] = {
     "height": 3.0,
     "upright": 3.0,
     "head_height": 1.0,
@@ -58,6 +59,24 @@ REWARD_WEIGHTS: dict[str, float] = {
     "joint_speed": -0.01,
     "action_rate": -0.05,
     "energy": -0.001,
+}
+
+# Run 2 (M-10 run-2 notes, Nov 9): run 1's REPORT.md found head_height and
+# feet_grounded payable by just lying still (confirmed: feet near the ground
+# and head up don't require standing), and action_rate/joint_speed/energy
+# taxing the one behavior (moving) that could lead to the underpaid one
+# (actually standing). v2 keeps the same weights -- the fix for the first
+# problem is gating head_height/feet_grounded on height*upright (see
+# reward_head_height_gated/reward_feet_grounded_gated below), not reweighting
+# them -- and lightens the movement costs for the second.
+REWARD_WEIGHTS_V2: dict[str, float] = {
+    "height": 3.0,
+    "upright": 3.0,
+    "head_height": 1.0,
+    "feet_grounded": 1.0,
+    "joint_speed": -0.005,  # v1 * 1/2
+    "action_rate": -0.01,  # v1 * 1/5
+    "energy": -0.0005,  # v1 * 1/2
 }
 
 _STANDING_HEIGHT_RANGE = (0.75, 0.95)  # torso centre, metres; see quest's ~0.85m
@@ -69,6 +88,26 @@ _CONTROL_TIMESTEP = 0.02
 _SIMULATION_TIMESTEP = 0.002
 _EPISODE_LENGTH_SECS = 6.0
 _DROP_HEIGHT_RANGE = (0.4, 0.8)
+
+# Run 2: 30% of resets start sternal (chest-down, torso level, legs folded
+# under) instead of the free-falling drop. "Fold direction" picks, per leg
+# joint, which end of its own [lo, hi] range (see JOINT_NAMES) flexion sits
+# at -- front legs toward +hi, hind legs toward -lo, matching the sign
+# asymmetry already in horse.xml's fl/fr-lower vs hl/hr-lower ranges. This is
+# a best-effort pose, not a render check -- worth a visual sanity-check
+# before trusting it further.
+_STERNAL_FRACTION = 0.3
+_STERNAL_HEIGHT_RANGE = (0.35, 0.45)  # torso centre at rest, folded legs
+_STERNAL_TILT_RAD = 0.26  # ~15 degrees, "small random tilt" off level
+_STERNAL_FOLD_STRENGTH = 0.8  # how far from centre toward the fold bound
+_STERNAL_FOLD_JITTER = 0.1  # +/- random jitter, as a fraction of half-range
+_LEG_FOLD_DIRECTION = torch.tensor([
+    0.0, 0.0, 0.0, 0.0,  # neck-bend, neck-pitch, head-pitch, head-roll: n/a
+    1.0, 1.0,  # fl-upper, fl-lower
+    1.0, 1.0,  # fr-upper, fr-lower
+    -1.0, -1.0,  # hl-upper, hl-lower
+    -1.0, -1.0,  # hr-upper, hr-lower
+])
 
 
 def _load_base_scene() -> mujoco.MjSpec:
@@ -97,8 +136,21 @@ def reset_foal(
     env_mask: torch.Tensor,
     joint_ranges: torch.Tensor,
     drop_height_range: tuple[float, float],
+    sternal_fraction: float = 0.0,
+    sternal_height_range: tuple[float, float] = _STERNAL_HEIGHT_RANGE,
+    sternal_tilt_rad: float = _STERNAL_TILT_RAD,
+    fold_direction: torch.Tensor | None = None,
+    fold_strength: float = _STERNAL_FOLD_STRENGTH,
+    fold_jitter: float = _STERNAL_FOLD_JITTER,
 ) -> None:
-  """Drops the foal from a random height, orientation and joint pose."""
+  """Drops the foal from a random height, orientation and joint pose.
+
+  If `sternal_fraction` > 0, that fraction of the reset envs instead start
+  sternal (chest-down, torso level, legs folded under -- see
+  `_LEG_FOLD_DIRECTION`) rather than free-falling. v1 (the default,
+  sternal_fraction=0.0) is untouched by this: it's the exact original
+  drop-only behaviour.
+  """
   data = dc.sim.data
   model = dc.sim.mj_model
   device_ = data.qpos.device
@@ -139,6 +191,44 @@ def reset_foal(
   joint_pos = torch.rand(n, NUM_JOINTS, device=device_) * (
       ranges[:, 1] - ranges[:, 0]
   ) + ranges[:, 0]
+
+  if sternal_fraction > 0.0:
+    is_sternal = torch.rand(n, device=device_) < sternal_fraction
+
+    s_lo, s_hi = sternal_height_range
+    z_sternal = torch.rand(n, device=device_) * (s_hi - s_lo) + s_lo
+    pos_sternal = torch.stack(
+        [torch.zeros(n, device=device_), torch.zeros(n, device=device_), z_sternal], dim=-1
+    )
+
+    # Small random tilt off level: a random axis, a small random angle.
+    axis = torch.randn(n, 3, device=device_)
+    axis = axis / axis.norm(dim=-1, keepdim=True).clamp_min(1e-6)
+    angle = (torch.rand(n, device=device_) * 2 - 1) * sternal_tilt_rad
+    half = angle / 2
+    quat_sternal = torch.cat(
+        [torch.cos(half).unsqueeze(-1), axis * torch.sin(half).unsqueeze(-1)], dim=-1
+    )
+
+    fold_dir = (
+        fold_direction.to(device_) if fold_direction is not None
+        else torch.zeros(NUM_JOINTS, device=device_)
+    )
+    half_range = (ranges[:, 1] - ranges[:, 0]) / 2.0
+    center = (ranges[:, 1] + ranges[:, 0]) / 2.0
+    fold_target = center + fold_dir * fold_strength * half_range
+    jitter = (torch.rand(n, NUM_JOINTS, device=device_) * 2 - 1) * fold_jitter * half_range
+    joint_pos_sternal = fold_target.unsqueeze(0) + jitter
+    # Joints with no fold direction (neck/head) keep the regular full-range
+    # random pose instead of collapsing to their range centre.
+    joint_pos_sternal = torch.where(
+        (fold_dir == 0.0).unsqueeze(0), joint_pos, joint_pos_sternal
+    )
+
+    is_sternal_col = is_sternal.unsqueeze(1)
+    pos = torch.where(is_sternal_col, pos_sternal, pos)
+    quat = torch.where(is_sternal_col, quat_sternal, quat)
+    joint_pos = torch.where(is_sternal_col, joint_pos_sternal, joint_pos)
 
   mask_col = env_mask.unsqueeze(1)
   q_dtype, v_dtype = data.qpos.dtype, data.qvel.dtype
@@ -216,14 +306,58 @@ def reward_energy(f: dict[str, torch.Tensor]) -> torch.Tensor:
   return torch.sum(torch.abs(f["robot/actuator_force"]) * torch.abs(f["robot/joint_vel"]), dim=-1)
 
 
+# Run 2 only: run 1 paid head_height and feet_grounded in full regardless of
+# whether the torso was actually off the ground, so a foal lying still could
+# collect both for free (confirmed in run 1's REPORT.md). Gate them on how
+# far he actually is toward standing (height * upright, both already in
+# [0, 1]) so they only pay out near-fully once he's genuinely up.
+
+
+def reward_head_height_gated(f: dict[str, torch.Tensor]) -> torch.Tensor:
+  return reward_head_height(f) * reward_height(f) * reward_upright(f)
+
+
+def reward_feet_grounded_gated(f: dict[str, torch.Tensor]) -> torch.Tensor:
+  return reward_feet_grounded(f) * reward_height(f) * reward_upright(f)
+
+
 ##
 # Environment config.
 ##
 
 
-def foal_getup_env(play: bool = False) -> config.Environment:
-  """Foal get-up task: drop in a random pose, learn to stand."""
+def foal_getup_env(
+    play: bool = False,
+    variant: str = "v1",
+    sternal_fraction: float | None = None,
+) -> config.Environment:
+  """Foal get-up task: drop in a random pose, learn to stand.
+
+  Args:
+    variant: "v1" (run 1, the default -- kept reproducible) or "v2" (run 2:
+      head_height/feet_grounded gated on height*upright, lighter movement
+      costs, 30% sternal-start resets). Select via --env_overrides, e.g.
+      --env_overrides='{"variant": "v2"}'.
+    sternal_fraction: overrides variant's default fraction of sternal-start
+      resets (0.0 for v1, 0.3 for v2) -- mainly for eval, to force an
+      all-sternal or all-drop evaluation batch regardless of variant.
+  """
   del play  # No sim2real noise/randomization to disable yet (v0).
+
+  if variant == "v1":
+    weights = REWARD_WEIGHTS_V1
+    head_height_fn = reward_head_height
+    feet_grounded_fn = reward_feet_grounded
+    default_sternal_fraction = 0.0
+  elif variant == "v2":
+    weights = REWARD_WEIGHTS_V2
+    head_height_fn = reward_head_height_gated
+    feet_grounded_fn = reward_feet_grounded_gated
+    default_sternal_fraction = _STERNAL_FRACTION
+  else:
+    raise ValueError(f"Unknown variant: {variant!r} (expected 'v1' or 'v2')")
+  if sternal_fraction is None:
+    sternal_fraction = default_sternal_fraction
 
   base_scene = _load_base_scene()
   joint_ranges = _joint_ranges(base_scene)
@@ -261,15 +395,13 @@ def foal_getup_env(play: bool = False) -> config.Environment:
   )
 
   rewards = {
-      "height": config.Reward(reward_height, weight=REWARD_WEIGHTS["height"]),
-      "upright": config.Reward(reward_upright, weight=REWARD_WEIGHTS["upright"]),
-      "head_height": config.Reward(reward_head_height, weight=REWARD_WEIGHTS["head_height"]),
-      "feet_grounded": config.Reward(
-          reward_feet_grounded, weight=REWARD_WEIGHTS["feet_grounded"]
-      ),
-      "joint_speed": config.Reward(reward_joint_speed, weight=REWARD_WEIGHTS["joint_speed"]),
-      "action_rate": config.Reward(reward_action_rate, weight=REWARD_WEIGHTS["action_rate"]),
-      "energy": config.Reward(reward_energy, weight=REWARD_WEIGHTS["energy"]),
+      "height": config.Reward(reward_height, weight=weights["height"]),
+      "upright": config.Reward(reward_upright, weight=weights["upright"]),
+      "head_height": config.Reward(head_height_fn, weight=weights["head_height"]),
+      "feet_grounded": config.Reward(feet_grounded_fn, weight=weights["feet_grounded"]),
+      "joint_speed": config.Reward(reward_joint_speed, weight=weights["joint_speed"]),
+      "action_rate": config.Reward(reward_action_rate, weight=weights["action_rate"]),
+      "energy": config.Reward(reward_energy, weight=weights["energy"]),
   }
 
   policy_terms = {
@@ -296,6 +428,8 @@ def foal_getup_env(play: bool = False) -> config.Environment:
                   type="reset",
                   joint_ranges=joint_ranges,
                   drop_height_range=_DROP_HEIGHT_RANGE,
+                  sternal_fraction=sternal_fraction,
+                  fold_direction=_LEG_FOLD_DIRECTION,
               )
           ],
       )

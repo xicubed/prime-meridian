@@ -1,17 +1,20 @@
 #!/usr/bin/env python
 """Exports FoalGetUp checkpoints to ONNX plus a policy.json sidecar.
 
-    uv run python export_foal.py runs/foal-getup/model_0.pt runs/foal-getup/model_3000.pt ...
+    uv run python export_foal.py runs/foal-getup/model_0.pt ... --logdir=runs/foal-getup
+    uv run python export_foal.py runs/foal-getup-r2/model_0.pt ... --logdir=runs/foal-getup-r2
 
-Writes runs/foal-getup/policy_<iter>.onnx for each checkpoint given, and one
-runs/foal-getup/policy.json describing the (checkpoint-independent) layout:
+Writes <logdir>/policy_<iter>.onnx for each checkpoint given, and one
+<logdir>/policy.json describing the (checkpoint-independent) layout:
 observation order, joint order, and the action -> actuator-target mapping,
 read directly off the registered env so it can't drift from foal/task.py.
+The layout is identical between v1 and v2 (only rewards/resets differ), so
+no --variant flag is needed here.
 """
+import argparse
 import dataclasses
 import json
 import re
-import sys
 
 import foal.task  # noqa: F401  (side effect: registers "FoalGetUp")
 from mujoco_playground._src import xpu
@@ -19,12 +22,11 @@ from mujoco_playground._src.rl import env_registry
 from mujoco_playground._src.rl.rsl_rl import checkpoint
 from mujoco_playground._src.rl.rsl_rl import vecenv_wrapper
 from rsl_rl import runners as rsl_rl_runners
-import torch
 
 _CKPT_RE = re.compile(r"model_(\d+)\.pt$")
 
 
-def export_one(ckpt_path: str, device_str: str) -> str:
+def export_one(ckpt_path: str, device_str: str, logdir: str) -> str:
   entry = env_registry.get("FoalGetUp")
   agent_cfg = entry.runner_cfg
   agent_cfg.nworld = 2  # irrelevant for export; just needs to build.
@@ -40,15 +42,12 @@ def export_one(ckpt_path: str, device_str: str) -> str:
 
   it = _CKPT_RE.search(ckpt_path).group(1)
   filename = f"policy_{it}.onnx"
-  runner.export_policy_to_onnx("runs/foal-getup", filename=filename)
-  return f"runs/foal-getup/{filename}"
+  runner.export_policy_to_onnx(logdir, filename=filename)
+  return f"{logdir}/{filename}"
 
 
-def write_policy_json(device_str: str) -> None:
+def write_policy_json(device_str: str, logdir: str) -> None:
   from foal import task as foal_task
-
-  entry = env_registry.get("FoalGetUp")
-  env = entry.env_builder(nworld=2, device=device_str)
 
   joint_ranges = foal_task._joint_ranges(foal_task._load_base_scene())
   scale = ((joint_ranges[:, 1] - joint_ranges[:, 0]) / 2.0).tolist()
@@ -94,17 +93,22 @@ def write_policy_json(device_str: str) -> None:
           "ctrlrange_hi": hi,
       },
   }
-  with open("runs/foal-getup/policy.json", "w") as f:
+  with open(f"{logdir}/policy.json", "w") as f:
     json.dump(policy_json, f, indent=2)
 
 
 def main():
+  parser = argparse.ArgumentParser()
+  parser.add_argument("checkpoints", nargs="+")
+  parser.add_argument("--logdir", default="runs/foal-getup")
+  args = parser.parse_args()
+
   device_str = xpu.resolve_device(None)
-  for ckpt_path in sys.argv[1:]:
-    path = export_one(ckpt_path, device_str)
+  for ckpt_path in args.checkpoints:
+    path = export_one(ckpt_path, device_str, args.logdir)
     print(f"exported {ckpt_path} -> {path}")
-  write_policy_json(device_str)
-  print("wrote runs/foal-getup/policy.json")
+  write_policy_json(device_str, args.logdir)
+  print(f"wrote {args.logdir}/policy.json")
 
 
 if __name__ == "__main__":
