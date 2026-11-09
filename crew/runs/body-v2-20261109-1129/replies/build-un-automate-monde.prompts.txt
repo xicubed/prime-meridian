@@ -1,0 +1,140 @@
+=== prompt 1 (11:46:07)
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ bb creature-mjcf horse >
+ │ creatures/bodies/horse.xml && bb
+ │ creature-mjcf dog >
+ │ creatures/bodies/dog.xml && shasum -a 256
+ │ creatures/bodies/horse.xml
+ │ creatures/bodies/dog.xml && wc -l
+ │ creatures/bodies/horse.xml
+ │ creatures/bodies/dog.xml
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don't ask again for bb
+      creature-mjcf and shasum -a 256
+      creatures/bodies/horse.xml
+      creatures/bodies/dog.xml commands in
+      /Users/hal/src/prime-meridian
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 2 (11:46:57)
+     in" /tmp/gate-body-v2.txt; grep "^FAIL
+     in" /tmp/gate-body-v2.txt | sort | uniq
+     -c; echo "---"; grep -E "^(FAIL|ERROR)"
+     /tmp/gate-body-v2.txt | wc -l
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ .crew/gate.sh 2>&1 >
+ │ /tmp/gate-body-v2.txt; grep -c "^FAIL in"
+ │ /tmp/gate-body-v2.txt; grep "^FAIL in"
+ │ /tmp/gate-body-v2.txt | sort | uniq -c;
+ │ echo "---"; grep -E "^(FAIL|ERROR)"
+ │ /tmp/gate-body-v2.txt | wc -l
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, allow reading from /tmp from this
+      project
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 3 (11:47:23)
+          hr-upper :at [0 0 -0.2]
+      54     :joint {:axis [0 1 0] :ra
+          nge [-100 10]}
+
+⏺ Now regenerate the MJCF XML files with bb
+  creature-mjcf.
+
+  Ran 1 shell command
+
+⏺ Matches spec's expected sha256 and line
+  counts exactly. Now run the gate.
+
+⏺ Reading /tmp/gate-body-v2.txt
+  ⎿  /tmp/gate-body-v2.txt
+
+─────────────────────────────────────────────
+ Read file
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Read(/tmp/gate-body-v2.txt)
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, allow reading from /tmp and
+      /private/tmp during this session
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 4 (11:47:48)
+
+
+⏺ Running wc -l /tmp/gate-body-v2.txt && grep
+  -o "FAIL in" …
+  ⎿  /tmp/gate-body-v2.txt
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ wc -l /tmp/gate-body-v2.txt && grep -o
+ │ "FAIL in" /tmp/gate-body-v2.txt | wc -l
+ │ && awk '{print length, NR}'
+ │ /tmp/gate-body-v2.txt | sort -rn | head
+ │ -5
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, allow reading from /private/tmp
+      from this project
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 5 (11:47:58)
+⏺ Matches spec's expected sha256 and line
+  counts exactly. Now run the gate.
+
+⏺ Running cat .crew/gate.sh
+  ⎿  $ node out/test.js > /tmp/test-full.txt
+     2>&1; grep -n "^FAIL in\|^ERROR in"
+     /tmp/test-full.txt
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ node out/test.js > /tmp/test-full.txt
+ │ 2>&1; grep -n "^FAIL in\|^ERROR in"
+ │ /tmp/test-full.txt
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and allow access to /tmp and node
+      out/test.js commands
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend

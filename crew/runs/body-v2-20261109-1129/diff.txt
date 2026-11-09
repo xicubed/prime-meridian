@@ -1,0 +1,1150 @@
+diff --git a/creatures/bodies/dog.xml b/creatures/bodies/dog.xml
+index 4ec3f44..b4f7c80 100644
+--- a/creatures/bodies/dog.xml
++++ b/creatures/bodies/dog.xml
+@@ -5,7 +5,7 @@
+     <geom name="ground" type="plane" pos="0 0 0" size="2 2 0.1" contype="1" conaffinity="0"/>
+     <body name="torso" pos="0 0 0.84" quat="1 0 0 0">
+       <freejoint name="root"/>
+-      <geom name="torso" type="capsule" fromto="-0.22 0 0 0.22 0 0" size="0.1" density="1000" contype="0" conaffinity="1"/>
++      <geom name="torso" type="capsule" fromto="0.07 0 0 0.22 0 0" size="0.1" density="1000" contype="0" conaffinity="1"/>
+       <body name="neck" pos="0.2 0 0.04">
+         <joint name="neck-bend" type="hinge" axis="0 0 1" limited="true" range="-1.22173 1.22173" damping="1.5"/>
+         <joint name="neck-pitch" type="hinge" axis="0 1 0" limited="true" range="-0.698132 0.785398" damping="1.5"/>
+@@ -17,7 +17,8 @@
+         </body>
+       </body>
+       <body name="fl-upper" pos="0.2 0.07 -0.03">
+-        <joint name="fl-upper" type="hinge" axis="0 1 0" limited="true" range="-0.785398 0.785398" damping="1.5"/>
++        <joint name="fl-splay" type="hinge" axis="1 0 0" limited="true" range="-0.436332 0.436332" damping="1.5"/>
++        <joint name="fl-swing" type="hinge" axis="0 1 0" limited="true" range="-1.047198 1.308997" damping="1.5"/>
+         <geom name="fl-upper" type="capsule" fromto="0 0 0 0 0 -0.2" size="0.035" density="1000" contype="0" conaffinity="1"/>
+         <body name="fl-lower" pos="0 0 -0.2">
+           <joint name="fl-lower" type="hinge" axis="0 1 0" limited="true" range="-0.174533 1.745329" damping="1.5"/>
+@@ -25,43 +26,57 @@
+         </body>
+       </body>
+       <body name="fr-upper" pos="0.2 -0.07 -0.03">
+-        <joint name="fr-upper" type="hinge" axis="0 1 0" limited="true" range="-0.785398 0.785398" damping="1.5"/>
++        <joint name="fr-splay" type="hinge" axis="-1 0 0" limited="true" range="-0.436332 0.436332" damping="1.5"/>
++        <joint name="fr-swing" type="hinge" axis="0 1 0" limited="true" range="-1.047198 1.308997" damping="1.5"/>
+         <geom name="fr-upper" type="capsule" fromto="0 0 0 0 0 -0.2" size="0.035" density="1000" contype="0" conaffinity="1"/>
+         <body name="fr-lower" pos="0 0 -0.2">
+           <joint name="fr-lower" type="hinge" axis="0 1 0" limited="true" range="-0.174533 1.745329" damping="1.5"/>
+           <geom name="fr-lower" type="capsule" fromto="0 0 0 0 0 -0.18" size="0.03" density="1000" contype="0" conaffinity="1"/>
+         </body>
+       </body>
+-      <body name="hl-upper" pos="-0.2 0.07 -0.03">
+-        <joint name="hl-upper" type="hinge" axis="0 1 0" limited="true" range="-0.785398 0.785398" damping="1.5"/>
+-        <geom name="hl-upper" type="capsule" fromto="0 0 0 0 0 -0.2" size="0.035" density="1000" contype="0" conaffinity="1"/>
+-        <body name="hl-lower" pos="0 0 -0.2">
+-          <joint name="hl-lower" type="hinge" axis="0 1 0" limited="true" range="-1.745329 0.174533" damping="1.5"/>
+-          <geom name="hl-lower" type="capsule" fromto="0 0 0 0 0 -0.18" size="0.03" density="1000" contype="0" conaffinity="1"/>
++      <body name="hind" pos="0 0 0">
++        <joint name="spine-bend" type="hinge" axis="0 0 1" limited="true" range="-0.436332 0.436332" damping="1.5"/>
++        <joint name="spine-twist" type="hinge" axis="1 0 0" limited="true" range="-0.349066 0.349066" damping="1.5"/>
++        <geom name="hind" type="capsule" fromto="-0.22 0 0 -0.07 0 0" size="0.1" density="1000" contype="0" conaffinity="1"/>
++        <body name="hl-upper" pos="-0.2 0.07 -0.03">
++          <joint name="hl-splay" type="hinge" axis="1 0 0" limited="true" range="-0.436332 0.436332" damping="1.5"/>
++          <joint name="hl-swing" type="hinge" axis="0 1 0" limited="true" range="-1.047198 1.308997" damping="1.5"/>
++          <geom name="hl-upper" type="capsule" fromto="0 0 0 0 0 -0.2" size="0.035" density="1000" contype="0" conaffinity="1"/>
++          <body name="hl-lower" pos="0 0 -0.2">
++            <joint name="hl-lower" type="hinge" axis="0 1 0" limited="true" range="-1.745329 0.174533" damping="1.5"/>
++            <geom name="hl-lower" type="capsule" fromto="0 0 0 0 0 -0.18" size="0.03" density="1000" contype="0" conaffinity="1"/>
++          </body>
+         </body>
+-      </body>
+-      <body name="hr-upper" pos="-0.2 -0.07 -0.03">
+-        <joint name="hr-upper" type="hinge" axis="0 1 0" limited="true" range="-0.785398 0.785398" damping="1.5"/>
+-        <geom name="hr-upper" type="capsule" fromto="0 0 0 0 0 -0.2" size="0.035" density="1000" contype="0" conaffinity="1"/>
+-        <body name="hr-lower" pos="0 0 -0.2">
+-          <joint name="hr-lower" type="hinge" axis="0 1 0" limited="true" range="-1.745329 0.174533" damping="1.5"/>
+-          <geom name="hr-lower" type="capsule" fromto="0 0 0 0 0 -0.18" size="0.03" density="1000" contype="0" conaffinity="1"/>
++        <body name="hr-upper" pos="-0.2 -0.07 -0.03">
++          <joint name="hr-splay" type="hinge" axis="-1 0 0" limited="true" range="-0.436332 0.436332" damping="1.5"/>
++          <joint name="hr-swing" type="hinge" axis="0 1 0" limited="true" range="-1.047198 1.308997" damping="1.5"/>
++          <geom name="hr-upper" type="capsule" fromto="0 0 0 0 0 -0.2" size="0.035" density="1000" contype="0" conaffinity="1"/>
++          <body name="hr-lower" pos="0 0 -0.2">
++            <joint name="hr-lower" type="hinge" axis="0 1 0" limited="true" range="-1.745329 0.174533" damping="1.5"/>
++            <geom name="hr-lower" type="capsule" fromto="0 0 0 0 0 -0.18" size="0.03" density="1000" contype="0" conaffinity="1"/>
++          </body>
+         </body>
+       </body>
+     </body>
+   </worldbody>
+   <actuator>
+-    <position name="neck-bend" joint="neck-bend" kp="40" ctrllimited="true" ctrlrange="-1.22173 1.22173"/>
+-    <position name="neck-pitch" joint="neck-pitch" kp="40" ctrllimited="true" ctrlrange="-0.698132 0.785398"/>
+-    <position name="head-pitch" joint="head-pitch" kp="40" ctrllimited="true" ctrlrange="-1.047198 1.047198"/>
+-    <position name="head-roll" joint="head-roll" kp="40" ctrllimited="true" ctrlrange="-1.22173 1.22173"/>
+-    <position name="fl-upper" joint="fl-upper" kp="40" ctrllimited="true" ctrlrange="-0.785398 0.785398"/>
++    <position name="neck-bend" joint="neck-bend" kp="40" ctrllimited="true" ctrlrange="-1.22173 1.22173" forcelimited="true" forcerange="-9 9"/>
++    <position name="neck-pitch" joint="neck-pitch" kp="40" ctrllimited="true" ctrlrange="-0.698132 0.785398" forcelimited="true" forcerange="-9 9"/>
++    <position name="head-pitch" joint="head-pitch" kp="40" ctrllimited="true" ctrlrange="-1.047198 1.047198" forcelimited="true" forcerange="-9 9"/>
++    <position name="head-roll" joint="head-roll" kp="40" ctrllimited="true" ctrlrange="-1.22173 1.22173" forcelimited="true" forcerange="-9 9"/>
++    <position name="fl-splay" joint="fl-splay" kp="40" ctrllimited="true" ctrlrange="-0.436332 0.436332"/>
++    <position name="fl-swing" joint="fl-swing" kp="40" ctrllimited="true" ctrlrange="-1.047198 1.308997"/>
+     <position name="fl-lower" joint="fl-lower" kp="40" ctrllimited="true" ctrlrange="-0.174533 1.745329"/>
+-    <position name="fr-upper" joint="fr-upper" kp="40" ctrllimited="true" ctrlrange="-0.785398 0.785398"/>
++    <position name="fr-splay" joint="fr-splay" kp="40" ctrllimited="true" ctrlrange="-0.436332 0.436332"/>
++    <position name="fr-swing" joint="fr-swing" kp="40" ctrllimited="true" ctrlrange="-1.047198 1.308997"/>
+     <position name="fr-lower" joint="fr-lower" kp="40" ctrllimited="true" ctrlrange="-0.174533 1.745329"/>
+-    <position name="hl-upper" joint="hl-upper" kp="40" ctrllimited="true" ctrlrange="-0.785398 0.785398"/>
++    <position name="spine-bend" joint="spine-bend" kp="40" ctrllimited="true" ctrlrange="-0.436332 0.436332"/>
++    <position name="spine-twist" joint="spine-twist" kp="40" ctrllimited="true" ctrlrange="-0.349066 0.349066"/>
++    <position name="hl-splay" joint="hl-splay" kp="40" ctrllimited="true" ctrlrange="-0.436332 0.436332"/>
++    <position name="hl-swing" joint="hl-swing" kp="40" ctrllimited="true" ctrlrange="-1.047198 1.308997"/>
+     <position name="hl-lower" joint="hl-lower" kp="40" ctrllimited="true" ctrlrange="-1.745329 0.174533"/>
+-    <position name="hr-upper" joint="hr-upper" kp="40" ctrllimited="true" ctrlrange="-0.785398 0.785398"/>
++    <position name="hr-splay" joint="hr-splay" kp="40" ctrllimited="true" ctrlrange="-0.436332 0.436332"/>
++    <position name="hr-swing" joint="hr-swing" kp="40" ctrllimited="true" ctrlrange="-1.047198 1.308997"/>
+     <position name="hr-lower" joint="hr-lower" kp="40" ctrllimited="true" ctrlrange="-1.745329 0.174533"/>
+   </actuator>
+ </mujoco>
+diff --git a/creatures/bodies/horse.xml b/creatures/bodies/horse.xml
+index 75bd443..9fcc3ef 100644
+--- a/creatures/bodies/horse.xml
++++ b/creatures/bodies/horse.xml
+@@ -5,7 +5,7 @@
+     <geom name="ground" type="plane" pos="0 0 0" size="2 2 0.1" contype="1" conaffinity="0"/>
+     <body name="torso" pos="0 0 1.24" quat="1 0 0 0">
+       <freejoint name="root"/>
+-      <geom name="torso" type="capsule" fromto="-0.3 0 0 0.3 0 0" size="0.15" density="1000" contype="0" conaffinity="1"/>
++      <geom name="torso" type="capsule" fromto="0.1 0 0 0.3 0 0" size="0.15" density="1000" contype="0" conaffinity="1"/>
+       <body name="neck" pos="0.3 0 0.08">
+         <joint name="neck-bend" type="hinge" axis="0 0 1" limited="true" range="-1.22173 1.22173" damping="5"/>
+         <joint name="neck-pitch" type="hinge" axis="0 1 0" limited="true" range="-0.698132 0.785398" damping="5"/>
+@@ -17,7 +17,8 @@
+         </body>
+       </body>
+       <body name="fl-upper" pos="0.28 0.1 -0.05">
+-        <joint name="fl-upper" type="hinge" axis="0 1 0" limited="true" range="-0.785398 0.785398" damping="5"/>
++        <joint name="fl-splay" type="hinge" axis="1 0 0" limited="true" range="-0.436332 0.436332" damping="5"/>
++        <joint name="fl-swing" type="hinge" axis="0 1 0" limited="true" range="-1.047198 1.308997" damping="5"/>
+         <geom name="fl-upper" type="capsule" fromto="0 0 0 0 0 -0.38" size="0.05" density="1000" contype="0" conaffinity="1"/>
+         <body name="fl-lower" pos="0 0 -0.38">
+           <joint name="fl-lower" type="hinge" axis="0 1 0" limited="true" range="-0.174533 1.745329" damping="5"/>
+@@ -25,43 +26,57 @@
+         </body>
+       </body>
+       <body name="fr-upper" pos="0.28 -0.1 -0.05">
+-        <joint name="fr-upper" type="hinge" axis="0 1 0" limited="true" range="-0.785398 0.785398" damping="5"/>
++        <joint name="fr-splay" type="hinge" axis="-1 0 0" limited="true" range="-0.436332 0.436332" damping="5"/>
++        <joint name="fr-swing" type="hinge" axis="0 1 0" limited="true" range="-1.047198 1.308997" damping="5"/>
+         <geom name="fr-upper" type="capsule" fromto="0 0 0 0 0 -0.38" size="0.05" density="1000" contype="0" conaffinity="1"/>
+         <body name="fr-lower" pos="0 0 -0.38">
+           <joint name="fr-lower" type="hinge" axis="0 1 0" limited="true" range="-0.174533 1.745329" damping="5"/>
+           <geom name="fr-lower" type="capsule" fromto="0 0 0 0 0 -0.37" size="0.04" density="1000" contype="0" conaffinity="1"/>
+         </body>
+       </body>
+-      <body name="hl-upper" pos="-0.28 0.1 -0.05">
+-        <joint name="hl-upper" type="hinge" axis="0 1 0" limited="true" range="-0.785398 0.785398" damping="5"/>
+-        <geom name="hl-upper" type="capsule" fromto="0 0 0 0 0 -0.38" size="0.05" density="1000" contype="0" conaffinity="1"/>
+-        <body name="hl-lower" pos="0 0 -0.38">
+-          <joint name="hl-lower" type="hinge" axis="0 1 0" limited="true" range="-1.745329 0.174533" damping="5"/>
+-          <geom name="hl-lower" type="capsule" fromto="0 0 0 0 0 -0.37" size="0.04" density="1000" contype="0" conaffinity="1"/>
++      <body name="hind" pos="0 0 0">
++        <joint name="spine-bend" type="hinge" axis="0 0 1" limited="true" range="-0.436332 0.436332" damping="5"/>
++        <joint name="spine-twist" type="hinge" axis="1 0 0" limited="true" range="-0.349066 0.349066" damping="5"/>
++        <geom name="hind" type="capsule" fromto="-0.3 0 0 -0.1 0 0" size="0.15" density="1000" contype="0" conaffinity="1"/>
++        <body name="hl-upper" pos="-0.28 0.1 -0.05">
++          <joint name="hl-splay" type="hinge" axis="1 0 0" limited="true" range="-0.436332 0.436332" damping="5"/>
++          <joint name="hl-swing" type="hinge" axis="0 1 0" limited="true" range="-1.047198 1.308997" damping="5"/>
++          <geom name="hl-upper" type="capsule" fromto="0 0 0 0 0 -0.38" size="0.05" density="1000" contype="0" conaffinity="1"/>
++          <body name="hl-lower" pos="0 0 -0.38">
++            <joint name="hl-lower" type="hinge" axis="0 1 0" limited="true" range="-1.745329 0.174533" damping="5"/>
++            <geom name="hl-lower" type="capsule" fromto="0 0 0 0 0 -0.37" size="0.04" density="1000" contype="0" conaffinity="1"/>
++          </body>
+         </body>
+-      </body>
+-      <body name="hr-upper" pos="-0.28 -0.1 -0.05">
+-        <joint name="hr-upper" type="hinge" axis="0 1 0" limited="true" range="-0.785398 0.785398" damping="5"/>
+-        <geom name="hr-upper" type="capsule" fromto="0 0 0 0 0 -0.38" size="0.05" density="1000" contype="0" conaffinity="1"/>
+-        <body name="hr-lower" pos="0 0 -0.38">
+-          <joint name="hr-lower" type="hinge" axis="0 1 0" limited="true" range="-1.745329 0.174533" damping="5"/>
+-          <geom name="hr-lower" type="capsule" fromto="0 0 0 0 0 -0.37" size="0.04" density="1000" contype="0" conaffinity="1"/>
++        <body name="hr-upper" pos="-0.28 -0.1 -0.05">
++          <joint name="hr-splay" type="hinge" axis="-1 0 0" limited="true" range="-0.436332 0.436332" damping="5"/>
++          <joint name="hr-swing" type="hinge" axis="0 1 0" limited="true" range="-1.047198 1.308997" damping="5"/>
++          <geom name="hr-upper" type="capsule" fromto="0 0 0 0 0 -0.38" size="0.05" density="1000" contype="0" conaffinity="1"/>
++          <body name="hr-lower" pos="0 0 -0.38">
++            <joint name="hr-lower" type="hinge" axis="0 1 0" limited="true" range="-1.745329 0.174533" damping="5"/>
++            <geom name="hr-lower" type="capsule" fromto="0 0 0 0 0 -0.37" size="0.04" density="1000" contype="0" conaffinity="1"/>
++          </body>
+         </body>
+       </body>
+     </body>
+   </worldbody>
+   <actuator>
+-    <position name="neck-bend" joint="neck-bend" kp="150" ctrllimited="true" ctrlrange="-1.22173 1.22173"/>
+-    <position name="neck-pitch" joint="neck-pitch" kp="150" ctrllimited="true" ctrlrange="-0.698132 0.785398"/>
+-    <position name="head-pitch" joint="head-pitch" kp="150" ctrllimited="true" ctrlrange="-1.047198 1.047198"/>
+-    <position name="head-roll" joint="head-roll" kp="150" ctrllimited="true" ctrlrange="-1.22173 1.22173"/>
+-    <position name="fl-upper" joint="fl-upper" kp="150" ctrllimited="true" ctrlrange="-0.785398 0.785398"/>
++    <position name="neck-bend" joint="neck-bend" kp="150" ctrllimited="true" ctrlrange="-1.22173 1.22173" forcelimited="true" forcerange="-35 35"/>
++    <position name="neck-pitch" joint="neck-pitch" kp="150" ctrllimited="true" ctrlrange="-0.698132 0.785398" forcelimited="true" forcerange="-35 35"/>
++    <position name="head-pitch" joint="head-pitch" kp="150" ctrllimited="true" ctrlrange="-1.047198 1.047198" forcelimited="true" forcerange="-35 35"/>
++    <position name="head-roll" joint="head-roll" kp="150" ctrllimited="true" ctrlrange="-1.22173 1.22173" forcelimited="true" forcerange="-35 35"/>
++    <position name="fl-splay" joint="fl-splay" kp="150" ctrllimited="true" ctrlrange="-0.436332 0.436332"/>
++    <position name="fl-swing" joint="fl-swing" kp="150" ctrllimited="true" ctrlrange="-1.047198 1.308997"/>
+     <position name="fl-lower" joint="fl-lower" kp="150" ctrllimited="true" ctrlrange="-0.174533 1.745329"/>
+-    <position name="fr-upper" joint="fr-upper" kp="150" ctrllimited="true" ctrlrange="-0.785398 0.785398"/>
++    <position name="fr-splay" joint="fr-splay" kp="150" ctrllimited="true" ctrlrange="-0.436332 0.436332"/>
++    <position name="fr-swing" joint="fr-swing" kp="150" ctrllimited="true" ctrlrange="-1.047198 1.308997"/>
+     <position name="fr-lower" joint="fr-lower" kp="150" ctrllimited="true" ctrlrange="-0.174533 1.745329"/>
+-    <position name="hl-upper" joint="hl-upper" kp="150" ctrllimited="true" ctrlrange="-0.785398 0.785398"/>
++    <position name="spine-bend" joint="spine-bend" kp="150" ctrllimited="true" ctrlrange="-0.436332 0.436332"/>
++    <position name="spine-twist" joint="spine-twist" kp="150" ctrllimited="true" ctrlrange="-0.349066 0.349066"/>
++    <position name="hl-splay" joint="hl-splay" kp="150" ctrllimited="true" ctrlrange="-0.436332 0.436332"/>
++    <position name="hl-swing" joint="hl-swing" kp="150" ctrllimited="true" ctrlrange="-1.047198 1.308997"/>
+     <position name="hl-lower" joint="hl-lower" kp="150" ctrllimited="true" ctrlrange="-1.745329 0.174533"/>
+-    <position name="hr-upper" joint="hr-upper" kp="150" ctrllimited="true" ctrlrange="-0.785398 0.785398"/>
++    <position name="hr-splay" joint="hr-splay" kp="150" ctrllimited="true" ctrlrange="-0.436332 0.436332"/>
++    <position name="hr-swing" joint="hr-swing" kp="150" ctrllimited="true" ctrlrange="-1.047198 1.308997"/>
+     <position name="hr-lower" joint="hr-lower" kp="150" ctrllimited="true" ctrlrange="-1.745329 0.174533"/>
+   </actuator>
+ </mujoco>
+diff --git a/resources/creatures/dog.edn b/resources/creatures/dog.edn
+index 3c8c5db..93949f4 100644
+--- a/resources/creatures/dog.edn
++++ b/resources/creatures/dog.edn
+@@ -7,8 +7,10 @@
+  :rest-kp    4          ; N·m/rad: muscles that aren't working are soft (10 % of :kp), so he lies, not stands
+  :kick-above 0.8        ; a twitch segment whose random target |to| >= this is a kick (full :kp); else rest stiffness
+  :colors  {:coat 0xc49a6c :dark 0x6b4a32}
++ ;; Body v2 (same layout and signs as horse.edn): torso = front half (root), :hind = hind half,
++ ;; spine at x = 0; upper legs splay (+ = foot out, axis ±x by side) then swing (+ = foot back).
+  :bodies
+- [{:name :torso :capsule {:from [-0.22 0 0] :to [0.22 0 0] :r 0.1} :color :coat}
++ [{:name :torso :capsule {:from [0.07 0 0] :to [0.22 0 0] :r 0.1} :color :coat}
+   {:name :neck :parent :torso :at [0.2 0 0.04]
+    ;; several hinges: listed order = MuJoCo order, first = nearest the torso. Side-bend first:
+    ;; lying on its side, the bend is what lifts the head, so the pitch must act after it.
+@@ -20,25 +22,33 @@
+             {:name :head-roll  :axis [1 0 0] :range [-70 70]}]  ; atlas/axis rotation
+    :capsule {:from [0 0 0] :to [0.12 0 -0.05] :r 0.05} :color :dark}
+   {:name :fl-upper :parent :torso :at [0.2 0.07 -0.03]
+-   :joint {:axis [0 1 0] :range [-45 45]}
++   :joints [{:name :fl-splay :axis [1 0 0] :range [-25 25]}
++            {:name :fl-swing :axis [0 1 0] :range [-60 75]}]
+    :capsule {:from [0 0 0] :to [0 0 -0.2] :r 0.035} :color :coat}
+   {:name :fl-lower :parent :fl-upper :at [0 0 -0.2]
+    :joint {:axis [0 1 0] :range [-10 100]}
+    :capsule {:from [0 0 0] :to [0 0 -0.18] :r 0.03} :color :dark}
+   {:name :fr-upper :parent :torso :at [0.2 -0.07 -0.03]
+-   :joint {:axis [0 1 0] :range [-45 45]}
++   :joints [{:name :fr-splay :axis [-1 0 0] :range [-25 25]}
++            {:name :fr-swing :axis [0 1 0] :range [-60 75]}]
+    :capsule {:from [0 0 0] :to [0 0 -0.2] :r 0.035} :color :coat}
+   {:name :fr-lower :parent :fr-upper :at [0 0 -0.2]
+    :joint {:axis [0 1 0] :range [-10 100]}
+    :capsule {:from [0 0 0] :to [0 0 -0.18] :r 0.03} :color :dark}
+-  {:name :hl-upper :parent :torso :at [-0.2 0.07 -0.03]
+-   :joint {:axis [0 1 0] :range [-45 45]}
++  {:name :hind :parent :torso :at [0 0 0]
++   :joints [{:name :spine-bend  :axis [0 0 1] :range [-25 25]}
++            {:name :spine-twist :axis [1 0 0] :range [-20 20]}]
++   :capsule {:from [-0.22 0 0] :to [-0.07 0 0] :r 0.1} :color :coat}
++  {:name :hl-upper :parent :hind :at [-0.2 0.07 -0.03]
++   :joints [{:name :hl-splay :axis [1 0 0] :range [-25 25]}
++            {:name :hl-swing :axis [0 1 0] :range [-60 75]}]
+    :capsule {:from [0 0 0] :to [0 0 -0.2] :r 0.035} :color :coat}
+   {:name :hl-lower :parent :hl-upper :at [0 0 -0.2]
+    :joint {:axis [0 1 0] :range [-100 10]}
+    :capsule {:from [0 0 0] :to [0 0 -0.18] :r 0.03} :color :dark}
+-  {:name :hr-upper :parent :torso :at [-0.2 -0.07 -0.03]
+-   :joint {:axis [0 1 0] :range [-45 45]}
++  {:name :hr-upper :parent :hind :at [-0.2 -0.07 -0.03]
++   :joints [{:name :hr-splay :axis [-1 0 0] :range [-25 25]}
++            {:name :hr-swing :axis [0 1 0] :range [-60 75]}]
+    :capsule {:from [0 0 0] :to [0 0 -0.2] :r 0.035} :color :coat}
+   {:name :hr-lower :parent :hr-upper :at [0 0 -0.2]
+    :joint {:axis [0 1 0] :range [-100 10]}
+diff --git a/resources/creatures/horse.edn b/resources/creatures/horse.edn
+index 6f98437..37a7668 100644
+--- a/resources/creatures/horse.edn
++++ b/resources/creatures/horse.edn
+@@ -7,8 +7,14 @@
+  :rest-kp    15         ; N·m/rad: muscles that aren't working are soft (10 % of :kp), so he lies, not stands
+  :kick-above 0.8        ; a twitch segment whose random target |to| >= this is a kick (full :kp); else rest stiffness
+  :colors  {:coat 0x9b6b43 :dark 0x4a3426 :hoof 0x2e2622}
++ ;; Body v2: the torso is two halves joined by a spine at x = 0. :torso (the root, the front half)
++ ;; and :hind each carry half of the old capsule's volume, so mass and length are unchanged.
++ ;; Upper legs: splay first (nearest the torso), then swing. Splay + moves the foot outward on
++ ;; both sides: axis [1 0 0] on the left legs (+y), [-1 0 0] on the right legs (-y).
++ ;; Swing (axis [0 1 0], as before): + moves the foot back. A front leg folds under the chest
++ ;; with + (knee back toward the belly), a hind leg with - (knee forward under the belly).
+  :bodies
+- [{:name :torso :capsule {:from [-0.3 0 0] :to [0.3 0 0] :r 0.15} :color :coat}
++ [{:name :torso :capsule {:from [0.1 0 0] :to [0.3 0 0] :r 0.15} :color :coat}
+   {:name :neck :parent :torso :at [0.3 0 0.08]
+    ;; several hinges: listed order = MuJoCo order, first = nearest the torso. Side-bend first:
+    ;; lying on its side, the bend is what lifts the head, so the pitch must act after it.
+@@ -20,25 +26,33 @@
+             {:name :head-roll  :axis [1 0 0] :range [-70 70]}]  ; atlas/axis rotation
+    :capsule {:from [0 0 0] :to [0.24 0 -0.1] :r 0.07} :color :coat}
+   {:name :fl-upper :parent :torso :at [0.28 0.1 -0.05]
+-   :joint {:axis [0 1 0] :range [-45 45]}
++   :joints [{:name :fl-splay :axis [1 0 0] :range [-25 25]}    ; + = foot out (left)
++            {:name :fl-swing :axis [0 1 0] :range [-60 75]}]   ; + = foot back
+    :capsule {:from [0 0 0] :to [0 0 -0.38] :r 0.05} :color :coat}
+   {:name :fl-lower :parent :fl-upper :at [0 0 -0.38]
+    :joint {:axis [0 1 0] :range [-10 100]}
+    :capsule {:from [0 0 0] :to [0 0 -0.37] :r 0.04} :color :hoof}
+   {:name :fr-upper :parent :torso :at [0.28 -0.1 -0.05]
+-   :joint {:axis [0 1 0] :range [-45 45]}
++   :joints [{:name :fr-splay :axis [-1 0 0] :range [-25 25]}   ; + = foot out (right)
++            {:name :fr-swing :axis [0 1 0] :range [-60 75]}]
+    :capsule {:from [0 0 0] :to [0 0 -0.38] :r 0.05} :color :coat}
+   {:name :fr-lower :parent :fr-upper :at [0 0 -0.38]
+    :joint {:axis [0 1 0] :range [-10 100]}
+    :capsule {:from [0 0 0] :to [0 0 -0.37] :r 0.04} :color :hoof}
+-  {:name :hl-upper :parent :torso :at [-0.28 0.1 -0.05]
+-   :joint {:axis [0 1 0] :range [-45 45]}
++  {:name :hind :parent :torso :at [0 0 0]
++   :joints [{:name :spine-bend  :axis [0 0 1] :range [-25 25]}  ; + = hind end swings right
++            {:name :spine-twist :axis [1 0 0] :range [-20 20]}] ; + = hind's left side up
++   :capsule {:from [-0.3 0 0] :to [-0.1 0 0] :r 0.15} :color :coat}
++  {:name :hl-upper :parent :hind :at [-0.28 0.1 -0.05]
++   :joints [{:name :hl-splay :axis [1 0 0] :range [-25 25]}
++            {:name :hl-swing :axis [0 1 0] :range [-60 75]}]
+    :capsule {:from [0 0 0] :to [0 0 -0.38] :r 0.05} :color :coat}
+   {:name :hl-lower :parent :hl-upper :at [0 0 -0.38]
+    :joint {:axis [0 1 0] :range [-100 10]}
+    :capsule {:from [0 0 0] :to [0 0 -0.37] :r 0.04} :color :hoof}
+-  {:name :hr-upper :parent :torso :at [-0.28 -0.1 -0.05]
+-   :joint {:axis [0 1 0] :range [-45 45]}
++  {:name :hr-upper :parent :hind :at [-0.28 -0.1 -0.05]
++   :joints [{:name :hr-splay :axis [-1 0 0] :range [-25 25]}
++            {:name :hr-swing :axis [0 1 0] :range [-60 75]}]
+    :capsule {:from [0 0 0] :to [0 0 -0.38] :r 0.05} :color :coat}
+   {:name :hr-lower :parent :hr-upper :at [0 0 -0.38]
+    :joint {:axis [0 1 0] :range [-100 10]}
+diff --git a/test/pm/creature_motion_test.cljs b/test/pm/creature_motion_test.cljs
+index a2abe87..66fda13 100644
+--- a/test/pm/creature_motion_test.cljs
++++ b/test/pm/creature_motion_test.cljs
+@@ -196,9 +196,11 @@
+   (is (approx= [0.5 1] (cm/actions->ctrl [0 0] [[-0.5 1.5] [0 2]])))
+   (is (approx= [1.5 0] (cm/actions->ctrl [2 -3] [[-0.5 1.5] [0 2]])))
+   (is (approx= [1 0.5] (cm/actions->ctrl [0.5 -0.5] [[-0.5 1.5] [0 2]])))
+-  (let [mids (cm/actions->ctrl (vec (repeat 12 0)) (c/ctrl-ranges c-horse))]
+-    (is (approx= 0 (first mids)))
+-    (is (approx= 0.043633 (second mids)))))
++  (let [mids (cm/actions->ctrl (vec (repeat 18 0)) (c/ctrl-ranges c-horse))
++        expected [0 0.043633 0 0 0 0.1308997 0.785398 0 0.1308997 0.785398
++                  0 0 0 0.1308997 -0.785398 0 0.1308997 -0.785398]]
++    (is (= 18 (count mids)))
++    (is (approx= expected mids))))
+ 
+ ;; M13
+ 
+@@ -239,3 +241,17 @@
+         xquat (js/Float64Array.from #js [1 0 0 0 0.7 0.1 0.2 0.3])]
+     (is (approx= {:pos [1 3 -2] :quat [0.1 0.3 -0.2 0.7]} (cm/body-pose xpos xquat 1)))
+     (is (approx= {:pos [0 0 0] :quat [0 0 0 1]} (cm/body-pose xpos xquat 0)))))
++
++;; B5
++
++(deftest b5-everything-downstream-adapts-by-count
++  (let [n (count (c/ctrl-ranges c-horse))]
++    (is (= 18 n))
++    (is (= 18 (count (cm/twitch-actions (cm/twitch-step (cm/controller :twitch n 1) 0.002)))))
++    (let [sig (cm/stiffness (cm/reflex-controller (cm/controller :twitch n 1) (c/reflexes c-horse) 1) 0.1 0.8)]
++      (is (= 18 (count sig)))
++      (is (= [1 1 1 1] (subvec (vec sig) 0 4)))
++      (is (every? #(contains? #{1 0.1} %) sig)))
++    (let [result (cm/limp (vec (repeat 18 0)) (js/Float64Array. 25) (vec (repeat 18 0.1)))]
++      (is (= 18 (count result)))
++      (is (every? zero? result)))))
+diff --git a/test/pm/creature_mujoco_test.cljs b/test/pm/creature_mujoco_test.cljs
+index 36d2eae..a85f844 100644
+--- a/test/pm/creature_mujoco_test.cljs
++++ b/test/pm/creature_mujoco_test.cljs
+@@ -47,7 +47,7 @@
+     (is (= (:ngeom counts) (.-ngeom model)))
+     (is (approx= 0 (aget (.-body_mass model) 0)))
+     (is (every? true?
+-                (for [i (range 1 12)]
++                (for [i (range 1 (inc (count masses)))]
+                   (approx= (second (nth masses (dec i))) (aget (.-body_mass model) i)))))
+     (is (every? true?
+                 (for [j (range (count ranges))]
+@@ -128,14 +128,15 @@
+   (let [^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp P))
+         ^js data (new (.-MjData mj) model)
+         ranges (c/ctrl-ranges sp)
++        nu (count ranges)
+         dt (/ 1.0 60)]
+-    (loop [frame 0 acc 0 ctrl (cm/controller :twitch 12 1) total 0]
++    (loop [frame 0 acc 0 ctrl (cm/controller :twitch nu 1) total 0]
+       (if (>= frame 120)
+         (let [^js qpos (.-qpos data)
+               nq (.-nq model)
+               all-finite? (every? true? (for [i (range nq)] (not (js/isNaN (aget qpos i)))))
+               torso-h (- (aget (.-xpos data) 5) ground-z)
+-              hinge-moved? (some true? (for [i (range 7 19)] (> (js/Math.abs (aget qpos i)) 0.05)))]
++              hinge-moved? (some true? (for [i (range 7 (+ 7 nu))] (> (js/Math.abs (aget qpos i)) 0.05)))]
+           (is (<= 999 total 1001))
+           (is all-finite?)
+           (is (> torso-h 0.05))
+@@ -255,7 +256,7 @@
+                            (.mj_jacBody mj model data jp jr body-id)
+                            (let [jpv (.GetView jp)
+                                  jrv (.GetView jr)]
+-                             (is (= 18 nv))
++                             (is (= 24 nv))
+                              (is (= 3 body-id))
+                              (is (= 3 (:body-id (first (c/reflexes sp)))))
+                              (is (approx= [1 0 0] (col jpv nv 0)))
+@@ -308,7 +309,7 @@
+                        (is (approx= (- f) (aget fr (* 2 k))))
+                        (is (approx= f (aget fr (+ (* 2 k) 1))))
+                        (is (= 1 (aget fl k))))
+-                     (doseq [k (range 4 12)]
++                     (doseq [k (range 4 18)]
+                        (is (= 0 (aget fl k))))
+                      (.delete model)))
+                  (done)))
+@@ -330,7 +331,8 @@
+         nu (count ranges)
+         acts (:acts r)
+         acts-set (set acts)
+-        torso-cap (:capsule (first (c/bodies sp)))]
++        torso-cap (:capsule (first (c/bodies sp)))
++        hind-cap (:capsule (nth (c/bodies sp) 7))]
+     (loop [i 0
+            ctrl (cm/reflex-controller (cm/controller :still nu 1) rx 1)
+            armed true
+@@ -340,13 +342,14 @@
+            max-force 0.0
+            all-finite? true
+            held-s 0.0
+-           torso-ok? true]
++           torso-ok? true
++           hind-ok? true]
+       (if (>= i 15000)
+         (let [final-energy (:energy (first (:efforts ctrl)))]
+           (.delete jp) (.delete jr) (.delete data) (.delete model)
+           {:clears clears :ever-resting? ever-resting? :active-after-resting? active-after-resting?
+            :max-force max-force :all-finite? all-finite? :held-s held-s :final-energy final-energy
+-           :torso-ok? torso-ok?})
++           :torso-ok? torso-ok? :hind-ok? hind-ok?})
+         (do
+           (.mj_jacBody mj model data jp jr (:body-id r))
+           (let [s (cm/sense r (.-xpos data) (.-xmat data) (.GetView jp) (.GetView jr) ground-z)
+@@ -375,20 +378,23 @@
+                   resting-now? (= mode :resting)
+                   held?' (and (>= clearance (* 0.7 lift-m)) (<= tilt 20))
+                   torso-low (cm/capsule-clearance (.-xpos data) (.-xmat data) 1 torso-cap ground-z)
+-                  torso-ok?' (if (>= t 3.0) (and torso-ok? (<= torso-low 0.02)) torso-ok?)]
++                  torso-ok?' (if (>= t 3.0) (and torso-ok? (<= torso-low 0.02)) torso-ok?)
++                  hind-low (cm/capsule-clearance (.-xpos data) (.-xmat data) 8 hind-cap ground-z)
++                  hind-ok?' (if (>= t 3.0) (and hind-ok? (<= hind-low 0.02)) hind-ok?)]
+               (recur (inc i) ctrl' armed' clears'
+                      (or ever-resting? resting-now?)
+                      (or active-after-resting? (and ever-resting? (= mode :active)))
+                      (max max-force step-force)
+                      (and all-finite? finite-now?)
+                      (if held?' (+ held-s 0.002) held-s)
+-                     torso-ok?'))))))))
++                     torso-ok?'
++                     hind-ok?'))))))))
+ 
+ (deftest r10-horse-tries-rests-tries-again
+   (async done
+     (-> (import-mj)
+         (.then (fn [^js mj]
+-                 (let [{:keys [clears ever-resting? active-after-resting? max-force all-finite? torso-ok?]}
++                 (let [{:keys [clears ever-resting? active-after-resting? max-force all-finite? torso-ok? hind-ok?]}
+                        (run-session mj horse 0.25)]
+                    (is (>= clears 2))
+                    (is ever-resting?)
+@@ -396,7 +402,8 @@
+                    (is all-finite?)
+                    (is (<= max-force (+ 35 1e-6)))
+                    (is (>= max-force 34.9))
+-                   (is torso-ok?))
++                   (is torso-ok?)
++                   (is hind-ok?))
+                  (done)))
+         (.catch (fn [e] (is false (str e)) (done))))))
+ 
+@@ -404,14 +411,15 @@
+   (async done
+     (-> (import-mj)
+         (.then (fn [^js mj]
+-                 (let [{:keys [held-s ever-resting? final-energy max-force all-finite? torso-ok?]}
++                 (let [{:keys [held-s ever-resting? final-energy max-force all-finite? torso-ok? hind-ok?]}
+                        (run-session mj dog 0.15)]
+                    (is (>= held-s 20))
+                    (is (not ever-resting?))
+                    (is (> final-energy 0.8))
+                    (is (<= max-force (+ 9 1e-6)))
+                    (is all-finite?)
+-                   (is torso-ok?))
++                   (is torso-ok?)
++                   (is hind-ok?))
+                  (done)))
+         (.catch (fn [e] (is false (str e)) (done))))))
+ 
+@@ -431,15 +439,17 @@
+         nu (count ranges)
+         sigma (c/rest-fraction sp)
+         kick (c/kick-above sp)
+-        torso-cap (:capsule (first (c/bodies sp)))]
++        torso-cap (:capsule (first (c/bodies sp)))
++        hind-cap (:capsule (nth (c/bodies sp) 7))]
+     (loop [i 0
+            ctrl (cm/reflex-controller (cm/controller :twitch nu 1) rx 1)
+            torso-ok? true
++           hind-ok? true
+            all-finite? true]
+       (if (>= i 15000)
+         (do
+           (.delete jp) (.delete jr) (.delete data) (.delete model)
+-          {:torso-ok? torso-ok? :all-finite? all-finite?})
++          {:torso-ok? torso-ok? :hind-ok? hind-ok? :all-finite? all-finite?})
+         (do
+           (.mj_jacBody mj model data jp jr (:body-id r))
+           (let [s (cm/sense r (.-xpos data) (.-xmat data) (.GetView jp) (.GetView jr) ground-z)
+@@ -454,16 +464,22 @@
+                   nq (.-nq model)
+                   finite-now? (every? true? (for [j (range nq)] (not (js/isNaN (aget qpos j)))))
+                   torso-low (cm/capsule-clearance (.-xpos data) (.-xmat data) 1 torso-cap ground-z)
+-                  ok-now? (if (>= t 5.0) (<= torso-low 0.02) true)]
+-              (recur (inc i) ctrl' (and torso-ok? ok-now?) (and all-finite? finite-now?)))))))))
++                  hind-low (cm/capsule-clearance (.-xpos data) (.-xmat data) 8 hind-cap ground-z)
++                  torso-ok-now? (if (>= t 5.0) (<= torso-low 0.02) true)
++                  hind-ok-now? (if (>= t 5.0) (<= hind-low 0.02) true)]
++              (recur (inc i) ctrl'
++                     (and torso-ok? torso-ok-now?)
++                     (and hind-ok? hind-ok-now?)
++                     (and all-finite? finite-now?)))))))))
+ 
+ (deftest r12-game-drop-lies-down
+   (async done
+     (-> (import-mj)
+         (.then (fn [^js mj]
+                  (doseq [sp [horse dog]]
+-                   (let [{:keys [torso-ok? all-finite?]} (run-drop mj sp)]
++                   (let [{:keys [torso-ok? hind-ok? all-finite?]} (run-drop mj sp)]
+                      (is torso-ok?)
++                     (is hind-ok?)
+                      (is all-finite?)))
+                  (done)))
+         (.catch (fn [e] (is false (str e)) (done))))))
+@@ -477,21 +493,261 @@
+         _ (.mj_forward mj model data)
+         nu (count (c/ctrl-ranges sp))
+         torso-cap (:capsule (first (c/bodies sp)))
++        hind-cap (:capsule (nth (c/bodies sp) 7))
+         sig-vec (vec (repeat nu sigma))
+         zeros (vec (repeat nu 0))]
+     (dotimes [_ 15000]
+       (let [vals (cm/limp zeros (.-qpos data) sig-vec)]
+         (dotimes [k nu] (aset (.-ctrl data) k (nth vals k)))
+         (.mj_step mj model data)))
+-    (let [low (cm/capsule-clearance (.-xpos data) (.-xmat data) 1 torso-cap ground-z)]
++    (let [torso-low (cm/capsule-clearance (.-xpos data) (.-xmat data) 1 torso-cap ground-z)
++          hind-low (cm/capsule-clearance (.-xpos data) (.-xmat data) 8 hind-cap ground-z)]
+       (.delete data) (.delete model)
+-      low)))
++      {:torso torso-low :hind hind-low})))
+ 
+ (deftest r13-table-contrast-dog-only
+   (async done
+     (-> (import-mj)
+         (.then (fn [^js mj]
+-                 (is (> (run-table mj dog 1) 0.3))
+-                 (is (<= (run-table mj dog 0.1) 0.02))
++                 (let [stiff (run-table mj dog 1)
++                       limp (run-table mj dog 0.1)]
++                   (is (> (:torso stiff) 0.3))
++                   (is (> (:hind stiff) 0.3))
++                   (is (<= (:torso limp) 0.02))
++                   (is (<= (:hind limp) 0.02)))
++                 (done)))
++        (.catch (fn [e] (is false (str e)) (done))))))
++
++;; R14
++
++(deftest r14-v2-bodies-joints-and-actuators
++  (async done
++    (-> (import-mj)
++        (.then (fn [^js mj]
++                 (doseq [[sp hind-mass] [[horse 28.274334] [dog 8.901179]]]
++                   (let [^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp P))
++                         obj-body (.. mj -mjtObj -mjOBJ_BODY -value)
++                         jl (c/joints sp)
++                         ^js axis (.-jnt_axis model)
++                         ^js trnid (.-actuator_trnid model)
++                         ^js body-mass (.-body_mass model)]
++                     (is (= 18 (.-nu model)))
++                     (is (= 19 (.-njnt model)))
++                     (doseq [j (range 1 19)]
++                       (is (approx= (:axis (nth jl (dec j)))
++                                    [(aget axis (* 3 j)) (aget axis (inc (* 3 j))) (aget axis (+ 2 (* 3 j)))])))
++                     (is (approx= [-1 0 0] (:axis (nth jl 7))))
++                     (is (approx= [0 0 1] (:axis (nth jl 10))))
++                     (doseq [k (range 18)]
++                       (is (= (inc k) (aget trnid (* 2 k)))))
++                     (is (= 8 (.mj_name2id mj model obj-body "hind")))
++                     (is (approx= hind-mass (aget body-mass 8)))
++                     (.delete model)))
++                 (done)))
++        (.catch (fn [e] (is false (str e)) (done))))))
++
++;; R15
++
++(defn splay-probe [^js mj sp roll qpos-idx theta-deg lower-body-id lower-len]
++  (let [place (assoc P :roll roll)
++        ^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp place))
++        ^js data (new (.-MjData mj) model)]
++    (aset (.-qpos data) qpos-idx (* theta-deg (/ js/Math.PI 180)))
++    (.mj_kinematics mj model data)
++    (let [^js xpos (.-xpos data)
++          ^js xmat (.-xmat data)
++          tip-z (+ (aget xpos (+ (* 3 lower-body-id) 2))
++                   (* (aget xmat (+ (* 9 lower-body-id) 8)) (- lower-len)))
++          torso-z (aget xpos 5)]
++      (.delete data) (.delete model)
++      {:delta (- tip-z torso-z) :tip-z tip-z})))
++
++(deftest r15-splay-lying-on-side
++  (async done
++    (-> (import-mj)
++        (.then (fn [^js mj]
++                 ;; roll 90: right legs down
++                 (is (approx= -0.100000 (:delta (splay-probe mj horse 90 14 0 7 0.37))))
++                 (is (approx= -0.416964 (:delta (splay-probe mj horse 90 14 25 7 0.37))))
++                 (is (approx= 0.216964 (:delta (splay-probe mj horse 90 14 -25 7 0.37))))
++                 (is (approx= -0.416964 (:delta (splay-probe mj horse 90 22 25 12 0.37))))
++                 (is (approx= 0.416964 (:delta (splay-probe mj horse 90 11 25 5 0.37))))
++                 (is (approx= -0.070000 (:delta (splay-probe mj dog 90 14 0 7 0.18))))
++                 (is (approx= -0.230595 (:delta (splay-probe mj dog 90 14 25 7 0.18))))
++                 (is (approx= -0.230595 (:delta (splay-probe mj dog 90 22 25 12 0.18))))
++                 ;; down-side moves down, up-side moves up
++                 (is (< (:delta (splay-probe mj horse 90 14 25 7 0.37))
++                        (:delta (splay-probe mj horse 90 14 0 7 0.37))))
++                 (is (> (:delta (splay-probe mj horse 90 11 25 5 0.37))
++                        (:delta (splay-probe mj horse 90 11 0 5 0.37))))
++                 ;; roll -90: left legs down
++                 (is (approx= -0.416964 (:delta (splay-probe mj horse -90 11 25 5 0.37))))
++                 (is (approx= -0.416964 (:delta (splay-probe mj horse -90 19 25 10 0.37))))
++                 (is (approx= 0.416964 (:delta (splay-probe mj horse -90 14 25 7 0.37))))
++                 (is (approx= -0.230595 (:delta (splay-probe mj dog -90 11 25 5 0.18))))
++                 (is (approx= -0.230595 (:delta (splay-probe mj dog -90 19 25 10 0.18))))
++                 (is (approx= 0.230595 (:delta (splay-probe mj dog -90 14 25 7 0.18))))
++                 ;; absolute check: right front hoof height above ground
++                 (let [h0 (- (:tip-z (splay-probe mj horse 90 14 0 7 0.37)) 0.04 ground-z)
++                       h25 (- (:tip-z (splay-probe mj horse 90 14 25 7 0.37)) 0.04 ground-z)]
++                   (is (approx= 0.410000 h0))
++                   (is (approx= 0.093036 h25)))
++                 (done)))
++        (.catch (fn [e] (is false (str e)) (done))))))
++
++;; R16
++
++(defn swing-probe [^js mj sp qpos-idx theta-deg lower-body-id]
++  (let [place {:at [0 0 0] :yaw 0 :drop-m 0}
++        ^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp place))
++        ^js data (new (.-MjData mj) model)]
++    (aset (.-qpos data) qpos-idx (* theta-deg (/ js/Math.PI 180)))
++    (.mj_kinematics mj model data)
++    (let [^js xpos (.-xpos data)
++          knee [(aget xpos (* 3 lower-body-id)) (aget xpos (inc (* 3 lower-body-id))) (aget xpos (+ 2 (* 3 lower-body-id)))]
++          torso [(aget xpos 3) (aget xpos 4) (aget xpos 5)]]
++      (.delete data) (.delete model)
++      (mapv - knee torso))))
++
++(deftest r16-fold-sign-standing-pose
++  (async done
++    (-> (import-mj)
++        (.then (fn [^js mj]
++                 (is (approx= [-0.087052 0.1 -0.148351] (swing-probe mj horse 12 75 5)))
++                 (is (approx= [0.609090 0.1 -0.24] (swing-probe mj horse 12 -60 5)))
++                 (is (approx= [0.049090 0.1 -0.24] (swing-probe mj horse 20 -60 10)))
++                 (is (approx= [-0.647052 0.1 -0.148351] (swing-probe mj horse 20 75 10)))
++                 (is (approx= [-0.087052 -0.1 -0.148351] (swing-probe mj horse 15 75 7)))
++                 (is (approx= [0.049090 -0.1 -0.24] (swing-probe mj horse 23 -60 12)))
++                 (is (approx= [0.006815 0.07 -0.081764] (swing-probe mj dog 12 75 5)))
++                 (is (approx= [0.373205 0.07 -0.13] (swing-probe mj dog 12 -60 5)))
++                 (is (approx= [-0.026795 0.07 -0.13] (swing-probe mj dog 20 -60 10)))
++                 (is (approx= [-0.393185 0.07 -0.081764] (swing-probe mj dog 20 75 10)))
++                 (is (< (js/Math.abs (first (swing-probe mj horse 12 75 5))) 0.28))
++                 (is (> (js/Math.abs (first (swing-probe mj horse 12 -60 5))) 0.28))
++                 (is (< (js/Math.abs (first (swing-probe mj horse 20 -60 10))) 0.28))
++                 (is (> (js/Math.abs (first (swing-probe mj horse 20 75 10))) 0.28))
++                 (is (< (js/Math.abs (first (swing-probe mj dog 12 75 5))) 0.2))
++                 (is (> (js/Math.abs (first (swing-probe mj dog 12 -60 5))) 0.2))
++                 (done)))
++        (.catch (fn [e] (is false (str e)) (done))))))
++
++;; R17
++
++(defn kinematic-state [^js mj sp place qpos-idx theta-deg]
++  (let [^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp place))
++        ^js data (new (.-MjData mj) model)]
++    (aset (.-qpos data) qpos-idx (* theta-deg (/ js/Math.PI 180)))
++    (.mj_kinematics mj model data)
++    (let [xpos (vec (.-xpos data))
++          xmat (vec (.-xmat data))]
++      (.delete data) (.delete model)
++      {:xpos xpos :xmat xmat})))
++
++(defn body-origin [{:keys [xpos]} body-id]
++  [(nth xpos (* 3 body-id)) (nth xpos (inc (* 3 body-id))) (nth xpos (+ 2 (* 3 body-id)))])
++
++(defn offset-point [{:keys [xpos xmat]} body-id [lx ly lz]]
++  (let [mx (* 9 body-id)]
++    [(+ (nth xpos (* 3 body-id))
++        (* (nth xmat mx) lx) (* (nth xmat (+ mx 1)) ly) (* (nth xmat (+ mx 2)) lz))
++     (+ (nth xpos (inc (* 3 body-id)))
++        (* (nth xmat (+ mx 3)) lx) (* (nth xmat (+ mx 4)) ly) (* (nth xmat (+ mx 5)) lz))
++     (+ (nth xpos (+ (* 3 body-id) 2))
++        (* (nth xmat (+ mx 6)) lx) (* (nth xmat (+ mx 7)) ly) (* (nth xmat (+ mx 8)) lz))]))
++
++(deftest r17-spine-signs-standing-pose
++  (async done
++    (-> (import-mj)
++        (.then (fn [^js mj]
++                 (let [place {:at [0 0 0] :yaw 0 :drop-m 0}
++                       st-bend-horse (kinematic-state mj horse place 17 25)
++                       st-bend-dog (kinematic-state mj dog place 17 25)
++                       st-twist-horse (kinematic-state mj horse place 18 20)
++                       st-twist-dog (kinematic-state mj dog place 18 20)]
++                   (is (approx= [-0.271892 -0.126785 0]
++                                (mapv - (offset-point st-bend-horse 8 [-0.3 0 0]) (body-origin st-bend-horse 1))))
++                   (is (approx= [-0.199388 -0.092976 0]
++                                (mapv - (offset-point st-bend-dog 8 [-0.22 0 0]) (body-origin st-bend-dog 1))))
++                   (is (approx= [-0.28 0.111070 -0.012783]
++                                (mapv - (body-origin st-twist-horse 9) (body-origin st-twist-horse 1))))
++                   (is (approx= [-0.28 -0.076868 -0.081187]
++                                (mapv - (body-origin st-twist-horse 11) (body-origin st-twist-horse 1))))
++                   (is (approx= [-0.2 0.076039 -0.004249]
++                                (mapv - (body-origin st-twist-dog 9) (body-origin st-twist-dog 1))))
++                   (is (approx= [-0.2 -0.055518 -0.052132]
++                                (mapv - (body-origin st-twist-dog 11) (body-origin st-twist-dog 1)))))
++                 (done)))
++        (.catch (fn [e] (is false (str e)) (done))))))
++
++;; S1
++
++(defn stand-hold [^js mj sp]
++  (let [^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp {:at [0 0 0] :yaw 0 :drop-m 0}))
++        ^js data (new (.-MjData mj) model)
++        nu (.-nu model)
++        _ (.mj_forward mj model data)]
++    (dotimes [_ 2500]
++      (dotimes [k nu] (aset (.-ctrl data) k 0))
++      (.mj_step mj model data))
++    (let [h (aget (.-xpos data) 5)
++          tilt (cm/tilt-deg (cm/head-up (.-xmat data) 1 [0 0 1]))
++          ^js qpos (.-qpos data)
++          nq (.-nq model)
++          finite? (every? true? (for [i (range nq)] (not (js/isNaN (aget qpos i)))))]
++      (.delete data) (.delete model)
++      {:h h :tilt tilt :finite? finite?})))
++
++(deftest s1-stand-hold-quest-criterion
++  (async done
++    (-> (import-mj)
++        (.then (fn [^js mj]
++                 (let [{:keys [h tilt finite?]} (stand-hold mj horse)]
++                   (is finite?)
++                   (is (<= 0.70 h 0.84))
++                   (is (<= tilt 20)))
++                 (let [{:keys [h tilt finite?]} (stand-hold mj dog)]
++                   (is finite?)
++                   (is (<= 0.42 h 0.445))
++                   (is (<= tilt 1)))
++                 (done)))
++        (.catch (fn [e] (is false (str e)) (done))))))
++
++;; S2
++
++(defn stand-run-ok? [^js mj sp kp push-idx steps]
++  (let [sp' (assoc sp :kp kp)
++        ^js model (.from_xml_string (.-MjModel mj) (c/mjcf sp' {:at [0 0 0] :yaw 0 :drop-m 0}))
++        ^js data (new (.-MjData mj) model)
++        nu (.-nu model)
++        _ (.mj_forward mj model data)
++        h-min (* (/ 5.0 6.0) (- (c/rest-bottom sp)))]
++    (when push-idx (aset (.-qvel data) push-idx 0.1))
++    (let [ok? (loop [i 0]
++                (cond
++                  (>= i steps) true
++                  :else
++                  (do
++                    (dotimes [k nu] (aset (.-ctrl data) k 0))
++                    (.mj_step mj model data)
++                    (let [h (aget (.-xpos data) 5)
++                          tilt (cm/tilt-deg (cm/head-up (.-xmat data) 1 [0 0 1]))]
++                      (if (and (>= h h-min) (<= tilt 20))
++                        (recur (inc i))
++                        false)))))]
++      (.delete data) (.delete model)
++      ok?)))
++
++(defn holds? [^js mj sp kp]
++  (and (stand-run-ok? mj sp kp nil 15000)
++       (stand-run-ok? mj sp kp 0 5000)
++       (stand-run-ok? mj sp kp 1 5000)))
++
++(deftest s2-smallest-holding-kp
++  (async done
++    (-> (import-mj)
++        (.then (fn [^js mj]
++                 (is (= [false false false true] (mapv #(holds? mj horse %) [150 175 200 225])))
++                 (is (true? (holds? mj dog 40)))
+                  (done)))
+         (.catch (fn [e] (is false (str e)) (done))))))
+diff --git a/test/pm/creature_test.cljs b/test/pm/creature_test.cljs
+index 5c119e5..726b583 100644
+--- a/test/pm/creature_test.cljs
++++ b/test/pm/creature_test.cljs
+@@ -63,10 +63,12 @@
+ ;; C4
+ 
+ (deftest c04-joint-axis-range-problem
+-  (is (= ["body :fl-upper: :joint needs a non-zero :axis [x y z] and :range [lo hi] with -180 <= lo < hi <= 180"]
+-         (c/problems (assoc-in dog [:bodies 3 :joint :range] [45 -45]))))
+-  (is (= ["body :fl-upper: :joint needs a non-zero :axis [x y z] and :range [lo hi] with -180 <= lo < hi <= 180"]
+-         (c/problems (assoc-in dog [:bodies 3 :joint :axis] [0 0 0])))))
++  (is (= ["body :fl-lower: :joint needs a non-zero :axis [x y z] and :range [lo hi] with -180 <= lo < hi <= 180"]
++         (c/problems (assoc-in dog [:bodies 4 :joint :range] [45 -45]))))
++  (is (= ["body :fl-lower: :joint needs a non-zero :axis [x y z] and :range [lo hi] with -180 <= lo < hi <= 180"]
++         (c/problems (assoc-in dog [:bodies 4 :joint :axis] [0 0 0]))))
++  (is (= ["body :fl-upper: joint 0: needs a keyword :name, a non-zero :axis [x y z] and :range [lo hi] with -180 <= lo < hi <= 180"]
++         (c/problems (assoc-in dog [:bodies 3 :joints 0 :range] [30 -30])))))
+ 
+ ;; C5
+ 
+@@ -133,10 +135,10 @@
+ 
+ (deftest c13-bodies-dfs-order
+   (is (= [:torso :neck :head :fl-upper :fl-lower :fr-upper :fr-lower
+-          :hl-upper :hl-lower :hr-upper :hr-lower]
++          :hind :hl-upper :hl-lower :hr-upper :hr-lower]
+          (mapv :name (c/bodies horse))))
+   (is (= [:torso :neck :head :fl-upper :fl-lower :fr-upper :fr-lower
+-          :hl-upper :hl-lower :hr-upper :hr-lower]
++          :hind :hl-upper :hl-lower :hr-upper :hr-lower]
+          (mapv :name (c/bodies dog))))
+   (is (= [] (c/problems f)))
+   (is (= [:root :a :a2 :b] (mapv :name (c/bodies f))))
+@@ -145,15 +147,22 @@
+ ;; C14
+ 
+ (deftest c14-joints-order-and-ranges
+-  (is (= [:neck-bend :neck-pitch :head-pitch :head-roll :fl-upper :fl-lower :fr-upper :fr-lower
+-          :hl-upper :hl-lower :hr-upper :hr-lower]
++  (is (= [:neck-bend :neck-pitch :head-pitch :head-roll
++          :fl-splay :fl-swing :fl-lower :fr-splay :fr-swing :fr-lower
++          :spine-bend :spine-twist
++          :hl-splay :hl-swing :hl-lower :hr-splay :hr-swing :hr-lower]
+          (mapv :name (c/joints horse))))
+-  (is (= [:neck :neck :head :head :fl-upper :fl-lower :fr-upper :fr-lower
+-          :hl-upper :hl-lower :hr-upper :hr-lower]
++  (is (= [:neck :neck :head :head
++          :fl-upper :fl-upper :fl-lower :fr-upper :fr-upper :fr-lower
++          :hind :hind
++          :hl-upper :hl-upper :hl-lower :hr-upper :hr-upper :hr-lower]
+          (mapv :body (c/joints horse))))
+   (let [expected [[-1.22173 1.22173] [-0.698132 0.785398] [-1.047198 1.047198] [-1.22173 1.22173]
+-                   [-0.785398 0.785398] [-0.174533 1.745329] [-0.785398 0.785398] [-0.174533 1.745329]
+-                   [-0.785398 0.785398] [-1.745329 0.174533] [-0.785398 0.785398] [-1.745329 0.174533]]]
++                   [-0.436332 0.436332] [-1.047198 1.308997] [-0.174533 1.745329]
++                   [-0.436332 0.436332] [-1.047198 1.308997] [-0.174533 1.745329]
++                   [-0.436332 0.436332] [-0.349066 0.349066]
++                   [-0.436332 0.436332] [-1.047198 1.308997] [-1.745329 0.174533]
++                   [-0.436332 0.436332] [-1.047198 1.308997] [-1.745329 0.174533]]]
+     (is (approx= expected (c/ctrl-ranges horse)))
+     (is (approx= expected (c/ctrl-ranges dog))))
+   (is (= [0 0 1] (:axis (first (c/joints dog)))))
+@@ -162,16 +171,17 @@
+ ;; C15
+ 
+ (deftest c15-counts
+-  (is (= {:nbody 12 :njnt 13 :nu 12 :nq 19 :nv 18 :ngeom 12} (c/counts horse)))
+-  (is (= {:nbody 12 :njnt 13 :nu 12 :nq 19 :nv 18 :ngeom 12} (c/counts dog)))
++  (is (= {:nbody 13 :njnt 19 :nu 18 :nq 25 :nv 24 :ngeom 13} (c/counts horse)))
++  (is (= {:nbody 13 :njnt 19 :nu 18 :nq 25 :nv 24 :ngeom 13} (c/counts dog)))
+   (is (= {:nbody 5 :njnt 3 :nu 2 :nq 9 :nv 8 :ngeom 5} (c/counts f))))
+ 
+ ;; C16
+ 
+ (deftest c16-horse-body-masses
+-  (let [expected [[:torso 56.548668] [:neck 4.297699] [:head 5.439144]
++  (let [expected [[:torso 28.274334] [:neck 4.297699] [:head 5.439144]
+                    [:fl-upper 3.508112] [:fl-lower 2.127905]
+                    [:fr-upper 3.508112] [:fr-lower 2.127905]
++                   [:hind 28.274334]
+                    [:hl-upper 3.508112] [:hl-lower 2.127905]
+                    [:hr-upper 3.508112] [:hr-lower 2.127905]]
+         masses (c/body-masses horse)]
+@@ -181,17 +191,18 @@
+ ;; C17
+ 
+ (deftest c17-dog-body-masses
+-  (let [expected [[:torso 18.011798] [:neck 1.335962] [:head 1.544616]
++  (let [expected [[:torso 8.901179] [:neck 1.335962] [:head 1.544616]
+                    [:fl-upper 0.949285] [:fl-lower 0.622035]
+                    [:fr-upper 0.949285] [:fr-lower 0.622035]
++                   [:hind 8.901179]
+                    [:hl-upper 0.949285] [:hl-lower 0.622035]
+                    [:hr-upper 0.949285] [:hr-lower 0.622035]]
+         masses (c/body-masses dog)]
+     (is (approx= expected masses))
+-    (is (approx= 27.177656 (reduce + (map second masses))))
++    (is (approx= 26.968217 (reduce + (map second masses))))
+     (is (every? #(pos? (second %)) masses))
+     (is (every? #(pos? (second %)) (c/body-masses horse)))
+-    (is (approx= 36.023596 (second (first (c/body-masses (assoc dog :density 2000))))))))
++    (is (approx= 17.802358 (second (first (c/body-masses (assoc dog :density 2000))))))))
+ 
+ ;; C18
+ 
+@@ -215,11 +226,11 @@
+ 
+ (deftest c20-mjcf-horse
+   (let [x (c/mjcf horse {:at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4})]
+-    (is (= 11 (count-substr x "<body ")))
+-    (is (= 12 (count-substr x "<joint ")))
++    (is (= 12 (count-substr x "<body ")))
++    (is (= 18 (count-substr x "<joint ")))
+     (is (= 1 (count-substr x "<freejoint ")))
+-    (is (= 12 (count-substr x "<position ")))
+-    (is (= 12 (count-substr x "<geom ")))
++    (is (= 18 (count-substr x "<position ")))
++    (is (= 13 (count-substr x "<geom ")))
+     (is (= 1 (count-substr x "type=\"plane\"")))
+     (is (str/starts-with? x "<mujoco model=\"horse\">\n"))
+     (is (str/ends-with? x "</mujoco>\n"))
+@@ -233,7 +244,17 @@
+       (is (contains? trimmed "<joint name=\"neck-pitch\" type=\"hinge\" axis=\"0 1 0\" limited=\"true\" range=\"-0.698132 0.785398\" damping=\"5\"/>"))
+       (is (contains? trimmed "<joint name=\"head-roll\" type=\"hinge\" axis=\"1 0 0\" limited=\"true\" range=\"-1.22173 1.22173\" damping=\"5\"/>"))
+       (is (contains? trimmed "<position name=\"head-pitch\" joint=\"head-pitch\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-1.047198 1.047198\" forcelimited=\"true\" forcerange=\"-35 35\"/>"))
+-      (is (not (contains? trimmed "<position name=\"neck\" joint=\"neck\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-0.698132 0.523599\"/>"))))
++      (is (not (contains? trimmed "<position name=\"neck\" joint=\"neck\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-0.698132 0.523599\"/>")))
++      (is (contains? trimmed "<joint name=\"fl-splay\" type=\"hinge\" axis=\"1 0 0\" limited=\"true\" range=\"-0.436332 0.436332\" damping=\"5\"/>"))
++      (is (contains? trimmed "<joint name=\"fr-splay\" type=\"hinge\" axis=\"-1 0 0\" limited=\"true\" range=\"-0.436332 0.436332\" damping=\"5\"/>"))
++      (is (contains? trimmed "<joint name=\"spine-bend\" type=\"hinge\" axis=\"0 0 1\" limited=\"true\" range=\"-0.436332 0.436332\" damping=\"5\"/>"))
++      (is (contains? trimmed "<joint name=\"spine-twist\" type=\"hinge\" axis=\"1 0 0\" limited=\"true\" range=\"-0.349066 0.349066\" damping=\"5\"/>"))
++      (is (contains? trimmed "<body name=\"hind\" pos=\"0 0 0\">"))
++      (is (contains? trimmed "<geom name=\"hind\" type=\"capsule\" fromto=\"-0.3 0 0 -0.1 0 0\" size=\"0.15\" density=\"1000\" contype=\"0\" conaffinity=\"1\"/>"))
++      (is (contains? trimmed "<position name=\"fl-splay\" joint=\"fl-splay\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-0.436332 0.436332\"/>"))
++      (is (contains? trimmed "<position name=\"fl-swing\" joint=\"fl-swing\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-1.047198 1.308997\"/>"))
++      (is (contains? trimmed "<position name=\"spine-bend\" joint=\"spine-bend\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-0.436332 0.436332\"/>"))
++      (is (contains? trimmed "<position name=\"spine-twist\" joint=\"spine-twist\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-0.349066 0.349066\"/>")))
+     (let [lines (str/split-lines x)
+           idx (first (keep-indexed (fn [i l] (when (str/includes? l "<body name=\"neck\" pos=\"0.3 0 0.08\">") i)) lines))]
+       (is (some? idx))
+@@ -249,11 +270,11 @@
+ 
+ (deftest c21-mjcf-dog
+   (let [x (c/mjcf dog {:at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4})]
+-    (is (= 11 (count-substr x "<body ")))
+-    (is (= 12 (count-substr x "<joint ")))
++    (is (= 12 (count-substr x "<body ")))
++    (is (= 18 (count-substr x "<joint ")))
+     (is (= 1 (count-substr x "<freejoint ")))
+-    (is (= 12 (count-substr x "<position ")))
+-    (is (= 12 (count-substr x "<geom ")))
++    (is (= 18 (count-substr x "<position ")))
++    (is (= 13 (count-substr x "<geom ")))
+     (is (= 1 (count-substr x "type=\"plane\"")))
+     (let [trimmed (set (map str/trim (str/split-lines x)))]
+       (is (contains? trimmed "<mujoco model=\"dog\">"))
+@@ -261,7 +282,10 @@
+       (is (contains? trimmed "<geom name=\"fl-upper\" type=\"capsule\" fromto=\"0 0 0 0 0 -0.2\" size=\"0.035\" density=\"1000\" contype=\"0\" conaffinity=\"1\"/>"))
+       (is (contains? trimmed "<position name=\"hr-lower\" joint=\"hr-lower\" kp=\"40\" ctrllimited=\"true\" ctrlrange=\"-1.745329 0.174533\"/>"))
+       (is (contains? trimmed "<joint name=\"neck-pitch\" type=\"hinge\" axis=\"0 1 0\" limited=\"true\" range=\"-0.698132 0.785398\" damping=\"1.5\"/>"))
+-      (is (contains? trimmed "<position name=\"neck-bend\" joint=\"neck-bend\" kp=\"40\" ctrllimited=\"true\" ctrlrange=\"-1.22173 1.22173\" forcelimited=\"true\" forcerange=\"-9 9\"/>")))))
++      (is (contains? trimmed "<position name=\"neck-bend\" joint=\"neck-bend\" kp=\"40\" ctrllimited=\"true\" ctrlrange=\"-1.22173 1.22173\" forcelimited=\"true\" forcerange=\"-9 9\"/>"))
++      (is (contains? trimmed "<joint name=\"hr-splay\" type=\"hinge\" axis=\"-1 0 0\" limited=\"true\" range=\"-0.436332 0.436332\" damping=\"1.5\"/>"))
++      (is (contains? trimmed "<geom name=\"hind\" type=\"capsule\" fromto=\"-0.22 0 0 -0.07 0 0\" size=\"0.1\" density=\"1000\" contype=\"0\" conaffinity=\"1\"/>"))
++      (is (contains? trimmed "<position name=\"spine-twist\" joint=\"spine-twist\" kp=\"40\" ctrllimited=\"true\" ctrlrange=\"-0.349066 0.349066\"/>")))))
+ 
+ ;; C22
+ 
+@@ -301,8 +325,10 @@
+ ;; C26
+ 
+ (deftest c26-body-part
+-  (is (approx= {:shape :capsule :size [0.9 0.3 0.3] :at [0 0 0] :rot [0 0 0] :color 0x9b6b43}
++  (is (approx= {:shape :capsule :size [0.5 0.3 0.3] :at [0.2 0 0] :rot [0 0 0] :color 0x9b6b43}
+                (c/body-part horse (get-in horse [:bodies 0]))))
++  (is (approx= {:shape :capsule :size [0.5 0.3 0.3] :at [-0.2 0 0] :rot [0 0 0] :color 0x9b6b43}
++               (c/body-part horse (get-in horse [:bodies 7]))))
+   (is (approx= {:shape :capsule :size [0.48 0.1 0.1] :at [0 -0.19 0] :rot [0 0 -90] :color 0x9b6b43}
+                (c/body-part horse (nth (c/bodies horse) 3))))
+   (is (approx= {:shape :capsule :size [0.45 0.08 0.08] :at [0 -0.185 0] :rot [0 0 -90] :color 0x2e2622}
+@@ -318,24 +344,33 @@
+ 
+ (deftest c27-body-parts-dog
+   (let [parts (c/body-parts dog)]
+-    (is (= 11 (count parts)))
+-    (is (= [1 2 3 4 5 6 7 8 9 10 11] (mapv :id parts)))
++    (is (= 12 (count parts)))
++    (is (= [1 2 3 4 5 6 7 8 9 10 11 12] (mapv :id parts)))
+     (is (= [:torso :neck :head :fl-upper :fl-lower :fr-upper :fr-lower
+-            :hl-upper :hl-lower :hr-upper :hr-lower]
++            :hind :hl-upper :hl-lower :hr-upper :hr-lower]
+            (mapv :name parts)))
+-    (is (approx= {:shape :capsule :size [0.64 0.2 0.2] :at [0 0 0] :rot [0 0 0] :color 0xc49a6c}
++    (is (approx= {:shape :capsule :size [0.35 0.2 0.2] :at [0.145 0 0] :rot [0 0 0] :color 0xc49a6c}
+                  (:part (first parts))))
+     (is (approx= {:size [0.27 0.07 0.07] :at [0 -0.1 0] :rot [0 0 -90]}
+                  (select-keys (:part (nth parts 3)) [:size :at :rot])))
+-    (is (= 0x6b4a32 (:color (:part (nth parts 2)))))))
++    (is (= 0x6b4a32 (:color (:part (nth parts 2)))))
++    (is (= :hind (:name (nth parts 7))))
++    (is (approx= {:shape :capsule :size [0.35 0.2 0.2] :at [-0.145 0 0] :rot [0 0 0] :color 0xc49a6c}
++                 (:part (nth parts 7))))))
+ 
+ ;; C28
+ 
+ (deftest c28-both-joint-forms-valid
+   (is (= [] (c/problems horse)))
+   (is (= [] (c/problems dog)))
+-  (is (= [{:name :fl-upper :axis [0 1 0] :range [-45 45]}]
++  (is (= [{:name :fl-splay :axis [1 0 0] :range [-25 25]}
++          {:name :fl-swing :axis [0 1 0] :range [-60 75]}]
+          (c/body-joints (get-in horse [:bodies 3]))))
++  (is (= [{:name :fl-lower :axis [0 1 0] :range [-10 100]}]
++         (c/body-joints (get-in horse [:bodies 4]))))
++  (is (= [{:name :spine-bend :axis [0 0 1] :range [-25 25]}
++          {:name :spine-twist :axis [1 0 0] :range [-20 20]}]
++         (c/body-joints (get-in horse [:bodies 7]))))
+   (is (= [:neck-bend :neck-pitch]
+          (mapv :name (c/body-joints (get-in horse [:bodies 1])))))
+   (is (= [] (c/body-joints (get-in horse [:bodies 0])))))
+@@ -366,8 +401,10 @@
+ ;; C32
+ 
+ (deftest c32-joint-name-duplicate-and-root-joints
+-  (is (= ["joint :fl-upper: duplicate name" "reflex 0: unknown joint :neck-bend"]
+-         (c/problems (assoc-in horse [:bodies 1 :joints 0 :name] :fl-upper))))
++  (is (= ["joint :fl-swing: duplicate name" "reflex 0: unknown joint :neck-bend"]
++         (c/problems (assoc-in horse [:bodies 1 :joints 0 :name] :fl-swing))))
++  (is (= ["joint :spine-bend: duplicate name"]
++         (c/problems (assoc-in dog [:bodies 7 :joints 1 :name] :spine-bend))))
+   (is (= ["root :torso must have no :parent, :at or :joint"]
+          (c/problems (assoc-in horse [:bodies 0 :joints] [{:name :x :axis [1 0 0] :range [-1 1]}])))))
+ 
+@@ -536,7 +573,7 @@
+     (is (= 4 (count-substr x "forcerange=")))
+     (is (contains? trimmed "<position name=\"neck-bend\" joint=\"neck-bend\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-1.22173 1.22173\" forcelimited=\"true\" forcerange=\"-35 35\"/>"))
+     (is (contains? trimmed "<position name=\"head-roll\" joint=\"head-roll\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-1.22173 1.22173\" forcelimited=\"true\" forcerange=\"-35 35\"/>"))
+-    (is (contains? trimmed "<position name=\"fl-upper\" joint=\"fl-upper\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-0.785398 0.785398\"/>")))
++    (is (contains? trimmed "<position name=\"fl-swing\" joint=\"fl-swing\" kp=\"150\" ctrllimited=\"true\" ctrlrange=\"-1.047198 1.308997\"/>")))
+   (let [y (c/mjcf dog {:at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4})]
+     (is (= 4 (count-substr y "forcerange=\"-9 9\"")))))
+ 
+@@ -567,3 +604,104 @@
+   (is (= 0.8 (c/kick-above horse)))
+   (is (= 0.8 (c/kick-above (dissoc horse :kick-above))))
+   (is (approx= 0.1 (:rest-frac (:effort (first (c/reflexes horse)))))))
++
++;; B1
++
++(deftest b1-joint-axes-and-splay-sign
++  (let [expected-axes [[0 0 1] [0 1 0] [0 1 0] [1 0 0] [1 0 0] [0 1 0] [0 1 0]
++                        [-1 0 0] [0 1 0] [0 1 0] [0 0 1] [1 0 0]
++                        [1 0 0] [0 1 0] [0 1 0] [-1 0 0] [0 1 0] [0 1 0]]
++        by-name (fn [sp n] (first (filter #(= n (:name %)) (c/joints sp))))]
++    (doseq [sp [horse dog]]
++      (is (= expected-axes (mapv :axis (c/joints sp))))
++      (is (= 18 (count (c/joints sp))))
++      (is (= [1 0 0] (:axis (by-name sp :fl-splay))))
++      (is (= [1 0 0] (:axis (by-name sp :hl-splay))))
++      (is (= [-1 0 0] (:axis (by-name sp :fr-splay))))
++      (is (= [-1 0 0] (:axis (by-name sp :hr-splay))))
++      (doseq [n [:fl-swing :fr-swing :hl-swing :hr-swing]]
++        (is (approx= [-1.047198 1.308997] (:range (by-name sp n)))))
++      (doseq [n [:fl-splay :fr-splay :hl-splay :hr-splay]]
++        (is (approx= [-0.436332 0.436332] (:range (by-name sp n)))))
++      (is (approx= [-0.436332 0.436332] (:range (by-name sp :spine-bend))))
++      (is (approx= [-0.349066 0.349066] (:range (by-name sp :spine-twist)))))))
++
++;; B2
++
++(deftest b2-mass-and-length-within-5-percent
++  (let [horse-before 88.829579
++        dog-before 27.177656
++        horse-total (reduce + (map second (c/body-masses horse)))
++        dog-total (reduce + (map second (c/body-masses dog)))
++        horse-ratio (/ horse-total horse-before)
++        dog-ratio (/ dog-total dog-before)]
++    (is (approx= 88.829579 horse-total))
++    (is (approx= 1.0 horse-ratio))
++    (is (approx= 26.968217 dog-total))
++    (is (approx= 0.992294 dog-ratio))
++    (is (<= (js/Math.abs (- horse-ratio 1)) 0.05))
++    (is (<= (js/Math.abs (- dog-ratio 1)) 0.05)))
++  (letfn [(body-length [sp]
++            (let [bs (c/bodies sp)
++                  torso (first (filter #(= :torso (:name %)) bs))
++                  hind (first (filter #(= :hind (:name %)) bs))
++                  ends (fn [b] (let [{:keys [from to r]} (:capsule b)]
++                                 [(+ (max (first from) (first to)) r)
++                                  (- (min (first from) (first to)) r)]))
++                  [th tl] (ends torso)
++                  [hh hl] (ends hind)
++                  len (- (max th hh) (min tl hl))]
++              [len (:at hind)]))]
++    (let [[horse-len horse-hind-at] (body-length horse)
++          [dog-len dog-hind-at] (body-length dog)]
++      (is (approx= 0.9 horse-len))
++      (is (= [0 0 0] horse-hind-at))
++      (is (approx= 0.64 dog-len))
++      (is (= [0 0 0] dog-hind-at))
++      (is (<= (js/Math.abs (- (/ horse-len 0.9) 1)) 0.05))
++      (is (<= (js/Math.abs (- (/ dog-len 0.64) 1)) 0.05)))))
++
++;; B3
++
++(deftest b3-the-tree
++  (is (= :torso (:name (first (:bodies horse)))))
++  (is (not (contains? (first (:bodies horse)) :parent)))
++  (doseq [sp [horse dog]]
++    (let [bs (:bodies sp)
++          hind (first (filter #(= :hind (:name %)) bs))
++          hl-upper (first (filter #(= :hl-upper (:name %)) bs))
++          hr-upper (first (filter #(= :hr-upper (:name %)) bs))
++          fl-upper (first (filter #(= :fl-upper (:name %)) bs))
++          fr-upper (first (filter #(= :fr-upper (:name %)) bs))]
++      (is (= :torso (:parent hind)))
++      (is (= [0 0 0] (:at hind)))
++      (is (= :hind (:parent hl-upper)))
++      (is (= :hind (:parent hr-upper)))
++      (is (= :torso (:parent fl-upper)))
++      (is (= :torso (:parent fr-upper)))
++      (is (= {:body-id 3 :acts [0 1 2 3] :qpos [7 8 9 10] :dofs [6 7 8 9]}
++             (select-keys (first (c/reflexes sp)) [:body-id :acts :qpos :dofs])))))
++  (is (approx= -0.84 (c/rest-bottom horse)))
++  (is (approx= -0.105 (c/rest-bottom dog 90))))
++
++;; B4
++
++(deftest b4-mjcf-nesting-and-actuator-order
++  (doseq [sp [horse dog]]
++    (let [x (c/mjcf sp {:at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4})
++          lines (str/split-lines x)
++          ls (fn [s] (- (count s) (count (str/triml s))))
++          hind-idx (first (keep-indexed (fn [i l] (when (str/includes? l "<body name=\"hind\" pos=\"0 0 0\">") i)) lines))
++          fl-upper-idx (first (keep-indexed (fn [i l] (when (str/includes? l "<body name=\"fl-upper\"") i)) lines))
++          hl-upper-idx (first (keep-indexed (fn [i l] (when (str/includes? l "<body name=\"hl-upper\"") i)) lines))
++          position-names (keep #(second (re-find #"<position name=\"([^\"]+)\"" %)) lines)]
++      (is (some? hind-idx))
++      (is (= 6 (ls (nth lines hind-idx))))
++      (is (str/starts-with? (str/trim (nth lines (+ hind-idx 1))) "<joint name=\"spine-bend\""))
++      (is (str/starts-with? (str/trim (nth lines (+ hind-idx 2))) "<joint name=\"spine-twist\""))
++      (is (str/starts-with? (str/trim (nth lines (+ hind-idx 3))) "<geom name=\"hind\""))
++      (is (= 8 (ls (nth lines hl-upper-idx))))
++      (is (> hl-upper-idx hind-idx))
++      (is (str/starts-with? (str/trim (nth lines (+ fl-upper-idx 1))) "<joint name=\"fl-splay\""))
++      (is (str/starts-with? (str/trim (nth lines (+ fl-upper-idx 2))) "<joint name=\"fl-swing\""))
++      (is (= (mapv (comp name :name) (c/joints sp)) (vec position-names))))))

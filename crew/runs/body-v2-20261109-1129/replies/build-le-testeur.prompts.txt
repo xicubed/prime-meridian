@@ -1,0 +1,112 @@
+=== prompt 1 (12:02:38)
+ │             if c == ';':
+ │                 in_comment = True
+ │             elif c == '"':
+ │                 in_str = True
+ │             elif c in '([{':
+ │                 depth += 1
+ │             elif c in ')]}':
+ │                 depth -= 1
+ │                 if depth < 0:
+ │                     print(path, "NEGATIVE
+ │ at", i)
+ │                     return
+ │         i += 1
+ │     print(path, "final depth", depth)
+ │ check("test/pm/creature_test.cljs")
+ │ EOF
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: python3 *
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 2 (12:03:49)
+ │                 in_str = True
+ │             elif c in '([{':
+ │                 depth += 1
+ │             elif c in ')]}':
+ │                 depth -= 1
+ │                 if depth < 0:
+ │                     print(path, "NEGATIVE
+ │ at", i)
+ │                     return
+ │         i += 1
+ │     print(path, "final depth", depth)
+ │ check("test/pm/creature_mujoco_test.cljs"
+ │ )
+ │ check("test/pm/creature_motion_test.cljs"
+ │ )
+ │ EOF
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: python3 *
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 3 (12:04:40)
+ │             elif c in '([{':
+ │                 depth += 1
+ │             elif c in ')]}':
+ │                 depth -= 1
+ │                 if depth < 0:
+ │                     print(path, "NEGATIVE
+ │ at", i)
+ │                     return
+ │         i += 1
+ │     print(path, "final depth", depth)
+ │ check("test/pm/creature_test.cljs")
+ │ check("test/pm/creature_motion_test.cljs"
+ │ )
+ │ check("test/pm/creature_mujoco_test.cljs"
+ │ )
+ │ EOF
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: python3 *
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 4 (12:04:50)
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ for f in test/pm/creature_test.cljs
+ │ test/pm/creature_motion_test.cljs
+ │ test/pm/creature_mujoco_test.cljs; do
+ │   echo "== $f =="
+ │   grep -oE '\(deftest [a-z0-9-]+' "$f" |
+ │ awk '{print $2}' | sort | uniq -d
+ │ done
+ │ echo "---"
+ │ git diff --stat
+ │ test/pm/creature_test.cljs
+ │ test/pm/creature_motion_test.cljs
+ │ test/pm/creature_mujoco_test.cljs
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ A variable in this command can't be checked
+ before it runs
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend

@@ -196,9 +196,11 @@
   (is (approx= [0.5 1] (cm/actions->ctrl [0 0] [[-0.5 1.5] [0 2]])))
   (is (approx= [1.5 0] (cm/actions->ctrl [2 -3] [[-0.5 1.5] [0 2]])))
   (is (approx= [1 0.5] (cm/actions->ctrl [0.5 -0.5] [[-0.5 1.5] [0 2]])))
-  (let [mids (cm/actions->ctrl (vec (repeat 12 0)) (c/ctrl-ranges c-horse))]
-    (is (approx= 0 (first mids)))
-    (is (approx= 0.043633 (second mids)))))
+  (let [mids (cm/actions->ctrl (vec (repeat 18 0)) (c/ctrl-ranges c-horse))
+        expected [0 0.043633 0 0 0 0.1308997 0.785398 0 0.1308997 0.785398
+                  0 0 0 0.1308997 -0.785398 0 0.1308997 -0.785398]]
+    (is (= 18 (count mids)))
+    (is (approx= expected mids))))
 
 ;; M13
 
@@ -239,3 +241,17 @@
         xquat (js/Float64Array.from #js [1 0 0 0 0.7 0.1 0.2 0.3])]
     (is (approx= {:pos [1 3 -2] :quat [0.1 0.3 -0.2 0.7]} (cm/body-pose xpos xquat 1)))
     (is (approx= {:pos [0 0 0] :quat [0 0 0 1]} (cm/body-pose xpos xquat 0)))))
+
+;; B5
+
+(deftest b5-everything-downstream-adapts-by-count
+  (let [n (count (c/ctrl-ranges c-horse))]
+    (is (= 18 n))
+    (is (= 18 (count (cm/twitch-actions (cm/twitch-step (cm/controller :twitch n 1) 0.002)))))
+    (let [sig (cm/stiffness (cm/reflex-controller (cm/controller :twitch n 1) (c/reflexes c-horse) 1) 0.1 0.8)]
+      (is (= 18 (count sig)))
+      (is (= [1 1 1 1] (subvec (vec sig) 0 4)))
+      (is (every? #(contains? #{1 0.1} %) sig)))
+    (let [result (cm/limp (vec (repeat 18 0)) (js/Float64Array. 25) (vec (repeat 18 0.1)))]
+      (is (= 18 (count result)))
+      (is (every? zero? result)))))

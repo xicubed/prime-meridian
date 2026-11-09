@@ -1,0 +1,27 @@
+  own enumerated "23 updated existing cases"
+  that are le-testeur's to fix (C4, C13, C14,
+  C15, C16, C17, C20, C21, C26, C27, C28,
+  C32, F5, R8 — all hard-code the old
+  12-joint body). None are a defect in the
+  data files; I didn't touch test/.
+
+  git diff --stat:
+   creatures/bodies/dog.xml      | 63
+  ++++++++++++++++++++++++++-----------------
+   creatures/bodies/horse.xml    | 63
+  ++++++++++++++++++++++++++-----------------
+   resources/creatures/dog.edn   | 24
+  ++++++++++++-----
+   resources/creatures/horse.edn | 28
+  ++++++++++++++-----
+   4 files changed, 116 insertions(+), 62
+  deletions(-)
+
+  done-9470
+
+✻ Brewed for 2m 34s · done 11:48 AM
+     ✔ Update installed · /restart to apply
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

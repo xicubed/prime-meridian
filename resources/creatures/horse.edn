@@ -2,13 +2,19 @@
 ;; Angles in degrees. Read by pm.creature (the game, and `bb creature-mjcf horse`).
 {:kind    :horse
  :density 1000          ; kg/m³: each body's mass = its capsule's volume × density
- :kp      150           ; position-actuator stiffness, N·m/rad (one actuator per joint)
+ :kp      250           ; position-actuator stiffness, N·m/rad (one actuator per joint); 225 is the least that holds a stand (body-v2), 250 for margin (Michael, Nov 9)
  :damping 5             ; joint damping, N·m·s/rad
- :rest-kp    15         ; N·m/rad: muscles that aren't working are soft (10 % of :kp), so he lies, not stands
+ :rest-kp    15         ; N·m/rad: muscles that aren't working are soft (6 % of :kp), so he lies, not stands
  :kick-above 0.8        ; a twitch segment whose random target |to| >= this is a kick (full :kp); else rest stiffness
  :colors  {:coat 0x9b6b43 :dark 0x4a3426 :hoof 0x2e2622}
+ ;; Body v2: the torso is two halves joined by a spine at x = 0. :torso (the root, the front half)
+ ;; and :hind each carry half of the old capsule's volume, so mass and length are unchanged.
+ ;; Upper legs: splay first (nearest the torso), then swing. Splay + moves the foot outward on
+ ;; both sides: axis [1 0 0] on the left legs (+y), [-1 0 0] on the right legs (-y).
+ ;; Swing (axis [0 1 0], as before): + moves the foot back. A front leg folds under the chest
+ ;; with + (knee back toward the belly), a hind leg with - (knee forward under the belly).
  :bodies
- [{:name :torso :capsule {:from [-0.3 0 0] :to [0.3 0 0] :r 0.15} :color :coat}
+ [{:name :torso :capsule {:from [0.1 0 0] :to [0.3 0 0] :r 0.15} :color :coat}
   {:name :neck :parent :torso :at [0.3 0 0.08]
    ;; several hinges: listed order = MuJoCo order, first = nearest the torso. Side-bend first:
    ;; lying on its side, the bend is what lifts the head, so the pitch must act after it.
@@ -20,25 +26,33 @@
             {:name :head-roll  :axis [1 0 0] :range [-70 70]}]  ; atlas/axis rotation
    :capsule {:from [0 0 0] :to [0.24 0 -0.1] :r 0.07} :color :coat}
   {:name :fl-upper :parent :torso :at [0.28 0.1 -0.05]
-   :joint {:axis [0 1 0] :range [-45 45]}
+   :joints [{:name :fl-splay :axis [1 0 0] :range [-25 25]}    ; + = foot out (left)
+            {:name :fl-swing :axis [0 1 0] :range [-60 75]}]   ; + = foot back
    :capsule {:from [0 0 0] :to [0 0 -0.38] :r 0.05} :color :coat}
   {:name :fl-lower :parent :fl-upper :at [0 0 -0.38]
    :joint {:axis [0 1 0] :range [-10 100]}
    :capsule {:from [0 0 0] :to [0 0 -0.37] :r 0.04} :color :hoof}
   {:name :fr-upper :parent :torso :at [0.28 -0.1 -0.05]
-   :joint {:axis [0 1 0] :range [-45 45]}
+   :joints [{:name :fr-splay :axis [-1 0 0] :range [-25 25]}   ; + = foot out (right)
+            {:name :fr-swing :axis [0 1 0] :range [-60 75]}]
    :capsule {:from [0 0 0] :to [0 0 -0.38] :r 0.05} :color :coat}
   {:name :fr-lower :parent :fr-upper :at [0 0 -0.38]
    :joint {:axis [0 1 0] :range [-10 100]}
    :capsule {:from [0 0 0] :to [0 0 -0.37] :r 0.04} :color :hoof}
-  {:name :hl-upper :parent :torso :at [-0.28 0.1 -0.05]
-   :joint {:axis [0 1 0] :range [-45 45]}
+  {:name :hind :parent :torso :at [0 0 0]
+   :joints [{:name :spine-bend  :axis [0 0 1] :range [-25 25]}  ; + = hind end swings right
+            {:name :spine-twist :axis [1 0 0] :range [-20 20]}] ; + = hind's left side up
+   :capsule {:from [-0.3 0 0] :to [-0.1 0 0] :r 0.15} :color :coat}
+  {:name :hl-upper :parent :hind :at [-0.28 0.1 -0.05]
+   :joints [{:name :hl-splay :axis [1 0 0] :range [-25 25]}
+            {:name :hl-swing :axis [0 1 0] :range [-60 75]}]
    :capsule {:from [0 0 0] :to [0 0 -0.38] :r 0.05} :color :coat}
   {:name :hl-lower :parent :hl-upper :at [0 0 -0.38]
    :joint {:axis [0 1 0] :range [-100 10]}
    :capsule {:from [0 0 0] :to [0 0 -0.37] :r 0.04} :color :hoof}
-  {:name :hr-upper :parent :torso :at [-0.28 -0.1 -0.05]
-   :joint {:axis [0 1 0] :range [-45 45]}
+  {:name :hr-upper :parent :hind :at [-0.28 -0.1 -0.05]
+   :joints [{:name :hr-splay :axis [-1 0 0] :range [-25 25]}
+            {:name :hr-swing :axis [0 1 0] :range [-60 75]}]
    :capsule {:from [0 0 0] :to [0 0 -0.38] :r 0.05} :color :coat}
   {:name :hr-lower :parent :hr-upper :at [0 0 -0.38]
    :joint {:axis [0 1 0] :range [-100 10]}

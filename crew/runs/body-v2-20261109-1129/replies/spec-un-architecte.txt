@@ -1,0 +1,27 @@
+  - Today's 12-joint body fails the same way
+    at 150 and also needs 225, so the new
+    joints didn't make him weaker.
+  - The dog holds at its :kp 40.
+  - :kp stays 150 in horse.edn until Michael
+    decides.
+
+  Also for Hal:
+  - Stale body files: the committed
+    creatures/bodies/*.xml are older than
+    effort-v0. Regenerating them adds the
+    neck force caps (35 N·m on the horse), so
+    training run 2's foal will have a weaker
+    neck than run 1's.
+  - Training task: creatures/foal/task.py
+    still uses the old joint names, so Le
+    Coureur will need to update it in a later
+    round.
+
+  done-6160
+
+✻ Cogitated for 14m 58s · done 11:45 AM
+     ✔ Update installed · /restart to apply
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

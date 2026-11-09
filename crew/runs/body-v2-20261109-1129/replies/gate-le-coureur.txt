@@ -1,0 +1,27 @@
+  When you have completely finished, end
+  your reply with a line containing only
+  this: done-8394
+
+  Ran 1 shell command
+
+⏺ Write(crew/runs/body-v2-2026…/gate-note.md)
+  ⎿  Wrote 5 lines to crew/runs/body-v2-
+     20261109-1129/gate-note.md
+      1 PASS
+      2
+      3 Compile: 0 warnings
+      4
+      5 Test: Ran 753 tests containing
+         4368 assertions. 0 failures,
+        0 errors.
+
+⏺ PASS
+
+  done-8394
+
+✻ Cooked for 18s · done 12:05 PM
+     ✔ Update installed · /restart to apply
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

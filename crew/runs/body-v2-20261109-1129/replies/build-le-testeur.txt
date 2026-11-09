@@ -1,0 +1,27 @@
+  run-session/run-drop/run-table and wired it
+  into R10–R13; added R14 (joints/actuators
+  compile correctly), R15 (kinematic splay
+  check lying on the side), R16 (fold-sign
+  standing pose), R17 (spine-bend/spine-twist
+  signs), S1 (quest's literal 5 s stand-hold
+  criterion) and S2 (smallest holding :kp
+  search, 150→225 for the horse, 40 for the
+  dog).
+
+   test/pm/creature_motion_test.cljs |  22
+  ++-
+   test/pm/creature_mujoco_test.cljs | 302
+  +++++++++++++++++++++++++++++++++++---
+   test/pm/creature_test.cljs        | 214
+  ++++++++++++++++++++++-----
+   3 files changed, 474 insertions(+), 64
+  deletions(-)
+
+  done-7739
+
+✻ Brewed for 19m 16s · done 12:05 PM
+  ● high · /effort · ✔ Update installed · …
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)
