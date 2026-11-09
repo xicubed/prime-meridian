@@ -170,6 +170,24 @@ def main():
   _, _, _, cpu_trace = run_episode(qpos0, qvel0, fixed["num_steps"], trace=True)
   warp_trace = fixed["trace"]
 
+  # Same format as fixed_chest_rollout_3s, but stepped on plain MuJoCo CPU
+  # (replaying the exact recorded initial_qpos/qvel, not re-rolling the
+  # reset) -- the browser runs the same C MuJoCo, so this is the trace it
+  # should match closely.
+  ref["fixed_chest_rollout_3s_cpu"] = {
+      "checkpoint": fixed["checkpoint"],
+      "start_type": fixed["start_type"],
+      "control_timestep": fixed["control_timestep"],
+      "num_steps": fixed["num_steps"],
+      "initial_qpos": fixed["initial_qpos"],
+      "initial_qvel": fixed["initial_qvel"],
+      "mujoco_version": mujoco.__version__,
+      "engine": "plain mujoco (CPU)",
+      "trace": cpu_trace,
+  }
+  with open(f"{LOGDIR}/policy_reference.json", "w") as f:
+    json.dump(ref, f, indent=2)
+
   max_diff_1s, max_diff_3s = 0.0, 0.0
   steps_1s = round(1.0 / foal_task._CONTROL_TIMESTEP)
   for i, (w, c) in enumerate(zip(warp_trace, cpu_trace)):
