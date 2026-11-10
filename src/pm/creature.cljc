@@ -214,6 +214,53 @@
         (into [] (mapcat (fn [i r] (reflex-entry-problems i r body-names known-joint-names))
                           (range) rx))))))
 
+(defn brain
+  "The :brain block, or nil when the species has none."
+  [sp]
+  (:brain sp))
+
+(defn- brain-problems
+  "The §1.1 checks for :brain, [] when absent. :default-age is checked only
+   when :ages is itself valid."
+  [sp]
+  (if-not (contains? sp :brain)
+    []
+    (let [b (:brain sp)]
+      (if-not (map? b)
+        [":brain must be a map"]
+        (let [ages      (:ages b)
+              ages-ok?  (and (vector? ages) (seq ages)
+                              (every? #(and (integer? %) (>= % 0)) ages)
+                              (= (count ages) (count (distinct ages))))
+              drop-m    (:drop-m b)
+              drop-ok?  (and (vector? drop-m) (= 2 (count drop-m)) (every? number? drop-m)
+                              (<= 0 (first drop-m) (second drop-m)))
+              stand     (:stand b)
+              stand-ok? (and (map? stand)
+                              (number? (:torso-m stand)) (pos? (:torso-m stand))
+                              (number? (:up-z stand)) (<= -1 (:up-z stand) 1))]
+          (cond-> []
+            (not= :policy (:kind b))
+            (conj ":brain :kind must be :policy")
+
+            (not (and (string? (:dir b)) (str/starts-with? (:dir b) "/") (str/ends-with? (:dir b) "/")))
+            (conj ":brain :dir must be a string starting and ending with /")
+
+            (not (and (string? (:meta b)) (not (str/blank? (:meta b)))))
+            (conj ":brain :meta must be a non-blank file name")
+
+            (not ages-ok?)
+            (conj ":brain :ages must be a non-empty vector of distinct integers >= 0")
+
+            (and ages-ok? (not (contains? (set ages) (:default-age b))))
+            (conj ":brain :default-age must be one of :ages")
+
+            (not drop-ok?)
+            (conj ":brain :drop-m must be [lo hi] with 0 <= lo <= hi")
+
+            (not stand-ok?)
+            (conj ":brain :stand must be {:torso-m > 0 :up-z in [-1, 1]}")))))))
+
 (defn problems
   "A vector of problem strings, [] when `sp` is valid. Never throws."
   [sp]
@@ -245,7 +292,8 @@
               (and (contains? sp :kick-above)
                    (not (and (number? (:kick-above sp)) (<= 0 (:kick-above sp) 1))))
               (conj ":kick-above must be a number in [0, 1]"))]
-    (if-not bodies-ok?
+    (into
+     (if-not bodies-ok?
       (conj top ":bodies must be a non-empty vector")
       (let [[body-probs _]
             (reduce
@@ -280,7 +328,8 @@
             [p19-probs known-names] (joint-name-pass bodies)
             all (-> top (into body-probs) (into p19-probs))
             all (if (some has-any-joint? bodies) all (conj all "needs at least one :joint"))]
-        (into all (reflex-problems sp known-names))))))
+        (into all (reflex-problems sp known-names))))
+     (brain-problems sp))))
 
 (defn check!
   "`sp` if valid, else throws the ex-info `parse` throws."

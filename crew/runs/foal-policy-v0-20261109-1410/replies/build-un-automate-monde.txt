@@ -1,0 +1,27 @@
+  real-MuJoCo+ONNX R1–R11 cases. These 4
+  failures look like a test bug, not a spec
+  mismatch: in the decim-3 and decim-1
+  sub-blocks, the test calls cb/receive
+  directly on the state before a plan call
+  (:waiting? false), instead of on plan's
+  returned :st (:waiting? true) — which is
+  what B12 does correctly, and what the same
+  deftest's own "receive guards" sub-block
+  requires (it explicitly depends on receive
+  rejecting a second call once :waiting? is
+  already false, which only works if
+  :waiting? gates receive at all). I left
+  test/ untouched per the role rule.
+
+  git diff --stat:
+
+  Ran 1 shell command
+
+⏺ done-3610
+
+✻ Sautéed for 16m 28s · done 2:40 PM
+     ✔ Update installed · /restart to apply
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

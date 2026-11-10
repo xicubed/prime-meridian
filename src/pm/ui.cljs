@@ -241,3 +241,22 @@
 (defn hide-voice-button! []
   (when-let [^js btn (el "voice-toggle")]
     (set! (.. btn -style -display) "none")))
+
+(defn show-brain-ui!
+  "Fills #brain-age with one <option> per age (text = the age), selects
+   `age`, un-hides #brain-ui, and wires the select/button by property (not
+   addEventListener) so calling this again doesn't double-wire."
+  [ages age on-age on-drop]
+  (when-let [^js sel (el "brain-age")]
+    (set! (.-innerHTML sel) "")
+    (doseq [a ages]
+      (let [^js opt (js/document.createElement "option")]
+        (set! (.-value opt) (str a))
+        (set! (.-textContent opt) (str a))
+        (.appendChild sel opt)))
+    (set! (.-value sel) (str age))
+    (set! (.-onchange sel) (fn [^js e] (on-age (js/parseInt (.. e -target -value) 10)))))
+  (when-let [^js btn (el "brain-drop")]
+    (set! (.-onclick btn) (fn [_] (on-drop))))
+  (when-let [^js box (el "brain-ui")]
+    (.removeAttribute box "hidden")))

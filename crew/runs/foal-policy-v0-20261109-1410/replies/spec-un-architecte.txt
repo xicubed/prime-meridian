@@ -1,0 +1,27 @@
+  Other findings:
+  - He settles at 0.700 m, so the quest's
+    "torso > 0.7" is a coin flip; even the
+    CPU reference ends at 0.696. The tests
+    and the HUD's "up" use 0.65 m and up-z
+    0.9. Age 0 never stands.
+  - Today's spawn would hide the moment. He
+    is dropped upright from 0.4 m, so age
+    9499 lands on his feet already standing.
+    With a brain, every drop (first and "drop
+    again") is a seeded random drop like
+    training's. On the east bank, age 9499
+    stood 20 of 20 and age 0 stood 0 of 20.
+  - How physics waits: at each 0.02 s
+    boundary it stops until the inference
+    answers. The steps it owes are run when
+    the answer arrives, so it keeps real time
+    and never uses an old action.
+
+  done-7132
+
+✻ Sautéed for 10m 57s · done 2:22 PM
+     ✔ Update installed · /restart to apply
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

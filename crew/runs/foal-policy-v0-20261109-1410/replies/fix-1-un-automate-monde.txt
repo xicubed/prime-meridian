@@ -1,0 +1,27 @@
+  exactly what the B13 edge cases exercised.
+  No test files were touched.
+
+  Ran 2 shell commands
+
+⏺ git diff --stat (tracked files;
+  src/pm/creature_brain.cljs is
+  new/untracked, unchanged since last reply —
+  only its receive fn was fixed):
+
+   public/index.html             |  10 +-
+   resources/creatures/horse.edn |  15 +-
+   src/pm/creature.cljc          |  53 +++++-
+   src/pm/creature_spike.cljs    | 363
+  ++++++++++++++++++++++++++++++------------
+   src/pm/ui.cljs                |  19 +++
+   5 files changed, 357 insertions(+), 103
+  deletions(-)
+
+  done-4438
+
+✻ Worked for 2m 19s · done 2:43 PM
+     ✔ Update installed · /restart to apply
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

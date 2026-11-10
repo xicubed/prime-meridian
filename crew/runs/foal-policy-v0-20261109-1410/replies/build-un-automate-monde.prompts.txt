@@ -1,0 +1,308 @@
+=== prompt 1 (14:34:15)
+     "WARNING #" /tmp/compile-full.txt | head
+     -30; echo "---count---"; grep -c
+     "WARNING #" /tmp/compile-full.txt
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ npx shadow-cljs compile app test
+ │ --config-merge '{:output-dir
+ │ "out/gate-js" :asset-path "/gate-js"}' >
+ │ /tmp/compile-full.txt 2>&1; grep -n
+ │ "WARNING #" /tmp/compile-full.txt | head
+ │ -30; echo "---count---"; grep -c "WARNING
+ │ #" /tmp/compile-full.txt
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, allow reading from /tmp from this
+      project
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 2 (14:34:25)
+      81 +         :ages [0 3000 6000
+         +9499]
+      82 +         :default-age 9499
+      83 +         :drop-m [0.4 0.8]
+      84 +         :stand {:torso-m 0.
+         +65 :up-z 0.9}}}
+
+  Read 1 file
+
+⏺ This looks correct and well-formed EDN. Now
+  let's compile and run the gate.
+
+  Reading /tmp/compile-full.txt
+  ⎿  /tmp/compile-full.txt
+
+─────────────────────────────────────────────
+ Read file
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Read(/tmp/compile-full.txt · lines 1-200)
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, allow reading from /tmp and
+      /private/tmp during this session
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 3 (14:35:36)
+  ⎿  $ npx shadow-cljs compile app test
+     --config-merge '{:output-dir
+     "out/gate-js" :asset-path "/gate-js"}' >
+     /tmp/compile-full2.txt 2>&1; tail -150
+     /tmp/compile-full2.txt
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ npx shadow-cljs compile app test
+ │ --config-merge '{:output-dir
+ │ "out/gate-js" :asset-path "/gate-js"}' >
+ │ /tmp/compile-full2.txt 2>&1; tail -150
+ │ /tmp/compile-full2.txt
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and allow access to /tmp and npx
+      shadow-cljs commands
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 4 (14:35:46)
+⏺ Running node out/test.js >
+  /tmp/test-full2.txt 2>&1; tail…
+  ⎿  $ node out/test.js > /tmp/test-full2.txt
+     2>&1; tail -5 /tmp/test-full2.txt; echo
+     "---FAILS---"; grep -n "^FAIL
+     in\|^ERROR in" /tmp/test-full2.txt
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ node out/test.js > /tmp/test-full2.txt
+ │ 2>&1; tail -5 /tmp/test-full2.txt; echo
+ │ "---FAILS---"; grep -n "^FAIL in\|^ERROR
+ │ in" /tmp/test-full2.txt
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and allow access to /tmp and node
+      out/test.js commands
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 5 (14:36:07)
+           0))
+      219          seed' (or seed 1)]
+      220      (.mj_resetData mj model
+            data)
+
+⏺ Now let's recompile.
+
+  Ran 1 shell command
+
+⏺ 0 warnings in both builds. Now let's run
+  the full test suite.
+
+  Reading /tmp/test-full2.txt
+  ⎿  /tmp/test-full2.txt
+
+─────────────────────────────────────────────
+ Read file
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Read(/tmp/test-full2.txt · lines 1-30)
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, allow reading from /tmp and
+      /private/tmp during this session
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 6 (14:37:48)
+
+
+⏺ Running grep -n
+  "creature-brain-mujoco\|Testing pm.creatu…
+  ⎿  $ ls test/pm/ | grep -i brain; echo ---;
+     grep -rn "creature-brain-mujoco\|creatu
+     re_brain_mujoco" test/ shadow-cljs.edn
+     2>/dev/null
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ grep -n "creature-brain-mujoco\|Testing
+ pm.creature" /tmp/test-full2.txt
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, allow reading from /private/tmp
+      from this project
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 7 (14:38:44)
+  ⎿  $ npx shadow-cljs compile app test
+     --config-merge '{:output-dir
+     "out/gate-js" :asset-path "/gate-js"}' >
+     /tmp/compile-full3.txt 2>&1; tail -30
+     /tmp/compile-full3.txt
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ npx shadow-cljs compile app test
+ │ --config-merge '{:output-dir
+ │ "out/gate-js" :asset-path "/gate-js"}' >
+ │ /tmp/compile-full3.txt 2>&1; tail -30
+ │ /tmp/compile-full3.txt
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and allow access to /tmp and npx
+      shadow-cljs commands
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 8 (14:38:54)
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ export PATH="/opt/homebrew/opt/openjdk@21
+ │ /bin:/opt/homebrew/bin:$PATH"
+ │ JAVA_HOME=/opt/homebrew/opt/openjdk@21 &&
+ │ npx shadow-cljs compile app test
+ │ --config-merge '{:output-dir
+ │ "out/gate-js" :asset-path "/gate-js"}' >
+ │ /tmp/compile-full3.txt 2>&1; tail -40
+ │ /tmp/compile-full3.txt
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ 'export' operand 'PATH=/opt/homebrew/opt/
+ │ openjdk@21/bin:/opt/homebrew/bin:${…}' is
+ │ runtime-determined and may carry an
+ │ array subscript — shell arith-evals
+ │ $(cmd) in subscripts
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 9 (14:39:15)
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ export PATH="/opt/homebrew/opt/openjdk@21
+ │ /bin:/opt/homebrew/bin:$PATH"
+ │ JAVA_HOME=/opt/homebrew/opt/openjdk@21 &&
+ │ node out/test.js > /tmp/test-full3.txt
+ │ 2>&1; tail -10 /tmp/test-full3.txt; echo
+ │ "---FAILS---"; grep -n "^FAIL in\|^ERROR
+ │ in" /tmp/test-full3.txt
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ 'export' operand 'PATH=/opt/homebrew/opt/
+ │ openjdk@21/bin:/opt/homebrew/bin:${…}' is
+ │ runtime-determined and may carry an
+ │ array subscript — shell arith-evals
+ │ $(cmd) in subscripts
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 10 (14:39:35)
+  ⎿  $ export PATH="/opt/homebrew/opt/openjdk
+     @21/bin:/opt/homebrew/bin:$PATH"
+     JAVA_HOME=/opt/homebrew/opt/openjdk@21
+     && node out/test.js >
+     /tmp/test-full3.txt 2>&1; tail -10
+     /tmp/test-full3.txt; echo "---FAILS---";
+     grep -n "^FAIL in\|^ERROR in"
+     /tmp/test-full3.txt
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ grep -n "Testing pm.creature"
+ /tmp/test-full3.txt
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, allow reading from /private/tmp
+      from this project
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 11 (14:39:40)
+⏺ Good, the server restart fixed the stale
+  namespace discovery cache. Let's run the
+  gate properly now.
+
+⏺ Running .crew/gate.sh > /tmp/gate-final.txt
+  2>&1; tail -2…
+  ⎿  $ .crew/gate.sh > /tmp/gate-final.txt
+     2>&1; tail -20 /tmp/gate-final.txt
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ .crew/gate.sh > /tmp/gate-final.txt 2>&1;
+ tail -20 /tmp/gate-final.txt
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and allow access to /tmp and
+      .crew/gate.sh commands
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend

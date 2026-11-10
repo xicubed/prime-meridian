@@ -1,0 +1,28 @@
+=== prompt 1 (14:43:00)
+      196      st))
+      197
+
+⏺ Now let's run the gate to confirm.
+
+  Running 1 shell command…
+  ⎿  $ .crew/gate.sh > /tmp/gate-2.txt 2>&1;
+     tail -10 /tmp/gate-2.txt
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ .crew/gate.sh > /tmp/gate-2.txt 2>&1; tail
+ -10 /tmp/gate-2.txt
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and allow access to /tmp and
+      .crew/gate.sh commands
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend

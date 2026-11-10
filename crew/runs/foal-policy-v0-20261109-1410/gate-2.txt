@@ -1,0 +1,47 @@
+shadow-cljs - config: /Users/hal/src/prime-meridian/shadow-cljs.edn
+[:app] Compiling ...
+[:app] Build completed. (86 files, 0 compiled, 0 warnings, 2.25s)
+[:test] Compiling ...
+[:test] Build completed. (111 files, 1 compiled, 0 warnings, 1.37s)
+--- node out/test.js
+
+Testing pm.creature-motion-test
+
+Testing pm.creature-mujoco-test
+stand-hold horse kp 250: torso 0.839 m, tilt 0.0° after 5 s
+stand-hold dog kp 40: torso 0.439 m, tilt 0.1° after 5 s
+stand-hold finding: horse holds from :kp 225 (has 250); dog holds at 40: true
+
+Testing pm.creature-reflex-test
+
+Testing pm.creature-test
+
+Testing pm.crew-fielder-v0-test
+
+Testing pm.crew-talk-test
+
+Testing pm.crew-talk-v1-test
+
+Testing pm.crew-test
+
+Testing pm.crew-walkers-test
+
+Testing pm.feet-test
+
+Testing pm.motion-test
+
+Testing pm.overlay-test
+
+Testing pm.plan-test
+
+Testing pm.requests-test
+
+Testing pm.senses-test
+
+Testing pm.talk-test
+
+Testing pm.world-test
+
+Ran 782 tests containing 4676 assertions.
+0 failures, 0 errors.
+GATE: PASS — 0 warnings; Ran 782 tests containing 4676 assertions.

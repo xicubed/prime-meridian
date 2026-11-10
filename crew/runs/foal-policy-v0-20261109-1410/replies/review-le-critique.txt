@@ -1,0 +1,168 @@
+│ +   regeneration, the 18-joint table, the kinematic splay/fold/spine-sign hand-numbers in R15–R17,
+│ +   mass/length within 5%, and the boundary table) matches the spec exactly on direct inspection.
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/body-v2-20261109-1129/review.md — 2 findings:
+
+1. Real but minor gap: S1/S2's stand-hold measurement is correctly built and bound-checked, but never printed — the spec explicitly asks twice ("Print one line per species...", "Print stand-hold finding: ...") and the quest's "Done when" wants the numbers "in the spec and run log." grep for console.log/println in creature_mujoco_test.cljs returns nothing; the numbers currently exist only in the architect's hand-run scratchpad in spec.md, not reproduced at gate time, so a future regression in body strength or :kp wouldn't surface a fresh number anywhere.
+2. No other findings. Everything else checks out on direct inspection: species EDN files are byte-identical to the spec's verbatim copy; both generated XMLs match the spec's declared sha256 hashes and I independently re-ran bb creature-mjcf from the unmodified source and diffed it byte-for-byte against the committed files (confirmed real, not hand-edited); :torso remains the parentless root with :hind as a new sibling; zero source files changed, which itself proves the existing count-based logic (joints/counts/reflexes/mjcf/stiffness/limp) generalized correctly to 18 joints without any species-name or fixed-count assumption; the old R3/R6/R7/R9-R13 checks are intact with their original bounds, now with a parallel :hind clearance check; and :kp is untouched (150/40) in both species files. Gate independently re-verified: PASS, 753 tests / 4368 assertions, 0 warnings.
+
+done-7707
+────────────────────────────────────────
+
+─ 2m33s · edited 1 file · read 9 files · ran 12 commands · 12:08 PM
+  💾 Self-improvement review: Skill 'crew-round-review' patched
+
+
+────────────────────────────────────────
+❯ Review the round's changes against crew/runs/foal-policy-v0-20261109-1410/spec.md and .crew/quests/foal-policy-v0.md: git diff for edited files, and read the new files (git status lists them). Check: obs/action math matches creatures/foal/task.py and policy.json exactly; the control schedule can't drift with frame pacing; the parity tests really use policy_reference.json; age 0 doesn't stand and 9499 does in the real-MuJoCo test; the species without :brain is untouched; no species names in code. Write the review to crew/runs/foal-policy-v0-20261109-1410/review.md (at most 5 ranked findings).
+
+When you have completely finished, end your reply with a line containing only this: done-1096
+────────────────────────────────────────
+
+💻 $ echo "=== git status ===" + 5 commands  0.6s
+📖 Read spec.md
+📖 Read foal-policy-v0.md
+
+────────────────────────────────────────
+☤ Hermes
+This is a large, significant round. Let's gather log.md, gate-note.md, gate-1/2.txt, and the replies to understand the fix cycle, then dig into the diffs.
+────────────────────────────────────────
+
+📖 Read log.md
+📖 Read gate-note.md
+💻 $ cat crew/runs/foal-policy-v0-20261109-1410/gate-1.txt + 2 commands  0.3s
+📖 Read gate-1.txt
+✗ $ grep -n "creature-brain" crew/runs/foal-policy-v0-20261109-1410/gate-1.txt crew/runs/foal-policy-v0-20261109-1410/gate-2.txt  0.3s [exit 1]
+✗ Grep run-tests|deftest.*entry|defmain  0.3s [[Errno 3] No such process]
+🔎 Grep test-ns-regex|:test\b|runner" target="files  0.3s
+📖 Read shadow-cljs.edn
+💻 $ head -20 src/pm/creature_brain.cljs + 3 commands  0.3s
+💻 $ npx shadow-cljs compile test + 1 command  19.8s
+💻 $ bash .crew/gate.sh + 1 command  21.0s
+📖 Read gate.sh
+📖 Read build-un-automate-monde.txt
+💻 $ ls -la crew/runs/foal-policy-v0-20261109-1410/replies/  0.3s
+📖 Read fix-1-un-automate-monde.txt
+📖 Read build-le-testeur.txt
+🔎 Grep defn receive  0.5s
+🔎 Grep decim-3|decim 3|decim-1|decim 1  0.5s
+📖 Read creature_brain_test.cljs L205-249
+💻 $ git diff -- resources/creatures/horse.edn  0.5s
+💻 $ git diff -- src/pm/creature.cljc  0.3s
+💻 $ git diff -- src/pm/creature_spike.cljs + 1 command  0.5s
+💻 $ git diff -- src/pm/ui.cljs public/index.html  0.3s
+
+────────────────────────────────────────
+☤ Hermes
+Matches spec §4 exactly, including the "properties not addEventListener" requirement for idempotent re-wiring. Now let's review the core creature_spike.cljs policy path diff.
+────────────────────────────────────────
+
+📖 Read spike.diff
+📖 Read creature_brain.cljs
+📖 Read creature_brain_test.cljs
+📖 Read creature_brain_mujoco_test.cljs
+✗ $ grep -rniE "horse|dog|pony|juniper" src/pm/creature_brain.cljs src/pm/creature_spike.cljs src/pm/ui.cljs + 1 command  0.5s [exit 1]
+💻 $ git diff -- test/pm/creature_test.cljs  0.3s
+✍️ Write crew/runs/foal-policy-v0-20261109-1410/review.md
+│ crew/runs/foal-policy-v0-20261109-1410/review.md
+│ @@ -0,0 +1,91 @@
+│ +# Review: foal-policy-v0 (20261109-1410)
+│ +
+│ +## Conformance summary
+│ +
+│ +Gate: FAIL once (gate-1: 4 failures), then PASS (gate-2: 782 tests / 4676 assertions, 0 warnings
+│ +— re-ran `.crew/gate.sh` myself and got the identical total). Note: `gate.sh` only `tail -40`s the
+│ +node test output for the transcript, so `gate-1.txt`/`gate-2.txt` (and my own fresh run) never
+│ +print "Testing pm.creature-brain-test"/"...-mujoco-test" even though both genuinely ran — I
+│ +confirmed this by compiling and running `out/test.js` directly, which does print them, with the
+│ +same final counts; this is pre-existing `gate.sh` behavior, not a round defect.
+│ +
+│ +Boundary table (spec §5): builder touched exactly `resources/creatures/horse.edn` (the `:brain`
+│ +block only — diffed byte-for-byte against spec §1, identical), `src/pm/creature.cljc` (`brain` +
+│ +`brain-problems`), new `src/pm/creature_brain.cljs`, `src/pm/creature_spike.cljs`, `src/pm/ui.cljs`,
+│ +`public/index.html`; tester touched the two new test files plus `creature_test.cljs` (V1–V3 only,
+│ +confirmed via diff — no existing case edited). None of the "not" files (`dog.edn`,
+│ +`creatures/bodies/*.xml`, `public/creatures/horse/*`, `creatures/**/*.py`, `creature_motion.cljs`)
+│ +were touched.
+│ +
+│ +Checks from the task, verified directly:
+│ +- **Obs/action math matches `policy.json` and the reference exactly.** `observation`,
+│ +  `action->ctrl`, `quat->xmat`, `gravity-b`, `quat-integrate` and `drop-pose` in
+│ +  `src/pm/creature_brain.cljs` were hand-traced term by term against spec §3.3–§3.6's formulas —
+│ +  all exact. More importantly, the tests don't just assert against the spec's numbers: B4 parses
+│ +  the *real* `public/creatures/horse/policy.json`; B10/B11 run the observation/action functions
+│ +  against *all 16* real samples in `public/creatures/horse/policy_reference.json` (both ages,
+│ +  drop/chest/standing starts) read via `fs`, not a hand-typed fixture, and assert the spec's
+│ +  tolerances (1e-5 obs, 1e-6 action); R2/R3 feed those same real reference samples through the
+│ +  *real* onnxruntime-web (`js/require`, not a mock) and check `onnx_action` parity (1e-4); R5/R6
+│ +  replay the reference's `fixed_chest_rollout_3s_cpu` trace through real MuJoCo + real ONNX and
+│ +  track its height curve (1 cm / 1 mm as spec splits by formula). This is about as close to "wired
+│ +  to the real artifacts" as a test suite gets.
+│ +- **The control schedule can't drift with frame pacing — confirmed in real end-to-end use,
+│ +  with one real but inert deviation in the pure layer (see Finding 1).** `plan`, `add-owed`,
+│ +  `schedule-init`, `restart` match spec §3.5 exactly, hand-traced against B12/B13's worked states.
+│ +  R9 drives the schedule through *real* async MuJoCo+ONNX inference under three different frame
+│ +  patterns (`[25]`, `[8 9 7 25 1 0 3]`, `[1]`) plus the plain loop, and asserts the 150 recorded
+│ +  observation vectors are bit-identical across all four and that nothing was dropped — this is the
+│ +  test that actually proves the quest's "frame pacing must never change the schedule" requirement,
+│ +  and it passes for real, correctly-threaded usage.
+│ +- **Age 0 doesn't stand, 9499 does, in the real-MuJoCo test.** R7 (age 9499) asserts `h > 0.65`
+│ +  and `up > 0.9` for every one of the last 50 control steps and at the final step, against the
+│ +  *real* onnxruntime-web + MuJoCo rollout from the reference chest start. R8 (age 0) asserts the
+│ +  opposite: never both conditions hold, and the final state is clearly down (`h < 0.4`, `up <
+│ +  0.5`). R10 extends this to 10 random east-bank drops per age (not just the one reference start):
+│ +  all 10 stand at age 9499, 0 of 3 stand at age 0.
+│ +- **The species without `:brain` is untouched.** `dog.edn` has no diff. R11 asserts
+│ +  `(c/problems dog)` is `[]` and `(cb/brain-request dog "?pony=dog")` is `nil`. In
+│ +  `creature_spike.cljs`, `(if (= :policy (:kind br)) (start-policy! …) (start-twitch! …))` routes
+│ +  dog (whose `br` is always `nil`) into `start-twitch!`, which is the pre-existing twitch/reflex
+│ +  code moved verbatim (confirmed by diff: the only change inside it is `:brain br` added to the
+│ +  status map, and `cb/hud-segment nil` is `""`, so the HUD text is unaffected) — matches "today's
+│ +  code runs byte-for-byte as now" exactly.
+│ +- **No species names in code.** `grep -rniE 'horse|dog|pony|juniper' src/pm/creature_brain.cljs
+│ +  src/pm/creature_spike.cljs src/pm/ui.cljs public/index.html` — no hits.
+│ +
+│ +## Findings
+│ +
+│ +1. **`receive`'s guard deviates from the spec, specifically to paper over a test bug rather than
+│ +   fix it — harmless in real play, but worth correcting properly.** Spec §3.5: "`(receive st gen
+│ +   action)` sets `:ready` action and `:waiting?` false, but only when `gen` = `(:gen st)` **and**
+│ +   `(:waiting? st)`." The delivered code gates on `(nil? (:ready st))` instead of `(:waiting? st)`:
+│ +   ```clojure
+│ +   (defn receive [st gen action]
+│ +     (if (and (= gen (:gen st)) (nil? (:ready st)))
+│ +       (assoc st :ready action :waiting? false)
+│ +       st))
+│ +   ```
+│ +   This was introduced in fix round 1. The *first* build's own reply (`build-un-automate-monde.txt`)
+│ +   correctly diagnosed the 4 gate-1 failures as a **test** bug: `creature_brain_test.cljs`'s B13
+│ +   decim-3 and decim-1 sub-blocks call `(cb/receive st1 0 [...])` on `st1`, the state *before*
+│ +   `plan` was ever called on it (`:waiting? false`), instead of on `plan`'s returned `:st`
+│ +   (`:waiting? true`) — exactly as B12 does correctly elsewhere in the same file. Since the builder
+│ +   can't touch tests, fix round 1 instead changed `receive`'s own guard to `(nil? (:ready st))`,
+│ +   which happens to accept in that same mis-threaded state (`:ready` is also nil there, just for
+│ +   the wrong reason) and makes the test pass — but it is not what the spec specifies, and it means
+│ +   those two B13 sub-blocks don't actually exercise `plan`'s state threading the way they're meant
+│ +   to. I traced every state `plan`/`receive` can produce under correct cycling and confirmed
+│ … omitted 13 diff line(s) across 1 additional file(s)/section(s)
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/foal-policy-v0-20261109-1410/review.md — 2 findings:
+
+1. Real, traceable spec deviation (low-moderate severity): receive's guard in pm.creature-brain checks (nil? (:ready st)) instead of the spec's literal (:waiting? st). This was introduced in fix round 1 to make creature_brain_test.cljs's B13 decim-3/decim-1 sub-blocks pass — sub-blocks that (per the builder's own initial correct diagnosis) call receive on a pre-plan state binding rather than plan's returned state, a test bug, not a genuine code gap. The fix papered over the test bug by relaxing production code instead. I traced every state reachable under correct plan/receive cycling and confirmed the divergence is unreachable in real gameplay — R9's real end-to-end async-schedule test (3 frame patterns through real MuJoCo+ONNX, bit-identical observations, 0 drops) independently proves the quest's actual "no drift under frame pacing" concern holds. Still, it should be fixed at the root rather than left as a quiet workaround.
+2. No other findings — obs/action math, the control schedule's core logic, age-0-vs-9499 standing, the untouched dog path, and the no-species-names rule all checked out, and notably the test suite verifies against the real artifacts throughout (actual policy.json, actual policy_reference.json's 16 samples, real onnxruntime-web via require, real MuJoCo), not hand-copied fixtures.
+
+Also resolved a false alarm along the way: gate-1.txt/gate-2.txt never print "Testing pm.creature-brain-test" in their transcripts — traced this to gate.sh's own tail -40 on the test output (pre-existing, unrelated to this round), confirmed by compiling and running out/test.js directly, which prints both new namespaces with matching totals.
+
+Gate independently re-verified: PASS, 782 tests / 4676 assertions, 0 warnings.
+
+done-1096
+────────────────────────────────────────
+
+─ 11m30s · edited 1 file · read 15 files · ran 11 commands · searched 3 paths · 2:56 PM
+──── Security review of crew-talk-v1 round ─
+crew ❯ What changed in this repo recently?
+ ☤ claude-sonnet-5 · 1.2d · …idian (main)

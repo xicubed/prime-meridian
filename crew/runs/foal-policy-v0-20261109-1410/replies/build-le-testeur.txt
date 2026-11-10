@@ -1,0 +1,27 @@
+  up?/hud-segment.
+
+  test/pm/creature_brain_mujoco_test.cljs
+  (new, real MuJoCo + onnxruntime-web, Node
+  require) — R1 (ages load, I/O names,
+  zero-run dims), R2/R3 (ONNX parity at age 0
+  and 9499 against the 16 reference
+  samples), R4 (qpos/dof address math on the
+  compiled model), R5 (game rollout vs the
+  CPU trace, 1 cm tol), R6 (same with the
+  current-quaternion formula, 1 mm tol, pins
+  sim2sim_cpu.py), R7 (ends standing vs the
+  Warp trace), R8 (age 0 never stands), R9
+  (schedule invariance across three frame
+  patterns, cross-checked against the plain
+  loop, zero drops), R10 (10/10 east-bank
+  drops standing at age 9499, 0/3 at age 0),
+  R11 (dog untouched).
+
+  done-5111
+
+✻ Baked for 14m 17s · done 2:38 PM
+     ✔ Update installed · /restart to apply
+─────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

@@ -1,0 +1,364 @@
+=== prompt 1 (14:10:51)
+ │   if isinstance(x,dict):
+ │     for k,v in x.items():
+ │       if isinstance(v,(dict,list)):
+ │         print(ind+k+':',
+ │ type(v).__name__, len(v)); show(v,ind+'
+ │ ')
+ │       else: print(ind+k+':',
+ │ repr(v)[:200])
+ │   elif isinstance(x,list):
+ │     if x and
+ │ isinstance(x[0],(dict,list)):
+ │       print(ind+'[0]:',
+ │ type(x[0]).__name__, len(x[0]));
+ │ show(x[0],ind+'  ')
+ │ show(r)
+ │ "
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: python3 *
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 2 (14:11:02)
+ │ ation_layout','action_to_ctrl','action_ma
+ │ gnitude_note']: print(k,':',r[k])
+ │ for age in ['0','9499']:
+ │   for s in r['samples'][age]: print(age,
+ │ s['start_type'], s['step'],
+ │ s['world_index'],
+ │ 'last_action[:3]',s['last_action'][:3])
+ │ fr=r['fixed_chest_rollout_3s']
+ │ for k,v in fr.items():
+ │   if k!='trace': print(k, v)
+ │ print([ (i,round(t['height'],4),round(t['
+ │ up_z'],4)) for i,t in
+ │ enumerate(fr['trace']) if i%10==0 or
+ │ i==149])
+ │ print(fr['trace'][0].keys())
+ │ "
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: python3 *
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 3 (14:11:32)
+
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Check horse.xml is current; actuators;
+ import map
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ diff <(bb creature-mjcf horse
+ │ 2>/dev/null) creatures/bodies/horse.xml
+ │ && echo SAME; grep -n
+ │ "actuator\|position"
+ │ creatures/bodies/horse.xml | head -30;
+ │ grep -n "creature\|pony\|import"
+ │ public/index.html | head
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ A command used as a file in this command
+ can't be checked before it runs
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 4 (14:12:08)
+ │ s.ctrl[i])));
+ │   worstO = Math.max(worstO, e); worstC =
+ │ Math.max(worstC, ec); worstG =
+ │ Math.max(worstG, eg);
+ │   // is last_action in obs == sample
+ │ last_action?
+ │   console.log(age, s.start_type, s.step,
+ │ 'obs err', e.toExponential(2), 'grav
+ │ err', eg.toExponential(2), 'ctrl err',
+ │ ec.toExponential(2), 'qnorm', Math.hypot(
+ │ ...s.qpos.slice(3,7)).toFixed(6));
+ │ }
+ │ console.log('worst obs', worstO, 'ctrl',
+ │ worstC);
+ │ EOF
+ │ node parity.cjs
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Contains brace with quote character
+ (expansion obfuscation)
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 5 (14:12:28)
+ │ (const s of ref.samples[age]) {
+ │   const q = s.qpos.slice(3, 7), w =
+ │ s.qvel.slice(3, 6), dt = -0.002;
+ │   const th = Math.hypot(...w) * dt, ax =
+ │ Math.hypot(...w) > 0 ? w.map(v => v /
+ │ Math.hypot(...w)) : [1,0,0];
+ │   const dq = [Math.cos(th / 2),
+ │ ...ax.map(v => v * Math.sin(th / 2))];
+ │   const qb = qmul(q, dq); const g =
+ │ gravQ(qb);
+ │   console.log(age, s.start_type, s.step,
+ │ Math.max(...g.map((v, i) => Math.abs(v -
+ │ s.obs[36 + i]))).toExponential(2));
+ │ }
+ │ EOF
+ │ node back.cjs
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Parser skipped input between top-level
+ statements
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 6 (14:12:53)
+ │       const a = out.actions.data; worst =
+ │ Math.max(worst, ...Array.from(a).map((v,
+ │ i) => Math.abs(v - x.onnx_action[i])));
+ │       if (x === ref.samples[age][0])
+ │ console.log('  first a[0..3]',
+ │ Array.from(a.slice(0, 4)), 'ref',
+ │ x.onnx_action.slice(0, 4), 'dims',
+ │ out.actions.dims);
+ │     }
+ │     console.log('  worst |a - ref|',
+ │ worst);
+ │   }
+ │ })().catch(e => { console.error('ERR',
+ │ e); process.exit(1); });
+ │ EOF
+ │ node onnx.cjs 2>&1 | tail -20
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Contains brace with quote character
+ (expansion obfuscation)
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 7 (14:13:24)
+ │ Array.from(r.actions.data);
+ │       const c = ctrlOf(la); for (let k =
+ │ 0; k < 18; k++) d.ctrl[k] = c[k]; for
+ │ (let i = 0; i < 10; i++) mj.mj_step(m,
+ │ d);
+ │       if ((t + 1) % 50 === 0)
+ │ console.log('t', ((t + 1) *
+ │ 0.02).toFixed(1), 'h', (d.xpos[5] -
+ │ gz).toFixed(3), 'up',
+ │ d.xmat[17].toFixed(3));
+ │     }
+ │   }
+ │ })().catch(e => { console.error('ERR',
+ │ e); process.exit(1); });
+ │ EOF
+ │ node roll.cjs 2>&1 | tail -20
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Contains brace with quote character
+ (expansion obfuscation)
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 8 (14:13:34)
+ age 0 variants
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ cd /private/tmp/claude-504/-Users-hal-src
+ │ -prime-meridian/284b7e61-a0e2-497d-9d12-4
+ │ 378de00d972/scratchpad/fp && sed -i ''
+ │ 's|  console.log(`age|  if
+ │ (process.env.ERRS) console.log(out.slice(
+ │ 0,60).map((o,t)=>t+":"+((o.hx-fr.trace[t]
+ │ .height)*100).toFixed(1)).join(" "));\n
+ │ console.log(`age|' roll.cjs && ERRS=1
+ │ node roll.cjs 2>&1 | head -2; FRESH=1
+ │ node roll.cjs 2>&1 | head -1; AGE=0 node
+ │ roll.cjs | head -1; AGE=0 node roll.cjs |
+ │ tail -1
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ Compound command contains cd with write
+ │ operation - manual approval required to
+ │ prevent path resolution bypass
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: cd *
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 9 (14:13:54)
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Find admin panel; run 15 s rollout
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ grep -rln "admin\|ⓘ" src/pm/ | head; grep
+ │ -rn "creature-spike\|:creature"
+ │ resources/*.edn src/pm/*.clj* 2>/dev/null
+ │ | grep -v "^src/pm/creature" | head -8;
+ │ cd /private/tmp/claude-504/-Users-hal-src
+ │ -prime-meridian/284b7e61-a0e2-497d-9d12-4
+ │ 378de00d972/scratchpad/fp && LONG=750
+ │ node roll.cjs | tail -12
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: LONG=750
+      node roll.cjs
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 10 (14:16:21)
+ │ Math.min(...tr.slice(100).map(x =>
+ │ x.up)).toFixed(4));
+ │   if (process.env.SHOW) for (const t of
+ │ [0, 10, 20, 30, 40, 49, 75, 100, 125,
+ │ 149]) console.log('  ', t,
+ │ tr[t].h.toFixed(5),
+ │ fr.trace[t].height.toFixed(5),
+ │ tr[t].up.toFixed(5),
+ │ fr.trace[t].up_z.toFixed(5));
+ │ })().catch(e => { console.error('ERR',
+ │ e); process.exit(1); });
+ │ EOF
+ │ MODE=fresh SHOW=1 node cpu.cjs;
+ │ MODE=stale node cpu.cjs; MODE=fresh AGE=0
+ │ node cpu.cjs; MODE=stale AGE=0 node
+ │ cpu.cjs
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Contains brace with quote character
+ (expansion obfuscation)
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 11 (14:17:12)
+ │ -prime-meridian/284b7e61-a0e2-497d-9d12-4
+ │ 378de00d972/scratchpad/fp && cat >
+ │ bank.clj <<'EOF'
+ │ (require '[pm.creature :as c])
+ │ (let [sp (c/parse (slurp
+ │ "/Users/hal/src/prime-meridian/resources/
+ │ creatures/horse.edn"))
+ │       place {:at [4.5 1.79 -8.0] :yaw 0
+ │ :drop-m 0.4}]
+ │   (spit "bank.xml" (c/mjcf sp place))
+ │   (prn (c/spawn sp place))
+ │   (prn (mapv :range (c/joints sp))))
+ │ EOF
+ │ bb -cp /Users/hal/src/prime-meridian/src
+ │ bank.clj; grep -n "torso\" pos\|ground"
+ │ bank.xml
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Parser skipped input between top-level
+ statements
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 12 (14:17:58)
+ │ s=s.replace("console.log('schedule-invari
+ │ ant', JSON.stringify(a.qpos) ===
+ │ JSON.stringify(b.qpos),
+ │ JSON.stringify(a.qpos) ===
+ │ JSON.stringify(c.qpos),",
+ │  "const J = x =>
+ │ JSON.stringify(x.asks.slice(0, 150));
+ │ console.log('schedule-invariant', J(a)
+ │ === J(b), J(a) === J(c), a.asks.length,
+ │ b.asks.length, c.asks.length, a.dropped,
+ │ b.dropped, c.dropped,")
+ │ open(p,'w').write(s)
+ │ EOF
+ │ ONLY=1 node game.cjs
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don't ask again for python3 -
+      and ONLY=1 node game.cjs commands in
+      /Users/hal/src/prime-meridian
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 13 (14:19:24)
+ │ p.st.waiting);
+ │ console.log('E6', addOwed({
+ │ ...schedInit(10, 2), owed: 20 }, 10,
+ │ 25)[1]);
+ │ let s3 = schedInit(3, 1); [s3] =
+ │ addOwed(s3, 7, 25); p = plan(s3); s3 =
+ │ receive(p.st, 0, [9]); p = plan(s3);
+ │ console.log('decim3', p.ops.join(','),
+ │ p.st.owed, p.st.k);
+ │ let s1 = schedInit(1, 1); [s1] =
+ │ addOwed(s1, 3, 25); p = plan(s1); s1 =
+ │ receive(p.st, 0, [4]); p = plan(s1);
+ │ console.log('decim1', p.ops.join(','),
+ │ p.st.owed, p.st.k, p.st.waiting);
+ │ EOF
+ │ node vals.cjs
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Parser skipped input between top-level
+ statements
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend

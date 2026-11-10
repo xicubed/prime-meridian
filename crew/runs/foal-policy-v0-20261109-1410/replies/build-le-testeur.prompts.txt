@@ -1,0 +1,196 @@
+=== prompt 1 (14:24:05)
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ python3 -c "
+ │ import json
+ │ d = json.load(open('public/creatures/hors
+ │ e/policy.json'))
+ │ print(list(d.keys()))
+ │ print(d['joint_order'])
+ │ print(d['control_timestep'],
+ │ d['simulation_timestep'])
+ │ print(d['observation'])
+ │ print({k:v for k,v in d['action'].items()
+ │ if k not in ('scale','offset','ctrlrange
+ │ _lo','ctrlrange_hi')})
+ │ print(len(d['action']['scale']))
+ │ "
+ │
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: python3 *
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 2 (14:24:10)
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ python3 -c "
+ │ import json
+ │ d = json.load(open('public/creatures/hors
+ │ e/policy_reference.json'))
+ │ print(list(d.keys()))
+ │ print(d.get('free_joint'))
+ │ s = d['samples'] if 'samples' in d else
+ │ None
+ │ print(type(s))
+ │ "
+ │
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: python3 *
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 3 (14:24:21)
+
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ python3 -c "
+ │ import json
+ │ d = json.load(open('public/creatures/hors
+ │ e/policy_reference.json'))
+ │ s = d['samples']
+ │ print(list(s.keys()))
+ │ " 2>&1 | head -20
+ │
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: python3
+      -c ' *
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 4 (14:24:36)
+ │ python3 -c "
+ │ import json
+ │ d = json.load(open('public/creatures/hors
+ │ e/policy_reference.json'))
+ │ s = d['samples']
+ │ print(len(s['0']), len(s['9499']))
+ │ one = s['0'][0]
+ │ print(list(one.keys()))
+ │ import pprint
+ │ for k,v in one.items():
+ │     if isinstance(v, list):
+ │         print(k, 'len', len(v), v[:3])
+ │     else:
+ │         print(k, v)
+ │ "
+ │
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: python3 *
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 5 (14:24:46)
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ python3 -c "
+ │ import json
+ │ d = json.load(open('public/creatures/hors
+ │ e/policy_reference.json'))
+ │ r = d['fixed_chest_rollout_3s_cpu']
+ │ print(list(r.keys()))
+ │ for k,v in r.items():
+ │     if isinstance(v, list):
+ │         print(k, 'len', len(v), v[:2],
+ │ '...', v[-1] if v else None)
+ │     else:
+ │         print(k, v)
+ │ "
+ │
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: python3 *
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 6 (14:36:26)
+ │             continue
+ │         if c == '"':
+ │             in_str = True
+ │             i += 1
+ │             continue
+ │         if c in '([{':
+ │             depth += 1
+ │         elif c in ')]}':
+ │             depth -= 1
+ │             if depth < min_depth:
+ │                 min_depth = depth
+ │         i += 1
+ │     print(f, "final depth", depth, "min
+ │ depth", min_depth)
+ │ EOF
+ │
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: python3 *
+   3. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 7 (14:37:43)
+─────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for
+ you — choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ for f in test/pm/creature_brain_test.cljs
+ │ test/pm/creature_brain_mujoco_test.cljs
+ │ test/pm/creature_test.cljs; do
+ │   echo "== $f =="
+ │   grep -oE '\(deftest
+ │ [a-zA-Z0-9?!*+./<>=_-]+' "$f" | sort |
+ │ uniq -c | sort -rn | head -5
+ │   grep -oE '\(deftest
+ │ [a-zA-Z0-9?!*+./<>=_-]+' "$f" | wc -l
+ │ done
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ A variable in this command can't be checked
+ before it runs
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto
+      mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend

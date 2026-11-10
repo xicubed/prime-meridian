@@ -705,3 +705,37 @@
       (is (str/starts-with? (str/trim (nth lines (+ fl-upper-idx 1))) "<joint name=\"fl-splay\""))
       (is (str/starts-with? (str/trim (nth lines (+ fl-upper-idx 2))) "<joint name=\"fl-swing\""))
       (is (= (mapv (comp name :name) (c/joints sp)) (vec position-names))))))
+
+;; V1
+
+(deftest v1-brain-validation-and-accessor
+  (is (= [] (c/problems horse)))
+  (is (= {:kind :policy :dir "/creatures/horse/" :meta "policy.json" :ages [0 3000 6000 9499]
+          :default-age 9499 :drop-m [0.4 0.8] :stand {:torso-m 0.65 :up-z 0.9}}
+         (c/brain horse)))
+  (is (nil? (c/brain dog)))
+  (is (= [] (c/problems dog))))
+
+;; V2
+
+(deftest v2-brain-validation-messages
+  (is (= [":brain must be a map"] (c/problems (assoc horse :brain 1))))
+  (is (= [":brain :kind must be :policy"] (c/problems (assoc-in horse [:brain :kind] :onnx))))
+  (is (= [":brain :dir must be a string starting and ending with /"]
+         (c/problems (assoc-in horse [:brain :dir] "creatures/horse"))))
+  (is (= [":brain :meta must be a non-blank file name"]
+         (c/problems (assoc-in horse [:brain :meta] " "))))
+  (is (= [":brain :ages must be a non-empty vector of distinct integers >= 0"]
+         (c/problems (assoc-in horse [:brain :ages] [0 0]))))
+  (is (= [":brain :default-age must be one of :ages"]
+         (c/problems (assoc-in horse [:brain :default-age] 5))))
+  (is (= [":brain :drop-m must be [lo hi] with 0 <= lo <= hi"]
+         (c/problems (assoc-in horse [:brain :drop-m] [0.8 0.4]))))
+  (is (= [":brain :stand must be {:torso-m > 0 :up-z in [-1, 1]}"]
+         (c/problems (assoc-in horse [:brain :stand :up-z] 2)))))
+
+;; V3
+
+(deftest v3-brain-doesnt-touch-mjcf
+  (let [xml (.readFileSync (js/require "fs") (str (.cwd js/process) "/creatures/bodies/horse.xml") "utf8")]
+    (is (= xml (c/mjcf horse c/origin)))))

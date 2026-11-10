@@ -45,6 +45,12 @@
     body:not(:has(#views-toggle:checked)) #caption { bottom: 110px; }
     #hud { position: fixed; left: 14px; bottom: 222px; width: min(520px, calc(100vw - 28px)); max-height: 40vh; overflow-y: auto; z-index: 220;
            background: rgba(20,24,32,.88); color: #f3efe2; border-radius: 10px; padding: 10px 14px; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; word-break: break-word; }
+    #brain-ui { position: fixed; left: 14px; bottom: 198px; z-index: 220; color: #f3efe2;
+                font: 13px ui-monospace, SFMono-Regular, Menlo, monospace;
+                background: rgba(20,24,32,.88); border-radius: 8px; padding: 4px 10px;
+                display: flex; gap: 8px; align-items: center; }
+    #brain-ui[hidden] { display: none; }
+    #brain-ui select, #brain-ui button { font: inherit; }
     /* our controls sit above the kit's camera row along the bottom (it spans the full width) */
     #brook { position: fixed; bottom: 128px; left: 14px; z-index: 200; color: #e8e4d8; font: 13px system-ui, sans-serif;
       background: rgba(0,0,0,.35); padding: 8px 10px; border-radius: 8px; display: flex; gap: 12px; align-items: center; }
@@ -95,7 +101,9 @@
   <div id="cozy-loading"><h1>Prime Meridian</h1><p id="cozy-load-status">Loading the estate…</p></div>
   <pre id="cozy-audit" aria-hidden="true"></pre>
   <input type="checkbox" id="views-toggle" hidden><label id="views-label" for="views-toggle" title="Scene views">🎬</label>
-  <details id="admin"><summary title="Status">ⓘ</summary><div id="hud">Prime Meridian</div></details>
+  <details id="admin"><summary title="Status">ⓘ</summary><div id="hud">Prime Meridian</div>
+    <div id="brain-ui" hidden><label>age <select id="brain-age"></select></label> <button id="brain-drop">drop again</button></div>
+  </details>
   <div id="brook">
     <button id="brook-toggle">▶ brook</button>
     <button id="voice-toggle">🔇 voice off</button>

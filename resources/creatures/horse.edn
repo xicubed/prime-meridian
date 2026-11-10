@@ -68,4 +68,17 @@
              ;; tremor :tremor-deg fades with time awake (÷e every :steady-s); energy 1 → 0 at
              ;; full effort in :energy-s, refills 0 → 1 in :recover-s; lets go below :low, tries again above :high.
              :effort {:strength 0.35 :torque-nm 100 :tremor-deg 6 :steady-s 90
-                      :energy-s 2.5 :recover-s 4 :low 0.15 :high 0.6 :seed-salt 7}}]}
+                      :energy-s 2.5 :recover-s 4 :low 0.15 :high 0.6 :seed-salt 7}}]
+ ;; The learned brain (foal-gym run 3, pm.creature-brain): an ONNX policy that drives every joint
+ ;; at 50 Hz, exactly as in training. Files live under public/ at :dir: :meta (policy.json) and
+ ;; policy_<age>.onnx + policy_<age>.onnx.data for each age. ?brain=twitch forces the old
+ ;; controller; ?age=<n> picks an age. Each drop puts him at a random pose like training's drops
+ ;; (:drop-m = torso height range above the ground, metres). He counts as "up" when the torso is
+ ;; above :torso-m and its up axis has world-z above :up-z.
+ :brain {:kind :policy
+         :dir "/creatures/horse/"
+         :meta "policy.json"
+         :ages [0 3000 6000 9499]
+         :default-age 9499
+         :drop-m [0.4 0.8]
+         :stand {:torso-m 0.65 :up-z 0.9}}}
