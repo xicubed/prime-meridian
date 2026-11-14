@@ -53,3 +53,11 @@ and never comes within its radius + the walker's radius; one coming from behind 
 today's plans (old tests unchanged); and a lap simulation on the real estate routes with the foal at
 its `:creature-spike` spot where no walker enters the foal's circle. Live (Hal): `?pony` and
 `?paths`, Un Architecte goes around the foal; screenshot from Michael's own camera.
+
+## Update (Nov 14): the foal now stands
+
+Since this quest was written the foal changed (body-v2, foal-policy-v0): 18 joints, and on `?pony`
+a learned brain (`src/pm/creature_brain.cljs`) drives him: he drops, gets up and stands (torso about
+0.7 m) instead of lying and twitching; `?brain=twitch` keeps the old controller. The circle must
+follow his current body positions whether he's lying, getting up or standing, and avoidance must work
+with both controllers. Read `creature_spike.cljs` as it is now; the cited functions may have moved.
