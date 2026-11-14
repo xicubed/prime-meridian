@@ -1,0 +1,113 @@
+
+ ▐▛███▛█   Claude Code v2.1.321
+▝▜██████▀  Opus 5.5 with high effort · Claude Max
+ ▝▝   ▝▝   ~/src/prime-meridian
+
+⚠ Your login expires in 2 days · run /login to renew
+
+  Fable 5.2 is here for your longest and toughest coding tasks. It draws down usage faster than Opus 5.5. Switch with
+  /model.
+
+❯ New quest: read .crew/quests/creature-obstacle-v0.md (and the code and quests it cites). Write the spec to
+  crew/runs/creature-obstacle-v0-20261114-1230/spec.md following your role card: numbered test cases with hand-checked
+  expected values (the circle from body positions, the detour and the sight-only case, the lap simulation on the real
+  estate routes), and a who-touches-what table. Reply when it's written.
+
+  When you have completely finished, end your reply with a line containing only this: done-5390
+
+  Read 7 files, listed 2 directories, ran 1 shell command
+
+⏺ Reading the cited code (motion, avoid, bricks, creature spike done); next the horse species, the senses/avoid specs
+  and their tests, then I'll work out the hand numbers.
+
+  Read 1 file, listed 3 directories, ran 4 shell commands
+
+⏺ Code read; now building a scratch model (bb port of pm.motion/pm.avoid plus the planned extras plumbing) to work out
+  the scenario and lap numbers.
+
+  Listed 1 directory, ran 5 shell commands
+
+⏺ Sensing measures centre-to-centre, so walkers skirting a foal drift out of range and cut back through it. I'm
+  changing the model to measure obstacle distances to the circle's edge, then re-running the laps. · summary
+
+  Searched for 1 pattern, ran 11 shell commands
+
+⏺ Model results are in: with edge-distance senses and goal relocation, every lap variant keeps all walkers outside the
+  foal's circle. Writing the spec now.
+
+⏺ Write(crew/runs/creature-obstacle-v0-20261114-1230/spec.md)
+  ⎿  Wrote 600 lines to crew/runs/creature-obstacle-v0-20261114-1230/spec.md
+      1 # Spec: creature-obstacle-v0 (walkers go around the foal)
+      2
+      3 Quest: `.crew/quests/creature-obstacle-v0.md` (TASKS M-13). Builds on senses-v0
+      4 (`crew/runs/senses-v0-20261107-1553/spec.md`) and avoid-v0. Start commit `e89f92e`.
+      5 Architect: un-architecte, 2026-11-14. Builder: un-automate-monde. Tester: le-testeur.
+      6
+      7 Every name, signature, key and number below is binding.
+      8
+      9 ## 1. The idea
+     … +591 lines
+
+  Ran 1 shell command
+
+⏺ Update(crew/runs/creature-obstacle-v0-20261114-1230/spec.md)
+  ⎿  Added 2 lines, removed 2 lines
+      476  | 28 | `kick` | 0.154 | 0.826 | 0.151 | 12 | 51 |
+      477
+      478  Also check:
+      479 -- In 25–28, both `:un-architecte` and `:le-coureur` first notice `:creature` at index 7, by
+      480 -  `:sight`. Both start facing him within 8 m.
+      479 +- In 25–28, both `:un-architecte` and `:le-coureur` first notice `:creature` at index 7. The
+      480 +  `:how` there is `:sight` for both, except in 27, where Le Coureur's is `:hear` (§7).
+      481  - In 27, some `:un-architecte` frame has a non-nil `:goal`, and every such `:goal` is ≥ 1.45 −
+      482    1e-9 from `[4.5 -8.0]` (model: 32 frames, each 1.50 away).
+      483
+
+⏺ Update(crew/runs/creature-obstacle-v0-20261114-1230/spec.md)
+  ⎿  Added 5 lines, removed 2 lines
+      582  - **Laps, why index 7.**
+      583    - Un Architecte starts at [6 −4], facing [4 −6]: heading (−0.707, −0.707). The foal's
+      584      centres are 4.2–4.6 m away, inside the ±55° cone.
+      585 -  - Le Coureur starts at [3 −8.5], facing [5 −10]: (0.8, −0.6). The circle is 1.7 m away, at
+      586 -    under 55°.
+      585 +  - Le Coureur starts at [3 −8.5], facing [5 −10]: (0.8, −0.6).
+      586 +    - STAND's centre is 1.743 m away at 53.5° (cos 0.594), so it is seen.
+      587 +    - LIE's is at 46.2°, also seen.
+      588 +    - SPOT's centre [4.5 −8] is at 55.3° (cos 0.569 < 0.5736), so it is not seen. Its edge is
+      589 +      1.581 − 1.0 = 0.581 m ≤ 1.2, so it is heard (`:how :hear`).
+      590    - Both are paused at the start (vel 0), so the facing is the heading.
+      591
+      592  ## 8. Done when
+
+⏺ Update(crew/runs/creature-obstacle-v0-20261114-1230/spec.md)
+  ⎿  Added 2 lines, removed 2 lines
+      482    1e-9 from `[4.5 -8.0]` (model: 32 frames, each 1.50 away).
+      483
+      484  29. **Without `?pony` nothing changes.**
+      485 -    - `(m/extra-others [])` → `[]` and `(frames (m/walkers W) S 2400)` equals case 21's 5-arity
+      486 -      run.
+      485 +    - `(m/extra-others [])` → `[]`. (Case 21 covers the equal runs; crew-walkers t20 is the
+      486 +      lap without extras and stays unchanged.)
+      487      - The estate keeps `(:creature-spike W)` = `{:flag "pony" :kind :horse :seed 1 :at [4.5 1.79 -8.0
+           ] :yaw 0 :drop-m 0.4}`
+      488        (nobody moved the foal).
+      489
+
+⏺ Spec: crew/runs/creature-obstacle-v0-20261114-1230/spec.md. Running the design on the real routes found two problems,
+  so the spec adds two obstacle-only rules: senses measure to the foal's edge, not his centre (otherwise Le Coureur
+  forgets a lying foal and cuts through him), and a noticed foal also moves a walker's goal clear (otherwise Un
+  Architecte circles him at his pause point).
+  Public functions: cm/obstacle-id, cm/capsules, cm/ground-circle; m/extra-others, m/sense-dist; changed m/sees?,
+  m/hears?, m/plan; an extra extras arity on m/perceive-all, m/plan-all, m/replan and m/advance; cs/obstacles; plus
+  ?paths drawing in pm.bricks and the :path-creature palette key.
+  29 numbered test cases: the circle from body positions (horse and dog, lying and curled), senses, planner, scenarios
+  (detour, mirror, sight-only) and 4 laps on the estate routes.
+
+  done-5390
+
+✻ Cooked for 12m 53s · done 12:44 PM
+                                                                               ✔ Update installed · /restart to apply
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

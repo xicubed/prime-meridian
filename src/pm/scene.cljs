@@ -30,7 +30,8 @@
    :feet-target  0xed64a6
    :path-sight   0xfaf089
    :path-hear    0x9f7aea
-   :path-glance  0x63b3ed})
+   :path-glance  0x63b3ed
+   :path-creature 0xf687b3})
 
 (def label-height 0.3)   ; the old size; positions in tests and walker heads still key off it
 

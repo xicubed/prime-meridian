@@ -1,0 +1,492 @@
+=== prompt 1 (12:33:33)
+  ⎿  $ S=/private/tmp/claude-504/-Users-hal-src-prime-meridian/ea5b1ed4-d3d6-4cec-b503-59970d25f906/scratchpad; mkdir
+     -p $S/model/pm; cd /Users/hal/src/prime-meridian
+     for f in avoid motion; do sed -e 's/js\/Math\.hypot/pm.jsm\/hypot/g' -e 's/js\/Math\.PI/Math\/PI/g' -e
+     's/js\/Math\./Math\//g' -e 's/js\/…
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose "switch to auto mode" below
+ Port motion/avoid to bb in scratchpad
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ S=/private/tmp/claude-504/-Users-hal-src-prime-meridian/ea5b1ed4-d3d6-4cec-b503-59970d25f906/scratchpad; mkdir -p
+ │ $S/model/pm; cd /Users/hal/src/prime-meridian
+ │ for f in avoid motion; do sed -e 's/js\/Math\.hypot/pm.jsm\/hypot/g' -e 's/js\/Math\.PI/Math\/PI/g' -e
+ │ 's/js\/Math\./Math\//g' -e 's/js\/isNaN/pm.jsm\/nan?/g' -e 's/js\/isFinite/pm.jsm\/finite?/g' -e
+ │ 's/js\/Infinity/Double\/POSITIVE_INFINITY/g' -e 's/(js\/URLSearchParams\. (or search ""))/(pm.jsm\/usp search)/g'
+ │ src/pm/$f.cljs > $S/model/pm/$f.clj; done
+ │ cat > $S/model/pm/jsm.clj <<'EOF'
+ │ (ns pm.jsm)
+ │ (defn hypot [a b] (Math/sqrt (+ (* (double a) a) (* (double b) b))))
+ │ (defn nan? [x] (and (number? x) (Double/isNaN (double x))))
+ │ (defn finite? [x] (and (number? x) (Double/isFinite (double x))))
+ │ (defn usp [s] (reify Object (toString [_] (str s))))
+ │ EOF
+ │ sed -i '' 's/(:require \[clojure.string :as str\]/(:require [pm.jsm] [clojure.string :as str]/'
+ │ $S/model/pm/motion.clj
+ │ sed -i '' 's/(\.has (pm.jsm\/usp search) name)/false/; s/(not (\.has (pm.jsm\/usp search) "kinematic"))/true/;
+ │ s/(\.has (pm.jsm\/usp search) "paths")/false/' $S/model/pm/motion.clj
+ │ sed -i '' 's/^  only JS used is js\/Math.")/  only JS used is js\/Math.")\n(require (quote pm.jsm))/'
+ │ $S/model/pm/avoid.clj
+ │ grep -n "jsm\|usp\|Math/round" $S/model/pm/*.clj | head; cd $S/model && bb -cp . -e "(require 'pm.motion) (println
+ │ (pm.motion/yaw 1 1))"
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ A variable in this command can't be checked before it runs
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 2 (12:35:48)
+ │             pair (reduce min 1e9 (for [i1 (range (count ws')) i2 (range (inc i1) (count ws'))] (d (:pos (nth ws'
+ │ i1)) (:pos (nth ws' i2)))))
+ │             stat (reduce min 1e9 (for [wk ws' s statics] (- (d (:pos wk) (:at s)) (:r s) (:radius wk))))
+ │             c (first ex)
+ │             st (reduce (fn [st k]
+ │                          (let [w (nth ws k) w' (nth ws' k) id (:id w')]
+ │                            (cond-> st
+ │                              (not= (:leg w) (:leg w')) (update-in [:picks id] (fnil conj []) (:to w'))
+ │                              c (update-in [:min-foal id] (fnil min 1e9) (- (d (:pos w') (:at c)) (:r c) (:radius
+ │ w')))
+ │                              (and c (get-in w' [:aware (:id c) :noticed]) (not (get-in st [:notice id]))) (assoc-in
+ │ [:notice id] [i (get-in w' [:aware (:id c) :how])])
+ │                              (:aim w') (update-in [:aims id] (fnil inc 0)))))
+ │                        st (range (count ws')))]
+ │         (recur ws' acc' (inc i) (assoc st :min-pair (min (:min-pair st) pair) :min-static (min (:min-static st)
+ │ stat)))))))
+ │ (defn report [label res]
+ │   (println "==" label)
+ │   (println " min-pair" (:min-pair res) "min-static" (:min-static res))
+ │   (doseq [[id p] (:picks res)] (println " " id "picks" (take 8 p) "legs" (count p)))
+ │   (println " min-foal gap (centre-dist - r - wr)" (:min-foal res))
+ │   (println " first noticed" (:notice res))
+ │   (println " frames with aim" (:aims res))
+ │   (println " final" (mapv (juxt :id :pos :leg) (:ws res))))
+ │ (def stand {:id :creature :at [4.67 -8.0] :r 0.62 :vel [0 0]})
+ │ (def lie   {:id :creature :at [4.67 -8.225] :r 0.777477914849644 :vel [0 0]})
+ │ (report "no foal" (lap (constantly nil) 2400))
+ │ (report "standing foal" (lap (constantly [stand]) 2400))
+ │ (report "lying foal" (lap (constantly [lie]) 2400))
+ │ EOF
+ │ cd $S/model && time bb -cp . lap.clj
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Redirect target concatenation contains $/` — unanalyzable gap or substitution
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 3 (12:36:29)
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose "switch to auto mode" below
+ Add edge-distance senses to model, rerun laps
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ S=/private/tmp/claude-504/-Users-hal-src-prime-meridian/ea5b1ed4-d3d6-4cec-b503-59970d25f906/scratchpad; cat >>
+ │ $S/model/pm/ext.clj <<'EOF'
+ │
+ │ ;; --- senses measure to an obstacle's edge
+ │ (defn sense-dist [w o]
+ │   (let [[wx wz] (:pos w) [ox oz] (:pos o)
+ │         d (j/hypot (- ox wx) (- oz wz))]
+ │     (if (:obstacle o) (max 0 (- d (:radius o))) d)))
+ │ (alter-var-root #'m/sees?
+ │   (fn [_] (fn [w o]
+ │             (let [s (or (:senses w) m/default-senses)
+ │                   [wx wz] (:pos w) [ox oz] (:pos o)
+ │                   dx (- ox wx) dz (- oz wz)
+ │                   c  (j/hypot dx dz)
+ │                   d  (sense-dist w o)]
+ │               (cond
+ │                 (> d (:sight-m s)) false
+ │                 (zero? d) true
+ │                 :else (let [[fx fz] (m/forward (m/facing w))
+ │                             dot (/ (+ (* fx dx) (* fz dz)) c)
+ │                             half (/ (* (:sight-deg s) (/ Math/PI 180)) 2)]
+ │                         (>= dot (- (Math/cos half) 1e-9))))))))
+ │ (alter-var-root #'m/hears? (fn [_] (fn [w o] (<= (sense-dist w o) (m/hear-range w o)))))
+ │ EOF
+ │ cd $S/model && bb -cp . lap.clj
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Redirect target concatenation contains $/` — unanalyzable gap or substitution
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 4 (12:36:50)
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose "switch to auto mode" below
+ Sweep foal poses/radii and a kick on the estate lap
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ S=/private/tmp/claude-504/-Users-hal-src-prime-meridian/ea5b1ed4-d3d6-4cec-b503-59970d25f906/scratchpad; cat >
+ │ $S/model/sweep.clj <<'EOF'
+ │ (load-file "lap.clj")
+ │ (defn lying-at [yaw-deg] ; lying circle offset (0.17, 0.225) in mj xy rotated by yaw; game z = -y
+ │   (let [t (Math/toRadians yaw-deg) ox 0.17 oy 0.225
+ │         rx (- (* ox (Math/cos t)) (* oy (Math/sin t))) ry (+ (* ox (Math/sin t)) (* oy (Math/cos t)))]
+ │     {:id :creature :at [(+ 4.5 rx) (- (+ 8.0 ry))] :r 0.777477914849644 :vel [0 0]}))
+ │ (defn summary [label res]
+ │   (println label "min-foal" (format "%.3f" (reduce min (vals (:min-foal res)))) (into {} (map (fn [[k v]] [k
+ │ (format "%.3f" v)]) (select-keys (:min-foal res) [:un-architecte :le-coureur])))
+ │            "pair" (format "%.3f" (:min-pair res)) "static" (format "%.3f" (:min-static res))
+ │            "picks-ok" (= [1 2 3 0 1 2 3 0] (take 8 (get-in res [:picks :le-coureur]))) (= [1 2 1 0 1 2 1 0] (take 8
+ │ (get-in res [:picks :un-architecte])))
+ │            "legs" (into {} (map (fn [[k v]] [k (count v)]) (:picks res)))))
+ │ (doseq [y [0 90 180 270]] (summary (str "lying yaw " y " " (:at (lying-at y))) (lap (constantly [(lying-at y)])
+ │ 2400)))
+ │ (doseq [r [0.6 0.8 1.0 1.2]] (summary (str "spot r " r) (lap (constantly [{:id :creature :at [4.5 -8.0] :r r :vel
+ │ [0 0]}]) 2400)))
+ │ ;; kick: lying yaw 0 until frame 600, then rolls 0.6 m toward -x (game) at 1.2 m/s over 0.5 s, then still
+ │ (defn kick [i] (let [c (lying-at 0) [x z] (:at c)]
+ │                  (cond (< i 600) [c]
+ │                        (< i 610) [(assoc c :at [(- x (* 0.06 (- i 599))) z] :vel [-1.2 0])]
+ │                        :else [(assoc c :at [(- x 0.6) z])])))
+ │ (summary "kick" (lap kick 2400))
+ │ EOF
+ │ cd $S/model && bb -cp . sweep.clj 2>&1 | grep -v "^==\|^ "
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Redirect target concatenation contains $/` — unanalyzable gap or substitution
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 5 (12:37:27)
+⏺ Code read; now building a scratch model (bb port of pm.motion/pm.avoid plus the planned extras plumbing) to work out
+  the scenario and lap numbers.
+
+  Listed 1 directory, ran 5 shell commands
+
+⏺ Sensing measures centre-to-centre, so walkers skirting a foal drift out of range and cut back through it. I'm
+  changing the model to measure obstacle distances to the circle's edge, then re-running the laps. · summary
+
+  Checking laps without goal relocation
+  ⎿  $ S=/private/tmp/claude-504/-Users-hal-src-prime-meridian/ea5b1ed4-d3d6-4cec-b503-59970d25f906/scratchpad; cat >
+     $S/model/nofg.clj <<'EOF'
+     (load-file "sweep.clj")
+     (println "---- without free-goal on obstacles")
+     (alter-var-root #'pm.ext/plan (fn [_] pm.ext/plan-orig))
+     (doseq [y [0 270]] (summary (st…
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose "switch to auto mode" below
+ Check laps without goal relocation
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ S=/private/tmp/claude-504/-Users-hal-src-prime-meridian/ea5b1ed4-d3d6-4cec-b503-59970d25f906/scratchpad; cat >
+ │ $S/model/nofg.clj <<'EOF'
+ │ (load-file "sweep.clj")
+ │ (println "---- without free-goal on obstacles")
+ │ (alter-var-root #'pm.ext/plan (fn [_] pm.ext/plan-orig))
+ │ (doseq [y [0 270]] (summary (str "lying yaw " y) (lap (constantly [(lying-at y)]) 2400)))
+ │ (doseq [r [1.0 1.2]] (summary (str "spot r " r) (lap (constantly [{:id :creature :at [4.5 -8.0] :r r :vel [0 0]}])
+ │ 2400)))
+ │ EOF
+ │ cd $S/model && bb -cp . nofg.clj 2>&1 | sed -n '/----/,$p'
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Redirect target concatenation contains $/` — unanalyzable gap or substitution
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 6 (12:38:08)
+ │ (defn scen [label w c n]
+ │   (let [frs (frames [w] [] n [c]) ws (map first frs)
+ │         nidx (fi #(get-in % [:aware (:id c) :noticed]) ws)
+ │         aidx (fi :aim ws)
+ │         cross (fi #(>= (* (Math/signum (double (- (first (:route w) 1 0) 0))) 1) 0) ws)]
+ │     (println "==" label)
+ │     (println " first aware idx" (fi #(get-in % [:aware (:id c)]) ws) "noticed idx" nidx (get-in (nth ws nidx)
+ │ [:aware (:id c)]) "pos@notice" (r3 (:pos (nth ws nidx))))
+ │     (println " first aim idx" aidx (r3 (:aim (nth ws aidx))) (:side (nth ws aidx)) "pos" (r3 (:pos (nth ws aidx))))
+ │     (println " min gap" (r3 (reduce min (gaps frs 0 c))) "max z" (r3 (reduce max (map #(second (:pos %)) ws))) "min
+ │ z" (r3 (reduce min (map #(second (:pos %)) ws))))
+ │     (println " final" (r3 (:pos (last ws))) "pause" (:pause (last ws)) "to" (:to (last ws)) "leg" (:leg (last ws))
+ │ "goal-ever" (some :goal ws))
+ │     (println " legs at" (keep-indexed (fn [i [a b]] (when (not= (:leg a) (:leg b)) [(inc i) (:leg b) (r3 (:pos
+ │ b))])) (map vector ws (rest ws))))
+ │     (println " glance frames" (count (filter :glance ws)))
+ │     ws))
+ │ (def A (mv {:id :a :route [[0 0] [10 0]] :pause-s 100}))
+ │ (def s1 (scen "S1 detour +x lying-size circle" A {:id :creature :at [5 0] :r 0.8 :vel [0 0]} 240))
+ │ (println " z at first x>=5" (r3 (second (:pos (first (filter #(>= (first (:pos %)) 5) s1))))))
+ │ (def B (mv {:id :b :route [[10 0] [0 0]] :pause-s 100}))
+ │ (def s2 (scen "S2 mirror -x dog circle" B {:id :creature :at [5 0] :r 0.39 :vel [0 0]} 240))
+ │ (println " z at first x<=5" (r3 (second (:pos (first (filter #(<= (first (:pos %)) 5) s2))))))
+ │ (def C (assoc (mv {:id :c :route [[-5 0] [5 0]] :pause-s 1}) :pos [2.5 0]))
+ │ (def s3 (scen "S3 behind, silent still" C {:id :creature :at [0 0] :r 0.6 :vel [0 0]} 400))
+ │ (println " z when passing x<=0" (r3 (second (:pos (first (filter #(and (= 2 (:leg %)) (<= (first (:pos %)) 0))
+ │ s3))))))
+ │ (def s4 (scen "S4 behind, kicking" C {:id :creature :at [0 0] :r 0.6 :vel [2.4 0]} 400))
+ │ (println (r3 (map (fn [w] (- (first (:pos w)) 0.6)) (take 10 s4))))
+ │ EOF
+ │ cd $S/model && bb -cp . scen.clj 2>&1 | sed -n '/== S1/,$p'
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Redirect target concatenation contains $/` — unanalyzable gap or substitution
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 7 (12:38:39)
+
+  When you have completely finished, end your reply with a line containing only this: done-5390
+
+  Read 7 files, listed 2 directories, ran 1 shell command
+
+⏺ Reading the cited code (motion, avoid, bricks, creature spike done); next the horse species, the senses/avoid specs
+  and their tests, then I'll work out the hand numbers.
+
+  Read 1 file, listed 3 directories, ran 4 shell commands
+
+⏺ Code read; now building a scratch model (bb port of pm.motion/pm.avoid plus the planned extras plumbing) to work out
+  the scenario and lap numbers.
+
+  Listed 1 directory, ran 5 shell commands
+
+⏺ Sensing measures centre-to-centre, so walkers skirting a foal drift out of range and cut back through it. I'm
+  changing the model to measure obstacle distances to the circle's edge, then re-running the laps. · summary
+
+  Fixing and rerunning scenarios
+  ⎿  $ S=/private/tmp/claude-504/-Users-hal-src-prime-meridian/ea5b1ed4-d3d6-4cec-b503-59970d25f906/scratchpad; cd
+     $S/model && sed -i '' '/cross (fi/d' scen.clj && sed -i '' 's/(load-file "sweep.clj")/(load-file "lap.clj")/'
+     scen.clj && sed -i '' 's/^(report /(comment report /' lap.clj && bb -cp . scen.…
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose "switch to auto mode" below
+ Fix and rerun scenarios
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ S=/private/tmp/claude-504/-Users-hal-src-prime-meridian/ea5b1ed4-d3d6-4cec-b503-59970d25f906/scratchpad; cd
+ │ $S/model && sed -i '' '/cross (fi/d' scen.clj && sed -i '' 's/(load-file "sweep.clj")/(load-file "lap.clj")/'
+ │ scen.clj && sed -i '' 's/^(report /(comment report /' lap.clj && bb -cp . scen.clj 2>&1 | tail -40
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ Compound command contains cd with write operation - manual approval required to prevent path resolution bypass
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 8 (12:38:50)
+  estate routes), and a who-touches-what table. Reply when it's written.
+
+  When you have completely finished, end your reply with a line containing only this: done-5390
+
+  Read 7 files, listed 2 directories, ran 1 shell command
+
+⏺ Reading the cited code (motion, avoid, bricks, creature spike done); next the horse species, the senses/avoid specs
+  and their tests, then I'll work out the hand numbers.
+
+  Read 1 file, listed 3 directories, ran 4 shell commands
+
+⏺ Code read; now building a scratch model (bb port of pm.motion/pm.avoid plus the planned extras plumbing) to work out
+  the scenario and lap numbers.
+
+  Listed 1 directory, ran 5 shell commands
+
+⏺ Sensing measures centre-to-centre, so walkers skirting a foal drift out of range and cut back through it. I'm
+  changing the model to measure obstacle distances to the circle's edge, then re-running the laps. · summary
+
+  Fixing bracket and rerunning scenarios
+  ⎿  $ S=/private/tmp/claude-504/-Users-hal-src-prime-meridian/ea5b1ed4-d3d6-4cec-b503-59970d25f906/scratchpad; cd
+     $S/model && sed -i '' 's/ aidx (fi :aim ws)$/ aidx (fi :aim ws)]/' scen.clj && bb -cp . scen.clj 2>&1 | tail -40
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose "switch to auto mode" below
+ Fix bracket and rerun scenarios
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ S=/private/tmp/claude-504/-Users-hal-src-prime-meridian/ea5b1ed4-d3d6-4cec-b503-59970d25f906/scratchpad; cd
+ │ $S/model && sed -i '' 's/        aidx (fi :aim ws)$/        aidx (fi :aim ws)]/' scen.clj && bb -cp . scen.clj 2>&1
+ │ | tail -40
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ Compound command contains cd with write operation - manual approval required to prevent path resolution bypass
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 9 (12:38:55)
+▝▜██████▀  Opus 5.5 with high effort · Claude Max
+ ▝▝   ▝▝   ~/src/prime-meridian
+
+⚠ Your login expires in 2 days · run /login to renew
+
+  Fable 5.2 is here for your longest and toughest coding tasks. It draws down usage faster than Opus 5.5. Switch with
+  /model.
+
+❯ New quest: read .crew/quests/creature-obstacle-v0.md (and the code and quests it cites). Write the spec to
+  crew/runs/creature-obstacle-v0-20261114-1230/spec.md following your role card: numbered test cases with hand-checked
+  expected values (the circle from body positions, the detour and the sight-only case, the lap simulation on the real
+  estate routes), and a who-touches-what table. Reply when it's written.
+
+  When you have completely finished, end your reply with a line containing only this: done-5390
+
+  Read 7 files, listed 2 directories, ran 1 shell command
+
+⏺ Reading the cited code (motion, avoid, bricks, creature spike done); next the horse species, the senses/avoid specs
+  and their tests, then I'll work out the hand numbers.
+
+  Read 1 file, listed 3 directories, ran 4 shell commands
+
+⏺ Code read; now building a scratch model (bb port of pm.motion/pm.avoid plus the planned extras plumbing) to work out
+  the scenario and lap numbers.
+
+  Listed 1 directory, ran 5 shell commands
+
+⏺ Sensing measures centre-to-centre, so walkers skirting a foal drift out of range and cut back through it. I'm
+  changing the model to measure obstacle distances to the circle's edge, then re-running the laps. · summary
+
+  Fixing bracket and rerunning scenarios · 8s
+  ⎿  $ S=/private/tmp/claude-504/-Users-hal-src-prime-meridian/ea5b1ed4-d3d6-4cec-b503-59970d25f906/scratchpad; cd
+     $S/model && sed -i '' 's/ aidx (fi :aim ws)$/ aidx (fi :aim ws)]/' scen.clj && bb -cp . scen.clj 2>&1 | tail -40
+
+· Whirring… (7m 32s · ↓ 41.4k tokens)
+                                                            ● high · /effort · ✔ Update installed · /restart to apply
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle) · esc to interrupt
+=== prompt 10 (12:39:42)
+ │       (let [k (idx id) ws (map #(nth % k) frs)]
+ │         (println "  " id "notice idx" (first (keep-indexed (fn [i w] (when (get-in w [:aware :creature :noticed])
+ │ i)) ws))
+ │                  "goal frames" (count (filter :goal ws)) "aim frames" (count (filter :aim ws)) "final leg" (:leg
+ │ (last ws))
+ │                  "goals" (distinct (map r3 (keep :goal ws))))))))
+ │ (def stand {:id :creature :at [4.67 -8.0] :r 0.62 :vel [0 0]})
+ │ (def lie   {:id :creature :at [4.67 -8.225] :r 0.7774779 :vel [0 0]})
+ │ (def big   {:id :creature :at [4.5 -8.0] :r 1.0 :vel [0 0]})
+ │ (doseq [[l c] [["L1 stand" stand] ["L2 lie" lie] ["L3 big" big]]] (show l (constantly [c]) (lapx (constantly [c])
+ │ 2400)))
+ │ (defn kick [i] (let [c lie [x z] (:at c)]
+ │                  (cond (< i 600) [c]
+ │                        (< i 610) [(assoc c :at [(- x (* 0.06 (- i 599))) z] :vel [-1.2 0])]
+ │                        :else [(assoc c :at [(- x 0.6) z])])))
+ │ (show "L4 kick" kick (lapx kick 2400))
+ │ ;; equality
+ │ (let [a (lapx (constantly nil) 400) b (lapx (constantly []) 400)
+ │       c (loop [ws WS acc 0 i 0 out []] (if (>= i 400) out (let [[ws' acc'] (x/advance ws statics cfg 0.05 acc)]
+ │ (recur ws' acc' (inc i) (conj out ws')))))]
+ │   (println "equal nil/[]/5-arity" (= a b c)))
+ │ ;; edge senses
+ │ (def A (m/walker {:id :a :route [[0 0] [10 0]]}))
+ │ (defn ob [at r v] (first (x/extra-others [{:id :foal :at at :r r :vel v}])))
+ │ (println "sees 8.5 r1" (m/sees? A (ob [8.5 0] 1 [0 0])) "sees 9.5 r1" (m/sees? A (ob [9.5 0] 1 [0 0])) "sees behind
+ │ inside" (m/sees? A (ob [-0.5 0] 1 [0 0])) "sees [-3 0] r1" (m/sees? A (ob [-3 0] 1 [0 0])))
+ │ (println "hears [-2 0] r.9" (m/hears? A (ob [-2 0] 0.9 [0 0])) "r.7" (m/hears? A (ob [-2 0] 0.7 [0 0])) "[-3 0] r.7
+ │ v2.4" (m/hears? A (ob [-3 0] 0.7 [2.4 0])))
+ │ (println "cone edge: centre [3 5] r 1" (m/sees? A (ob [3 5] 1 [0 0])))
+ │ EOF
+ │ cd $S/model && bb -cp . final.clj 2>&1 | tail -20
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Redirect target concatenation contains $/` — unanalyzable gap or substitution
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 11 (12:40:13)
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose "switch to auto mode" below
+ Verify plan-level obstacle cases
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ S=/private/tmp/claude-504/-Users-hal-src-prime-meridian/ea5b1ed4-d3d6-4cec-b503-59970d25f906/scratchpad; cat >
+ │ $S/model/plan1.clj <<'EOF'
+ │ (require '[pm.ext :as x] '[pm.motion :as m])
+ │ (def cfg {:speed 1.2 :horizon-s 2})
+ │ (defn mv [e] (assoc (m/walker e) :pause 0 :to 1 :leg 1))
+ │ (def seen {:on 1 :off 0 :noticed true :how :sight})
+ │ (def L (mv {:id :l :route [[0 0] [8 0]] :pause-s 1}))
+ │ (println (select-keys (first (x/plan-all [(assoc L :pos [2 0] :aware {:foal seen})] [] cfg [{:id :foal :at [4 0] :r
+ │ 0.5}])) [:aim :side :goal :wait]))
+ │ (println (select-keys (first (x/plan-all [(assoc L :pos [2 0])] [] cfg [{:id :foal :at [4 0] :r 0.5}])) [:aim :side
+ │ :goal :wait]))
+ │ (def U (assoc (mv {:id :u :route [[4 -6] [3.5 -7.5]] :pause-s 8}) :aware {:foal seen}))
+ │ (println (select-keys (first (x/plan-all [U] [] cfg [{:id :foal :at [4.5 -8.0] :r 1.0}])) [:aim :side :goal
+ │ :wait]))
+ │ (println (select-keys (first (x/plan-all [(dissoc U :aware)] [] cfg [{:id :foal :at [4.5 -8.0] :r 1.0}])) [:aim
+ │ :side :goal :wait]))
+ │ ;; arrival at the moved goal
+ │ (def frs (loop [ws [U] acc 0 i 0 out []] (if (>= i 60) out (let [[ws' acc'] (x/advance ws [] cfg 0.05 acc [{:id
+ │ :foal :at [4.5 -8.0] :r 1.0}])] (recur ws' acc' (inc i) (conj out ws'))))))
+ │ (println (first (keep-indexed (fn [i [w]] (when (pos? (:pause w)) [i (:pos w) (:goal w) (:pause w)])) frs)))
+ │ (println (x/extra-others [{:id :foal :at [1 2] :r 0.5} {:id :foal :at [1 2] :r 0.5 :vel [1 -1] :y 1.79} {:id "x"
+ │ :at [1 2] :r 1} {:id :b :at [1 2 3] :r 1} {:id :c :at [1 2] :r 0} {:id :d :at [1 2] :r -1} {:id :e :at [1 2] :r 1
+ │ :vel [1]} nil]))
+ │ EOF
+ │ cd $S/model && bb -cp . plan1.clj
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Redirect target concatenation contains $/` — unanalyzable gap or substitution
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 12 (12:44:13)
+      5 Architect: un-architecte, 2026-11-14. Builder: un-automate-monde. Tester: le-testeur.
+      6
+      7 Every name, signature, key and number below is binding.
+      8
+      9 ## 1. The idea
+     … +591 lines
+
+  Checking how each lap walker first notices
+  ⎿  $ S=/private/tmp/claude-504/-Users-hal-src-prime-meridian/ea5b1ed4-d3d6-4cec-b503-59970d25f906/scratchpad; cat >
+     $S/model/how.clj <<'EOF'
+     (load-file "lap.clj")
+     (def STAND {:id :creature :at [4.67 -8.0] :r 0.62})
+     (def LIE {:id :creature :at [4.67 -8.225] :r 0.7774779})
+     (def SPOT {:id :creature :at […
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose "switch to auto mode" below
+ Check how each lap walker first notices
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ S=/private/tmp/claude-504/-Users-hal-src-prime-meridian/ea5b1ed4-d3d6-4cec-b503-59970d25f906/scratchpad; cat >
+ │ $S/model/how.clj <<'EOF'
+ │ (load-file "lap.clj")
+ │ (def STAND {:id :creature :at [4.67 -8.0] :r 0.62})
+ │ (def LIE {:id :creature :at [4.67 -8.225] :r 0.7774779})
+ │ (def SPOT {:id :creature :at [4.5 -8.0] :r 1.0})
+ │ (doseq [[l c] [["stand" STAND] ["lie" LIE] ["spot" SPOT]]]
+ │   (let [ws (nth (iterate (fn [[ws acc]] (x/advance ws statics cfg 0.05 acc [c])) [WS 0]) 8)]
+ │     (println l (into {} (keep (fn [w] (when-let [e (get-in w [:aware :creature])] [(:id w) e])) (first ws))))))
+ │ EOF
+ │ cd $S/model && bb -cp . how.clj
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Redirect target concatenation contains $/` — unanalyzable gap or substitution
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend

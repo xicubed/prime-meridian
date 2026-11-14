@@ -12,7 +12,8 @@
             [pm.scene :as scene]
             [pm.feet :as f]
             [pm.crew :as crew]
-            [pm.tint :as tint]))
+            [pm.tint :as tint]
+            [pm.creature-spike :as cs]))
 
 (defonce !state
   (atom {:status nil :walkers [] :views [] :ground-meshes [] :frame 0
@@ -92,11 +93,15 @@
                               (let [{:keys [circle goal aim cone hear]} (walker-path-lines! w)]
                                 (t/add! paths-root circle goal aim cone hear)
                                 {:circle circle :goal goal :aim aim :cone cone :hear hear}))
-                            walkers)]
+                            walkers)
+        ^js creature-line (t/polyline (mapv (fn [[cx cz]] [cx 0 cz]) (a/circle-points [0 0] 1 24))
+                                       (part-color :path-creature))]
+    (t/set-visible! creature-line false)
+    (t/add! paths-root creature-line)
     (t/add! root paths-root)
-    {:root paths-root :statics static-lines :walkers walker-lines}))
+    {:root paths-root :statics static-lines :walkers walker-lines :creature creature-line}))
 
-(defn- update-paths! [paths walkers]
+(defn- update-paths! [paths walkers extras]
   (when paths
     (doseq [[w lines] (map vector walkers (:walkers paths))]
       (let [[x z] (:pos w) y (+ (or (:y w) 0) 0.05)
@@ -109,7 +114,14 @@
         (t/set-polyline! (:cone lines) (mapv (fn [[cx cz]] [cx y cz])
                                               (m/cone-points [x z] (m/facing w) (:sight-m s) (:sight-deg s) 16)))
         (t/set-polyline! (:hear lines) (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:hear-m s) 24)))
-        (t/set-line-color! (:hear lines) (part-color (if (:glance w) :path-glance :path-hear)))))))
+        (t/set-line-color! (:hear lines) (part-color (if (:glance w) :path-glance :path-hear)))))
+    (if-let [c (first extras)]
+      (do
+        (t/set-polyline! (:creature paths)
+                          (mapv (fn [[cx cz]] [cx (+ (or (:y c) 0) 0.05) cz])
+                                (a/circle-points (:at c) (:r c) 24)))
+        (t/set-visible! (:creature paths) true))
+      (t/set-visible! (:creature paths) false))))
 
 ;; -- glTF body loading ---------------------------------------------------------
 
@@ -414,9 +426,9 @@
              :status {:mode :failed :reason (m/short-reason (or (.-message e) e))}
              :gate m/empty-gate :jobs {}))))
 
-(defn- tick-kinematic! [dt]
+(defn- tick-kinematic! [dt extras]
   (let [{:keys [walkers views statics pcfg plan-acc]} @!state
-        [ws acc] (m/advance walkers statics pcfg dt plan-acc)
+        [ws acc] (m/advance walkers statics pcfg dt plan-acc extras)
         ws       (mapv #(m/settle % dt) ws)]
     (doseq [[w view] (map vector ws views)]
       (let [[x z] (:pos w) y (:y w)
@@ -426,7 +438,7 @@
         (t/set-visible! anchor (some? y))))
     (swap! !state assoc :walkers ws :plan-acc acc)))
 
-(defn- tick-bricks! [dt frame]
+(defn- tick-bricks! [dt frame extras]
   (try
     (run-gate! frame)
     (let [{:keys [walkers views statics pcfg plan-acc fcfg ds cfg ground-meshes]} @!state
@@ -437,7 +449,7 @@
                                 pos   [(.-x v) (.-z v)]]
                             (m/follow w pos (.-idle c) dt)))
                         before views)
-          [ws acc] (m/replan before after statics pcfg dt plan-acc)
+          [ws acc] (m/replan before after statics pcfg dt plan-acc extras)
           ws     (mapv #(m/settle % dt) ws)
           steps  (mapv
                    (fn [w view]
@@ -473,7 +485,8 @@
   "Call every frame with dt capped at 0.1. No-op before start!."
   [^js h dt]
   (when (:started? @!state)
-    (let [{:keys [frame cfg ground-meshes]} @!state
+    (let [extras (cs/obstacles)
+          {:keys [frame cfg ground-meshes]} @!state
           ground-meshes (if (and (empty? ground-meshes) (zero? (mod frame 60)))
                           (let [gm (t/find-meshes (.-scene h) #(m/ground-name? % (:ground cfg)))]
                             (swap! !state assoc :ground-meshes gm)
@@ -494,10 +507,10 @@
                                 w)))
                           walkers))))))
       (if (= :bricks (:mode (:status @!state)))
-        (tick-bricks! dt frame)
-        (tick-kinematic! dt))
+        (tick-bricks! dt frame extras)
+        (tick-kinematic! dt extras))
       (swap! !state update :status assoc :detours (m/detours (:walkers @!state)))
-      (update-paths! (:paths @!state) (:walkers @!state))
+      (update-paths! (:paths @!state) (:walkers @!state) extras)
       (swap! !state update :frame inc))))
 
 (defn set-dots!

@@ -1,0 +1,400 @@
+          +eplan before after statics cfg dt acc n
+          +il))
+      507 +  ([before after statics cfg dt acc ext
+          +ras]
+      508 +   (let [after (perceive-all after dt e
+          +xtras)]
+      509 +     (if (or (>= (+ acc dt) (- plan-eve
+          +ry-s 1e-9))
+      510 +             (some (fn [[b a]] (not= (:
+          +leg b) (:leg a))) (map vector before af
+          +ter)))
+      511 +       [(plan-all after statics cfg ext
+          +ras) 0]
+      512 +       [after (+ acc dt)]))))
+      513
+      509 -(defn advance [ws statics cfg dt acc]
+      510 -  (replan ws (mapv #(step % (or (:speed
+          - %) (:speed cfg)) dt) ws) statics cfg d
+          -t acc))
+      514 +(defn advance
+      515 +  ([ws statics cfg dt acc] (advance ws
+          +statics cfg dt acc nil))
+      516 +  ([ws statics cfg dt acc extras]
+      517 +   (replan ws (mapv #(step % (or (:spee
+          +d %) (:speed cfg)) dt) ws) statics cfg
+          +dt acc extras)))
+      518
+      519  (defn detours [ws]
+      520    (count (filter #(some? (:aim %)) ws))
+           )
+
+⏺ Now pm.creature-spike: store :caps, add publish!, call
+  it in tick-twitch!/tick-policy!, dissoc :obstacle in
+  fail!, add obstacles.
+
+⏺ Update(src/pm/creature_spike.cljs)
+  ⎿  Added 1 line, removed 1 line
+      34      (swap! !state
+      35             (fn [s]
+      36               (-> s
+      37 -                 (dissoc :model :data :j
+         -acs :session)
+      37 +                 (dissoc :model :data :j
+         +acs :session :obstacle)
+      38                   (assoc :status {:mode :
+          failed :flag (:flag status) :kind (:kind
+           status)
+      39                                    :reaso
+          n (or (.-message e) (str e))}))))))
+      40
+
+⏺ Update(src/pm/creature_spike.cljs)
+  ⎿  Added 6 lines
+      62        (t/set-pos! (nth groups i) pos)
+      63        (t/set-quat! (nth groups i) quat))
+          ))
+      64
+      65 +(defn- publish! [^js data]
+      66 +  (let [{:keys [caps ground-z]} @!state]
+      67 +    (swap! !state assoc :obstacle
+      68 +           (some-> (cm/ground-circle cap
+         +s (.-xpos data) (.-xmat data) (.-qvel da
+         +ta))
+      69 +                   (assoc :id cm/obstacl
+         +e-id :y ground-z)))))
+      70 +
+      71  (defn- init-groups!
+      72    "Builds the body's three.js groups and
+           places them from `data`'s
+      73     just-forward-kinematic'd pose before
+          the root ever enters the scene:
+
+⏺ Now add :caps storage in start-twitch! and
+  start-policy!:
+
+⏺ Update(src/pm/creature_spike.cljs)
+  ⎿  Added 1 line, removed 1 line
+      110                                    rx)]
+      111                     (swap! !state assoc
+      112                            :mj mj :model
+            model :data data :sp sp :ranges ranges
+      113 -                          :ground-z gro
+          -und-z
+      113 +                          :ground-z gro
+          +und-z :caps (cm/capsules sp)
+      114                            :rx rx :nv nv
+            :jacs jacs
+      115                            :rest-frac (c
+           /rest-fraction sp) :kick (c/kick-above
+           sp)
+      116                            :ctrl (if (se
+           q rx) (cm/reflex-controller tw rx (:see
+           d req)) tw)
+
+⏺ Update(src/pm/creature_spike.cljs)
+  ⎿  Added 1 line, removed 1 line
+      154                   (let [[root groups] (i
+           nit-groups! h sp data)]
+      155                     (swap! !state assoc
+      156                            :mj mj :model
+            model :data data :sp sp :ranges ranges
+      157 -                          :ground-z gro
+          -und-z :ground-xyz (:ground sw)
+      157 +                          :ground-z gro
+          +und-z :ground-xyz (:ground sw) :caps (c
+          +m/capsules sp)
+      158                            :br br :polic
+           y pol
+      159                            :sched (cb/sc
+           hedule-init (:decim pol) (:n pol))
+      160                            :try 0 :seed
+           (:seed req) :age (:age br) :loading-age
+            nil
+
+⏺ Now add publish! calls right after place-groups! in
+  tick-twitch! and tick-policy!, and add the public
+  obstacles function.
+
+⏺ Update(src/pm/creature_spike.cljs)
+  ⎿  Added 1 line
+      277          st0    (first (:efforts ctrl'))
+      278          effort (when (and st0 s0) {:ene
+           rgy (:energy st0) :label (cm/effort-lab
+           el st0 (first rx) s0)})]
+      279      (place-groups! groups xpos xquat)
+      280 +    (publish! data)
+      281      (swap! !state assoc :ctrl ctrl' :ac
+           c acc :stats stats'
+      282             :status {:mode :running :fla
+           g (:flag status) :kind (:kind status)
+      283                      :stats stats' :tors
+           o torso :head head :effort effort :brai
+           n (:brain status)})))
+
+⏺ Update(src/pm/creature_spike.cljs)
+  ⎿  Added 1 line
+      298            stats'    (cm/stats-tick stat
+           s now-ms (- t1 t0) steps (+ dropped d2)
+           )
+      299            up?       (cb/up? (:stand br)
+            ground-z xpos xmat)]
+      300        (place-groups! groups xpos xquat)
+      301 +      (publish! data)
+      302        (swap! !state assoc :stats stats'
+      303               :status {:mode :running :f
+           lag (:flag status) :kind (:kind status)
+      304                        :stats stats' :to
+           rso torso
+
+  Read 1 file
+
+⏺ Good, data is in scope. Now add the public obstacles
+  function near hud-segment.
+
+⏺ Update(src/pm/creature_spike.cljs)
+  ⎿  Added 6 lines
+      320      (if (and t (= :running (:mode s)))
+      321        (str t (cb/hud-segment (:brain s)
+           ))
+      322        t)))
+      323 +
+      324 +(defn obstacles []
+      325 +  (let [s @!state]
+      326 +    (if (and (= :running (:mode (:statu
+          +s s))) (some? (:obstacle s)))
+      327 +      [(:obstacle s)]
+      328 +      [])))
+
+⏺ Now pm.bricks.cljs: add require, thread extras through
+  tick!, tick-kinematic!, tick-bricks!,
+  build-paths!/update-paths!.
+
+⏺ Update(src/pm/bricks.cljs)
+  ⎿  Added 2 lines, removed 1 line
+      12              [pm.scene :as scene]
+      13              [pm.feet :as f]
+      14              [pm.crew :as crew]
+      15 -            [pm.tint :as tint]))
+      15 +            [pm.tint :as tint]
+      16 +            [pm.creature-spike :as cs]))
+      17
+      18  (defonce !state
+      19    (atom {:status nil :walkers [] :views
+          [] :ground-meshes [] :frame 0
+
+⏺ Now update build-paths! to add the :creature line, and
+  update-paths! to take extras:
+
+⏺ Update(src/pm/bricks.cljs)
+  ⎿  Added 15 lines, removed 4 lines
+       93                                (let [{:k
+           eys [circle goal aim cone hear]} (walke
+           r-path-lines! w)]
+       94                                  (t/add!
+            paths-root circle goal aim cone hear)
+       95                                  {:circl
+           e circle :goal goal :aim aim :cone cone
+            :hear hear}))
+       96 -                            walkers)]
+       96 +                            walkers)
+       97 +        ^js creature-line (t/polyline (
+          +mapv (fn [[cx cz]] [cx 0 cz]) (a/circle
+          +-points [0 0] 1 24))
+       98 +
+          +(part-color :path-creature))]
+       99 +    (t/set-visible! creature-line false
+          +)
+      100 +    (t/add! paths-root creature-line)
+      101      (t/add! root paths-root)
+       98 -    {:root paths-root :statics static-l
+          -ines :walkers walker-lines}))
+      102 +    {:root paths-root :statics static-l
+          +ines :walkers walker-lines :creature cr
+          +eature-line}))
+      103
+      100 -(defn- update-paths! [paths walkers]
+      104 +(defn- update-paths! [paths walkers ext
+          +ras]
+      105    (when paths
+      106      (doseq [[w lines] (map vector walke
+           rs (:walkers paths))]
+      107        (let [[x z] (:pos w) y (+ (or (:y
+            w) 0) 0.05)
+     ...
+      114          (t/set-polyline! (:cone lines)
+           (mapv (fn [[cx cz]] [cx y cz])
+      115
+                  (m/cone-points [x z] (m/facing w
+           ) (:sight-m s) (:sight-deg s) 16)))
+      116          (t/set-polyline! (:hear lines)
+           (mapv (fn [[cx cz]] [cx y cz]) (a/circl
+           e-points [x z] (:hear-m s) 24)))
+      113 -        (t/set-line-color! (:hear lines
+          -) (part-color (if (:glance w) :path-gla
+          -nce :path-hear)))))))
+      117 +        (t/set-line-color! (:hear lines
+          +) (part-color (if (:glance w) :path-gla
+          +nce :path-hear)))))
+      118 +    (if-let [c (first extras)]
+      119 +      (do
+      120 +        (t/set-polyline! (:creature pat
+          +hs)
+      121 +                          (mapv (fn [[c
+          +x cz]] [cx (+ (or (:y c) 0) 0.05) cz])
+      122 +                                (a/circ
+          +le-points (:at c) (:r c) 24)))
+      123 +        (t/set-visible! (:creature path
+          +s) true))
+      124 +      (t/set-visible! (:creature paths)
+          + false))))
+      125
+      126  ;; -- glTF body loading ---------------
+           ---------------------------------------
+           ---
+      127
+
+⏺ Now thread extras through tick-kinematic!,
+  tick-bricks!, and tick!:
+
+⏺ Update(src/pm/bricks.cljs)
+  ⎿  Added 2 lines, removed 2 lines
+      426               :status {:mode :failed :re
+           ason (m/short-reason (or (.-message e)
+           e))}
+      427               :gate m/empty-gate :jobs {
+           }))))
+      428
+      429 -(defn- tick-kinematic! [dt]
+      429 +(defn- tick-kinematic! [dt extras]
+      430    (let [{:keys [walkers views statics p
+           cfg plan-acc]} @!state
+      431 -        [ws acc] (m/advance walkers sta
+          -tics pcfg dt plan-acc)
+      431 +        [ws acc] (m/advance walkers sta
+          +tics pcfg dt plan-acc extras)
+      432          ws       (mapv #(m/settle % dt)
+            ws)]
+      433      (doseq [[w view] (map vector ws vie
+           ws)]
+      434        (let [[x z] (:pos w) y (:y w)
+
+⏺ Update(src/pm/bricks.cljs)
+  ⎿  Added 2 lines, removed 2 lines
+      438          (t/set-visible! anchor (some? y
+           ))))
+      439      (swap! !state assoc :walkers ws :pl
+           an-acc acc)))
+      440
+      441 -(defn- tick-bricks! [dt frame]
+      441 +(defn- tick-bricks! [dt frame extras]
+      442    (try
+      443      (run-gate! frame)
+      444      (let [{:keys [walkers views statics
+            pcfg plan-acc fcfg ds cfg ground-meshe
+           s]} @!state
+     ...
+      449                                  pos   [
+           (.-x v) (.-z v)]]
+      450                              (m/follow w
+            pos (.-idle c) dt)))
+      451                          before views)
+      452 -          [ws acc] (m/replan before aft
+          -er statics pcfg dt plan-acc)
+      452 +          [ws acc] (m/replan before aft
+          +er statics pcfg dt plan-acc extras)
+      453            ws     (mapv #(m/settle % dt)
+            ws)
+      454            steps  (mapv
+      455                     (fn [w view]
+
+⏺ Update(src/pm/bricks.cljs)
+  ⎿  Added 5 lines, removed 4 lines
+      485    "Call every frame with dt capped at 0
+           .1. No-op before start!."
+      486    [^js h dt]
+      487    (when (:started? @!state)
+      488 -    (let [{:keys [frame cfg ground-mesh
+          -es]} @!state
+      488 +    (let [extras (cs/obstacles)
+      489 +          {:keys [frame cfg ground-mesh
+          +es]} @!state
+      490            ground-meshes (if (and (empty
+           ? ground-meshes) (zero? (mod frame 60))
+           )
+      491                            (let [gm (t/f
+           ind-meshes (.-scene h) #(m/ground-name?
+            % (:ground cfg)))]
+      492                              (swap! !sta
+           te assoc :ground-meshes gm)
+     ...
+      507                                  w)))
+      508                            walkers))))))
+      509        (if (= :bricks (:mode (:status @!
+           state)))
+      509 -        (tick-bricks! dt frame)
+      510 -        (tick-kinematic! dt))
+      510 +        (tick-bricks! dt frame extras)
+      511 +        (tick-kinematic! dt extras))
+      512        (swap! !state update :status asso
+           c :detours (m/detours (:walkers @!state
+           )))
+      512 -      (update-paths! (:paths @!state) (
+          -:walkers @!state))
+      513 +      (update-paths! (:paths @!state) (
+          +:walkers @!state) extras)
+      514        (swap! !state update :frame inc))
+           ))
+      515
+      516  (defn set-dots!
+
+⏺ Now the pm.scene palette key:
+
+⏺ Update(src/pm/scene.cljs)
+  ⎿  Added 2 lines, removed 1 line
+      30     :feet-target  0xed64a6
+      31     :path-sight   0xfaf089
+      32     :path-hear    0x9f7aea
+      33 -   :path-glance  0x63b3ed})
+      33 +   :path-glance  0x63b3ed
+      34 +   :path-creature 0xf687b3})
+      35
+      36  (def label-height 0.3)   ; the old size;
+           positions in tests and walker heads sti
+          ll key off it
+      37
+
+  Ran 2 shell commands
+
+⏺ Implemented the spec across the five assigned files:
+  extra-others/sense-dist and edge-aware sees?/hears? in
+  pm.motion, obstacle-aware plan/plan-all/replan/advance
+  (all now with optional extras), the new
+  pm.creature-motion/capsules + ground-circle,
+  pm.creature-spike's :caps storage, publish!, and public
+  obstacles, pm.bricks wiring cs/obstacles through tick!
+  into both tick modes and the ?paths creature circle,
+  and the :path-creature palette key in pm.scene.
+
+  Gate: GATE: PASS — 0 warnings; Ran 782 tests containing
+  4676 assertions. (the tester's
+  pm.creature-obstacle-test hasn't landed yet, so the 29
+  new cases aren't in this count.)
+
+  git diff --stat:
+   src/pm/bricks.cljs          |  39 +++++++++++------
+   src/pm/creature_motion.cljs |  44 +++++++++++++++++++
+   src/pm/creature_spike.cljs  |  20 +++++++--
+   src/pm/motion.cljs          | 104
+  +++++++++++++++++++++++++++++---------------
+   src/pm/scene.cljs           |   3 +-
+   5 files changed, 159 insertions(+), 51 deletions(-)
+
+  done-4475
+
+✻ Brewed for 4m 5s · done 12:48 PM
+                 ✔ Update installed · /restart to apply
+─────────────────────────────────────────────────────────
+❯
+─────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

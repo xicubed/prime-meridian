@@ -289,16 +289,41 @@
 (defn facing [w]
   (or (:facing w) (:heading w)))
 
+(defn extra-others
+  "An extra (§2.2) turned into an \"other\" map, marked :obstacle true. Keeps
+   each `c` with a keyword :id, a 2-number :at and a positive-number :r;
+   drops the rest. nil or [] -> []."
+  [extras]
+  (into []
+        (keep (fn [c]
+                (when (and (map? c)
+                           (keyword? (:id c))
+                           (let [at (:at c)] (and (vector? at) (= 2 (count at)) (every? number? at)))
+                           (number? (:r c)) (pos? (:r c)))
+                  (let [v (:vel c)
+                        v (if (and (vector? v) (= 2 (count v)) (every? number? v)) v [0 0])]
+                    {:id (:id c) :pos (:at c) :radius (:r c) :vel v :obstacle true}))))
+        extras))
+
+(defn sense-dist
+  "The xz distance from `w` to `o`, measured to `o`'s edge when it's an
+   obstacle."
+  [w o]
+  (let [[wx wz] (:pos w) [ox oz] (:pos o)
+        d (js/Math.hypot (- ox wx) (- oz wz))]
+    (if (:obstacle o) (max 0 (- d (:radius o))) d)))
+
 (defn sees? [w o]
-  (let [s (or (:senses w) default-senses)
-        [wx wz] (:pos w) [ox oz] (:pos o)
-        dx (- ox wx) dz (- oz wz)
-        d  (js/Math.hypot dx dz)]
+  (let [s  (or (:senses w) default-senses)
+        sd (sense-dist w o)]
     (cond
-      (> d (:sight-m s)) false
-      (zero? d) true
+      (> sd (:sight-m s)) false
+      (zero? sd) true
       :else
-      (let [[fx fz] (forward (facing w))
+      (let [[wx wz] (:pos w) [ox oz] (:pos o)
+            dx (- ox wx) dz (- oz wz)
+            d  (js/Math.hypot dx dz)
+            [fx fz] (forward (facing w))
             dot  (/ (+ (* fx dx) (* fz dz)) d)
             half (/ (* (:sight-deg s) (/ js/Math.PI 180)) 2)]
         (>= dot (- (js/Math.cos half) 1e-9))))))
@@ -310,9 +335,7 @@
     (* (:hear-m s) (max 1 (/ speed walk-pace)))))
 
 (defn hears? [w o]
-  (let [[wx wz] (:pos w) [ox oz] (:pos o)
-        d (js/Math.hypot (- ox wx) (- oz wz))]
-    (<= d (hear-range w o))))
+  (<= (sense-dist w o) (hear-range w o)))
 
 (defn perceive [w others dt]
   (let [dt'    (max 0 dt)
@@ -351,12 +374,15 @@
     (assoc w :aware aware'
              :glance (boolean (some #(and (:noticed %) (= :hear (:how %))) (vals aware'))))))
 
-(defn perceive-all [ws dt]
-  (let [ws (vec ws) n (count ws)]
-    (vec (map-indexed
-           (fn [i w]
-             (perceive w (into (subvec ws 0 i) (subvec ws (inc i) n)) dt))
-           ws))))
+(defn perceive-all
+  ([ws dt] (perceive-all ws dt nil))
+  ([ws dt extras]
+   (let [ws (vec ws) n (count ws)
+         ex (extra-others extras)]
+     (vec (map-indexed
+            (fn [i w]
+              (perceive w (into (into (subvec ws 0 i) (subvec ws (inc i) n)) ex) dt))
+            ws)))))
 
 (defn noticed [w others]
   (filterv #(true? (get-in (:aware w) [(:id %) :noticed])) others))
@@ -427,7 +453,10 @@
       (let [G (target w)
             P (:pos w)
             r (:radius w)
-            g (a/free-goal P G r statics)
+            goal-statics (into statics
+                                (keep (fn [o] (when (:obstacle o) {:at (:pos o) :r (:radius o)})))
+                                others)
+            g (a/free-goal P G r goal-statics)
             w1 (assoc w :goal (when (not= g G) g))]
         (if (<= (pt-dist P g) arrive-m)
           (assoc w1 :aim nil)
@@ -462,23 +491,30 @@
                     (> (:wait w) 0)  (assoc w1 :aim nil)
                     :else            (assoc w1 :aim nil :side nil :wait wait-s)))))))))))
 
-(defn plan-all [ws statics cfg]
-  (let [ws (vec ws) n (count ws)]
-    (vec (map-indexed
-           (fn [i w]
-             (let [others (into (subvec ws 0 i) (subvec ws (inc i) n))]
-               (plan w (noticed w others) statics cfg)))
-           ws))))
+(defn plan-all
+  ([ws statics cfg] (plan-all ws statics cfg nil))
+  ([ws statics cfg extras]
+   (let [ws (vec ws) n (count ws)
+         ex (extra-others extras)]
+     (vec (map-indexed
+            (fn [i w]
+              (let [others (into (into (subvec ws 0 i) (subvec ws (inc i) n)) ex)]
+                (plan w (noticed w others) statics cfg)))
+            ws)))))
 
-(defn replan [before after statics cfg dt acc]
-  (let [after (perceive-all after dt)]
-    (if (or (>= (+ acc dt) (- plan-every-s 1e-9))
-            (some (fn [[b a]] (not= (:leg b) (:leg a))) (map vector before after)))
-      [(plan-all after statics cfg) 0]
-      [after (+ acc dt)])))
+(defn replan
+  ([before after statics cfg dt acc] (replan before after statics cfg dt acc nil))
+  ([before after statics cfg dt acc extras]
+   (let [after (perceive-all after dt extras)]
+     (if (or (>= (+ acc dt) (- plan-every-s 1e-9))
+             (some (fn [[b a]] (not= (:leg b) (:leg a))) (map vector before after)))
+       [(plan-all after statics cfg extras) 0]
+       [after (+ acc dt)]))))
 
-(defn advance [ws statics cfg dt acc]
-  (replan ws (mapv #(step % (or (:speed %) (:speed cfg)) dt) ws) statics cfg dt acc))
+(defn advance
+  ([ws statics cfg dt acc] (advance ws statics cfg dt acc nil))
+  ([ws statics cfg dt acc extras]
+   (replan ws (mapv #(step % (or (:speed %) (:speed cfg)) dt) ws) statics cfg dt acc extras)))
 
 (defn detours [ws]
   (count (filter #(some? (:aim %)) ws)))

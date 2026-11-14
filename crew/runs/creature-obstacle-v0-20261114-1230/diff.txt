@@ -1,0 +1,388 @@
+diff --git a/src/pm/bricks.cljs b/src/pm/bricks.cljs
+index 107cd5c..911f35d 100644
+--- a/src/pm/bricks.cljs
++++ b/src/pm/bricks.cljs
+@@ -12,7 +12,8 @@
+             [pm.scene :as scene]
+             [pm.feet :as f]
+             [pm.crew :as crew]
+-            [pm.tint :as tint]))
++            [pm.tint :as tint]
++            [pm.creature-spike :as cs]))
+ 
+ (defonce !state
+   (atom {:status nil :walkers [] :views [] :ground-meshes [] :frame 0
+@@ -92,11 +93,15 @@
+                               (let [{:keys [circle goal aim cone hear]} (walker-path-lines! w)]
+                                 (t/add! paths-root circle goal aim cone hear)
+                                 {:circle circle :goal goal :aim aim :cone cone :hear hear}))
+-                            walkers)]
++                            walkers)
++        ^js creature-line (t/polyline (mapv (fn [[cx cz]] [cx 0 cz]) (a/circle-points [0 0] 1 24))
++                                       (part-color :path-creature))]
++    (t/set-visible! creature-line false)
++    (t/add! paths-root creature-line)
+     (t/add! root paths-root)
+-    {:root paths-root :statics static-lines :walkers walker-lines}))
++    {:root paths-root :statics static-lines :walkers walker-lines :creature creature-line}))
+ 
+-(defn- update-paths! [paths walkers]
++(defn- update-paths! [paths walkers extras]
+   (when paths
+     (doseq [[w lines] (map vector walkers (:walkers paths))]
+       (let [[x z] (:pos w) y (+ (or (:y w) 0) 0.05)
+@@ -109,7 +114,14 @@
+         (t/set-polyline! (:cone lines) (mapv (fn [[cx cz]] [cx y cz])
+                                               (m/cone-points [x z] (m/facing w) (:sight-m s) (:sight-deg s) 16)))
+         (t/set-polyline! (:hear lines) (mapv (fn [[cx cz]] [cx y cz]) (a/circle-points [x z] (:hear-m s) 24)))
+-        (t/set-line-color! (:hear lines) (part-color (if (:glance w) :path-glance :path-hear)))))))
++        (t/set-line-color! (:hear lines) (part-color (if (:glance w) :path-glance :path-hear)))))
++    (if-let [c (first extras)]
++      (do
++        (t/set-polyline! (:creature paths)
++                          (mapv (fn [[cx cz]] [cx (+ (or (:y c) 0) 0.05) cz])
++                                (a/circle-points (:at c) (:r c) 24)))
++        (t/set-visible! (:creature paths) true))
++      (t/set-visible! (:creature paths) false))))
+ 
+ ;; -- glTF body loading ---------------------------------------------------------
+ 
+@@ -414,9 +426,9 @@
+              :status {:mode :failed :reason (m/short-reason (or (.-message e) e))}
+              :gate m/empty-gate :jobs {}))))
+ 
+-(defn- tick-kinematic! [dt]
++(defn- tick-kinematic! [dt extras]
+   (let [{:keys [walkers views statics pcfg plan-acc]} @!state
+-        [ws acc] (m/advance walkers statics pcfg dt plan-acc)
++        [ws acc] (m/advance walkers statics pcfg dt plan-acc extras)
+         ws       (mapv #(m/settle % dt) ws)]
+     (doseq [[w view] (map vector ws views)]
+       (let [[x z] (:pos w) y (:y w)
+@@ -426,7 +438,7 @@
+         (t/set-visible! anchor (some? y))))
+     (swap! !state assoc :walkers ws :plan-acc acc)))
+ 
+-(defn- tick-bricks! [dt frame]
++(defn- tick-bricks! [dt frame extras]
+   (try
+     (run-gate! frame)
+     (let [{:keys [walkers views statics pcfg plan-acc fcfg ds cfg ground-meshes]} @!state
+@@ -437,7 +449,7 @@
+                                 pos   [(.-x v) (.-z v)]]
+                             (m/follow w pos (.-idle c) dt)))
+                         before views)
+-          [ws acc] (m/replan before after statics pcfg dt plan-acc)
++          [ws acc] (m/replan before after statics pcfg dt plan-acc extras)
+           ws     (mapv #(m/settle % dt) ws)
+           steps  (mapv
+                    (fn [w view]
+@@ -473,7 +485,8 @@
+   "Call every frame with dt capped at 0.1. No-op before start!."
+   [^js h dt]
+   (when (:started? @!state)
+-    (let [{:keys [frame cfg ground-meshes]} @!state
++    (let [extras (cs/obstacles)
++          {:keys [frame cfg ground-meshes]} @!state
+           ground-meshes (if (and (empty? ground-meshes) (zero? (mod frame 60)))
+                           (let [gm (t/find-meshes (.-scene h) #(m/ground-name? % (:ground cfg)))]
+                             (swap! !state assoc :ground-meshes gm)
+@@ -494,10 +507,10 @@
+                                 w)))
+                           walkers))))))
+       (if (= :bricks (:mode (:status @!state)))
+-        (tick-bricks! dt frame)
+-        (tick-kinematic! dt))
++        (tick-bricks! dt frame extras)
++        (tick-kinematic! dt extras))
+       (swap! !state update :status assoc :detours (m/detours (:walkers @!state)))
+-      (update-paths! (:paths @!state) (:walkers @!state))
++      (update-paths! (:paths @!state) (:walkers @!state) extras)
+       (swap! !state update :frame inc))))
+ 
+ (defn set-dots!
+diff --git a/src/pm/creature_motion.cljs b/src/pm/creature_motion.cljs
+index 3ce3f87..fa8303d 100644
+--- a/src/pm/creature_motion.cljs
++++ b/src/pm/creature_motion.cljs
+@@ -333,6 +333,50 @@
+ 
+ ;; -- Pose from MuJoCo arrays (§5.6) -------------------------------------------
+ 
++(def obstacle-id :creature)
++
++(defn capsules
++  "One entry per body, in `c/bodies` order (MuJoCo body id = index + 1)."
++  [sp]
++  (into []
++        (map-indexed (fn [i b]
++                       (let [cap (:capsule b)]
++                         {:id (inc i) :from (:from cap) :to (:to cap) :r (:r cap)})))
++        (c/bodies sp)))
++
++(defn ground-circle
++  "{:at [x z] :r r :vel [vx vz]} covering every capsule's ground-plane
++   footprint, or nil when `caps` is empty. `xpos`/`xmat`/`qvel` are
++   MjData's typed arrays, read with `aget`; `qvel` may be nil."
++  [caps xpos xmat qvel]
++  (when (seq caps)
++    (let [endpoints
++          (into []
++                (mapcat (fn [{:keys [id r from to]}]
++                          (let [base (* 3 id)
++                                world (fn [p]
++                                        (mapv (fn [i]
++                                                (+ (aget xpos (+ base i))
++                                                   (reduce + (map (fn [j]
++                                                                    (* (aget xmat (+ (* 9 id) (* 3 i) j)) (nth p j)))
++                                                                  (range 3)))))
++                                              (range 3)))]
++                            (map (fn [p]
++                                   (let [[wx wy _] (world p)]
++                                     {:ex wx :ez (- wy) :er r}))
++                                 [from to]))))
++                caps)
++          xmin (apply min (map (fn [p] (- (:ex p) (:er p))) endpoints))
++          xmax (apply max (map (fn [p] (+ (:ex p) (:er p))) endpoints))
++          zmin (apply min (map (fn [p] (- (:ez p) (:er p))) endpoints))
++          zmax (apply max (map (fn [p] (+ (:ez p) (:er p))) endpoints))
++          atx  (/ (+ xmin xmax) 2)
++          atz  (/ (+ zmin zmax) 2)
++          r    (apply max (map (fn [p] (+ (js/Math.hypot (- (:ex p) atx) (- (:ez p) atz)) (:er p)))
++                                endpoints))
++          vel  (if qvel [(aget qvel 0) (- (aget qvel 1))] [0 0])]
++      {:at [atx atz] :r r :vel vel})))
++
+ (defn body-pose [xpos xquat id]
+   {:pos  (c/mj->three [(aget xpos (* 3 id)) (aget xpos (+ (* 3 id) 1)) (aget xpos (+ (* 3 id) 2))])
+    :quat (c/mj-quat->three [(aget xquat (* 4 id)) (aget xquat (+ (* 4 id) 1))
+diff --git a/src/pm/creature_spike.cljs b/src/pm/creature_spike.cljs
+index c24de74..616d76b 100644
+--- a/src/pm/creature_spike.cljs
++++ b/src/pm/creature_spike.cljs
+@@ -34,7 +34,7 @@
+     (swap! !state
+            (fn [s]
+              (-> s
+-                 (dissoc :model :data :jacs :session)
++                 (dissoc :model :data :jacs :session :obstacle)
+                  (assoc :status {:mode :failed :flag (:flag status) :kind (:kind status)
+                                   :reason (or (.-message e) (str e))}))))))
+ 
+@@ -62,6 +62,12 @@
+       (t/set-pos! (nth groups i) pos)
+       (t/set-quat! (nth groups i) quat))))
+ 
++(defn- publish! [^js data]
++  (let [{:keys [caps ground-z]} @!state]
++    (swap! !state assoc :obstacle
++           (some-> (cm/ground-circle caps (.-xpos data) (.-xmat data) (.-qvel data))
++                   (assoc :id cm/obstacle-id :y ground-z)))))
++
+ (defn- init-groups!
+   "Builds the body's three.js groups and places them from `data`'s
+    just-forward-kinematic'd pose before the root ever enters the scene:
+@@ -104,7 +110,7 @@
+                                   rx)]
+                    (swap! !state assoc
+                           :mj mj :model model :data data :sp sp :ranges ranges
+-                          :ground-z ground-z
++                          :ground-z ground-z :caps (cm/capsules sp)
+                           :rx rx :nv nv :jacs jacs
+                           :rest-frac (c/rest-fraction sp) :kick (c/kick-above sp)
+                           :ctrl (if (seq rx) (cm/reflex-controller tw rx (:seed req)) tw)
+@@ -148,7 +154,7 @@
+                  (let [[root groups] (init-groups! h sp data)]
+                    (swap! !state assoc
+                           :mj mj :model model :data data :sp sp :ranges ranges
+-                          :ground-z ground-z :ground-xyz (:ground sw)
++                          :ground-z ground-z :ground-xyz (:ground sw) :caps (cm/capsules sp)
+                           :br br :policy pol
+                           :sched (cb/schedule-init (:decim pol) (:n pol))
+                           :try 0 :seed (:seed req) :age (:age br) :loading-age nil
+@@ -271,6 +277,7 @@
+         st0    (first (:efforts ctrl'))
+         effort (when (and st0 s0) {:energy (:energy st0) :label (cm/effort-label st0 (first rx) s0)})]
+     (place-groups! groups xpos xquat)
++    (publish! data)
+     (swap! !state assoc :ctrl ctrl' :acc acc :stats stats'
+            :status {:mode :running :flag (:flag status) :kind (:kind status)
+                     :stats stats' :torso torso :head head :effort effort :brain (:brain status)})))
+@@ -291,6 +298,7 @@
+           stats'    (cm/stats-tick stats now-ms (- t1 t0) steps (+ dropped d2))
+           up?       (cb/up? (:stand br) ground-z xpos xmat)]
+       (place-groups! groups xpos xquat)
++      (publish! data)
+       (swap! !state assoc :stats stats'
+              :status {:mode :running :flag (:flag status) :kind (:kind status)
+                       :stats stats' :torso torso
+@@ -312,3 +320,9 @@
+     (if (and t (= :running (:mode s)))
+       (str t (cb/hud-segment (:brain s)))
+       t)))
++
++(defn obstacles []
++  (let [s @!state]
++    (if (and (= :running (:mode (:status s))) (some? (:obstacle s)))
++      [(:obstacle s)]
++      [])))
+diff --git a/src/pm/motion.cljs b/src/pm/motion.cljs
+index 7acdef4..148e856 100644
+--- a/src/pm/motion.cljs
++++ b/src/pm/motion.cljs
+@@ -289,16 +289,41 @@
+ (defn facing [w]
+   (or (:facing w) (:heading w)))
+ 
++(defn extra-others
++  "An extra (§2.2) turned into an \"other\" map, marked :obstacle true. Keeps
++   each `c` with a keyword :id, a 2-number :at and a positive-number :r;
++   drops the rest. nil or [] -> []."
++  [extras]
++  (into []
++        (keep (fn [c]
++                (when (and (map? c)
++                           (keyword? (:id c))
++                           (let [at (:at c)] (and (vector? at) (= 2 (count at)) (every? number? at)))
++                           (number? (:r c)) (pos? (:r c)))
++                  (let [v (:vel c)
++                        v (if (and (vector? v) (= 2 (count v)) (every? number? v)) v [0 0])]
++                    {:id (:id c) :pos (:at c) :radius (:r c) :vel v :obstacle true}))))
++        extras))
++
++(defn sense-dist
++  "The xz distance from `w` to `o`, measured to `o`'s edge when it's an
++   obstacle."
++  [w o]
++  (let [[wx wz] (:pos w) [ox oz] (:pos o)
++        d (js/Math.hypot (- ox wx) (- oz wz))]
++    (if (:obstacle o) (max 0 (- d (:radius o))) d)))
++
+ (defn sees? [w o]
+-  (let [s (or (:senses w) default-senses)
+-        [wx wz] (:pos w) [ox oz] (:pos o)
+-        dx (- ox wx) dz (- oz wz)
+-        d  (js/Math.hypot dx dz)]
++  (let [s  (or (:senses w) default-senses)
++        sd (sense-dist w o)]
+     (cond
+-      (> d (:sight-m s)) false
+-      (zero? d) true
++      (> sd (:sight-m s)) false
++      (zero? sd) true
+       :else
+-      (let [[fx fz] (forward (facing w))
++      (let [[wx wz] (:pos w) [ox oz] (:pos o)
++            dx (- ox wx) dz (- oz wz)
++            d  (js/Math.hypot dx dz)
++            [fx fz] (forward (facing w))
+             dot  (/ (+ (* fx dx) (* fz dz)) d)
+             half (/ (* (:sight-deg s) (/ js/Math.PI 180)) 2)]
+         (>= dot (- (js/Math.cos half) 1e-9))))))
+@@ -310,9 +335,7 @@
+     (* (:hear-m s) (max 1 (/ speed walk-pace)))))
+ 
+ (defn hears? [w o]
+-  (let [[wx wz] (:pos w) [ox oz] (:pos o)
+-        d (js/Math.hypot (- ox wx) (- oz wz))]
+-    (<= d (hear-range w o))))
++  (<= (sense-dist w o) (hear-range w o)))
+ 
+ (defn perceive [w others dt]
+   (let [dt'    (max 0 dt)
+@@ -351,12 +374,15 @@
+     (assoc w :aware aware'
+              :glance (boolean (some #(and (:noticed %) (= :hear (:how %))) (vals aware'))))))
+ 
+-(defn perceive-all [ws dt]
+-  (let [ws (vec ws) n (count ws)]
+-    (vec (map-indexed
+-           (fn [i w]
+-             (perceive w (into (subvec ws 0 i) (subvec ws (inc i) n)) dt))
+-           ws))))
++(defn perceive-all
++  ([ws dt] (perceive-all ws dt nil))
++  ([ws dt extras]
++   (let [ws (vec ws) n (count ws)
++         ex (extra-others extras)]
++     (vec (map-indexed
++            (fn [i w]
++              (perceive w (into (into (subvec ws 0 i) (subvec ws (inc i) n)) ex) dt))
++            ws)))))
+ 
+ (defn noticed [w others]
+   (filterv #(true? (get-in (:aware w) [(:id %) :noticed])) others))
+@@ -427,7 +453,10 @@
+       (let [G (target w)
+             P (:pos w)
+             r (:radius w)
+-            g (a/free-goal P G r statics)
++            goal-statics (into statics
++                                (keep (fn [o] (when (:obstacle o) {:at (:pos o) :r (:radius o)})))
++                                others)
++            g (a/free-goal P G r goal-statics)
+             w1 (assoc w :goal (when (not= g G) g))]
+         (if (<= (pt-dist P g) arrive-m)
+           (assoc w1 :aim nil)
+@@ -462,23 +491,30 @@
+                     (> (:wait w) 0)  (assoc w1 :aim nil)
+                     :else            (assoc w1 :aim nil :side nil :wait wait-s)))))))))))
+ 
+-(defn plan-all [ws statics cfg]
+-  (let [ws (vec ws) n (count ws)]
+-    (vec (map-indexed
+-           (fn [i w]
+-             (let [others (into (subvec ws 0 i) (subvec ws (inc i) n))]
+-               (plan w (noticed w others) statics cfg)))
+-           ws))))
+-
+-(defn replan [before after statics cfg dt acc]
+-  (let [after (perceive-all after dt)]
+-    (if (or (>= (+ acc dt) (- plan-every-s 1e-9))
+-            (some (fn [[b a]] (not= (:leg b) (:leg a))) (map vector before after)))
+-      [(plan-all after statics cfg) 0]
+-      [after (+ acc dt)])))
+-
+-(defn advance [ws statics cfg dt acc]
+-  (replan ws (mapv #(step % (or (:speed %) (:speed cfg)) dt) ws) statics cfg dt acc))
++(defn plan-all
++  ([ws statics cfg] (plan-all ws statics cfg nil))
++  ([ws statics cfg extras]
++   (let [ws (vec ws) n (count ws)
++         ex (extra-others extras)]
++     (vec (map-indexed
++            (fn [i w]
++              (let [others (into (into (subvec ws 0 i) (subvec ws (inc i) n)) ex)]
++                (plan w (noticed w others) statics cfg)))
++            ws)))))
++
++(defn replan
++  ([before after statics cfg dt acc] (replan before after statics cfg dt acc nil))
++  ([before after statics cfg dt acc extras]
++   (let [after (perceive-all after dt extras)]
++     (if (or (>= (+ acc dt) (- plan-every-s 1e-9))
++             (some (fn [[b a]] (not= (:leg b) (:leg a))) (map vector before after)))
++       [(plan-all after statics cfg extras) 0]
++       [after (+ acc dt)]))))
++
++(defn advance
++  ([ws statics cfg dt acc] (advance ws statics cfg dt acc nil))
++  ([ws statics cfg dt acc extras]
++   (replan ws (mapv #(step % (or (:speed %) (:speed cfg)) dt) ws) statics cfg dt acc extras)))
+ 
+ (defn detours [ws]
+   (count (filter #(some? (:aim %)) ws)))
+diff --git a/src/pm/scene.cljs b/src/pm/scene.cljs
+index 22ba1f4..eec1aca 100644
+--- a/src/pm/scene.cljs
++++ b/src/pm/scene.cljs
+@@ -30,7 +30,8 @@
+    :feet-target  0xed64a6
+    :path-sight   0xfaf089
+    :path-hear    0x9f7aea
+-   :path-glance  0x63b3ed})
++   :path-glance  0x63b3ed
++   :path-creature 0xf687b3})
+ 
+ (def label-height 0.3)   ; the old size; positions in tests and walker heads still key off it
+ 

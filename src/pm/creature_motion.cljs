@@ -333,6 +333,50 @@
 
 ;; -- Pose from MuJoCo arrays (§5.6) -------------------------------------------
 
+(def obstacle-id :creature)
+
+(defn capsules
+  "One entry per body, in `c/bodies` order (MuJoCo body id = index + 1)."
+  [sp]
+  (into []
+        (map-indexed (fn [i b]
+                       (let [cap (:capsule b)]
+                         {:id (inc i) :from (:from cap) :to (:to cap) :r (:r cap)})))
+        (c/bodies sp)))
+
+(defn ground-circle
+  "{:at [x z] :r r :vel [vx vz]} covering every capsule's ground-plane
+   footprint, or nil when `caps` is empty. `xpos`/`xmat`/`qvel` are
+   MjData's typed arrays, read with `aget`; `qvel` may be nil."
+  [caps xpos xmat qvel]
+  (when (seq caps)
+    (let [endpoints
+          (into []
+                (mapcat (fn [{:keys [id r from to]}]
+                          (let [base (* 3 id)
+                                world (fn [p]
+                                        (mapv (fn [i]
+                                                (+ (aget xpos (+ base i))
+                                                   (reduce + (map (fn [j]
+                                                                    (* (aget xmat (+ (* 9 id) (* 3 i) j)) (nth p j)))
+                                                                  (range 3)))))
+                                              (range 3)))]
+                            (map (fn [p]
+                                   (let [[wx wy _] (world p)]
+                                     {:ex wx :ez (- wy) :er r}))
+                                 [from to]))))
+                caps)
+          xmin (apply min (map (fn [p] (- (:ex p) (:er p))) endpoints))
+          xmax (apply max (map (fn [p] (+ (:ex p) (:er p))) endpoints))
+          zmin (apply min (map (fn [p] (- (:ez p) (:er p))) endpoints))
+          zmax (apply max (map (fn [p] (+ (:ez p) (:er p))) endpoints))
+          atx  (/ (+ xmin xmax) 2)
+          atz  (/ (+ zmin zmax) 2)
+          r    (apply max (map (fn [p] (+ (js/Math.hypot (- (:ex p) atx) (- (:ez p) atz)) (:er p)))
+                                endpoints))
+          vel  (if qvel [(aget qvel 0) (- (aget qvel 1))] [0 0])]
+      {:at [atx atz] :r r :vel vel})))
+
 (defn body-pose [xpos xquat id]
   {:pos  (c/mj->three [(aget xpos (* 3 id)) (aget xpos (+ (* 3 id) 1)) (aget xpos (+ (* 3 id) 2))])
    :quat (c/mj-quat->three [(aget xquat (* 4 id)) (aget xquat (+ (* 4 id) 1))

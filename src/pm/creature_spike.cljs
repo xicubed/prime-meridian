@@ -34,7 +34,7 @@
     (swap! !state
            (fn [s]
              (-> s
-                 (dissoc :model :data :jacs :session)
+                 (dissoc :model :data :jacs :session :obstacle)
                  (assoc :status {:mode :failed :flag (:flag status) :kind (:kind status)
                                   :reason (or (.-message e) (str e))}))))))
 
@@ -61,6 +61,12 @@
     (let [{:keys [pos quat]} (cm/body-pose xpos xquat (inc i))]
       (t/set-pos! (nth groups i) pos)
       (t/set-quat! (nth groups i) quat))))
+
+(defn- publish! [^js data]
+  (let [{:keys [caps ground-z]} @!state]
+    (swap! !state assoc :obstacle
+           (some-> (cm/ground-circle caps (.-xpos data) (.-xmat data) (.-qvel data))
+                   (assoc :id cm/obstacle-id :y ground-z)))))
 
 (defn- init-groups!
   "Builds the body's three.js groups and places them from `data`'s
@@ -104,7 +110,7 @@
                                   rx)]
                    (swap! !state assoc
                           :mj mj :model model :data data :sp sp :ranges ranges
-                          :ground-z ground-z
+                          :ground-z ground-z :caps (cm/capsules sp)
                           :rx rx :nv nv :jacs jacs
                           :rest-frac (c/rest-fraction sp) :kick (c/kick-above sp)
                           :ctrl (if (seq rx) (cm/reflex-controller tw rx (:seed req)) tw)
@@ -148,7 +154,7 @@
                  (let [[root groups] (init-groups! h sp data)]
                    (swap! !state assoc
                           :mj mj :model model :data data :sp sp :ranges ranges
-                          :ground-z ground-z :ground-xyz (:ground sw)
+                          :ground-z ground-z :ground-xyz (:ground sw) :caps (cm/capsules sp)
                           :br br :policy pol
                           :sched (cb/schedule-init (:decim pol) (:n pol))
                           :try 0 :seed (:seed req) :age (:age br) :loading-age nil
@@ -271,6 +277,7 @@
         st0    (first (:efforts ctrl'))
         effort (when (and st0 s0) {:energy (:energy st0) :label (cm/effort-label st0 (first rx) s0)})]
     (place-groups! groups xpos xquat)
+    (publish! data)
     (swap! !state assoc :ctrl ctrl' :acc acc :stats stats'
            :status {:mode :running :flag (:flag status) :kind (:kind status)
                     :stats stats' :torso torso :head head :effort effort :brain (:brain status)})))
@@ -291,6 +298,7 @@
           stats'    (cm/stats-tick stats now-ms (- t1 t0) steps (+ dropped d2))
           up?       (cb/up? (:stand br) ground-z xpos xmat)]
       (place-groups! groups xpos xquat)
+      (publish! data)
       (swap! !state assoc :stats stats'
              :status {:mode :running :flag (:flag status) :kind (:kind status)
                       :stats stats' :torso torso
@@ -312,3 +320,9 @@
     (if (and t (= :running (:mode s)))
       (str t (cb/hud-segment (:brain s)))
       t)))
+
+(defn obstacles []
+  (let [s @!state]
+    (if (and (= :running (:mode (:status s))) (some? (:obstacle s)))
+      [(:obstacle s)]
+      [])))
