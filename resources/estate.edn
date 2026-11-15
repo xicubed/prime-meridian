@@ -65,6 +65,25 @@
             :tint 0x8e5cc4}                                                       ; woods' edge, north end of the west bank, watching the pair
            {:id :le-docteur :name "Le Docteur" :agent :le-docteur
             :route [[-6.0 -17.5] [-6.0 -20.0]] :pause-s 6 :tint 0x2f9e8f}]       ; south plateau by Flora; the rock at [-5 -17] is not walkable
+ ;; The mailbox (GDD §2.4): the inbox needing attention; overflows when it
+ ;; does. Backed by the sample inbox, me@acme.com (GDD §4.6), with no
+ ;; accounts connected — pm.plan/mailbox-item reads its unread count from
+ ;; there, never from :state here. East bank, near the creature-spike's
+ ;; probed terrain height (1.79 m).
+ :mailbox {:at [5.2 1.79 -7.3] :yaw 0
+           :look {:parts
+                  [{:shape :cylinder :size [0.08 0.9 0.08]  :at [0 0.45 0]      :color :brown}      ; post
+                   {:shape :box      :size [0.16 0.18 0.34] :at [0 0.99 0]      :color :stand-in}   ; the box
+                   {:shape :box      :size [0.03 0.1 0.03]  :at [0.08 1.0 0.14] :rot [0 0 25] :color :gold}]}} ; flag up
+ ;; The phone booth (GDD §2.3, §4.8): the hardline. When a jack-out event
+ ;; rings it, its sign (pm.plan/phone-booth-item) shows the reason while the
+ ;; estate is frozen (pm.world/jack-out-text); empty otherwise. East bank,
+ ;; near the mailbox, terrain probed at 1.71 m, clear of Un Architecte's route (Hal).
+ :phone-booth {:at [4.9 1.71 -6.6] :yaw 0
+               :look {:parts
+                      [{:shape :box :size [0.9 2.0 0.9]   :at [0 1.0   0]    :color :booth-red}   ; body
+                       {:shape :box :size [1.0 0.15 1.0]  :at [0 2.075 0]    :color :booth-red}   ; roof
+                       {:shape :box :size [0.7 1.5 0.05]  :at [0 1.1 0.43]   :color :glass}]}}    ; glass panel
  ;; Display scale (standing rule): creatures and crew are drawn big enough to
  ;; see from the kit's camera views without zooming in, about the size of a
  ;; mid-size rock (~1 m). Real size doesn't matter; proportions do. Author a

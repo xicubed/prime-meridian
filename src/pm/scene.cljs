@@ -3,7 +3,8 @@
    `pm.three` only. Never touches `js/THREE`, the npm module, or
    `window.hiroshi` directly."
   (:require [pm.three :as t]
-            [pm.plan :as p]))
+            [pm.plan :as p]
+            [pm.content :as c]))
 
 (def palette
   "The only hex literals. A look colour not in this map -> :stand-in."
@@ -17,6 +18,7 @@
    :mane         0x3b2a1e
    :tin          0x9a9184
    :stand-in     0xb8b0a6
+   :booth-red    0xc0392b
    :bubble-paper 0xfffaf0
    :bubble-ink   0x3a2d22
    :sign-paper   0xf6ead0   ; lighter parchment (was 0xe9d3a8), for contrast
@@ -72,12 +74,30 @@
         (t/add! root sprite)
         sprite))))
 
+(defn- with-mailbox
+  "`plan` plus the mailbox's own item (GDD §2.4), when `world` places one."
+  [world plan]
+  (if-let [mailbox (p/mailbox-item world c/sample-inbox)]
+    (conj plan mailbox)
+    plan))
+
+(defn- with-phone-booth
+  "`plan` plus the phone booth's own item (GDD §2.3, §4.8), when `world`
+   places one."
+  [world plan]
+  (if-let [booth (p/phone-booth-item world)]
+    (conj plan booth)
+    plan))
+
+(defn- with-fixtures [world plan]
+  (->> plan (with-mailbox world) (with-phone-booth world)))
+
 (defn update!
   "Refresh only the labels whose text changed since the last call. Never
    creates or removes meshes/labels."
   [world now]
   (when-let [{:keys [labels texts]} @!mounted]
-    (let [plan    (p/scene-plan world now)
+    (let [plan    (with-fixtures world (p/scene-plan world now))
           changes (p/label-changes texts plan)]
       (doseq [[k text] changes]
         (when-let [sprite (get labels k)]
@@ -90,7 +110,7 @@
    mounted."
   [scene world now]
   (when-not @!mounted
-    (let [plan   (p/scene-plan world now)
+    (let [plan   (with-fixtures world (p/scene-plan world now))
           root   (t/group {:name "pm-mirrors"})
           labels (reduce (fn [acc item]
                             (if-let [sprite (mount-item! root item)]

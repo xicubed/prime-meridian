@@ -2,6 +2,7 @@
   (:require [cljs.test :refer [deftest is]]
             [pm.world :as w]
             [pm.plan :as p]
+            [pm.content :as c]
             [pm.fixtures :as fx]))
 
 (def T0 1800000000000)
@@ -393,3 +394,54 @@
     (is (part-near? (nth FS 0) {:shape :capsule :size [7.8 3.72 3.6] :at [0 7.2 0] :rot [0 0 0] :color :brown}))
     (is (near? [(p/parts-top FS)] [13.14]))
     (is (= (nth P0 2) (nth (p/scene-plan WS T0) 2)))))
+
+;; mailbox-item: the estate's mailbox (GDD §2.4), backed by the sample
+;; inbox (GDD §4.6) rather than any world state.
+
+(def TOY-INBOX {:messages [{:id :a} {:id :b} {:clerk-note "bait"}]})
+
+(deftest t35-mailbox-nil-cases
+  (is (nil? (p/mailbox-item {} TOY-INBOX)))
+  (is (nil? (p/mailbox-item {:mailbox {}} TOY-INBOX)))
+  (is (nil? (p/mailbox-item {:mailbox {:at [1 2]}} TOY-INBOX)))
+  (is (nil? (p/mailbox-item {:mailbox {:at "x"}} TOY-INBOX))))
+
+(deftest t36-mailbox-toy-inbox
+  (let [item (p/mailbox-item W TOY-INBOX)]
+    (is (= [:mailbox :box] (:key item)))
+    (is (= [5.2 1.79 -7.3] (:at item)))
+    (is (= 0 (:yaw item)))
+    (is (= :sign (:label item)))
+    (is (= "mail 2 · 1 flagged" (:text item)))
+    (is (= 3 (count (:parts item))))
+    (is (near? [5.2 2.33 -7.3] (:center item)))
+    (is (near? [5.2 3.17 -7.3] (:label-at item)))))
+
+(deftest t37-mailbox-real-inbox-and-no-accounts
+  ;; the sample inbox stands in for Gmail with no accounts connected
+  ;; (GDD §4.6); the mailbox's text is the same count the HUD shows.
+  (is (= (c/mail-line c/sample-inbox) (:text (p/mailbox-item W c/sample-inbox))))
+  (is (= "mail 9 · 1 flagged" (:text (p/mailbox-item W c/sample-inbox)))))
+
+;; phone-booth-item: the hardline (GDD §2.3, §4.8). Quiet (empty sign)
+;; unless a jack-out event has frozen the estate, then it shows the reason.
+
+(def jo {:event :jack-out :reason :household :who :household :text "Dinner!"
+         :source {:agent "twin" :session "s1" :machine "laptop"}})
+
+(deftest t38-phone-booth-nil-cases
+  (is (nil? (p/phone-booth-item {})))
+  (is (nil? (p/phone-booth-item {:phone-booth {}})))
+  (is (nil? (p/phone-booth-item {:phone-booth {:at [1 2]}}))))
+
+(deftest t39-phone-booth-quiet-when-not-jacked-out
+  (let [item (p/phone-booth-item W)]
+    (is (= [:phone-booth :box] (:key item)))
+    (is (= (get-in W [:phone-booth :at]) (:at item)))
+    (is (= :sign (:label item)))
+    (is (= "" (:text item)))
+    (is (= 3 (count (:parts item))))))
+
+(deftest t40-phone-booth-rings-with-the-reason
+  (let [W2 (w/apply-event W jo T0)]
+    (is (= "Someone needs you: \"Dinner!\"" (:text (p/phone-booth-item W2))))))

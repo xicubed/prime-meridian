@@ -263,6 +263,7 @@
       (when-let [s (creature-spike/hud-segment)] (str " · " s))
       (when-let [s (crew/hud-text (:crew w) (mapv :agent (m/walkers w)) now)] (str " · " s))
       (when-let [s (events/hud-segment sample-events)] (str " · " s))
+      (when-let [s (world/jack-out-text w)] (str " · jacked out: " s))
       ;; Demo mode (GDD §4.6, §4.8, §2.8): zero accounts means every
       ;; connection runs on its pretend version, each wearing a visible
       ;; sample badge on the HUD until a real one is swapped in.
@@ -416,11 +417,15 @@
         (swap! !talk-ui assoc :hold-sw sw)))))
 
 (defn frame [now]
-  (let [dt (if-let [l @!last] (/ (- now l) 1000) 0)]
+  (let [dt (if-let [l @!last] (/ (- now l) 1000) 0)
+        ;; Jacked out (GDD §2.3, §4.8): the estate freezes gently -- no dt
+        ;; reaches the things that move or tick time forward -- while the
+        ;; render loop, labels and talk UI keep running.
+        dt' (if (world/jacked-out? @!world) 0 (min dt 0.1))]
     (reset! !last now)
-    (tick! (min dt 0.1))
-    (when-let [h (kit/handle)] (bricks/tick! h (min dt 0.1)))
-    (when (kit/handle) (creature-spike/tick! (min dt 0.1) now))
+    (tick! dt')
+    (when-let [h (kit/handle)] (bricks/tick! h dt'))
+    (when (kit/handle) (creature-spike/tick! dt' now))
     (when-let [h (kit/handle)] (camera/save-tick! h now))
     (bricks/set-dots! (:crew @!world) (js/Date.now))
     (scene/update! @!world (js/Date.now))
@@ -484,6 +489,18 @@
     (.addEventListener el "input"
       (fn [^js e] (brook/set-flow! (js/parseFloat (.. e -target -value)))))))
 
+(defn- toggle-jack-out!
+  "The phone booth (GDD §2.3, §4.8): with no real bridge sending `:jack-out`
+   events yet, clicking the booth rings it with the sample jack-out event
+   (resources/content/sample-events.edn) and clicking it again jacks back
+   in, so the freeze and the resume are both something you can see."
+  []
+  (let [now (js/Date.now)]
+    (if (world/jacked-out? @!world)
+      (swap! !world world/jack-in now)
+      (when-let [ev (first (filter #(= :jack-out (:event %)) sample-events))]
+        (swap! !world world/apply-event ev now)))))
+
 (defn- wire-pointer!
   "Click a creature to do its first due chore (through pm.chores); never
    interferes with the kit's own camera drag."
@@ -498,8 +515,9 @@
                                       :width (.-width rect) :height (.-height rect)}
                             xy       (pick/ndc (.-clientX e) (.-clientY e) rect-m)]
                         (when xy
-                          (pick/pick-mirror (scene/current-plan)
-                                             (t/pick-names (scene/mounted-root) (.-camera h) xy)))))]
+                          (let [hits (t/pick-names (scene/mounted-root) (.-camera h) xy)]
+                            {:mirror (pick/pick-mirror (scene/current-plan) hits)
+                             :key    (pick/pick-key hits)}))))]
     (.addEventListener canvas "pointerdown"
       (fn [^js e]
         (when (and (.-isPrimary e) (zero? (.-button e)))
@@ -511,10 +529,12 @@
           (reset! !press nil)
           (let [up {:x (.-clientX e) :y (.-clientY e) :t (.-timeStamp e)}]
             (when (pick/click? down up)
-              (let [m (pick-at e)]
-                (when (pick/clickable? @!world m)
-                  (swap! !world chores/click content/hal-lines m (js/Date.now) (tz-offset-min))
-                  (js/console.log (pr-str (peek (:log @!world))))))))))
+              (let [{m :mirror k :key} (pick-at e)]
+                (cond
+                  (= k pick/booth-key) (toggle-jack-out!)
+                  (pick/clickable? @!world m)
+                  (do (swap! !world chores/click content/hal-lines m (js/Date.now) (tz-offset-min))
+                      (js/console.log (pr-str (peek (:log @!world)))))))))))
       #js {:capture true :passive true})
     (.addEventListener canvas "pointermove"
       (fn [^js e]
@@ -522,8 +542,8 @@
           (let [now (js/Date.now)]
             (when (>= (- now @!last-hover) 50)
               (reset! !last-hover now)
-              (let [m (pick-at e)]
-                (if (pick/clickable? @!world m)
+              (let [{m :mirror k :key} (pick-at e)]
+                (if (or (= k pick/booth-key) (pick/clickable? @!world m))
                   (do
                     (when (nil? @!cursor) (reset! !cursor (.. canvas -style -cursor)))
                     (set! (.. canvas -style -cursor) "pointer"))

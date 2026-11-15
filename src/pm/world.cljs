@@ -4,7 +4,8 @@
   (:require [cljs.reader :as reader]
             [clojure.string :as str]
             [shadow.resource :as rc]
-            [pm.content :as c]))
+            [pm.content :as c]
+            [pm.events :as events]))
 
 (def estate-edn (rc/inline "estate.edn"))
 
@@ -214,6 +215,70 @@
                   (when (seq resolved) resolved))))
             (:rules mirror)))
     []))
+
+;; Jack out / jack in (GDD §2.3, §4.8): the phone booth rings, the estate
+;; freezes gently with its reason shown, and coming back in resumes with
+;; what changed. A `:jack-out` event (GDD §3.1) is one of the four bridge
+;; events; `apply-event` is where any of the four would land on `world` --
+;; today only `:jack-out` does anything here.
+
+(defn- jack-out-line
+  "The phone booth's sign while frozen: the household's own words when
+   that's the reason (its template needs only the event's own :text),
+   else the event's :text as given, else a plain fallback. Never nil."
+  [event]
+  (or (when (= :household (:reason event))
+        (c/line c/hal-lines [:jack-out-household] {:text (:text event)} 0))
+      (:text event)
+      "The phone booth rings."))
+
+(defmulti apply-event
+  "Applies one bridge event (GDD §3.1) to `world` at `now` (epoch ms).
+   Dispatches on the event's :event key; `:chore-done` already has its own
+   entry point (`chore-done`) so only `:jack-out` is handled here today.
+   Anything unrecognized, or a jack-out that doesn't validate, leaves
+   `world` unchanged but for a log entry."
+  (fn [_world event _now] (:event event)))
+
+(defmethod apply-event :default [world _event _now] world)
+
+(defmethod apply-event :jack-out
+  [world event now]
+  (if (events/valid-jack-out? event)
+    (let [logged (log-event world event :jacked-out)]
+      (assoc logged :jack {:out? true :reason (:reason event) :who (:who event)
+                            :line (jack-out-line event) :at now
+                            ;; the ringing itself doesn't count as "what changed";
+                            ;; only log entries from here on do.
+                            :log-n (count (:log logged))}))
+    (log-event world event :ignored :reason :invalid)))
+
+(defn jacked-out?
+  "True while the estate is frozen by a jack-out (GDD §2.3)."
+  [world]
+  (boolean (:out? (:jack world))))
+
+(defn jack-out-text
+  "The reason shown on the phone booth's sign while frozen; nil otherwise."
+  [world]
+  (when (jacked-out? world) (:line (:jack world))))
+
+(defn jack-in
+  "Coming back in (GDD §2.3): unfreezes the estate and shows what changed --
+   how many log entries landed while you were out, or a plain welcome back
+   when nothing did. No-op (returns `world` unchanged) when it wasn't
+   jacked out."
+  [world now]
+  (let [j (:jack world)]
+    (if (:out? j)
+      (let [changed (max 0 (- (count (:log world)) (or (:log-n j) 0)))
+            text    (if (pos? changed)
+                      (str changed (if (= 1 changed) " thing" " things") " changed while you were out.")
+                      (c/line c/hal-lines [:jack-in] {} (c/day-number now)))]
+        (-> world
+            (assoc :jack {:out? false :at now})
+            (assoc :hal {:event :jack-in :text (or text "Welcome back.") :until (+ now c/hal-ms)})))
+      world)))
 
 (defn status-line [world mirror-id now]
   (when-let [mirror (get-in world [:mirrors mirror-id])]

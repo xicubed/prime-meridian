@@ -2,7 +2,8 @@
   "Pure scene plan: world + now -> what should be in the scene. No three.js,
    no js/Date, no atoms. Mirrors are data; this namespace never names one."
   (:require [clojure.string :as str]
-            [pm.world :as w]))
+            [pm.world :as w]
+            [pm.content :as c]))
 
 (def label-lift
   "Metres from the top of an item to its label's centre."
@@ -136,6 +137,48 @@
                       base)))))
             (:placed mirror))))
       (sort (keys (:mirrors world))))))
+
+(defn mailbox-item
+  "The mailbox's scene item (GDD §2.4): `world`'s `:mailbox` gives its
+   placement and look only; its text is always the unread count from
+   `inbox` (GDD §4.6's sample inbox until a real one is connected), never
+   from any world state. nil when `world` has no valid `:mailbox`."
+  [world inbox]
+  (let [{:keys [at yaw look]} (:mailbox world)]
+    (when (valid-at? at)
+      (let [[x y z] at
+            parts (look-parts look nil)
+            top   (parts-top parts)
+            yaw   (if (number? yaw) yaw 0)]
+        {:key      [:mailbox :box]
+         :at       at
+         :yaw      yaw
+         :parts    parts
+         :center   [x (+ y (/ top 2)) z]
+         :label    :sign
+         :label-at [x (+ y top label-lift) z]
+         :text     (or (c/mail-line inbox) "")}))))
+
+(defn phone-booth-item
+  "The phone booth's scene item (GDD §2.3, §4.8): placement and look come
+   from `world`'s `:phone-booth` only; its sign shows the jack-out reason
+   while the estate is frozen (`pm.world/jack-out-text`), empty otherwise.
+   nil when `world` has no valid `:phone-booth`."
+  [world]
+  (let [{:keys [at yaw look]} (:phone-booth world)]
+    (when (valid-at? at)
+      (let [[x y z] at
+            parts (look-parts look nil)
+            top   (parts-top parts)
+            yaw   (if (number? yaw) yaw 0)]
+        {:key      [:phone-booth :box]
+         :at       at
+         :yaw      yaw
+         :parts    parts
+         :center   [x (+ y (/ top 2)) z]
+         :label    :sign
+         :label-at [x (+ y top label-lift) z]
+         :text     (or (w/jack-out-text world) "")}))))
 
 (defn label-texts
   "{key text} for every labelled item in `plan`."

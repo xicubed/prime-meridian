@@ -34,10 +34,20 @@
         (when (and (vector? v) (= 2 (count v)) (keyword? (first v)))
           v)))))
 
+(defn pick-key
+  "The scene-item key of the nearest hit, mirror or not (e.g. [:phone-booth :box])."
+  [hits]
+  (some (fn [chain] (some key-of-name chain)) hits))
+
 (defn pick-mirror [plan hits]
   (let [key->mirror (into {} (map (fn [item] [(:key item) (:mirror item)]) plan))
-        first-key   (some (fn [chain] (some key-of-name chain)) hits)]
+        first-key   (pick-key hits)]
     (when first-key (get key->mirror first-key))))
+
+(def booth-key
+  "The phone booth's scene-item key (pm.plan/phone-booth-item): clicking it
+   jacks out, clicking it again jacks back in."
+  [:phone-booth :box])
 
 (defn clickable? [world mirror-id]
   (let [m (get-in world [:mirrors mirror-id])]

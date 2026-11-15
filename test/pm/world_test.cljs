@@ -1,6 +1,7 @@
 (ns pm.world-test
   (:require [cljs.test :refer [deftest is]]
             [pm.world :as w]
+            [pm.content :as c]
             [pm.fixtures :as fx]))
 
 (def T0 1800000000000)
@@ -235,4 +236,50 @@
   (is (= "fern · sun 3, mood {mood} · ok · full · mist me" (w/status-line F :fern 0)))
   (is (= "rock" (w/status-line (w/load-estate "{:mirrors [{:id :rock}]}") :rock T0)))
   (is (nil? (w/status-line W :rex T0))))
+
+;; jack out / jack in (GDD §2.3, §4.8)
+
+(def src {:agent "twin" :session "s1" :machine "laptop"})
+(def jo-household {:event :jack-out :reason :household :who :household :text "Dinner!" :source src})
+
+(deftest t30-apply-event-unknown-is-a-no-op
+  (is (= W (w/apply-event W fed T0))))
+
+(deftest t31-jack-out-freezes-with-its-reason-shown
+  (let [W2 (w/apply-event W jo-household T0)]
+    (is (= true (w/jacked-out? W2)))
+    (is (= "Someone needs you: \"Dinner!\"" (w/jack-out-text W2)))
+    (is (= {:out? true :reason :household :who :household
+            :line "Someone needs you: \"Dinner!\"" :at T0 :log-n 1}
+           (:jack W2)))
+    (is (= (assoc jo-household :result :jacked-out) (last (:log W2))))))
+
+(deftest t32-jack-out-ignores-an-invalid-event
+  (let [bad (dissoc jo-household :source)
+        W2  (w/apply-event W bad T0)]
+    (is (= false (w/jacked-out? W2)))
+    (is (nil? (w/jack-out-text W2)))
+    (is (= (assoc bad :result :ignored :reason :invalid) (last (:log W2))))))
+
+(deftest t33-jack-in-with-nothing-changed
+  (let [W2 (w/apply-event W jo-household T0)
+        W3 (w/jack-in W2 (+ T0 1000))]
+    (is (= false (w/jacked-out? W3)))
+    (is (= {:out? false :at (+ T0 1000)} (:jack W3)))
+    (is (= {:event :jack-in :text "You're in. Let's see what the night left you."
+            :until (+ T0 1000 c/hal-ms)}
+           (:hal W3)))))
+
+(deftest t34-jack-in-resumes-with-what-changed
+  (let [W2 (w/apply-event W jo-household T0)
+        W2b (w/chore-done W2 fed)
+        W3  (w/jack-in W2b (+ T0 1000))]
+    (is (= 2 (count (:log W2b))))
+    (is (= false (w/jacked-out? W3)))
+    (is (= {:event :jack-in :text "1 thing changed while you were out."
+            :until (+ T0 1000 c/hal-ms)}
+           (:hal W3)))))
+
+(deftest t35-jack-in-is-a-no-op-when-not-jacked-out
+  (is (= W (w/jack-in W T0))))
 
