@@ -5,6 +5,26 @@ game's code, works out which GDD features are missing, decides which to build fi
 checks it with the game's own gate, re-scans, and repeats until the requirements are met or it
 runs out of turns. It never commits: the Director approves every change (GDD §4.2).
 
+## At a glance (Nov 14)
+
+Five runs, about $34 of model use, built **12 GDD features** into the game. Each passed the
+game's gate (now 883 tests) and was checked in the running game before it was committed. The finish
+list went from 11 to 23 of the 40 in-scope requirements done.
+
+| Run | What it built (how to see it) | Why it went first |
+|---|---|---|
+| 1 | the four bridge events as data; demo mode's SAMPLE badges (HUD ⓘ) | 12 features depend on the events |
+| 2 | a mailbox with the sample unread count; the phone booth: click it to jack out, again to jack back in | overdue, shown in the demo |
+| 3 | the events websocket (`bb crew-bridge`); click a walker to talk | unblocked 9; talking overtook blueprints once the socket existed |
+| 4 | ghosted blueprints by the booth: click to build, right-click to dismiss | the Director narrowed it to the blueprint chain (`--only`) |
+| 5 | an agent's "!" question you answer by typing (over Le Critique); chore-done over the bridge; closing time at 22:30 | the core loop, then the evening |
+
+The websocket bridge was parked once, because the agent's own rules contradicted its acceptance
+check; fixing the agent (not the feature) let run 3 build it. Every manual change is listed under
+its run below: mostly moving hard-coded text and lists into data, swapping invented hotkeys for
+clicks, placing things on measured ground, and twice removing behaviour that faked the player's side
+of a conversation or acted on demo events for real.
+
 ```bash
 bb goal-agent extract    # GDD -> requirements.edn (a model drafts it once; a person reviews it)
 bb goal-agent plan       # scan + gaps + priority scores, no writes
@@ -19,7 +39,7 @@ bb goal-agent test       # unit tests of the reasoning layer
 | [`test/goal/core_test.clj`](test/goal/core_test.clj) | 8 tests / 24 assertions for that layer |
 | [`requirements.edn`](requirements.edn) | 44 GDD features with evidence probes, drafted from the GDD and reviewed |
 | [`config.edn`](config.edn) | the writer (any CLI coding agent; Claude Code by default), models, retries |
-| [`runs/20261114-1634/`](runs/20261114-1634/) | the run that built the two features below: every plan, prompt, reply and gate log |
+| [`runs/`](runs/) | one folder per run (five on Nov 14): every plan, prompt, reply and gate log |
 
 ## How it decides
 
@@ -56,9 +76,9 @@ bb goal-agent test       # unit tests of the reasoning layer
 6. **Repeat.** Re-scan, re-score, next gap. It stops when every requirement is met, nothing scores
    above 0, or `--max` iterations are used.
 
-## What it built
+## Run 1: what it built
 
-One run (`--max 2`, Nov 14, about $3 of model use) built two features into the game. Both pass
+The first run (`--max 2`, Nov 14, about $3 of model use) built two features into the game. Both pass
 the gate (826 tests) and show in the running game's HUD (ⓘ):
 
 1. **The four bridge events as data** (`src/pm/events.cljc`, `test/pm/events_test.cljs`,
@@ -72,7 +92,7 @@ the gate (826 tests) and show in the running game's HUD (ⓘ):
    whose state comes from the twin's real file (Flora) wears no badge, and `agents` drops its badge
    when the bridge is live.
 
-## Why it picked those
+## Run 1: why it picked those
 
 From the run log (`runs/20261114-1634/log.md`):
 
@@ -88,7 +108,7 @@ The first attempt at the schema failed the gate (`valid-source?` returned `nil` 
 for `{}`); the loop sent the failure back and the second attempt passed. Demo mode passed first
 time. The next pick would be `websocket-bridge` (17.33).
 
-## What I changed by hand before accepting it
+## Run 1: what I changed by hand before accepting it
 
 - **The requirements needed review.** The first plan said Flora's jar count, the camera and the
   kinematic fallback were half-built, which would have sent the agent to rebuild working features.
@@ -112,7 +132,7 @@ time. The next pick would be `websocket-bridge` (17.33).
 
 ## Later runs
 
-**Run 2** (`runs/20261114-1712/`, `--max 3`, about $8):
+**Run 2** (`runs/20261114-1712/`, `--max 3`, about $9):
 
 1. `websocket-bridge` (17.33): **parked** after 3 attempts. The writer rightly put the server
    under `scripts/`, which the agent then refused as out of lane. The probe and the lane contradicted
@@ -161,7 +181,9 @@ Hand changes before accepting run 4:
   walker's route; both moved to probed open ground.
 
 Checked live with scripted clicks: the bench goes solid; the lamp post stays a ghost and its sign reads
-"that one won't build, so the estate stays as it was".
+"that one won't build, so the estate stays as it was" (and, after a play-test said it "won't click",
+the twin's caption says it too and the post became a bigger target). Run 5's hand changes later
+made the lamp post buildable.
 
 **Run 5** (`runs/20261114-2035/`, `--max 3 --only chore-done-event,ask-player,closing-time`, about $9):
 
