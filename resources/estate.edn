@@ -104,7 +104,8 @@
                        {:shape :box :size [0.08 0.45 0.08] :at [-0.45 0.225 -0.15] :color :brown}]}}
               {:id :lamp-post-by-canal :at [3.8 0.63 -5.0] :yaw 0  ; probed 0.63 m (Hal)
                :summary "proposed: a lamp post by the canal"
-               :look {:parts [{:shape :pyramid :size [0.3 2.5 0.3] :color :tin}]}}]
+               :look {:parts [{:shape :box :size [0.12 2.4 0.12] :at [0 1.2 0] :color :tin}          ; the post: drawable, so you can see and click it
+                              {:shape :pyramid :size [0.4 0.4 0.4] :at [0 2.55 0] :color :gold}]}}]  ; the lamp head: no such shape, so approving it is refused
  ;; Display scale (standing rule): creatures and crew are drawn big enough to
  ;; see from the kit's camera views without zooming in, about the size of a
  ;; mid-size rock (~1 m). Real size doesn't matter; proportions do. Author a
