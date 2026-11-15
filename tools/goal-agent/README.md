@@ -49,7 +49,7 @@ bb goal-agent test       # unit tests of the reasoning layer
    requirement, the GDD sections it rests on, the code scan, and the repo's rules (AGENTS.md: pure
    rules with tests, 0 warnings, no species or player names in code, works without the private kit).
    It may edit files, nothing else.
-5. **Check.** The writer may only touch `src/pm/`, `test/pm/` and `resources/`. Then the game's own
+5. **Check.** The writer may only touch `src/pm/`, `test/pm/`, `resources/` and `scripts/` (the game's Babashka services). Then the game's own
    gate (`.crew/gate.sh`: compile with 0 warnings, every test passes) and the requirement's probes
    must pass. A failure goes back to the writer with the errors, up to 3 attempts; after that the
    attempt is stashed (`git stash list`, recoverable) and the gap is parked.
@@ -102,6 +102,30 @@ time. The next pick would be `websocket-bridge` (17.33).
 - **Two fixes to the agent itself** while building it: shell calls passed their arguments as one
   vector, and the clean-tree check needed to tell the writer's edits from the agent's own
   not-yet-committed files (it now fingerprints the tree before each write).
+- **After the second run** (Nov 14, 17:12): the websocket bridge was parked because its probe wanted a
+  file under `scripts/`, where the writer wasn't allowed, and parking stashed only the allowed folders,
+  leaving the out-of-lane files behind. Fixed both: `scripts/` is in the writer's lane, and parking
+  stashes every file the writer changed.
 - **Left as found, for a design decision:** GDD §3.1 itself writes two events with `:type` and two
   with `:event`; the agent reproduced that faithfully. And the badges live in the HUD for now; badges
   on the objects in the world would be the next step.
+
+## Later runs
+
+**Run 2** (`runs/20261114-1712/`, `--max 3`, about $8):
+
+1. `websocket-bridge` (17.33): **parked** after 3 attempts. The writer rightly put the server
+   under `scripts/`, which the agent then refused as out of lane. The probe and the lane contradicted
+   each other; `scripts/` is now in the lane.
+2. `estate-mailbox` (13.33): **built**, a mailbox on the east bank showing the sample inbox's
+   unread count.
+3. `jack-out` (10.86): **built**, the phone booth. A jack-out event freezes the estate (walkers, the
+   foal, the clock) with the reason on the booth's sign; jacking back in says what changed while
+   you were out.
+
+Hand changes before accepting run 2: the writer triggered jack-out with the `J` key, which the
+scenery kit already uses, and the game's rule is clicking things in the world rather than hotkeys,
+so **clicking the booth** now jacks out and back in, ringing with the sample jack-out event from the
+data file instead of text in code. The booth had been placed at an unprobed height across one
+walker's route; it moved to measured open ground (1.71 m) clear of the route, and two tests that
+restated the coordinates now read them from `estate.edn`.

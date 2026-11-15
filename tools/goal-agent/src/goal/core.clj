@@ -124,7 +124,7 @@
 
 ;; ------------------------------------------------------------- the guard --
 
-(def allowed-prefixes ["src/pm/" "test/pm/" "resources/"])
+(def allowed-prefixes ["src/pm/" "test/pm/" "resources/" "scripts/"])
 
 (defn outside-allowed
   "Changed paths the writer wasn't allowed to touch."

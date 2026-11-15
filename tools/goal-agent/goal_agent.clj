@@ -19,7 +19,7 @@
 ;;   4. write     the top gap goes to the writer (Claude Code in print mode by
 ;;                default, any CLI agent via config.edn) with the requirement,
 ;;                its GDD text, the scan, and the repo's rules
-;;   5. check     the writer may only touch src/pm, test/pm and resources;
+;;   5. check     the writer may only touch src/pm, test/pm, resources and scripts;
 ;;                then the game's own gate (.crew/gate.sh: 0 warnings, all
 ;;                tests pass) and the requirement's probes must pass
 ;;   6. retry     gate failures and missed probes go back to the writer, up to
@@ -223,7 +223,8 @@ Each entry is a map:
 (def write-system
   "You are the code-writing step of Prime Meridian's goal agent. You implement exactly one missing
 feature of the game, in the repo you are running in, following its AGENTS.md. You edit files; you never
-commit, install packages, or touch anything outside src/pm/, test/pm/ and resources/.")
+commit, install packages, or touch anything outside src/pm/, test/pm/, resources/ and scripts/ (Babashka
+scripts the game runs, started with `bb scripts/<name>.clj`; bb.edn is off limits).")
 
 (defn write-prompt [req secs summary feedback]
   (str "Implement this feature from the game design document:
@@ -294,7 +295,7 @@ at in the running game.
                 _       (log! dir (format "- attempt %d: writer changed %s (%s)" k (pr-str paths) (format "$%.2f" (or cost 0.0))))
                 problem (cond
                           (empty? paths) "You changed no files."
-                          (seq outside) (str "You changed files outside src/pm/, test/pm/ and resources/: " (pr-str outside)
+                          (seq outside) (str "You changed files outside src/pm/, test/pm/, resources/ and scripts/: " (pr-str outside)
                                              ". Undo those changes.")
                           :else (let [{:keys [pass? log]} (gate!)]
                                   (spit (str (fs/path dir (str base "-gate.txt"))) log)
@@ -308,7 +309,7 @@ at in the running game.
             (cond
               (nil? problem) (do (log! dir "- **built** `" id "`: gate passes and every probe matches") :done)
               (< k max-attempts) (do (log! dir "- not yet: " (first (str/split-lines problem))) (recur (inc k) problem))
-              :else (do (stash! (:id req) (remove (set (g/outside-allowed (writer-changes baseline))) (writer-changes baseline)))
+              :else (do (stash! (:id req) (writer-changes baseline))
                         (log! dir "- **parked** `" id "` after " k " attempts; the attempt is in `git stash list`")
                         :parked))))))))
 

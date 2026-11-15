@@ -1,0 +1,7 @@
+The build gate passes: 0 warnings in both `app` and `test` builds, and all 829 tests (6412 assertions) pass, including the new mailbox tests.
+
+FILES: resources/estate.edn (added top-level `:mailbox` placement/look); src/pm/plan.cljs (new `mailbox-item` fn, reads the mailbox's placement from the world and its unread-count text from the inbox); src/pm/scene.cljs (mounts/updates the mailbox's mesh and label alongside the mirrors); test/pm/plan_test.cljs (new tests for `mailbox-item`).
+
+WHAT: A low-poly mailbox (post, box, raised flag) is placed on the estate's east bank. It carries a sign label showing the live unread count from the sample inbox (`me@acme.com`, content/sample-inbox.edn) via the same `mail-counts`/`mail-line` logic the HUD already uses — "mail 9 · 1 flagged" — with no real accounts connected, per GDD §4.6's pretend-connections-first rule. The count is always read from the inbox, never faked into world state.
+
+HOW TO SEE IT: Run the game and look east of the creek (around world coords [5.2, 1.79, -7.3], near the `?pony` creature-spike bank height) — a small gray mailbox on a brown post with a gold flag stands there with a sign overhead reading the unread mail count, matching the "mail N" count already shown in the HUD strip.

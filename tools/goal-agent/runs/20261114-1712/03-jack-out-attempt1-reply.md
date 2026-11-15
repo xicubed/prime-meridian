@@ -1,0 +1,7 @@
+This reads correctly. The implementation is complete.
+
+**FILES:** `src/pm/world.cljs`, `src/pm/plan.cljs`, `src/pm/scene.cljs`, `src/pm/core.cljs`, `resources/estate.edn`, `test/pm/world_test.cljs`, `test/pm/plan_test.cljs`
+
+**WHAT:** A `:jack-out` bridge event now lands on the world via a new `pm.world/apply-event` multimethod: it freezes the estate (`jacked-out?`), resolves its reason to a line shown on the phone booth's sign (`jack-out-text`, reusing the generated Hal lines), and logs itself. While frozen, `pm.core/frame` passes `dt 0` to the clock, the crew walkers, and the creature spike, so nothing moves or advances — a gentle freeze, not a hard stop (camera, labels, and the talk UI keep working). `pm.world/jack-in` clears the freeze and reports what changed (a count of log entries recorded while away, or a plain welcome-back line) through the existing Hal-bubble/HUD mechanism. A new `:phone-booth` fixture in `resources/estate.edn`, rendered the same way the mailbox is (`pm.plan/phone-booth-item`, wired into `pm.scene`'s `with-fixtures`), is the "phone booth ringing" — its sign is blank until a jack-out is active.
+
+**HOW TO SEE IT:** Run the game (with or without the kit). Press **`j`**: the phone booth near the mailbox (east bank) shows its ringing reason on its sign, the HUD gains a `jacked out: …` segment, and all walker/clock motion stops. Press **`j`** again to jack back in — the sign clears, motion resumes, and Hal's bubble/HUD line reports what changed while you were out.

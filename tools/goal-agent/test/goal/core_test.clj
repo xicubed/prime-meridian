@@ -59,8 +59,8 @@
     (is (true? (g/all-met? reqs (assoc done :d {:status :missing}))) "deferred doesn't count")))
 
 (deftest the-writer-stays-in-its-lane
-  (is (= [] (g/outside-allowed ["src/pm/day.cljs" "test/pm/day_test.cljs" "resources/estate.edn"])))
-  (is (= ["package.json" ".crew/gate.sh"] (g/outside-allowed ["src/pm/a.cljs" "package.json" ".crew/gate.sh"]))))
+  (is (= [] (g/outside-allowed ["src/pm/day.cljs" "test/pm/day_test.cljs" "resources/estate.edn" "scripts/events_bridge.clj"])))
+  (is (= ["package.json" ".crew/gate.sh" "bb.edn"] (g/outside-allowed ["src/pm/a.cljs" "package.json" ".crew/gate.sh" "bb.edn"]))))
 
 (deftest requirement-shape
   (is (g/valid-requirement? {:id :x :title "t" :milestone "2026-11-09" :evidence [{:path "src/" :re "a"}]}))
