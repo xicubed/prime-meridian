@@ -142,3 +142,23 @@ restated the coordinates now read them from `estate.edn`.
 Hand change before accepting run 3: the game answered every incoming question with "on it" in the
 twin's name, a made-up reply to what the GDD says is the player's question to answer; removed, the
 game only counts what arrives.
+
+**Run 4** (`runs/20261114-1851/`, `--max 3 --only blueprint-ghost,blueprint-approve-reject,world-changes-on-approve`,
+about $5): the Director narrowed the goals to the blueprint chain (`--only` now takes a list; the
+scorer still ordered the three by their dependencies), and the agent stopped with "every requirement
+is met". `pm.blueprint`: blueprints are data in `estate.edn`; a pending one is drawn as a translucent
+wireframe ghost with its one-line summary on a sign; clicking it approves it (it goes solid, live,
+no reload); one whose parts can't become real geometry is refused and the estate stays as it was.
+
+Hand changes before accepting run 4:
+- Reject was the browser's `contextmenu` event, which macOS fires when the right button goes down,
+  so starting a camera pan over a ghost would have rejected it. Now it's a right-button click
+  (press and release in place).
+- A refused approval did nothing visible (a console warning only). Its sign now says why, and every
+  ghost's sign says how to act on it; both wordings are data (`:blueprint-text` in `estate.edn`).
+  Tests added.
+- The bench had been placed under the tree canopy and the lamp post 30 cm above the grass, near a
+  walker's route; both moved to probed open ground.
+
+Checked live with scripted clicks: the bench goes solid; the lamp post stays a ghost and its sign reads
+"that one won't build, so the estate stays as it was".
