@@ -198,9 +198,12 @@
       (doseq [[k status] now
               :when (not= status (get prev k))]
         (case status
-          :approved (do (when-let [^js g (t/by-name root (pr-str k))]
+          :approved (when-let [^js g (t/by-name root (pr-str k))]
+                      (t/unghost! g)
+                      ;; a built lamp lights like the kit's own lamps
+                      (t/light-glows! g (:kit-lights @!mounted)))
+          :real     (do (when-let [^js g (t/by-name root (pr-str k))]
                           (t/unghost! g)
-                          ;; a built lamp lights like the kit's own lamps
                           (t/light-glows! g (:kit-lights @!mounted)))
                         (when-let [sprite (get labels k)] (t/set-visible! sprite false)))
           :rejected (do (when-let [^js g (t/by-name root (pr-str k))] (t/remove! root g))

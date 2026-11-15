@@ -353,10 +353,17 @@
     (is (= W0 (o/apply-play W0 "garbage")))
     (is (nil? (o/play-of WH W0)))))
 
-(deftest builds-last-between-sessions
-  (let [w0    {:blueprints [{:id :bench :status :pending} {:id :lamp :status :pending} {:id :sign :status :pending}]}
-        built (-> w0 (assoc-in [:blueprints 0 :status] :approved) (assoc-in [:blueprints 1 :status] :rejected))
-        saved (o/play-of built {})]
-    (is (= {:bench :approved :lamp :rejected} (:blueprints saved)) "pending ones aren't saved")
-    (is (= [:approved :rejected :pending] (mapv :status (:blueprints (o/apply-play w0 saved)))))
-    (is (= w0 (o/apply-play w0 {:blueprints {:bench :exploded :gone :approved}})) "only real statuses, only known ids")))
+(deftest trial-builds-are-not-saved
+  (let [built {:blueprints [{:id :bench :status :approved}]}]
+    (is (nil? (o/play-of built {})) "a build is a trial until it's made real")))
+
+(deftest sample-or-real-per-object
+  (let [w {:mirrors {:flora {:name "Flora" :chores [{:id :feed}] :state {:source :hal :stock 30}}
+                     :juniper {:name "Juniper" :chores [{:id :hay}] :state {:source :sample}}
+                     :rock {:state {}}}}]
+    (is (= [{:id :flora :name "Flora" :can-real? true :real? true}
+            {:id :juniper :name "Juniper" :can-real? false :real? false}]
+           (o/source-rows w #{} #{:flora})))
+    (is (false? (:real? (first (o/source-rows w #{:flora} #{:flora})))) "pinned to SAMPLE")
+    (is (= {:as-of 1 :mirrors {}} (o/without-mirrors {:as-of 1 :mirrors {:flora {}}} #{:flora})))
+    (is (= {:stock 37} (get-in (o/to-sample w {:mirrors {:flora {:state {:stock 37}}}} :flora) [:mirrors :flora :state])))))

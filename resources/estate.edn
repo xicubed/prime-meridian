@@ -21,6 +21,10 @@
  ;; The scenery kit's own night lights, as a built lamp's bulb (:glow) finds
  ;; and follows them: its warm lamps' colour and its cottage lantern's mesh.
  ;; A built lamp shines as bright as theirs, so it lights up at dusk with them.
+ ;; SAMPLE or REAL, per object (ⓘ panel): what the twin says when a REAL
+ ;; mirror's chore can't be recorded, since a real thing mustn't change only on screen.
+ :real-text {:no-bridge    "That one's real: start the bridge (bb crew-bridge) to record it."
+             :not-recorded "Couldn't record that for real"}
  :kit-lights {:lamp-color "#ffd28a" :lantern-mesh "SM_Hiroshi_Cottage_Lantern"}
  ;; The juice meter (GDD §2.1, §4.4, §4.8): each AI login's usage window,
  ;; as the tokens the bridge has seen (:tokens-used) against the plan's
@@ -141,8 +145,11 @@
  ;; on approval, no matter what the player does to it. Demo mode until real
  ;; agents propose these: a bench by the mailbox, east bank, clear of Un
  ;; Architecte's route; a lamp post with a generation-gone-wrong shape.
- :blueprint-text {:hint   "click to build · right-click to dismiss"                ; shown on every pending ghost's sign
-                  :failed "that one won't build, so the estate stays as it was"}  ; after a refused approval
+ :blueprint-text {:hint      "click to build · right-click to dismiss"                ; shown on every pending ghost's sign
+                  :trial     "trial · click to make it real · right-click to undo"    ; a build is a trial: gone on reload
+                  :real      "Made real. It stays."                                   ; twin's caption once it's recorded
+                  :no-bridge "Start the bridge (bb crew-bridge) to make it real."     ; no bridge, nothing real changes
+                  :failed    "that one won't build, so the estate stays as it was"}  ; after a refused approval
  :blueprints [{:id :bench-by-mailbox :at [4.4 0.86 -4.6] :yaw 0   ; open ground north of the booth, probed 0.86 m (Hal)
                :summary "proposed: a bench by the mailbox"
                :look {:parts

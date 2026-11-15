@@ -90,9 +90,9 @@
 (defn play-of
   "What the player did in the game to mirrors the twin doesn't keep
    (sample ones, e.g. a pet fed with a key): their state wherever it
-   differs from the sample `estate`, so a reload doesn't undo it; plus every
-   blueprint the player built or dismissed (:blueprints {id status}). nil
-   when nothing differs."
+   differs from the sample `estate`, so a reload doesn't undo it. Builds
+   aren't saved here: a build is a trial until it's made real (state/builds.edn
+   through the bridge). nil when nothing differs."
   [world estate]
   (let [ms (for [[id m] (:mirrors world)
                  :when (not= :hal (get-in m [:state :source]))
@@ -100,12 +100,7 @@
                        s0 (dissoc (get-in estate [:mirrors id :state]) :source)]
                  :when (not= s s0)]
              [id {:state s}])]
-    (let [built (into {} (for [bp (:blueprints world)
-                               :when (contains? #{:approved :rejected} (:status bp))]
-                           [(:id bp) (:status bp)]))]
-      (cond-> nil
-        (seq ms)    (assoc :mirrors (into {} ms))
-        (seq built) (assoc :blueprints built)))))
+    (when (seq ms) {:mirrors (into {} ms)})))
 
 (defn apply-play
   "Lay what `play-of` saved back over a freshly loaded world: same field
@@ -123,18 +118,7 @@
                   (update-in w [:mirrors id :state] merge
                              (into {} (filter (fn [[k v]] (accept? m k v)) (:state entry))))
                   w)))
-            world (:mirrors play)))
-        ;; what the player built or dismissed stays built or dismissed (GDD
-        ;; §2.1): only :approved/:rejected, only for blueprints still in the data
-        (update :blueprints
-                (fn [bps]
-                  (let [saved (when (map? (:blueprints play)) (:blueprints play))]
-                    (if (seq saved)
-                      (mapv (fn [bp]
-                              (let [s (get saved (:id bp))]
-                                (if (contains? #{:approved :rejected} s) (assoc bp :status s) bp)))
-                            bps)
-                      bps)))))))
+            world (:mirrors play))))))
 
 (defn source-tag
   ([source] (source-tag source nil nil))
@@ -191,3 +175,35 @@
            (str/join " · "
              (map (fn [[id b]] (str (name id) " " b))
                   (sort-by (comp name key) badges)))))))
+
+;; --------------------------------------------------- SAMPLE or REAL, per object --
+;; GDD §4.6: every connection has a pretend version and the swap to real is in
+;; place. The player can pin any mirror to SAMPLE (testing, a demo); the rest
+;; follow the twin's file when it has them.
+
+(defn without-mirrors
+  "The twin's file (or its cache) minus the mirrors pinned to SAMPLE."
+  [file ids]
+  (if (and (map? file) (map? (:mirrors file)) (seq ids))
+    (update file :mirrors #(apply dissoc % ids))
+    file))
+
+(defn to-sample
+  "Mirror `id` back on its sample state from `estate` (it was showing the
+   twin's real one)."
+  [world estate id]
+  (if-let [s (get-in estate [:mirrors id :state])]
+    (assoc-in world [:mirrors id :state] s)
+    world))
+
+(defn source-rows
+  "One row per mirror with chores, for the SAMPLE/REAL switch: {:id :name
+   :real? :can-real?}. REAL needs the twin's file to have that mirror
+   (`twin-has`) and it not pinned to SAMPLE (`sample-only`)."
+  [world sample-only twin-has]
+  (vec (for [[id m] (sort-by key (:mirrors world))
+             :when (seq (:chores m))]
+         {:id id :name (or (:name m) (name id))
+          :can-real? (contains? twin-has id)
+          :real? (and (contains? twin-has id) (not (contains? sample-only id)))})))
+

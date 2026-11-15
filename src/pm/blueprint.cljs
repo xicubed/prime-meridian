@@ -10,7 +10,7 @@
 
 (def statuses
   "Every status a blueprint can be in."
-  #{:pending :approved :rejected})
+  #{:pending :approved :real :rejected})
 
 (defn- valid-at? [at]
   (and (vector? at) (= 3 (count at)) (every? number? at)))
@@ -78,18 +78,49 @@
    approval was refused. The wording is data (`:blueprint-text` in
    estate.edn); without it, just the summary."
   [world bp]
-  (let [{:keys [hint failed]} (:blueprint-text world)
-        tail (if (:failed? bp) failed hint)]
+  (let [{:keys [hint failed trial]} (:blueprint-text world)
+        tail (cond (:failed? bp) failed
+                   (= :approved (:status bp)) trial
+                   :else hint)]
     (if (and (string? tail) (not (str/blank? tail)))
       (str (:summary bp) " · " tail)
       (:summary bp))))
 
+(defn make-real
+  "A trial build made real (GDD §2.1, §4.6): recorded in the private
+   real-builds file, it's in the estate every session and can't be
+   dismissed. Only a built (:approved) or already-real blueprint; no-op
+   otherwise."
+  [world id]
+  (let [bp (first (filter #(= id (:id %)) (all world)))]
+    (if (contains? #{:approved :real} (:status bp))
+      (set-status world id :real)
+      world)))
+
+(defn apply-real-builds
+  "The real-builds file (`{:real [id ...]}`, state/builds.edn) laid over a
+   freshly loaded world: those blueprints are :real, whatever they were."
+  [world builds]
+  (let [ids (set (when (map? builds) (filter keyword? (:real builds))))]
+    (if (empty? ids)
+      world
+      (update world :blueprints
+              (fn [bps] (mapv #(if (contains? ids (:id %)) (assoc % :status :real) %) (or bps [])))))))
+
+(defn status
+  "The status of blueprint `id` in `world`, or nil."
+  [world id]
+  (:status (first (filter #(= id (:id %)) (all world)))))
+
 (defn reject-blueprint
   "Rejecting a blueprint (GDD §2.1, §4.8): it vanishes -- drops out of
    `ghost-plan`, and `pm.scene` removes its mesh, so it never becomes
-   real. No-op when `id` isn't a current blueprint's."
+   real. A pending ghost or a trial build; a real one stays (no-op), as
+   does an `id` that isn't a current blueprint's."
   [world id]
-  (set-status world id :rejected))
+  (if (contains? #{:pending :approved} (status world id))
+    (set-status world id :rejected)
+    world))
 
 (def max-part-dim
   "Metres. Any part dimension past this reads as a generation gone wrong,
@@ -117,21 +148,24 @@
                   (not (every? valid-part-strict? parts))))))
 
 (defn built-plan
-  "Scene items for every approved blueprint, drawn solid from the start (a
-   build saved from an earlier session, pm.overlay/apply-play): same shape
-   as `ghost-plan`'s items, no ghost, no sign."
+  "Scene items for every built blueprint, drawn solid: a trial build
+   (:approved) with a sign saying how to make it real, a real one
+   (state/builds.edn, loaded every session) with none. Same shape as
+   `ghost-plan`'s items, no ghost."
   [world]
   (vec
-    (for [bp (all world) :when (= :approved (:status bp))]
+    (for [bp (all world) :when (contains? #{:approved :real} (:status bp))]
       (let [{:keys [id at yaw look]} bp
             [x y z] at
             parts (p/look-parts look nil)
             top   (p/parts-top parts)]
-        {:key    [:blueprint id]
-         :at     at
-         :yaw    (if (number? yaw) yaw 0)
-         :parts  parts
-         :center [x (+ y (/ top 2)) z]}))))
+        (cond-> {:key    [:blueprint id]
+                 :at     at
+                 :yaw    (if (number? yaw) yaw 0)
+                 :parts  parts
+                 :center [x (+ y (/ top 2)) z]}
+          (= :approved (:status bp))
+          (assoc :label :sign :label-at [x (+ y top p/label-lift) z] :text (sign-text world bp)))))))
 
 (defn ghost-plan
   "Scene items for every pending blueprint, shaped like `pm.plan/scene-plan`

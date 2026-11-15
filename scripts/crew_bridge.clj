@@ -41,6 +41,8 @@
 (def herdr (or (System/getenv "HERDR") "herdr"))
 (def bridge-file "state/bridge.edn")
 (def hold-file "state/hold.edn")
+(def builds-file "state/builds.edn")       ; builds made real (pm.bridge/add-real-build)
+(def mirrors-file "state/mirrors.edn")     ; the twin's real mirror state
 (def crew-log-file "state/crew-log.edn")
 (def log-file "crew/bridge.log")
 (def crew-json-file ".crew/crew.json")
@@ -78,6 +80,30 @@
       (spit tmp (pr-str data))
       (.renameTo tmp f))
     (catch Exception _ false)))
+
+(defn- read-edn [path]
+  (try (edn/read-string (slurp path)) (catch Exception _ nil)))
+
+(defn- estate []
+  (read-edn "resources/estate.edn"))
+
+(defn- make-real!
+  "A /real request (GDD §4.6): record a build, or a REAL mirror's new state,
+   in the private state files the game reads. Returns {:ok :reason}."
+  [v]
+  (let [now (System/currentTimeMillis)
+        e   (estate)]
+    (case (:action v)
+      :real-build
+      (if-let [b (b/add-real-build (read-edn builds-file) (:id v) (set (map :id (:blueprints e))) now)]
+        (if (write-edn! builds-file b) {:ok true :reason "made real"} {:ok false :reason "not saved"})
+        {:ok false :reason "unknown build"})
+      :real-mirror
+      (let [m      (first (filter #(= (:mirror v) (:id %)) (:mirrors e)))   ; estate.edn: a vector of mirrors
+            fields (set (keys (:state m)))]
+        (if-let [f (b/merge-real-mirror (read-edn mirrors-file) (:mirror v) (:state v) fields now)]
+          (if (write-edn! mirrors-file f) {:ok true :reason "recorded"} {:ok false :reason "not saved"})
+          {:ok false :reason "unknown mirror or fields"})))))
 
 (defn- crew-json []
   (try (json/parse-string (slurp crew-json-file) true) (catch Exception _ nil)))
@@ -247,6 +273,12 @@
                 (let [r (b/reply v origin)]
                   (log! (member-from-uri (:uri req)) (get body "action") (:status r) (:reason v))
                   {:status (:status r) :headers (:headers r) :body (json/generate-string (:body r))})
+                (if (contains? #{:real-build :real-mirror} (:action v))
+                  (let [r (make-real! v)]
+                    (log! nil (:action v) (if (:ok r) 200 409) (:reason r))
+                    {:status (if (:ok r) 200 409)
+                     :headers (merge {"Content-Type" "application/json"} (b/cors-headers origin))
+                     :body (json/generate-string {"ok" (:ok r) "reason" (:reason r)})})
                 (if (= :hold (:action v))
                   (if (write-edn! hold-file (cl/hold-edn (:on v) (System/currentTimeMillis)))
                     (let [result (if (:on v) "on" "off")]
@@ -270,7 +302,7 @@
                         (log! (:member v) (:action v) (:status r) reason)
                         (when (and (:ok ran) (contains? #{:allow :deny} (:action v)))
                           (append-crew-log! (:member v) (if (= :allow (:action v)) :allowed :declined) (:prompt live)))
-                        {:status (:status r) :headers (:headers r) :body (json/generate-string (:body r))})))))))))))))
+                        {:status (:status r) :headers (:headers r) :body (json/generate-string (:body r))}))))))))))))))
 
 (defn -main [& _]
   (let [token (random-token)]

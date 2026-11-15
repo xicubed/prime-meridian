@@ -172,6 +172,19 @@
   [bridge]
   (str "ws://127.0.0.1:" (:port bridge) "/events?token=" (:token bridge)))
 
+(defn real-url [bridge]
+  (str "http://127.0.0.1:" (:port bridge) "/real"))
+
+(defn real-build-body [bridge id]
+  {"token" (:token bridge) "action" "build" "id" (name id)})
+
+(defn real-mirror-body
+  "A REAL mirror's new state for the bridge to write to the twin's file
+   (GDD §4.6): numbers and times only, never :source."
+  [bridge mirror state]
+  {"token" (:token bridge) "action" "mirror" "mirror" (name mirror)
+   "state" (into {} (keep (fn [[k v]] (when (and (not= k :source) (or (nil? v) (number? v))) [(name k) v]))) state)})
+
 (defn hold-body [bridge on?]
   {"token" (:token bridge) "action" "hold" "on" (boolean on?)})
 

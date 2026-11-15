@@ -113,10 +113,22 @@
     (is (= [:bench] (mapv :id (bp/pending w))) "still a ghost"))
   (is (nil? (:hal (bp/refuse {:blueprints [B1]} :bench 1000))) "no wording, no caption"))
 
-(deftest t23-built-plan-draws-approved-solid
-  (let [w {:blueprints [(assoc B1 :status :approved) (assoc B2 :id :x :status :pending)]}
-        [item & more] (bp/built-plan w)]
+(deftest t23-built-plan-trial-and-real
+  (let [w {:blueprint-text {:trial "trial"}
+           :blueprints [(assoc B1 :status :approved) (assoc B2 :id :x :status :pending)
+                        (assoc B1 :id :y :status :real)]}
+        [trial real & more] (bp/built-plan w)]
     (is (nil? more))
-    (is (= [:blueprint :bench] (:key item)))
-    (is (nil? (:ghost? item)))
-    (is (nil? (:label item)))))
+    (is (= [:blueprint :bench] (:key trial)))
+    (is (nil? (:ghost? trial)))
+    (is (= "proposed: a bench · trial" (:text trial)) "a trial says how to make it real")
+    (is (nil? (:label real)) "a real build has no sign")))
+
+(deftest t24-trial-real-and-immutable
+  (let [w  {:blueprints [B1]}
+        w1 (bp/approve-blueprint w :bench)]
+    (is (= w (bp/make-real w :bench)) "a ghost can't skip straight to real")
+    (is (= :real (bp/status (bp/make-real w1 :bench) :bench)))
+    (is (= :rejected (bp/status (bp/reject-blueprint w1 :bench) :bench)) "a trial can be undone")
+    (is (= :real (bp/status (bp/reject-blueprint (bp/make-real w1 :bench) :bench) :bench)) "a real one can't")
+    (is (= :real (bp/status (bp/apply-real-builds w {:real [:bench :nope]}) :bench)) "the real-builds file wins")))

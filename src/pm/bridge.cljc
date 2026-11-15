@@ -14,6 +14,8 @@
 (def wait-ms 5000)
 (def hold-uri "/hold")
 (def events-uri "/events")
+(def real-uri "/real")      ; make something real: a build that stays, a real chore (GDD §4.6)
+(def ^:private real-id-re #"[a-z0-9][a-z0-9-]{0,40}")
 
 (def ^:private name-re #"[a-z][a-z0-9_-]{0,31}")
 (def ^:private uri-re #"^/crew/([a-z][a-z0-9_-]{0,31})$")
@@ -99,7 +101,7 @@
       (not= method "POST")
       {:ok false :status 405 :reason "method not allowed"}
 
-      (not (or (and (string? uri) (re-matches uri-re uri)) (= uri hold-uri)))
+      (not (or (and (string? uri) (re-matches uri-re uri)) (= uri hold-uri) (= uri real-uri)))
       {:ok false :status 404 :reason "not found"}
 
       (not (map? body))
@@ -116,6 +118,22 @@
         (not= (get body "action") "hold") {:ok false :status 400 :reason "bad action"}
         (not (boolean? (get body "on"))) {:ok false :status 400 :reason "bad on"}
         :else {:ok true :action :hold :on (get body "on")})
+
+      (= uri real-uri)
+      (let [action (get body "action")
+            id     (get body (if (= action "mirror") "mirror" "id"))
+            state  (get body "state")]
+        (cond
+          (not (contains? #{"build" "mirror"} action)) {:ok false :status 400 :reason "bad action"}
+          (not (and (string? id) (re-matches real-id-re id))) {:ok false :status 400 :reason "bad id"}
+          (= action "build") {:ok true :action :real-build :id (keyword id)}
+          (not (and (map? state) (seq state)
+                    (every? (fn [[k v]] (and (string? k) (re-matches real-id-re k)
+                                             (or (nil? v) (and (number? v) #?(:clj (Double/isFinite (double v)) :cljs (js/isFinite v))))))
+                            state)))
+          {:ok false :status 400 :reason "bad state"}
+          :else {:ok true :action :real-mirror :mirror (keyword id)
+                 :state (into {} (map (fn [[k v]] [(keyword k) v])) state)}))
 
       :else
       (let [member (keyword (second (re-matches uri-re uri)))]
@@ -155,6 +173,28 @@
       (not (token= token (:token ctx))) {:ok false :status 401 :reason "bad token"}
       (not= origin allowed-origin) {:ok false :status 403 :reason "bad origin"}
       :else {:ok true})))
+
+(defn add-real-build
+  "The real-builds file (state/builds.edn) with `id` made real at `now`
+   (GDD §2.1, §4.6): a build recorded here is in the estate every session
+   and can't be dismissed. `known` is the set of blueprint ids in the
+   estate's data: anything else is refused (nil)."
+  [builds id known now]
+  (when (contains? known id)
+    {:as-of now :real (vec (sort (distinct (conj (vec (:real builds)) id))))}))
+
+(defn merge-real-mirror
+  "The twin's mirror file (state/mirrors.edn) with mirror's `state` written
+   in at `now`, as when the player does a chore on a REAL mirror in the game
+   (GDD §4.6): only fields that mirror already has in the estate's data
+   (`fields`, never :source), so the game can't invent state. nil when
+   nothing is allowed."
+  [file mirror state fields now]
+  (let [ok (into {} (filter (fn [[k _]] (and (contains? fields k) (not= k :source)))) state)]
+    (when (seq ok)
+      (-> (or file {})
+          (assoc :as-of now)
+          (update-in [:mirrors mirror :state] merge ok)))))
 
 (defn answer-prompt
   "What the bridge types into a crew member's pane when the player answers

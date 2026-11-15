@@ -318,3 +318,26 @@
     (set! (.-onclick btn) (fn [_] (on-drop))))
   (when-let [^js box (el "brain-ui")]
     (.removeAttribute box "hidden")))
+
+(defn render-sources!
+  "The SAMPLE/REAL switch in the ⓘ panel (GDD §4.6): one button per mirror
+   from `rows` (pm.overlay/source-rows); a click calls (on-toggle id). A
+   mirror with no real data behind it stays SAMPLE and says so."
+  [rows on-toggle]
+  (when-let [^js admin (el "admin")]
+    (let [^js box (or (el "sources")
+                      (let [^js d (js/document.createElement "div")]
+                        (set! (.-id d) "sources")
+                        (set! (.. d -style -cssText) "padding:6px 12px;font:14px system-ui,sans-serif;display:flex;gap:6px;flex-wrap:wrap;align-items:center")
+                        (.appendChild admin d)
+                        d))]
+      (set! (.-innerHTML box) "")
+      (doseq [{:keys [id name real? can-real?]} rows]
+        (let [^js b (js/document.createElement "button")]
+          (set! (.-textContent b) (str name ": " (if real? "REAL" "SAMPLE") (when-not can-real? " (no real data)")))
+          (set! (.-disabled b) (not can-real?))
+          (set! (.-title b) (if real? "Real: changes go to the twin's file through the bridge. Click for SAMPLE."
+                                "Sample: changes stay in this browser. Click for REAL."))
+          (.addEventListener b "click" (fn [^js e] (.stopPropagation e) (on-toggle id)))
+          (.appendChild box b))))))
+

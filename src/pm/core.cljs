@@ -19,6 +19,7 @@
             [pm.events :as events]
             [pm.juice :as juice]
             [pm.sky :as sky]
+            [cljs.reader]
             [pm.jumeaux :as j]
             [pm.kit :as kit]
             [pm.motion :as m]
@@ -46,6 +47,14 @@
 
 (defonce ^:private !state-poll (atom {:timer nil :busy? false}))
 
+(def sources-key "pm.sources.v1")
+(defonce ^:private !sample-only   ; mirrors the player pinned to SAMPLE (GDD §4.6)
+  (atom (or (try (let [v (cljs.reader/read-string (or (.getItem js/localStorage sources-key) "#{}"))]
+                   (when (set? v) v))
+                 (catch :default _ nil))
+            #{})))
+(defonce ^:private !twin-has (atom #{}))   ; mirrors the twin's file has real state for
+
 (defn- fetch-state! []
   (when-not (:busy? @!state-poll)
     (swap! !state-poll assoc :busy? true)
@@ -53,17 +62,29 @@
         (.then (fn [^js resp] (if (.-ok resp) (.text resp) nil)))
         (.then (fn [text]
                  (when-let [f (overlay/parse-file text)]
+                   (reset! !twin-has (set (keys (:mirrors f))))
                    (let [before (:state-as-of @!world)]
-                     (swap! !world overlay/apply-file f)
+                     (swap! !world overlay/apply-file (overlay/without-mirrors f @!sample-only))
                      (when (not= before (:state-as-of @!world))
                        (js/console.info "Prime Meridian: state from your twin as of" (:state-as-of @!world)))))))
         (.catch (fn [_]))
         (.finally (fn [] (swap! !state-poll assoc :busy? false))))))
 
+(def builds-url "/state/builds.edn")   ; builds made real (the bridge writes it)
+
+(defn- fetch-builds! []
+  (-> (js/fetch (str builds-url "?t=" (js/Date.now)) #js {:cache "no-store"})
+      (.then (fn [^js resp] (if (.-ok resp) (.text resp) nil)))
+      (.then (fn [text]
+               (when-let [b (overlay/parse-file text)]
+                 (swap! !world bp/apply-real-builds b))))
+      (.catch (fn [_]))))
+
 (defn- start-state-poll! []
   (when (nil? (:timer @!state-poll))
     (fetch-state!)
-    (swap! !state-poll assoc :timer (js/setInterval fetch-state! state-poll-ms))))
+    (fetch-builds!)
+    (swap! !state-poll assoc :timer (js/setInterval (fn [] (fetch-state!) (fetch-builds!)) state-poll-ms))))
 
 (def crew-url "/state/crew.edn")
 (def crew-poll-ms 2000)
@@ -213,7 +234,7 @@
   (let [text (read-cache)]
     (reset! !cache-text text)
     (when-let [c (overlay/parse-file text)]
-      (swap! !world overlay/apply-cache c))))
+      (swap! !world overlay/apply-cache (overlay/without-mirrors c @!sample-only)))))
 
 (def play-key "pm.play.v1")
 (defonce ^:private !play-text (atom nil))
@@ -226,8 +247,7 @@
       (swap! !world overlay/apply-play p))))
 
 (defn- on-play-change! [_ _ old new]
-  (when-not (and (identical? (:mirrors old) (:mirrors new))
-                 (identical? (:blueprints old) (:blueprints new)))
+  (when-not (identical? (:mirrors old) (:mirrors new))
     (let [text (pr-str (overlay/play-of new sample-estate))]
       (when (not= text @!play-text)
         (reset! !play-text text)
@@ -241,6 +261,28 @@
         (when (not= text @!cache-text)
           (reset! !cache-text text)
           (write-cache! text))))))
+
+(defn- toggle-source!
+  "Flip mirror `id` between SAMPLE and REAL (GDD §4.6). To SAMPLE: back on
+   its sample state (plus anything played in this browser). To REAL: the
+   twin's file again, re-read now."
+  [id]
+  (if (contains? @!sample-only id)
+    (do (swap! !sample-only disj id)
+        (swap! !world dissoc :state-as-of)
+        (fetch-state!))
+    (do (swap! !sample-only conj id)
+        (swap! !world #(-> % (overlay/to-sample sample-estate id)
+                           (overlay/apply-play (overlay/parse-file @!play-text))))))
+  (try (.setItem js/localStorage sources-key (pr-str @!sample-only)) (catch :default _ nil)))
+
+(defonce ^:private !source-rows (atom nil))
+
+(defn- sources-tick! []
+  (let [rows (overlay/source-rows @!world @!sample-only @!twin-has)]
+    (when (not= rows @!source-rows)
+      (reset! !source-rows rows)
+      (ui/render-sources! rows toggle-source!))))
 
 (def talk-key "pm.talk.v1")
 (defonce ^:private !talk-text (atom nil))
@@ -549,6 +591,7 @@
           off         (tz-offset-min)]
       (swap! !world closing/tick closing-now off)
       (sky-tick! closing-now off)
+      (sources-tick!)
       (ui/set-stay-late! (closing/asking-to-stay? @!world) (:stay-late-ask @!world)))
     ;; The juice meter's warning (GDD §2.1, §4.4, §4.8): the twin says a
     ;; one-line warning the first time a login's usage estimate crosses
@@ -626,6 +669,70 @@
       (when-let [ev (first (filter #(= :jack-out (:event %)) sample-events))]
         (swap! !world world/apply-event ev now)))))
 
+(declare apply-approved!)
+
+(defn- say!
+  "The twin says `text` in the caption (and voice, if on)."
+  [event text]
+  (when (and (string? text) (seq text))
+    (let [now (js/Date.now)]
+      (swap! !world assoc :hal {:event event :text text :until (+ now content/hal-ms)}))))
+
+(defn- post-real!
+  "POSTs `body` to the bridge's /real (GDD §4.6); calls (done ok? reason)."
+  [body done]
+  (if-let [b (:bridge @!world)]
+    (-> (js/fetch (crew/real-url b)
+                  #js {:method "POST" :headers #js {"Content-Type" "application/json"}
+                       :body (js/JSON.stringify (clj->js (body b)))})
+        (.then (fn [^js resp] (-> (.json resp) (.then (fn [^js j] (done (.-ok resp) (.-reason j)))))))
+        (.catch (fn [_] (done false "bridge off"))))
+    (done false "bridge off")))
+
+(defn- make-real!
+  "Click a trial build: record it as real through the bridge (GDD §2.1,
+   §4.6), so it's in the estate every session and can't be dismissed."
+  [id]
+  (let [words (:blueprint-text @!world)]
+    (if-not (bridge-on?)
+      (say! :blueprint-real (:no-bridge words))
+      (post-real! #(crew/real-build-body % id)
+                  (fn [ok? reason]
+                    (if ok?
+                      (do (swap! !world bp/make-real id)
+                          (say! :blueprint-real (:real words)))
+                      (say! :blueprint-real (str (:no-bridge words) " (" reason ")"))))))))
+
+(defn- real-mirror? [m]
+  (= :hal (get-in @!world [:mirrors m :state :source])))
+
+(defn- chore-click!
+  "A chore clicked in the world. On a SAMPLE mirror it stays in this
+   browser; on a REAL one it's recorded in the twin's file through the
+   bridge (GDD §4.6), or, with no bridge, doesn't happen and the twin says
+   why (a real thing must not change only on screen)."
+  [m]
+  (let [before @!world]
+    (swap! !world chores/click content/hal-lines m (js/Date.now) (tz-offset-min))
+    (let [s0 (get-in before [:mirrors m :state])
+          s1 (get-in @!world [:mirrors m :state])]
+      (when (and (real-mirror? m) (not= s0 s1))
+        (if (bridge-on?)
+          (post-real! #(crew/real-mirror-body % m s1)
+                      (fn [ok? reason]
+                        (when-not ok? (say! :real-chore (str (get-in before [:real-text :not-recorded]) " (" reason ")")))))
+          (do (reset! !world before)
+              (say! :real-chore (get-in before [:real-text :no-bridge]))))))))
+
+(defn- on-blueprint-click!
+  "A pending ghost builds (a trial); a trial build is made real; a real one
+   stays as it is."
+  [id]
+  (case (bp/status @!world id)
+    :pending  (apply-approved! id)
+    :approved (make-real! id)
+    nil))
+
 (defn- blueprint-id-of [k]
   (when (and (vector? k) (= :blueprint (first k))) (second k)))
 
@@ -697,11 +804,10 @@
               (let [{m :mirror k :key a :agent} (pick-at e)]
                 (cond
                   (= k pick/booth-key) (toggle-jack-out!)
-                  (blueprint-id-of k) (apply-approved! (blueprint-id-of k))
+                  (blueprint-id-of k) (on-blueprint-click! (blueprint-id-of k))
                   (some? a) (open-agent-talk! a)
                   (pick/clickable? @!world m)
-                  (do (swap! !world chores/click content/hal-lines m (js/Date.now) (tz-offset-min))
-                      (js/console.log (pr-str (peek (:log @!world)))))))))))
+                  (chore-click! m)))))))
       #js {:capture true :passive true})
     ;; Reject = a right-button *click* on a ghost (press and release in
     ;; place, like pm.pick/click?), not the contextmenu event: on macOS that
