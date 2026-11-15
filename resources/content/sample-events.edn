@@ -1,0 +1,19 @@
+;; Sample bridge events (GDD §3.1): the four shapes, each with its
+;; :source, plus one deliberately sourceless agent-event to show the
+;; game refusing it. Demo-mode data only; the real bridge (later) speaks
+;; these as JSON over the websocket, validated by pm.events.
+[{:type :agent-event :agent "w-3" :kind :question
+  :text "Rocks: round or jagged?"
+  :source {:agent "w-3" :session "a1b2c3" :machine "workshop-1"}}
+
+ {:type :answer :agent "w-3" :text "jagged"
+  :source {:agent "twin" :session "a1b2c3" :machine "laptop"}}
+
+ {:event :chore-done :mirror :flora :chore :feed :via :sms
+  :source {:agent "flora-mirror" :session "s9f0" :machine "pi-1"}}
+
+ {:event :jack-out :reason :appointment :who :household :text "Game at 6"
+  :source {:agent "twin" :session "a1b2c3" :machine "laptop"}}
+
+ ;; refused: a real-looking question with no :source at all.
+ {:type :agent-event :agent "w-3" :kind :question :text "Still there?"}]

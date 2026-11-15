@@ -14,6 +14,7 @@
             [pm.crew-log :as cl]
             [pm.camera :as camera]
             [pm.creature-spike :as creature-spike]
+            [pm.events :as events]
             [pm.jumeaux :as j]
             [pm.kit :as kit]
             [pm.motion :as m]
@@ -23,9 +24,16 @@
             [pm.talk :as talk]
             [pm.ui :as ui]
             [pm.world :as world]
+            [shadow.resource :as rc]
             [clojure.string]))
 
 (defonce !world (atom (merge {:t 0 :spin 0.6} (world/load-estate world/estate-edn))))
+
+;; Demo-mode sample of the four bridge events (GDD §3.1, §4.8): the four
+;; shapes plus one refused for having no :source. Shown on the HUD so the
+;; schema's validation is something you can see, until the real bridge
+;; sends events like these over the websocket.
+(def ^:private sample-events (events/parse (rc/inline "content/sample-events.edn")))
 
 (defonce !gfx (atom nil)) ; {:renderer :scene :camera :cube}
 
@@ -254,6 +262,11 @@
       (when-let [s (bricks/hud-segment)] (str " · " s))
       (when-let [s (creature-spike/hud-segment)] (str " · " s))
       (when-let [s (crew/hud-text (:crew w) (mapv :agent (m/walkers w)) now)] (str " · " s))
+      (when-let [s (events/hud-segment sample-events)] (str " · " s))
+      ;; Demo mode (GDD §4.6, §4.8, §2.8): zero accounts means every
+      ;; connection runs on its pretend version, each wearing a visible
+      ;; sample badge on the HUD until a real one is swapped in.
+      (when-let [s (overlay/demo-line w (crew/bridge-on? (:bridge w) now))] (str " · " s))
       (when-let [p @!probe] (str " · " p))
       (when-let [h (kit/handle)]
         (when-let [b (brook/status h)] (str " · " b))))))
