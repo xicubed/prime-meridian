@@ -225,6 +225,14 @@
   (when-let [^js hint (el "hold-hint")]
     (set! (.-textContent hint) (or (:hint sw) ""))))
 
+(defn focus-say-input!
+  "Focuses the roster's say… input for member (the speech bubble from
+   clicking that agent's avatar). No-op if the row isn't rendered."
+  [member]
+  (when-let [^js root (el "crew-roster")]
+    (when-let [^js inp (.querySelector root (str "input[data-member=\"" (name member) "\"]"))]
+      (.focus inp))))
+
 (defn set-panel-open! [open?]
   (when-let [^js panel (el "talk-panel")]
     (if open?

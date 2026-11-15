@@ -332,3 +332,17 @@
 (deftest t28-no-chore-keys
   (is (= (:hud W) {:mirrors [:flora]}))
   (is (= (contains? (:hud W) :keys) false)))
+
+(deftest t29-pick-agent
+  (let [walkers [{:id :un-automate-monde :agent :un-automate-monde}
+                 {:id :le-testeur :agent :le-testeur}
+                 {:id :ghost}]]
+    (is (= (pk/pick-agent walkers [["[:flora :body]/1" "[:flora :body]"]
+                                    ["mesh" "pm-walkers/le-testeur" "pm-walkers"]])
+           :le-testeur))
+    (is (= (pk/pick-agent walkers [["pm-walkers/un-automate-monde"]]) :un-automate-monde))
+    (is (= (pk/pick-agent walkers [["pm-walkers/ghost"]]) nil))
+    (is (= (pk/pick-agent walkers [["pm-walkers/nobody"]]) nil))
+    (is (= (pk/pick-agent walkers [["Water"]]) nil))
+    (is (= (pk/pick-agent walkers []) nil))
+    (is (= (pk/pick-agent walkers nil) nil))))

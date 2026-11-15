@@ -1,7 +1,9 @@
 (ns pm.pick
   "Pure pointer-picking helpers: turn a click/drag and a raycast hit list
-   into a mirror id. No DOM, no three.js. Never names a mirror."
-  (:require [cljs.reader :as reader]))
+   into a mirror id or a crew agent. No DOM, no three.js. Never names a
+   mirror."
+  (:require [cljs.reader :as reader]
+            [clojure.string :as str]))
 
 (def click-max-px 6)
 (def click-max-ms 400)
@@ -52,3 +54,26 @@
 (defn clickable? [world mirror-id]
   (let [m (get-in world [:mirrors mirror-id])]
     (boolean (and m (seq (:chores m))))))
+
+(def ^:private walker-name-prefix
+  "The prefix src/pm/bricks.cljs gives each walker's anchor group, e.g.
+   \"pm-walkers/le-testeur\"."
+  "pm-walkers/")
+
+(defn- walker-id-of-name [s]
+  (when (string? s)
+    (when (str/starts-with? s walker-name-prefix)
+      (let [id (subs s (count walker-name-prefix))]
+        (when (seq id) (keyword id))))))
+
+(defn pick-agent
+  "The crew agent id (GDD §2.1 Talk) for the nearest hit that belongs to a
+   walker, looked up through `walkers` (pm.motion/walkers) for that
+   walker's :agent. Nil when no hit belongs to a walker, or the walker
+   names no agent."
+  [walkers hits]
+  (let [id->agent (into {} (map (fn [w] [(:id w) (:agent w)]) walkers))]
+    (some (fn [chain]
+            (some (fn [n] (when-let [id (walker-id-of-name n)] (get id->agent id)))
+                  chain))
+          hits)))

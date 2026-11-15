@@ -4,6 +4,14 @@
 ;; Writes state/bridge.edn {:port :token :as-of}, rewritten every 5 s, deleted on
 ;; shutdown. Only the game at http://localhost:8080, with that token, can reach it.
 ;;
+;; The same server also speaks the bridge's websocket (GDD §4.1, §4.7, §3.1) at /events:
+;; the four events -- agent-event, answer, chore-done, jack-out -- as JSON in both
+;; directions. A connection is only upgraded for the game's own origin and the current
+;; pairing token (carried in the query string, since a handshake has no body); anything
+;; else gets a plain refusal and no upgrade. Demo mode (no real agents yet): on open it
+;; sends the shipped sample events (resources/content/sample-events.edn) as JSON, and
+;; acks whatever well-formed event the game sends back.
+;;
 ;;   bb crew-bridge
 ;;
 ;; The bridge decides: it re-reads the member's live status and screen at request time and
@@ -14,9 +22,11 @@
 (require '[org.httpkit.server :as http]
          '[babashka.process :as p]
          '[cheshire.core :as json]
+         '[clojure.edn :as edn]
          '[clojure.java.io :as io]
          '[clojure.string :as str]
          '[pm.bridge :as b]
+         '[pm.events :as events]
          '[pm.prompt :as pr]
          '[pm.crew-log :as cl])
 
@@ -127,11 +137,64 @@
 (defn- member-from-uri [uri]
   (second (re-matches #"^/crew/([a-z][a-z0-9_-]{0,31})$" (or uri ""))))
 
+(defn- query-params
+  "A websocket handshake carries its token in the query string, not a JSON
+   body; a tiny decoder since babashka has no ring-codec."
+  [qs]
+  (into {}
+        (keep (fn [kv]
+                (when (seq kv)
+                  (let [[k v] (str/split kv #"=" 2)]
+                    (when (seq k)
+                      [k (try (java.net.URLDecoder/decode (or v "") "UTF-8")
+                              (catch Exception _ (or v "")))])))))
+        (str/split (or qs "") #"&")))
+
+(defn- sample-ws-events
+  "Demo mode (GDD §4.8): until a real agent connects, the shipped sample
+   events are what the bridge sends the game on open, so the websocket
+   transport is something you can see working even with zero accounts."
+  []
+  (try (events/valid-events (edn/read-string (slurp "resources/content/sample-events.edn")))
+       (catch Exception _ [])))
+
+(defn- handle-ws
+  "The events websocket (GDD §4.1, §4.7): accepted only for the game's own
+   origin and the current pairing token; anything else is a plain refused
+   response, never an upgrade."
+  [token req]
+  (let [origin (get-in req [:headers "origin"])
+        qtoken (get (query-params (:query-string req)) "token")
+        v      (b/validate-ws {:uri (:uri req) :origin origin :token qtoken} {:token token})]
+    (if-not (:ok v)
+      (do (log! nil :ws (:status v) (:reason v))
+          {:status (:status v) :headers (merge {"Content-Type" "text/plain"} (b/cors-headers origin))
+           :body (:reason v)})
+      (http/as-channel req
+        {:on-open
+         (fn [ch]
+           (log! nil :ws 101 "open")
+           (doseq [ev (sample-ws-events)]
+             (http/send! ch (json/generate-string (events/event->json ev)))))
+         :on-receive
+         (fn [ch msg]
+           (let [m  (try (json/parse-string msg) (catch Exception _ nil))
+                 ev (events/json->event m)]
+             (if (events/valid-event? ev)
+               (do (log! nil :ws 200 (str "recv " (name (events/event-kind ev))))
+                   (http/send! ch (json/generate-string {"ok" true})))
+               (do (log! nil :ws 400 "bad event")
+                   (http/send! ch (json/generate-string {"ok" false "reason" "bad event"}))))))
+         :on-close
+         (fn [_ch _status] (log! nil :ws 0 "closed"))}))))
+
 (defn- handle [token req]
-  (locking req-lock
-    (let [origin (get-in req [:headers "origin"])
-          method (str/upper-case (name (:request-method req)))]
-      (if (= method "OPTIONS")
+  (if (= (:uri req) b/events-uri)
+    (handle-ws token req)
+    (locking req-lock
+      (let [origin (get-in req [:headers "origin"])
+            method (str/upper-case (name (:request-method req)))]
+        (if (= method "OPTIONS")
         (let [r (b/preflight origin)]
           (log! nil nil (:status r) "preflight")
           {:status (:status r) :headers (:headers r) :body (or (:body r) "")})
@@ -171,7 +234,7 @@
                         (log! (:member v) (:action v) (:status r) reason)
                         (when (and (:ok ran) (contains? #{:allow :deny} (:action v)))
                           (append-crew-log! (:member v) (if (= :allow (:action v)) :allowed :declined) (:prompt live)))
-                        {:status (:status r) :headers (:headers r) :body (json/generate-string (:body r))}))))))))))))
+                        {:status (:status r) :headers (:headers r) :body (json/generate-string (:body r))})))))))))))))
 
 (defn -main [& _]
   (let [token (random-token)]

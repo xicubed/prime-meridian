@@ -88,6 +88,48 @@
 
 (defonce ^:private !bridge-poll (atom {:timer nil :busy? false}))
 
+;; The bridge's events websocket (GDD §4.1, §4.7, §3.1): the four events --
+;; agent-event, answer, chore-done, jack-out -- as JSON, both ways, over
+;; ws://127.0.0.1:<port>/events. Only reached once bridge.edn says a bb
+;; crew-bridge is live; closed and reopened whenever its token changes.
+(defonce !ws (atom {:socket nil :status :closed :url nil :sent 0 :received 0}))
+
+(defn- ws-close! []
+  (when-let [^js sock (:socket @!ws)]
+    (set! (.-onopen sock) nil)
+    (set! (.-onclose sock) nil)
+    (set! (.-onerror sock) nil)
+    (set! (.-onmessage sock) nil)
+    (.close sock))
+  (swap! !ws assoc :socket nil :status :closed :url nil))
+
+(defn- ws-send! [ev]
+  (when-let [^js sock (:socket @!ws)]
+    (when-let [j (and (= 1 (.-readyState sock)) (events/event->json ev))]
+      (.send sock (js/JSON.stringify (clj->js j)))
+      (swap! !ws update :sent inc))))
+
+(defn- ws-on-message [^js e]
+  (when-let [m (try (js->clj (js/JSON.parse (.-data e))) (catch :default _ nil))]
+    (when-let [ev (events/json->event m)]
+      (when (events/valid-event? ev)
+        ;; Counted only: a question is the player's to answer (GDD §2.1,
+        ;; §3.1), so nothing here replies on their behalf. ws-send! is for
+        ;; the answer the player gives (ask-player, next).
+        (swap! !ws update :received inc)))))
+
+(defn- connect-ws! [bridge]
+  (let [url (crew/events-ws-url bridge)]
+    (when (not= url (:url @!ws))
+      (ws-close!)
+      (let [^js sock (js/WebSocket. url)]
+        (swap! !ws assoc :socket sock :status :connecting :url url)
+        (set! (.-onopen sock) (fn [_] (swap! !ws assoc :status :open)))
+        (set! (.-onclose sock)
+              (fn [_] (when (identical? sock (:socket @!ws)) (swap! !ws assoc :socket nil :status :closed))))
+        (set! (.-onerror sock) (fn [_] (swap! !ws assoc :status :error)))
+        (set! (.-onmessage sock) ws-on-message)))))
+
 (defn- fetch-bridge! []
   (when-not (:busy? @!bridge-poll)
     (swap! !bridge-poll assoc :busy? true)
@@ -95,10 +137,13 @@
         (.then (fn [^js resp] (if (.-ok resp) (.text resp) nil)))
         (.then (fn [text]
                  (if (nil? text)
-                   (swap! !world assoc :bridge nil)
+                   (do (swap! !world assoc :bridge nil) (ws-close!))
                    (let [b (crew/parse-bridge text)]
                      (when (not= b (:bridge @!world))
-                       (swap! !world assoc :bridge b))))))
+                       (swap! !world assoc :bridge b))
+                     (if (crew/bridge-on? b (js/Date.now))
+                       (connect-ws! b)
+                       (ws-close!))))))
         (.catch (fn [_]))
         (.finally (fn [] (swap! !bridge-poll assoc :busy? false))))))
 
@@ -248,6 +293,10 @@
 (defonce !probe (atom nil)) ; ?probe=x,z;x,z → ground heights in the HUD
 (defonce !mode (atom "loading")) ; "estate" (kit) or "scaffold"
 
+(defn- ws-hud-segment []
+  (let [{:keys [status sent received]} @!ws]
+    (str "ws " (name status) " " received "/" sent)))
+
 (defn- hud-mirrors-suffix []
   (let [w   @!world
         now (js/Date.now)]
@@ -263,6 +312,7 @@
       (when-let [s (creature-spike/hud-segment)] (str " · " s))
       (when-let [s (crew/hud-text (:crew w) (mapv :agent (m/walkers w)) now)] (str " · " s))
       (when-let [s (events/hud-segment sample-events)] (str " · " s))
+      (str " · " (ws-hud-segment))
       (when-let [s (world/jack-out-text w)] (str " · jacked out: " s))
       ;; Demo mode (GDD §4.6, §4.8, §2.8): zero accounts means every
       ;; connection runs on its pretend version, each wearing a visible
@@ -351,6 +401,19 @@
 (defn- on-expand [member]
   (swap! !talk-ui update :expanded
          (fn [s] (let [s (or s #{})] (if (contains? s member) (disj s member) (conj s member))))))
+
+(defn- open-agent-talk!
+  "Click an agent to talk (GDD §2.1, §4.8): opens the talk panel on that
+   agent's row in the crew roster, with its say… input ready to type into —
+   the speech bubble. The world (render loop, other walkers) keeps running;
+   nothing here blocks on the bridge."
+  [member]
+  (when (keyword? member)
+    (when-not (:open? (:talk @!world))
+      (swap! !world update :talk talk/open-panel)
+      (ui/set-panel-open! true))
+    (swap! !talk-ui update :expanded (fn [s] (conj (or s #{}) member)))
+    (js/setTimeout #(ui/focus-say-input! member) 0)))
 
 (defn- on-hold-toggle! [checked?]
   (if-let [b (:bridge @!world)]
@@ -517,7 +580,8 @@
                         (when xy
                           (let [hits (t/pick-names (scene/mounted-root) (.-camera h) xy)]
                             {:mirror (pick/pick-mirror (scene/current-plan) hits)
-                             :key    (pick/pick-key hits)}))))]
+                             :key    (pick/pick-key hits)
+                             :agent  (pick/pick-agent (m/walkers @!world) hits)}))))]
     (.addEventListener canvas "pointerdown"
       (fn [^js e]
         (when (and (.-isPrimary e) (zero? (.-button e)))
@@ -529,9 +593,10 @@
           (reset! !press nil)
           (let [up {:x (.-clientX e) :y (.-clientY e) :t (.-timeStamp e)}]
             (when (pick/click? down up)
-              (let [{m :mirror k :key} (pick-at e)]
+              (let [{m :mirror k :key a :agent} (pick-at e)]
                 (cond
                   (= k pick/booth-key) (toggle-jack-out!)
+                  (some? a) (open-agent-talk! a)
                   (pick/clickable? @!world m)
                   (do (swap! !world chores/click content/hal-lines m (js/Date.now) (tz-offset-min))
                       (js/console.log (pr-str (peek (:log @!world)))))))))))
@@ -542,8 +607,8 @@
           (let [now (js/Date.now)]
             (when (>= (- now @!last-hover) 50)
               (reset! !last-hover now)
-              (let [{m :mirror k :key} (pick-at e)]
-                (if (or (= k pick/booth-key) (pick/clickable? @!world m))
+              (let [{m :mirror k :key a :agent} (pick-at e)]
+                (if (or (= k pick/booth-key) (some? a) (pick/clickable? @!world m))
                   (do
                     (when (nil? @!cursor) (reset! !cursor (.. canvas -style -cursor)))
                     (set! (.. canvas -style -cursor) "pointer"))

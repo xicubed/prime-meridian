@@ -1,7 +1,9 @@
 (ns pm.events
   "The four events that carry the bridge in both directions (GDD §3.1,
    §4.8, §4.2): agent-event, answer, chore-done, jack-out, written down as
-   data and validated. Portable (bb + cljs); pure: no atoms, no js/Date.
+   data and validated, plus `event->json`/`json->event` for carrying them
+   as JSON over the bridge's websocket (GDD §4.1, §4.7). Portable (bb +
+   cljs); pure: no atoms, no js/Date.
 
    Every event must carry its :source (GDD §3.1: 'every event carries its
    source: agent, session, machine'); a malformed event, or one with no
@@ -105,6 +107,54 @@
    malformed entries mixed in)."
   [events]
   (filterv valid-event? (filter map? (or events []))))
+
+(defn- source->json [s]
+  (into {} (map (fn [[k v]] [(name k) v])) s))
+
+(defn- json->source [m]
+  (when (map? m)
+    (into {} (keep (fn [[k v]] (when (and (string? k) (string? v)) [(keyword k) v]))) m)))
+
+(defn event->json
+  "A valid event (one of the four shapes, GDD §3.1) as a plain
+   string-keyed map, ready for a JSON encoder (cheshire on the bb side,
+   js/JSON.stringify on the game side); nil for anything that doesn't
+   validate, so a malformed event is never sent over the wire."
+  [e]
+  (when (valid-event? e)
+    (case (event-kind e)
+      :agent-event {"type" "agent-event" "agent" (:agent e) "kind" (name (:kind e))
+                    "text" (:text e) "source" (source->json (:source e))}
+      :answer      {"type" "answer" "agent" (:agent e) "text" (:text e)
+                    "source" (source->json (:source e))}
+      :chore-done  {"event" "chore-done" "mirror" (name (:mirror e)) "chore" (name (:chore e))
+                    "via" (name (:via e)) "source" (source->json (:source e))}
+      :jack-out    (cond-> {"event" "jack-out" "reason" (name (:reason e)) "who" (name (:who e))
+                            "source" (source->json (:source e))}
+                     (some? (:text e)) (assoc "text" (:text e))))))
+
+(defn json->event
+  "The reverse of `event->json`: a plain string-keyed map, as parsed from
+   JSON text (cheshire's `parse-string` or `js->clj` over `JSON.parse`,
+   neither keywordizing), back into one of the four event shapes; nil for
+   anything that isn't a map or doesn't name one of the four. The result
+   still goes through `valid-event?` before anything trusts it -- this
+   function alone never lets a bad event through."
+  [m]
+  (when (map? m)
+    (let [ty (get m "type") ev (get m "event")
+          kw (fn [v] (when (string? v) (keyword v)))]
+      (cond
+        (= ty "agent-event") {:type :agent-event :agent (get m "agent") :kind (kw (get m "kind"))
+                              :text (get m "text") :source (json->source (get m "source"))}
+        (= ty "answer")      {:type :answer :agent (get m "agent") :text (get m "text")
+                              :source (json->source (get m "source"))}
+        (= ev "chore-done")  {:event :chore-done :mirror (kw (get m "mirror")) :chore (kw (get m "chore"))
+                              :via (kw (get m "via")) :source (json->source (get m "source"))}
+        (= ev "jack-out")    (cond-> {:event :jack-out :reason (kw (get m "reason")) :who (kw (get m "who"))
+                                      :source (json->source (get m "source"))}
+                               (some? (get m "text")) (assoc :text (get m "text")))
+        :else nil))))
 
 (defn hud-segment
   "A short count for the HUD, e.g. \"events 4/5 ok\"; nil when there's

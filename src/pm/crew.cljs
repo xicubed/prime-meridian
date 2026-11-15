@@ -121,6 +121,13 @@
 (defn hold-url [bridge]
   (str "http://127.0.0.1:" (:port bridge) "/hold"))
 
+(defn events-ws-url
+  "The bridge's events websocket (GDD §4.1, §4.7): same host and port as
+   the HTTP bridge, its own pairing token riding in the query string since
+   a websocket handshake carries no body."
+  [bridge]
+  (str "ws://127.0.0.1:" (:port bridge) "/events?token=" (:token bridge)))
+
 (defn hold-body [bridge on?]
   {"token" (:token bridge) "action" "hold" "on" (boolean on?)})
 

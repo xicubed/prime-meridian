@@ -372,6 +372,7 @@
   (is (= "T le-testeur say 200 sent" (b/log-line "T" :le-testeur :say 200 "sent")))
   (is (= "T ? ? 404 not found" (b/log-line "T" "../etc" "rm -rf" 404 "not found")))
   (is (= "T - - 405 method not allowed" (b/log-line "T" nil nil 405 "method not allowed")))
+  (is (= "T - ws 101 open" (b/log-line "T" nil :ws 101 "open")))
   (let [L (b/log-line "T" "le-testeur" "deny" 200 "declined")]
     (is (false? (str/includes? L TOK)))))
 
@@ -681,3 +682,23 @@
     (is (= 3 (:n combined)))
     (is (= "Flora" (:who (e combined 2))))
     (is (= "Juniper" (:who (e combined 3))))))
+
+;; pm.bridge / pm.crew: the events websocket's handshake
+
+(deftest t46-events-ws-url
+  (is (= (str "ws://127.0.0.1:8091/events?token=" TOK) (c/events-ws-url B))))
+
+(deftest t47-validate-ws
+  (is (= {:ok true} (b/validate-ws {:uri "/events" :origin OK-ORIGIN :token TOK} {:token TOK})))
+  (is (= {:ok false :status 404 :reason "not found"}
+         (b/validate-ws {:uri "/other" :origin OK-ORIGIN :token TOK} {:token TOK})))
+  (doseq [bad-token [nil "" "bad" (str TOK "0") (subs TOK 0 63) 5]]
+    (is (= {:ok false :status 401 :reason "bad token"}
+           (b/validate-ws {:uri "/events" :origin OK-ORIGIN :token bad-token} {:token TOK}))
+        bad-token))
+  (doseq [origin ["http://evil.example" "https://localhost:8080" "http://localhost:8081" nil]]
+    (is (= {:ok false :status 403 :reason "bad origin"}
+           (b/validate-ws {:uri "/events" :origin origin :token TOK} {:token TOK}))
+        origin))
+  ;; a bad token wins over a bad origin, same order as the HTTP `validate`
+  (is (= 401 (:status (b/validate-ws {:uri "/events" :origin "http://evil.example" :token "bad"} {:token TOK})))))

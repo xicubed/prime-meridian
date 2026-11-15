@@ -13,6 +13,7 @@
 (def actions #{"allow" "deny" "say"})
 (def wait-ms 5000)
 (def hold-uri "/hold")
+(def events-uri "/events")
 
 (def ^:private name-re #"[a-z][a-z0-9_-]{0,31}")
 (def ^:private uri-re #"^/crew/([a-z][a-z0-9_-]{0,31})$")
@@ -141,6 +142,20 @@
                    :prompt-id (if (= action :say) nil pid)
                    :text (:text tr)})))))))))
 
+(defn validate-ws
+  "Whether a websocket handshake to `/events` should be accepted (GDD
+   §4.7: localhost only, the game's own origin, and a one-time pairing
+   token so no other website can reach it). A websocket handshake carries
+   no body, so the token rides in the query string instead of JSON.
+   `req` is {:uri :origin :token}; `ctx` is {:token}."
+  [req ctx]
+  (let [{:keys [uri origin token]} req]
+    (cond
+      (not= uri events-uri) {:ok false :status 404 :reason "not found"}
+      (not (token= token (:token ctx))) {:ok false :status 401 :reason "bad token"}
+      (not= origin allowed-origin) {:ok false :status 403 :reason "bad origin"}
+      :else {:ok true})))
+
 (defn decide [v live]
   (let [{:keys [action prompt-id text]} v
         {:keys [status prompt]} live]
@@ -195,5 +210,5 @@
   (let [m (loggable member)
         a (loggable action)
         m' (cond (nil? member) "-" (and m (re-matches name-re m)) m :else "?")
-        a' (cond (nil? action) "-" (and a (or (contains? actions a) (= a "hold"))) a :else "?")]
+        a' (cond (nil? action) "-" (and a (or (contains? actions a) (contains? #{"hold" "ws"} a))) a :else "?")]
     (str iso " " m' " " a' " " status " " reason)))

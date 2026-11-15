@@ -93,3 +93,21 @@
         parsed (events/parse text)]
     (is (= 5 (count parsed)))
     (is (= 4 (count (events/valid-events parsed))))))
+
+(deftest t12-event-json-round-trip
+  (doseq [e [AGENT-EVENT ANSWER CHORE-DONE JACK-OUT (dissoc JACK-OUT :text)]]
+    (let [j (events/event->json e)]
+      (is (map? j) e)
+      (is (every? string? (keys j)) e)
+      (is (= e (events/json->event j)) e))))
+
+(deftest t13-event-json-refusals
+  (is (nil? (events/event->json (dissoc AGENT-EVENT :source))))
+  (is (nil? (events/event->json {})))
+  (is (nil? (events/event->json nil)))
+  (is (nil? (events/event->json "oops")))
+  (is (nil? (events/json->event "not a map")))
+  (is (nil? (events/json->event nil)))
+  (is (nil? (events/json->event {"type" "mystery"})))
+  (is (false? (events/valid-event?
+                (events/json->event {"type" "agent-event" "agent" "w-3" "kind" "question" "text" "hi"})))))
