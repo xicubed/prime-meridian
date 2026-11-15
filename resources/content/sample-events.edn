@@ -1,12 +1,17 @@
 ;; Sample bridge events (GDD §3.1): the four shapes, each with its
 ;; :source, plus one deliberately sourceless agent-event to show the
 ;; game refusing it. Demo-mode data only; the real bridge (later) speaks
-;; these as JSON over the websocket, validated by pm.events.
-[{:type :agent-event :agent "w-3" :kind :question
+;; these as JSON over the websocket, validated by pm.events. The
+;; agent-event's :agent ("le-critique") names one of the estate's own
+;; walkers (resources/estate.edn), so its ask_player question raises the
+;; "!" over a character actually on screen; bb crew-bridge leaves the
+;; :answer below out of what it sends live (scripts/crew_bridge.clj),
+;; so the player is the one who answers it.
+[{:type :agent-event :agent "le-critique" :kind :question
   :text "Rocks: round or jagged?"
-  :source {:agent "w-3" :session "a1b2c3" :machine "workshop-1"}}
+  :source {:agent "le-critique" :session "a1b2c3" :machine "workshop-1"}}
 
- {:type :answer :agent "w-3" :text "jagged"
+ {:type :answer :agent "le-critique" :text "jagged"
   :source {:agent "twin" :session "a1b2c3" :machine "laptop"}}
 
  {:event :chore-done :mirror :flora :chore :feed :via :sms
@@ -16,4 +21,4 @@
   :source {:agent "twin" :session "a1b2c3" :machine "laptop"}}
 
  ;; refused: a real-looking question with no :source at all.
- {:type :agent-event :agent "w-3" :kind :question :text "Still there?"}]
+ {:type :agent-event :agent "le-critique" :kind :question :text "Still there?"}]

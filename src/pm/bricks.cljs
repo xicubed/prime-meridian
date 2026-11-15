@@ -514,15 +514,20 @@
       (swap! !state update :frame inc))))
 
 (defn set-dots!
-  "No-op before start!. Redraws a walker's label only when its runs change."
-  [crew-state now]
+  "No-op before start!. Redraws a walker's label only when its runs change.
+   `asks-player` (pm.world's map of pending ask_player questions, keyed by
+   agent name string, GDD §3.1) overrides whichever walker it names with
+   the \"!\" instead of its ordinary crew dot."
+  [crew-state asks-player now]
   (when (:started? @!state)
     (let [{:keys [walkers views colors]} @!state
           views' (mapv
                    (fn [w view]
-                     (let [runs (-> (crew/label-runs (crew/dot crew-state (:agent w) now colors)
-                                                       (crew/plate-name crew-state w) now)
-                                (update 0 assoc :scale 1.4))]   ; the dot, bigger than the name
+                     (let [asked? (contains? asks-player (name (:agent w)))
+                           d      (or (crew/ask-dot asked? colors)
+                                      (crew/dot crew-state (:agent w) now colors))
+                           runs   (-> (crew/label-runs d (crew/plate-name crew-state w) now)
+                                  (update 0 assoc :scale 1.4))]   ; the dot, bigger than the name
                        (if (not= runs (:runs view))
                          (do (t/set-label-runs! (:label view) runs)
                              (assoc view :runs runs))

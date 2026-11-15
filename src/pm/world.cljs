@@ -233,14 +233,25 @@
       "The phone booth rings."))
 
 (defmulti apply-event
-  "Applies one bridge event (GDD §3.1) to `world` at `now` (epoch ms).
-   Dispatches on the event's :event key; `:chore-done` already has its own
-   entry point (`chore-done`) so only `:jack-out` is handled here today.
-   Anything unrecognized, or a jack-out that doesn't validate, leaves
-   `world` unchanged but for a log entry."
-  (fn [_world event _now] (:event event)))
+  "Applies one bridge event (GDD §3.1, §4.8) to `world` at `now` (epoch ms).
+   Dispatches on which of the four shapes it is (`pm.events/event-kind`:
+   :agent-event and :answer key off :type, :chore-done and :jack-out off
+   :event). A `:chore-done` from the bridge (a canal click calls
+   `chore-done` directly instead, since it's local and already trusted)
+   must carry a valid :source -- the bridge refuses events from unknown
+   processes -- and its :at is `now`, the moment the event reached the
+   game, not anything the sender claims. Anything unrecognized, or an
+   event of a known shape that doesn't validate, leaves `world` unchanged
+   but for a log entry."
+  (fn [_world event _now] (events/event-kind event)))
 
 (defmethod apply-event :default [world _event _now] world)
+
+(defmethod apply-event :chore-done
+  [world event now]
+  (if (events/valid-chore-done? event)
+    (chore-done world (assoc event :at now))
+    (log-event world event :ignored :reason :invalid)))
 
 (defmethod apply-event :jack-out
   [world event now]
@@ -252,6 +263,36 @@
                             ;; only log entries from here on do.
                             :log-n (count (:log logged))}))
     (log-event world event :ignored :reason :invalid)))
+
+;; ask_player (GDD §3.1, §2.1, §4.8): an agent raises "!" only by calling
+;; this explicit tool, carried over the bridge as an `:agent-event` of
+;; :kind :question; the player's typed reply comes back as an `:answer`.
+;; Both are kept in `:asks-player`, keyed by the agent's name string, so
+;; the scene can show the marker on whichever character it names and
+;; clear it once answered.
+
+(defmethod apply-event :agent-event
+  [world event now]
+  (if (events/valid-agent-event? event)
+    (-> world
+        (assoc-in [:asks-player (:agent event)] {:text (:text event) :since now})
+        (log-event event :asked))
+    (log-event world event :ignored :reason :invalid)))
+
+(defmethod apply-event :answer
+  [world event now]
+  (if (events/valid-answer? event)
+    (-> world
+        (update :asks-player dissoc (:agent event))
+        (log-event event :answered))
+    (log-event world event :ignored :reason :invalid)))
+
+(defn needs-you?
+  "True when `agent` (a string, matching an agent-event's :agent) has a
+   pending ask_player question (GDD §3.1) waiting on the player -- the
+   \"!\" shown over its character."
+  [world agent]
+  (boolean (get-in world [:asks-player agent])))
 
 (defn jacked-out?
   "True while the estate is frozen by a jack-out (GDD §2.3)."

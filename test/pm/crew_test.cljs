@@ -67,12 +67,12 @@
 ;; Colours
 
 (deftest t10-colors-from-estate
-  (is (= {:working 15905076 :blocked 15026253 :done 4630360 :idle 10133670 :unknown 10133670}
+  (is (= {:working 15905076 :blocked 15026253 :done 4630360 :idle 10133670 :unknown 10133670 :needs-you 16098851}
          (c/colors W)))
   (is (= c/default-colors (c/colors {}))))
 
 (deftest t11-colors-validation
-  (is (= {:working 255 :blocked 15026253 :done 4630360 :idle 10133670 :unknown 10133670}
+  (is (= {:working 255 :blocked 15026253 :done 4630360 :idle 10133670 :unknown 10133670 :needs-you 16098851}
          (c/colors {:motion {:status-dots {:working 255 :done -1 :idle "red" :blocked 16777216 :extra 1}}}))))
 
 ;; Dots
@@ -177,3 +177,10 @@
     (is (= {:as-of 9 :agents {}} (keep-good C "{:as-of 9 :agents {}}")))
     (is (= {:glyph "○" :color 10133670 :pulse? false}
            (c/dot (keep-good C "x") :un-automate-monde (+ T0 15001) P)))))
+
+;; ask_player's "!" (GDD §3.1, §2.1)
+
+(deftest t29-ask-dot
+  (is (= {:glyph "!" :color 16098851 :pulse? true} (c/ask-dot true P)))
+  (is (nil? (c/ask-dot false P)))
+  (is (nil? (c/ask-dot nil P))))

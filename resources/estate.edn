@@ -3,6 +3,12 @@
            :twin   {:name "Hal"}}              ; the twin's word follows the player's :sex (:m jumeau, :f jumelle)
  :crew-talk {:surface-after-s 60   ; a prompt the twin hasn't answered after this long goes to the player
              :answer-after-s 5}    ; bb crew-fielder waits this long, then answers a routine prompt
+ ;; Closing time (GDD §2.3, §4.8): a rule the player sets, not a lock the
+ ;; software imposes ("you asked me to send you home"). Last call shows 15
+ ;; minutes earlier; at bedtime the estate goes to night and the twin says
+ ;; goodnight (pm.closing). Declared data, so a night-shift nurse's estate
+ ;; closes at 9am instead -- just a different string here.
+ :bedtime "22:30"
  :connections [:mail :phone :chores :payments]   ; connections with no real version yet (GDD §4.6): demo mode badges each SAMPLE
  :creature-spike {:flag "pony" :kind :horse :seed 1     ; ?pony[=<kind>][&seed=n]: MuJoCo creature spike (pony-spike-v0)
                   :at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4} ; east bank, terrain 1.79 m (Hal probed); yaw in degrees
@@ -105,8 +111,8 @@
               {:id :lamp-post-by-canal :at [3.8 0.63 -5.0] :yaw 0  ; probed 0.63 m (Hal)
                :summary "proposed: a lamp post by the canal"
                :look {:parts [{:shape :box :size [0.3 2.4 0.3] :at [0 1.2 0] :color :tin}            ; the post: drawable and thick enough to click
-                              {:shape :box :size [0.7 0.5 0.7] :at [0 2.65 0] :color :tin}           ; the lamp housing: a big click target
-                              {:shape :pyramid :size [0.3 0.3 0.3] :at [0 2.65 0] :color :gold}]}}]  ; the bulb: no such shape, so approving it is refused
+                              {:shape :cone :size [0.7 0.4 0.7] :at [0 2.75 0] :color :tin}          ; the shade: a big click target
+                              {:shape :sphere :size [0.3 0.3 0.3] :at [0 2.45 0] :color :gold}]}}]   ; the bulb, under the shade
  ;; Display scale (standing rule): creatures and crew are drawn big enough to
  ;; see from the kit's camera views without zooming in, about the size of a
  ;; mid-size rock (~1 m). Real size doesn't matter; proportions do. Author a

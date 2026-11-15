@@ -9,7 +9,10 @@
 (def statuses #{:idle :working :blocked :done :unknown})
 (def stale-ms 15000)
 (def pulse-ms 2000)
-(def default-colors {:working 0xf2b134 :blocked 0xe5484d :done 0x46a758 :idle 0x9aa0a6 :unknown 0x9aa0a6})
+(def default-colors {:working 0xf2b134 :blocked 0xe5484d :done 0x46a758 :idle 0x9aa0a6 :unknown 0x9aa0a6
+                      ;; the ask_player "!" (GDD §3.1, §2.1): amber like :working, never red --
+                      ;; red means :blocked, something gone wrong, not a real question.
+                      :needs-you 0xf5a623})
 
 (def ^:private prompt-id-re #"^[0-9a-f]{40}$")
 (def ^:private prompt-kinds #{:bash :unknown})
@@ -74,6 +77,16 @@
 (defn pulse-alpha [t]
   (let [a (+ 0.4 (* 0.6 (+ 0.5 (* 0.5 (js/Math.cos (/ (* 2 js/Math.PI t) pulse-ms))))))]
     (/ (js/Math.round (* a 10)) 10)))
+
+(defn ask-dot
+  "The \"!\" over an agent with a pending ask_player question (GDD §3.1,
+   §2.1): overrides its ordinary status dot, since a real question --
+   raised only by the agent's explicit `ask_player` tool call -- always
+   means \"!\", whatever Herdr thinks it's doing. nil when nothing's
+   pending, so the caller falls back to the ordinary `dot`."
+  [asked? palette]
+  (when asked?
+    {:glyph "!" :color (:needs-you palette) :pulse? true}))
 
 (defn label-runs [d nm now]
   [{:text (str (:glyph d) " ") :color (:color d) :alpha (if (:pulse? d) (pulse-alpha now) 1)}

@@ -243,7 +243,7 @@
 (def jo-household {:event :jack-out :reason :household :who :household :text "Dinner!" :source src})
 
 (deftest t30-apply-event-unknown-is-a-no-op
-  (is (= W (w/apply-event W fed T0))))
+  (is (= W (w/apply-event W {:event :mystery :mirror :flora} T0))))
 
 (deftest t31-jack-out-freezes-with-its-reason-shown
   (let [W2 (w/apply-event W jo-household T0)]
@@ -282,4 +282,71 @@
 
 (deftest t35-jack-in-is-a-no-op-when-not-jacked-out
   (is (= W (w/jack-in W T0))))
+
+;; chore-done over the bridge (GDD §3.1, §4.8): a canal click calls
+;; `chore-done` directly (it's local, already trusted); a bridge event goes
+;; through `apply-event`, which checks :source and uses `now` -- the
+;; moment it reached the game -- as :at, not anything the sender claims.
+
+(def chore-done-bridge
+  {:event :chore-done :mirror :flora :chore :feed :via :nfc :at 1 :source src})
+
+(deftest t36-apply-event-chore-done-counts-once-per-window
+  (let [W2 (w/apply-event W chore-done-bridge T0)]
+    (is (= 14 (get-in W2 [:mirrors :flora :state :stock])))
+    (is (= T0 (get-in W2 [:mirrors :flora :state :last-fed])))
+    (is (= :counted (:result (last (:log W2)))))
+    (is (= T0 (:at (last (:log W2)))))
+    (let [W3 (w/apply-event W2 (assoc chore-done-bridge :at 2) (+ T0 60000))]
+      (is (= 14 (get-in W3 [:mirrors :flora :state :stock])))
+      (is (= T0 (get-in W3 [:mirrors :flora :state :last-fed])))
+      (is (= :ignored (:result (last (:log W3)))))
+      (is (= :not-due (:reason (last (:log W3))))))))
+
+(deftest t37-apply-event-chore-done-without-a-source-is-ignored
+  (let [bad (dissoc chore-done-bridge :source)
+        W2  (w/apply-event W bad T0)]
+    (is (= (dissoc W :log) (dissoc W2 :log)))
+    (is (= (assoc bad :result :ignored :reason :invalid) (last (:log W2))))))
+
+;; ask_player: agent-event / answer (GDD §3.1, §2.1, §4.8): an agent's
+;; explicit `ask_player` tool call raises the "!" pm.world tracks in
+;; :asks-player; the player's answer clears it.
+
+(def ask-q {:type :agent-event :agent "le-critique" :kind :question
+            :text "Rocks: round or jagged?" :source src})
+(def ask-a {:type :answer :agent "le-critique" :text "jagged" :source src})
+
+(deftest t38-agent-event-question-raises-the-flag
+  (let [W2 (w/apply-event W ask-q T0)]
+    (is (= {:text "Rocks: round or jagged?" :since T0} (get-in W2 [:asks-player "le-critique"])))
+    (is (true? (w/needs-you? W2 "le-critique")))
+    (is (false? (w/needs-you? W2 "someone-else")))
+    (is (false? (w/needs-you? W "le-critique")))
+    (is (= (assoc ask-q :result :asked) (last (:log W2))))))
+
+(deftest t39-answer-clears-the-flag
+  (let [W2 (w/apply-event W ask-q T0)
+        W3 (w/apply-event W2 ask-a (+ T0 1000))]
+    (is (true? (w/needs-you? W2 "le-critique")))
+    (is (false? (w/needs-you? W3 "le-critique")))
+    (is (= (assoc ask-a :result :answered) (last (:log W3))))))
+
+(deftest t40-agent-event-without-a-source-is-ignored
+  (let [bad (dissoc ask-q :source)
+        W2  (w/apply-event W bad T0)]
+    (is (= (dissoc W :log) (dissoc W2 :log)))
+    (is (= (assoc bad :result :ignored :reason :invalid) (last (:log W2))))))
+
+(deftest t41-answer-without-a-source-is-ignored
+  (let [W2  (w/apply-event W ask-q T0)
+        bad (dissoc ask-a :source)
+        W3  (w/apply-event W2 bad (+ T0 1000))]
+    (is (true? (w/needs-you? W3 "le-critique")))
+    (is (= (assoc bad :result :ignored :reason :invalid) (last (:log W3))))))
+
+(deftest t42-an-answer-with-nothing-pending-still-logs-answered
+  (let [W2 (w/apply-event W ask-a T0)]
+    (is (false? (w/needs-you? W2 "le-critique")))
+    (is (= (assoc ask-a :result :answered) (last (:log W2))))))
 

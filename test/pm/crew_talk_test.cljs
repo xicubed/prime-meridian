@@ -631,6 +631,18 @@
            (mapv (juxt :status :say?) (tk/crew-roster CR (+ A 15001) true)))))
   (is (= [] (tk/crew-roster nil A true))))
 
+(deftest t43b-roster-asked-opens-say-even-while-working-or-blocked
+  (let [CR (crew A {:le-testeur {:status :working} :un-automate-monde {:status :blocked :prompt P1}})]
+    (is (= [[:le-testeur false] [:un-architecte false] [:un-automate-monde false]]
+           (mapv (juxt :member :say?) (tk/crew-roster CR A true))))
+    (is (= [[:le-testeur true] [:un-architecte false] [:un-automate-monde true]]
+           (mapv (juxt :member :say?) (tk/crew-roster CR A true #{:le-testeur :un-automate-monde}))))
+    (is (= [[:le-testeur false] [:un-architecte false] [:un-automate-monde false]]
+           (mapv (juxt :member :say?) (tk/crew-roster CR A false #{:le-testeur :un-automate-monde})))
+        "asked never opens it when the bridge itself is off")
+    (is (= [[:le-testeur true] [:un-architecte false] [:un-automate-monde false]]
+           (mapv (juxt :member :say?) (tk/crew-roster CR A true [] #{} #{:le-testeur}))))))
+
 (deftest t44-persistence
   (let [D (tk/crew-send T1 1 :deny "  use bb instead ")
         D2 (tk/crew-result D 1 {:result :ok} (+ A 60000))

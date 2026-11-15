@@ -10,6 +10,7 @@
             [pm.bricks :as bricks]
             [pm.brook :as brook]
             [pm.chores :as chores]
+            [pm.closing :as closing]
             [pm.content :as content]
             [pm.crew :as crew]
             [pm.crew-log :as cl]
@@ -114,10 +115,12 @@
   (when-let [m (try (js->clj (js/JSON.parse (.-data e))) (catch :default _ nil))]
     (when-let [ev (events/json->event m)]
       (when (events/valid-event? ev)
-        ;; Counted only: a question is the player's to answer (GDD §2.1,
-        ;; §3.1), so nothing here replies on their behalf. ws-send! is for
-        ;; the answer the player gives (ask-player, next).
-        (swap! !ws update :received inc)))))
+        (swap! !ws update :received inc)
+        ;; world/apply-event lands all four shapes: a chore-done/jack-out
+        ;; changes the estate directly; an agent-event raises the asking
+        ;; agent's "!" (ask_player, GDD §3.1) and an answer clears it --
+        ;; the player's own reply (see on-say) is still theirs to give.
+        (swap! !world world/apply-event ev (js/Date.now))))))
 
 (defn- connect-ws! [bridge]
   (let [url (crew/events-ws-url bridge)]
@@ -392,12 +395,26 @@
     (when (= :sending (:state e))
       (post-crew! (:member e) :deny (:id (:prompt e)) (:note e) n))))
 
-(defn- on-say [member who text]
-  (let [before-n (:n (:talk @!world))]
-    (swap! !world update :talk talk/crew-say member who text (js/Date.now))
-    (let [t (:talk @!world) n (:n t)]
-      (when (> n before-n)
-        (post-crew! member :say nil (:text (talk/entry t n)) n)))))
+(defn- on-say
+  "Typing to a member with a pending ask_player question (GDD §3.1, §2.1,
+   §4.8) answers it: the reply goes out over the bridge's websocket as a
+   real :answer event -- reaching wherever the agent's side of the bridge
+   is -- and clears its \"!\" locally the same way any bridge event
+   would. Everyone else still goes through the Herdr crew-say/bridge POST
+   path."
+  [member who text]
+  (let [agent (name member)]
+    (if (world/needs-you? @!world agent)
+      (when-let [t (not-empty (clojure.string/trim (or text "")))]
+        (let [ev {:type :answer :agent agent :text t
+                  :source {:agent "player" :session "ui" :machine "browser"}}]
+          (ws-send! ev)
+          (swap! !world world/apply-event ev (js/Date.now))))
+      (let [before-n (:n (:talk @!world))]
+        (swap! !world update :talk talk/crew-say member who text (js/Date.now))
+        (let [t (:talk @!world) n (:n t)]
+          (when (> n before-n)
+            (post-crew! member :say nil (:text (talk/entry t n)) n)))))))
 
 (defn- on-expand [member]
   (swap! !talk-ui update :expanded
@@ -471,7 +488,8 @@
                                {:bridge-on? bridge-on :on-allow on-allow :on-deny on-deny :jumeaux jum} gone-fn)
             (swap! !talk-ui assoc :listed (:entries t') :listed-n (:n t') :listed-bridge bridge-on)))
         (swap! !talk-ui assoc :listed nil :listed-n nil :listed-bridge nil)))
-    (let [rows (talk/crew-roster (:crew @!world) now (bridge-on?) (:crew-log @!world) (:expanded @!talk-ui))]
+    (let [asked (set (map keyword (keys (:asks-player @!world))))
+          rows  (talk/crew-roster (:crew @!world) now (bridge-on?) (:crew-log @!world) (:expanded @!talk-ui) asked)]
       (when (not= rows (:roster @!talk-ui))
         (ui/render-roster! rows on-say on-expand offset-of jum)
         (swap! !talk-ui assoc :roster rows)))
@@ -491,8 +509,16 @@
     (when-let [h (kit/handle)] (bricks/tick! h dt'))
     (when (kit/handle) (creature-spike/tick! dt' now))
     (when-let [h (kit/handle)] (camera/save-tick! h now))
-    (bricks/set-dots! (:crew @!world) (js/Date.now))
+    (bricks/set-dots! (:crew @!world) (:asks-player @!world) (js/Date.now))
     (scene/update! @!world (js/Date.now))
+    ;; Closing time (GDD §2.3, §4.8): last call, then goodnight, by the
+    ;; player's own bedtime (declared data, pm.closing). The twin's banner
+    ;; rides the same :hal path as jack-in; going to night is just a visual
+    ;; layer (pm.ui/set-night!) over whatever's rendering -- kit or scaffold.
+    (let [closing-now (js/Date.now)
+          off         (tz-offset-min)]
+      (swap! !world closing/tick closing-now off)
+      (ui/set-night! (closing/closing-time? @!world closing-now off)))
     (talk-tick! (js/Date.now))
     (when (zero? (mod (swap! !frames inc) 30))
       (hud! (str "Prime Meridian · " @!mode " · " @!backend " · frame " @!frames

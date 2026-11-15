@@ -44,6 +44,27 @@
   (when-let [^js cap-el (el "caption")]
     (.remove (.-classList cap-el) "show")))
 
+(defn- night-el
+  "Closing time's night veil (GDD §2.3, §4.8): a dimming overlay over the
+   rendered scene (kit or scaffold alike), created on first use instead of
+   living in public/index.html so the feature stays self-contained in
+   src/pm/. Styled inline so it needs no stylesheet rule either."
+  []
+  (or (el "night")
+      (let [^js nt (js/document.createElement "div")]
+        (set! (.-id nt) "night")
+        (.setAttribute nt "aria-hidden" "true")
+        (set! (.. nt -style -cssText)
+              (str "position:fixed;inset:0;z-index:150;background:#050712;"
+                   "opacity:0;pointer-events:none;mix-blend-mode:multiply;"
+                   "transition:opacity 3s ease;"))
+        (.appendChild js/document.body nt)
+        nt)))
+
+(defn set-night! [on?]
+  (when-let [^js nt (night-el)]
+    (set! (.. nt -style -opacity) (if on? ".75" "0"))))
+
 (defn set-badge! [text alert?]
   (when-let [^js b (el "talk-badge")]
     (set! (.-textContent b) text))

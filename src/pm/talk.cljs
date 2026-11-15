@@ -575,9 +575,14 @@
      nil)))
 
 (defn crew-roster
-  "The 💭 roster strip: every crew member, walker or not. The 5-arity also
-   marks which rows are expanded and attaches each one's recent log."
+  "The 💭 roster strip: every crew member, walker or not. `asked` (a set
+   of member keywords with a pending ask_player question, GDD §3.1, §2.1)
+   opens the say… box for that row even when Herdr's own status wouldn't --
+   a real question always gets an answer. The 5/6-arity also marks which
+   rows are expanded and attaches each one's recent log."
   ([crew-state now bridge-on?]
+   (crew-roster crew-state now bridge-on? #{}))
+  ([crew-state now bridge-on? asked]
    (if (nil? crew-state)
      []
      (let [fresh?  (crew/fresh? crew-state now)
@@ -587,14 +592,16 @@
        (mapv (fn [m]
                (let [st (if (and fresh? (contains? agents m)) (:status (get agents m)) :unknown)]
                  {:member m :who (get titles m (name m)) :status st
-                  :say? (and bridge-on? (contains? #{:idle :done} st))}))
+                  :say? (and bridge-on? (or (contains? #{:idle :done} st) (contains? asked m)))}))
              members))))
   ([crew-state now bridge-on? log expanded]
+   (crew-roster crew-state now bridge-on? log expanded #{}))
+  ([crew-state now bridge-on? log expanded asked]
    (mapv (fn [row]
            (let [expanded? (contains? (or expanded #{}) (:member row))]
              (assoc row :expanded? expanded?
                     :log (if expanded? (cl/for-member log (:member row) roster-log-n) []))))
-         (crew-roster crew-state now bridge-on?))))
+         (crew-roster crew-state now bridge-on? asked))))
 
 (defn gone?
   "True when e belongs to a crew member who's no longer in a fresh

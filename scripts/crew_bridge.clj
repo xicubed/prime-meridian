@@ -8,8 +8,13 @@
 ;; the four events -- agent-event, answer, chore-done, jack-out -- as JSON in both
 ;; directions. A connection is only upgraded for the game's own origin and the current
 ;; pairing token (carried in the query string, since a handshake has no body); anything
-;; else gets a plain refusal and no upgrade. Demo mode (no real agents yet): on open it
-;; sends the shipped sample events (resources/content/sample-events.edn) as JSON, and
+;; else gets a plain refusal and no upgrade. An agent raises the estate's "!" only by
+;; calling its explicit `ask_player` tool, which arrives here as an :agent-event of
+;; :kind :question; the player's typed reply goes back out the same connection as an
+;; :answer event, naming the same agent. Demo mode (no real agents yet): on open it
+;; sends the shipped sample events (resources/content/sample-events.edn) as JSON --
+;; minus the sample :answer, so the ask_player question it carries is left standing
+;; for the player to answer, not pre-answered before anyone can see its "!" -- and
 ;; acks whatever well-formed event the game sends back.
 ;;
 ;;   bb crew-bridge
@@ -153,9 +158,20 @@
 (defn- sample-ws-events
   "Demo mode (GDD §4.8): until a real agent connects, the shipped sample
    events are what the bridge sends the game on open, so the websocket
-   transport is something you can see working even with zero accounts."
+   transport is something you can see working even with zero accounts.
+   Sends only the sample agent-events: the question an agent's `ask_player` tool
+   call raises (GDD §3.1) is left standing -- its \"!\" -- so the player
+   is the one who answers it, not a canned reply that would clear it
+   before anyone could see it."
   []
-  (try (events/valid-events (edn/read-string (slurp "resources/content/sample-events.edn")))
+  (try (->> (edn/read-string (slurp "resources/content/sample-events.edn"))
+            events/valid-events
+            ;; only the questions: the game now acts on every event it gets, and
+            ;; the sample jack-out / chore-done would freeze the estate and mark
+            ;; Flora fed on every page load (the booth and the canal demo those
+            ;; locally); the sample :answer would clear the "!" unseen (Hal)
+            (filter #(= :agent-event (:type %)))
+            vec)
        (catch Exception _ [])))
 
 (defn- handle-ws
