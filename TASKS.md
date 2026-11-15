@@ -30,6 +30,7 @@ Plan of record: [`docs/session-2026-10-17.md`](docs/session-2026-10-17.md) §7. 
 - [x] 2026-11-08 C-12 Round `crew-fielder-v0` (quest `.crew/quests/crew-fielder-v0.md`): the twin's prompt-fielding as a `bb crew-fielder` service (replaces Hal's private driver scripts), `:jumeaux` in `estate.edn`, no "Hal" in code, log keys `:by :twin`/`:player` (crew-up 0.2.4 contract).
 - [x] 2026-11-07 C-8 Tried NVIDIA MotionBricks (round `motion-bricks-v0`: two SOMA mannequins on the creek bank with `?bricks`, one shared model, ~60 fps). Before shipping: host the model pack ourselves (gitignored). Was: Idea: try NVIDIA MotionBricks (`three-motionbricks`, Apache-2.0; weights under NVIDIA's Open Model Agreement) as the reference motion for one KayKit agent behind the motion-controller interface, after the MVP. Humanoid only (nothing for Flora). 190-760 MB model download.
 - [ ] C-5 Submit Assignment 3: repo link to `crew/README.md` + crew-up link.
+- [x] 2026-11-14 A-5 Assignment 5, goal-oriented coding agent (`tools/goal-agent/`, `bb goal-agent`): reads the GDD into 44 requirements, scans, scores, writes with Claude Code, gates, loops; built `pm.events` (the four bridge events) and demo mode's SAMPLE badges. Submit the README link by Nov 15, 8:59 PM PT.
 
 ## Week 2 — World v0 (estate + mock agents)
 > Rewrite these from the re-cut MVP (GDD §4.8) before starting: no XP or tank; add the static "!", the motion-controller interface with kinematic paths, and the four bridge events as mock data.

@@ -1,0 +1,566 @@
+;; Drafted from docs/GDD.md by `bb goal-agent extract` (2026-11-14), then reviewed.
+;; Each entry is one GDD feature; :evidence probes decide whether it exists.
+;; Review (Hal, Nov 14): probes widened from `defn x` to `defn-? x` (the code defines many helpers private).
+[{:demo? true,
+  :milestone "2026-10-26",
+  :evidence [{:path "resources/estate.edn", :re ":lobby\\b"}],
+  :size 1,
+  :title "Lobby (with your kitchen) placed on the estate",
+  :done-when
+  "On load, the estate shows a labelled lobby/kitchen area where agents bring their questions.",
+  :id :estate-lobby,
+  :gdd ["4.8" "2.4"],
+  :deferred? false,
+  :depends []}
+ {:demo? true,
+  :milestone "2026-10-26",
+  :evidence [{:path "resources/estate.edn", :re ":home\\s+:canal"}],
+  :size 1,
+  :title "The canal, Flora's home, placed on the estate",
+  :done-when
+  "The estate shows a canal with a dock and a worm jar, and Flora's mirror is drawn there.",
+  :id :estate-canal,
+  :gdd ["4.8" "2.4" "2.5"],
+  :deferred? false,
+  :depends []}
+ {:demo? true,
+  :milestone "2026-10-26",
+  :evidence
+  [{:path "resources/estate.edn", :re ":mailbox\\b"}
+   {:path "src/pm/content.cljs", :re "defn-? mail-counts"}],
+  :size 2,
+  :title "Mailbox backed by the sample inbox",
+  :done-when
+  "A mailbox stands on the estate and shows the unread count from the sample inbox (me@acme.com) with no accounts connected.",
+  :id :estate-mailbox,
+  :gdd ["4.8" "2.4" "4.6"],
+  :deferred? false,
+  :depends []}
+ {:demo? true,
+  :milestone "2026-10-26",
+  :evidence [{:path "resources/estate.edn", :re ":workshop\\b"}],
+  :size 2,
+  :title "One workshop (a code repo) with desks",
+  :done-when
+  "One labelled workshop with desks stands on the estate, standing for the game's own repo.",
+  :id :estate-workshop,
+  :gdd ["4.8" "2.4"],
+  :deferred? false,
+  :depends []}
+ {:demo? false,
+  :milestone "2026-10-26",
+  :evidence
+  [{:path "src/pm/bricks.cljs", :re "defn-? tick-kinematic!"}
+   {:path "src/pm/bricks.cljs", :re "defn-? fallback!"}
+   {:path "src/pm/motion.cljs", :re "defn-? goal-point"}],
+  :size 2,
+  :title
+  "Motion-controller interface: world says go there, controller moves the body",
+  :done-when
+  "Every walker moves through one controller interface, so a figure can drop from its body to kinematic movement without changing game logic.",
+  :id :motion-controller,
+  :gdd ["4.8" "4.1" "6"],
+  :deferred? false,
+  :depends []}
+ {:demo? true,
+  :milestone "2026-10-26",
+  :evidence
+  [{:path "src/pm/motion.cljs", :re "defn-? walkers"}
+   {:path "test/pm/crew_walkers_test.cljs",
+    :re "deftest t02-routes-and-pauses"}],
+  :size 1,
+  :title "Three mock workers walking scripted paths on sample data",
+  :done-when
+  "With no accounts connected, at least three mock workers walk their scripted routes between desks, pause, and loop.",
+  :id :three-mock-workers,
+  :gdd ["4.8" "4.1" "4.6" "2.1"],
+  :deferred? false,
+  :depends [:motion-controller]}
+ {:demo? true,
+  :milestone "2026-10-26",
+  :evidence
+  [{:path "src/pm/crew.cljs", :re "defn-? label-runs"}
+   {:path "test/pm/crew_test.cljs",
+    :re "deftest t21-label-runs-blocked-pulsing"}],
+  :size 1,
+  :title "Static \"!\" over whoever needs you",
+  :done-when
+  "A worker whose status is needs-you or blocked shows a \"!\" over its head (red when blocked), and other workers show none.",
+  :id :static-needs-you-marker,
+  :gdd ["4.8" "2.1" "4.1"],
+  :deferred? false,
+  :depends [:three-mock-workers]}
+ {:demo? true,
+  :milestone "2026-10-26",
+  :evidence
+  [{:path "src/pm/camera.cljs", :re "defn-? orbit"}
+   {:path "src/pm/camera.cljs", :re "defn-? restore!"}
+   {:path "test/pm/camera_test.cljs", :re "deftest c1-round-trip"}],
+  :size 1,
+  :title "Elevated 3/4 camera with orbit/zoom that survives reload",
+  :done-when
+  "The default view looks over the whole estate from an elevated 3/4 angle, can orbit and zoom, and comes back to the same view after a reload.",
+  :id :camera,
+  :gdd ["4.8" "2.1" "5"],
+  :deferred? false,
+  :depends []}
+ {:demo? true,
+  :milestone "2026-10-26",
+  :evidence
+  [{:path "src/pm/core.cljs", :re "defn-? hud!"}
+   {:path "src/pm/core.cljs", :re "!backend"}],
+  :size 1,
+  :title "Live HUD: frames, sim time, renderer backend",
+  :done-when
+  "The HUD updates every frame with the frame count, sim time, and the renderer backend, including WebGL2 when it falls back.",
+  :id :live-hud,
+  :gdd ["4.8" "4.4" "4.5"],
+  :deferred? false,
+  :depends []}
+ {:demo? true,
+  :milestone "2026-10-26",
+  :evidence [{:path "src/pm/motion.cljs", :re "defn-? walk-to-player"}],
+  :size 3,
+  :title "Walking \"!\": an agent walks to you with its question",
+  :done-when
+  "An agent that needs you leaves its desk and walks to your avatar carrying its \"!\".",
+  :id :walking-needs-you,
+  :gdd ["4.8" "4.1" "2.1"],
+  :deferred? true,
+  :depends [:static-needs-you-marker]}
+ {:demo? true,
+  :milestone "2026-10-26",
+  :evidence
+  [{:path "src/pm/creature_spike.cljs", :re "defn-? start-policy!"}
+   {:path "src/pm/creature.cljc", :re "defn-? mjcf"}],
+  :size 5,
+  :title "Physics motion (active ragdolls, Flora's physical swim)",
+  :done-when
+  "Characters move as simulated physical bodies that can stumble, fall and stand back up.",
+  :id :physical-motion,
+  :gdd ["4.8" "4.1"],
+  :deferred? true,
+  :depends [:motion-controller]}
+ {:demo? true,
+  :milestone "2026-10-26",
+  :evidence
+  [{:path "src/pm/audio.cljs", :re "defn-? start!"}
+   {:path "src/pm/brook.cljs", :re "defn-? play!"}],
+  :size 2,
+  :title "Positional sound (brook and ambient audio)",
+  :done-when
+  "Ambient and positional audio play and get louder as the camera nears their source.",
+  :id :sound,
+  :gdd ["4.8" "4.2"],
+  :deferred? true,
+  :depends []}
+ {:demo? false,
+  :milestone "2026-10-26",
+  :evidence [{:path "src/pm/", :re "(?i)defn-? gmail"}],
+  :size 4,
+  :title "Real Gmail swapped in for the sample mailbox",
+  :done-when
+  "After connecting Gmail, the same mailbox shows the real inbox count.",
+  :id :real-mail-connector,
+  :gdd ["4.8" "4.6"],
+  :deferred? true,
+  :depends [:estate-mailbox]}
+ {:demo? false,
+  :milestone "2026-11-02",
+  :evidence
+  [{:path "src/pm/", :re "\\(ns pm\\.events"}
+   {:path "src/pm/", :re "defn-? valid-event\\?"}],
+  :size 2,
+  :title "The four bridge events written down as data with validation",
+  :done-when
+  "agent-event, answer, chore-done and jack-out are defined in one namespace with their source field, and a malformed or sourceless event is refused.",
+  :id :event-schema,
+  :gdd ["4.8" "3.1" "4.2"],
+  :deferred? false,
+  :depends []}
+ {:demo? false,
+  :milestone "2026-11-02",
+  :evidence
+  [{:path "src/pm/", :re "js/WebSocket\\."}
+   {:path "scripts/", :re "(?i)websocket"}],
+  :size 3,
+  :title "Events as JSON over a localhost websocket",
+  :done-when
+  "The game connects to the bridge's websocket on localhost and sends and receives the four events as JSON, and a connection from another origin or without the pairing token is refused.",
+  :id :websocket-bridge,
+  :gdd ["4.8" "4.1" "3.1" "4.7"],
+  :deferred? false,
+  :depends [:event-schema]}
+ {:demo? true,
+  :milestone "2026-11-02",
+  :evidence
+  [{:path "src/pm/crew.cljs", :re "defn-? dot"}
+   {:path "src/pm/jumeaux.cljc", :re "defn-? twin\\s"}
+   {:path "test/pm/crew_test.cljs",
+    :re "deftest t14-dot-missing-agent-hollow"}],
+  :size 2,
+  :title "Your own agent's real status on its character",
+  :done-when
+  "The twin's character (named from :jumeaux) shows working, idle or blocked to match its live session, and shows greyed out when the status is unknown.",
+  :id :own-agent-status,
+  :gdd ["4.8" "2.1" "3"],
+  :deferred? false,
+  :depends [:three-mock-workers]}
+ {:demo? true,
+  :milestone "2026-11-02",
+  :evidence
+  [{:path "src/pm/world.cljs", :re "defn-? consume"}
+   {:path "test/pm/plan_test.cljs", :re "deftest t09-flora-low"}
+   {:path "src/pm/overlay.cljs", :re "defn-? apply-file"}],
+  :size 1,
+  :title "Flora's worm count on the jar from her state file",
+  :done-when
+  "Flora's jar shows the stock from her state file, drops by one per feeding, and shows \"2 worms left!\" at 2 or fewer.",
+  :id :flora-worm-count,
+  :gdd ["4.8" "2.5" "1"],
+  :deferred? false,
+  :depends [:estate-canal]}
+ {:demo? true,
+  :milestone "2026-11-02",
+  :evidence
+  [{:path "scripts/", :re "ask_player"}
+   {:path "src/pm/", :re "defmethod apply-event :agent-event"}],
+  :size 3,
+  :title
+  "ask_player end to end: a real question raises \"!\" and the answer returns",
+  :done-when
+  "An agent calling the ask_player tool puts a \"!\" over its character, and the player's answer reaches that agent as an answer event.",
+  :id :ask-player,
+  :gdd ["4.8" "3.1" "2.1"],
+  :deferred? false,
+  :depends [:websocket-bridge :static-needs-you-marker]}
+ {:demo? true,
+  :milestone "2026-11-02",
+  :evidence
+  [{:path "src/pm/world.cljs", :re "defn-? chore-done"}
+   {:path "test/pm/world_test.cljs", :re "deftest t12-one-per-window"}
+   {:path "src/pm/", :re "defmethod apply-event :chore-done"}],
+  :size 2,
+  :title "chore-done end to end, one per due window",
+  :done-when
+  "A chore-done for Flora's feed, from a canal click or from the bridge, marks the chore done once per due window, and a second one in the same window changes nothing.",
+  :id :chore-done-event,
+  :gdd ["4.8" "2.1" "3.1"],
+  :deferred? false,
+  :depends [:websocket-bridge :flora-worm-count]}
+ {:demo? true,
+  :milestone "2026-11-02",
+  :evidence
+  [{:path "test/pm/plan_test.cljs", :re "deftest t10-flora-snap"}
+   {:path "src/pm/", :re "defn-? play-snap!"}],
+  :size 3,
+  :title "The snap: worm drops, Flora lunges, bubble pops",
+  :done-when
+  "Marking Flora fed plays the snap on screen: a worm drops, Flora shoots up and snaps, the hungry bubble pops, and the jar shows one fewer.",
+  :id :the-snap,
+  :gdd ["4.8" "2.2"],
+  :deferred? false,
+  :depends [:chore-done-event]}
+ {:demo? true,
+  :milestone "2026-11-02",
+  :evidence
+  [{:path "src/pm/crew.cljs", :re ":stalled"}
+   {:path "test/pm/", :re "deftest \\S*stalled"}],
+  :size 2,
+  :title "Stalled state for an agent that stops reporting",
+  :done-when
+  "An agent that stops reporting past the timeout shows as stalled (a resting pose, not busy and not a red error).",
+  :id :stalled-state,
+  :gdd ["4.8" "3.1" "4.4"],
+  :deferred? false,
+  :depends [:own-agent-status]}
+ {:demo? true,
+  :milestone "2026-11-09",
+  :evidence
+  [{:path "src/pm/pick.cljs", :re "defn-? pick-agent"}
+   {:path "src/pm/talk.cljs", :re "defn-? crew-send"}],
+  :size 3,
+  :title "Click an agent to talk in a speech bubble",
+  :done-when
+  "Clicking an agent opens a speech bubble where you type to it, and its reply streams into the bubble while the world keeps running.",
+  :id :talk-bubble,
+  :gdd ["4.8" "2.1" "4.4"],
+  :deferred? false,
+  :depends [:own-agent-status :websocket-bridge]}
+ {:demo? true,
+  :milestone "2026-11-09",
+  :evidence
+  [{:path "src/pm/", :re "defn-? send-answer!"}
+   {:path "src/pm/talk.cljs", :re "defn-? crew-result"}],
+  :size 2,
+  :title "Answer an agent's \"!\" in-world and it resumes",
+  :done-when
+  "Answering a pending question in the agent's bubble clears its \"!\", and the agent goes back to working.",
+  :id :answer-in-world,
+  :gdd ["4.8" "2.1" "3.1"],
+  :deferred? false,
+  :depends [:talk-bubble :ask-player]}
+ {:demo? true,
+  :milestone "2026-11-09",
+  :evidence
+  [{:path "src/pm/", :re "\\(ns pm\\.blueprint"}
+   {:path "src/pm/three.cljs", :re "defn-? ghost!"}],
+  :size 4,
+  :title "Agent changes appear as a ghosted blueprint",
+  :done-when
+  "An agent-made change shows as a ghosted version in place with a one-line summary before it is real.",
+  :id :blueprint-ghost,
+  :gdd ["4.8" "2.1"],
+  :deferred? false,
+  :depends []}
+ {:demo? true,
+  :milestone "2026-11-09",
+  :evidence
+  [{:path "src/pm/", :re "defn-? approve-blueprint"}
+   {:path "src/pm/", :re "defn-? reject-blueprint"}],
+  :size 3,
+  :title "Approve or reject a blueprint",
+  :done-when
+  "Approving a blueprint makes the change real, and rejecting it makes the ghost vanish.",
+  :id :blueprint-approve-reject,
+  :gdd ["4.8" "2.1"],
+  :deferred? false,
+  :depends [:blueprint-ghost]}
+ {:demo? true,
+  :milestone "2026-11-09",
+  :evidence
+  [{:path "src/pm/", :re "defn-? apply-approved!"}
+   {:path "src/pm/", :re "defn-? revert-to-last-good!"}],
+  :size 4,
+  :title
+  "Approved change hot-reloads into the live world, bad ones revert",
+  :done-when
+  "After approval the estate visibly changes without a page reload, and a change that breaks the build reverts to the last working one.",
+  :id :world-changes-on-approve,
+  :gdd ["4.8" "2.1" "4.5"],
+  :deferred? false,
+  :depends [:blueprint-approve-reject]}
+ {:demo? true,
+  :milestone "2026-11-09",
+  :evidence
+  [{:path "test/pm/content_test.cljs", :re "deftest t21-hal-jack-in"}
+   {:path "src/pm/", :re "defn-? jack-in!"}],
+  :size 2,
+  :title "Jack in: fade up, twin says welcome back, see what changed",
+  :done-when
+  "Opening the game fades the estate up from the dark grid, the twin says \"Welcome back\", and what changed while you were out is listed.",
+  :id :jack-in,
+  :gdd ["4.8" "2.3"],
+  :deferred? false,
+  :depends []}
+ {:demo? true,
+  :milestone "2026-11-09",
+  :evidence
+  [{:path "src/pm/", :re "defmethod apply-event :jack-out"}
+   {:path "resources/estate.edn", :re ":phone-booth\\b"}],
+  :size 3,
+  :title
+  "Jack out: the phone booth rings and the world freezes gently",
+  :done-when
+  "A jack-out event rings the phone booth, freezes the estate gently with its reason shown, and coming back in resumes with what changed.",
+  :id :jack-out,
+  :gdd ["4.8" "2.3" "3.1"],
+  :deferred? false,
+  :depends [:event-schema :jack-in]}
+ {:demo? false,
+  :milestone "2026-11-09",
+  :evidence [{:path "src/pm/", :re "def jack-out-priority"}],
+  :size 2,
+  :title
+  "Only household, creatures, appointments and deadlines pull you out",
+  :done-when
+  "A jack-out from household, a creature, an appointment or a deadline freezes the world, while new mail or a finished task only rings, and someone else's chore never jacks you out.",
+  :id :jack-out-priority,
+  :gdd ["4.8" "2.3" "2.5"],
+  :deferred? false,
+  :depends [:jack-out]}
+ {:demo? true,
+  :milestone "2026-11-09",
+  :evidence
+  [{:path "src/pm/", :re "defn-? closing-time\\?"}
+   {:path "src/pm/", :re "defn-? last-call\\?"}
+   {:path "resources/estate.edn", :re ":bedtime"}],
+  :size 3,
+  :title "Closing time from :bedtime: last call, night, goodnight",
+  :done-when
+  "With :bedtime set (22:30 by default), last call shows 15 minutes earlier, and at bedtime the estate goes to night lighting and the twin says goodnight.",
+  :id :closing-time,
+  :gdd ["4.8" "2.3" "5"],
+  :deferred? false,
+  :depends [:jack-in]}
+ {:demo? true,
+  :milestone "2026-11-09",
+  :evidence [{:path "src/pm/", :re "defn-? stay-late"}],
+  :size 1,
+  :title "Staying past closing is asked once, never silent",
+  :done-when
+  "At closing the twin asks once whether you're staying, and if you stay the estate stays at night with no further prompts.",
+  :id :stay-late,
+  :gdd ["4.8" "2.3"],
+  :deferred? false,
+  :depends [:closing-time]}
+ {:demo? true,
+  :milestone "2026-11-09",
+  :evidence
+  [{:path "src/pm/", :re "\\(ns pm\\.juice"}
+   {:path "src/pm/", :re "defn-? estimate-juice"}],
+  :size 3,
+  :title
+  "Juice meter (estimated usage left and refill time) on the HUD",
+  :done-when
+  "Each AI login shows an estimated share of its usage window left and its refill time on the HUD, computed from tokens the bridge has seen.",
+  :id :juice-meter,
+  :gdd ["4.8" "2.1" "4.4"],
+  :deferred? false,
+  :depends [:live-hud :websocket-bridge]}
+ {:demo? true,
+  :milestone "2026-11-09",
+  :evidence [{:path "src/pm/", :re "defn-? juice-warning"}],
+  :size 1,
+  :title "Twin warns before a usage cap",
+  :done-when
+  "When an estimate crosses 80%, the twin says a one-line warning with the refill time.",
+  :id :juice-warning,
+  :gdd ["4.8" "2.1" "4.4"],
+  :deferred? false,
+  :depends [:juice-meter]}
+ {:demo? false,
+  :milestone "2026-11-09",
+  :evidence [{:path "src/pm/", :re "defn-? night-order"}],
+  :size 4,
+  :title "Night-shift orders put in by closing",
+  :done-when
+  "Before closing you can assign overnight work to frontier or local night-crew desks.",
+  :id :night-shift-orders,
+  :gdd ["4.8" "2.3"],
+  :deferred? true,
+  :depends [:closing-time]}
+ {:demo? true,
+  :milestone "2026-11-09",
+  :evidence [{:path "src/pm/", :re "street-cred"}],
+  :size 4,
+  :title "Street cred: the estate flourishes or overgrows",
+  :done-when
+  "Kept habits and done chores visibly grow the estate, with no number on screen.",
+  :id :street-cred,
+  :gdd ["4.8" "2.6"],
+  :deferred? true,
+  :depends [:chore-done-event]}
+ {:demo? true,
+  :milestone "2026-11-16",
+  :evidence
+  [{:path "src/pm/", :re "defn-? sample-badge"}
+   {:path "src/pm/core.cljs", :re "sample-estate"}],
+  :size 2,
+  :title
+  "Demo mode: every connection on its pretend version, with a sample badge",
+  :done-when
+  "With zero accounts, every connection runs on its pretend version and each sample source wears a visible sample badge.",
+  :id :demo-mode,
+  :gdd ["4.8" "4.6" "2.8"],
+  :deferred? false,
+  :depends []}
+ {:demo? true,
+  :milestone "2026-11-16",
+  :evidence
+  [{:path "src/pm/", :re "\\(ns pm\\.construct"}
+   {:path "src/pm/", :re "defn-? white-room"}],
+  :size 3,
+  :title "Construct beat 1: the white room and the twin's entrance",
+  :done-when
+  "A first-time player lands in a silent white room where the twin steps in and says its original opening line.",
+  :id :construct-white-room,
+  :gdd ["4.8" "2.7"],
+  :deferred? false,
+  :depends [:jack-in]}
+ {:demo? true,
+  :milestone "2026-11-16",
+  :evidence [{:path "src/pm/", :re "defn-? load-program"}],
+  :size 3,
+  :title "Construct beat 2: program rack, your own agent loaded first",
+  :done-when
+  "A rack of programs scrolls past, your own agent loads first as its sample version, and its building drops out of the white sky.",
+  :id :construct-programs,
+  :gdd ["4.8" "2.7" "2.6"],
+  :deferred? false,
+  :depends [:construct-white-room :demo-mode]}
+ {:demo? true,
+  :milestone "2026-11-16",
+  :evidence [{:path "src/pm/", :re "defn-? sparring"}],
+  :size 3,
+  :title "Construct beat 3: sparring match (rounder rock)",
+  :done-when
+  "A sample-badged worker takes \"make that rock rounder\", raises a \"!\", you answer, a blueprint of the rounder rock appears, and approving it changes the rock.",
+  :id :construct-sparring,
+  :gdd ["4.8" "2.7"],
+  :deferred? false,
+  :depends
+  [:construct-programs
+   :ask-player
+   :answer-in-world
+   :blueprint-approve-reject
+   :world-changes-on-approve]}
+ {:demo? true,
+  :milestone "2026-11-16",
+  :evidence [{:path "src/pm/", :re "defn-? jump-program"}],
+  :size 2,
+  :title "Construct beat 4: the jump program (first pretend jack-out)",
+  :done-when
+  "The twin shows the phone booth, it rings with a pretend chore, and you jack out and back in.",
+  :id :construct-jump,
+  :gdd ["4.8" "2.7" "2.3"],
+  :deferred? false,
+  :depends [:construct-sparring :jack-out]}
+ {:demo? true,
+  :milestone "2026-11-16",
+  :evidence [{:path "src/pm/", :re "defn-? free-your-mind"}],
+  :size 2,
+  :title
+  "Construct beat 5: the white room dissolves into your half-barren estate",
+  :done-when
+  "The white room dissolves into the estate, showing only the buildings for the programs you loaded, and the twin steps back.",
+  :id :construct-free-your-mind,
+  :gdd ["4.8" "2.7"],
+  :deferred? false,
+  :depends [:construct-jump]}
+ {:demo? true,
+  :milestone "2026-11-16",
+  :evidence [{:path "test/pm/", :re "deftest \\S*construct"}],
+  :size 2,
+  :title
+  "A new player finishes the first five minutes on sample connections only",
+  :done-when
+  "From a fresh browser profile with no accounts, a player gets from the white room to their estate in about five minutes without leaving the game.",
+  :id :construct-run-through,
+  :gdd ["4.8" "2.7" "4.6"],
+  :deferred? false,
+  :depends [:construct-free-your-mind :demo-mode]}
+ {:demo? false,
+  :milestone "2026-11-16",
+  :evidence [{:path "skills/", :re "(?i)white room"}],
+  :size 3,
+  :title "The Construct ships as a Hermes onboarding skill",
+  :done-when
+  "Running the onboarding skill in Hermes checks the machine, installs only what's missing with consent, and launches the white room on sample connections.",
+  :id :onboarding-skill,
+  :gdd ["4.8" "2.7" "2.8"],
+  :deferred? false,
+  :depends [:construct-run-through]}
+ {:demo? true,
+  :milestone "2026-11-16",
+  :evidence
+  [{:path "shadow-cljs.edn", :re ":demo"}
+   {:path "src/pm/", :re "goog-define\\s+demo"}],
+  :size 2,
+  :title "Demo build for class (release build, pretend data only)",
+  :done-when
+  "A shadow-cljs release build of the demo loads from static hosting and shows only pretend data, with no real mirrors or credentials.",
+  :id :demo-build,
+  :gdd ["4.8" "4.1" "6"],
+  :deferred? false,
+  :depends [:demo-mode]}]

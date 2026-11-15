@@ -8,5 +8,10 @@
                 :task (apply shell "bb" "scripts/crew_fielder.clj" *command-line-args*)}
   content {:doc  "Generate game content from the GDD: bb content <request>|all [--dry-run]"
            :task (apply shell "bb" "content/pipeline.clj" *command-line-args*)}
+  goal-agent {:doc  "Assignment 5 goal agent: bb goal-agent extract | plan | run [--max N] | test (tools/goal-agent/README.md)"
+              :task (if (= "test" (first *command-line-args*))
+                      (shell "bb" "-cp" "tools/goal-agent/src:tools/goal-agent/test" "-e"
+                             "(require 'clojure.test 'goal.core-test) (let [r (clojure.test/run-tests 'goal.core-test)] (System/exit (if (zero? (+ (:fail r) (:error r))) 0 1)))")
+                      (apply shell "bb" "-cp" "tools/goal-agent/src" "tools/goal-agent/goal_agent.clj" *command-line-args*))}
   creature-mjcf {:doc  "Print a species' MuJoCo body (MJCF XML): bb creature-mjcf <kind>"
                  :task (apply shell "bb" "scripts/creature_mjcf.clj" *command-line-args*)}}}

@@ -1,0 +1,49 @@
+shadow-cljs - config: /Users/hal/src/prime-meridian/shadow-cljs.edn
+shadow-cljs - connected to server
+
+[:app] Compiling ...
+[:app] Build completed. (87 files, 0 compiled, 0 warnings, 1.26s)
+[:test] Compiling ...
+[:test] Build completed. (114 files, 3 compiled, 0 warnings, 1.38s)
+--- node out/test.js
+
+Testing pm.creature-reflex-test
+
+Testing pm.creature-test
+
+Testing pm.crew-fielder-v0-test
+
+Testing pm.crew-talk-test
+
+Testing pm.crew-talk-v1-test
+
+Testing pm.crew-test
+
+Testing pm.crew-walkers-test
+
+Testing pm.events-test
+
+FAIL in (t02-source-refusals) (pm/events_test.cljs:28:9)
+no source at all
+expected: (false? (events/valid-source? {}))
+  actual: (not (false? nil))
+
+Testing pm.feet-test
+
+Testing pm.motion-test
+
+Testing pm.overlay-test
+
+Testing pm.plan-test
+
+Testing pm.requests-test
+
+Testing pm.senses-test
+
+Testing pm.talk-test
+
+Testing pm.world-test
+
+Ran 822 tests containing 6390 assertions.
+1 failures, 0 errors.
+GATE: FAIL tests (Ran 822 tests containing 6390 assertions.)

@@ -1,0 +1,7 @@
+FILES: src/pm/events.cljc (new), test/pm/events_test.cljs (new), resources/content/sample-events.edn (new), src/pm/core.cljs (wired in)
+
+WHAT: `pm.events` writes down the GDD's four bridge events — `agent-event`, `answer`, `chore-done`, `jack-out` — as plain data shapes with per-shape validators and one umbrella `valid-event?`. Every shape requires a `:source` map naming at least one of `:agent`/`:session`/`:machine` as a non-blank string; a sourceless event, an unknown shape, or a bad field (wrong type, blank text, unknown `:kind`, etc.) is refused. `valid-events`/`hud-segment` are small pure helpers for counting valid vs. refused events in a batch.
+
+HOW TO SEE IT: the game loads `resources/content/sample-events.edn` (the four canonical events plus one deliberately sourceless `agent-event`) and runs it through `pm.events`, showing "`events 4/5 ok`" in the HUD line at the bottom of the running game — proof the schema validates and the refusal works, ahead of the real websocket bridge.
+
+Note: this sandboxed role can't run `npx shadow-cljs compile app test` (build commands require approval I can't grant here), so I verified the code by careful manual read-through (parens, requires, probe regexes, naming rules) rather than an actual gate run — worth a real `compile app test` before this ships.

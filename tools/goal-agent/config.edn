@@ -1,0 +1,10 @@
+;; The goal agent's settings. The writer is any CLI coding agent that takes a prompt on stdin and
+;; prints Claude Code's --output-format json; swap :writer to plug in another one.
+{:writer :claude
+ :writers {:claude {:cmd ["claude" "-p" "--output-format" "json" "--no-session-persistence"]
+                    :model "claude-sonnet-5"}}
+ ;; extract reads the whole GDD once (a stronger model); write edits code
+ :models {:extract "claude-opus-5-5" :write "claude-sonnet-5"}
+ :max-attempts 3
+ ;; changes allowed in the tree when a run starts (the agent itself, before it is committed)
+ :preexisting-ok ["tools/goal-agent/" "bb.edn"]}
