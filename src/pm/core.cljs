@@ -595,7 +595,7 @@
     (if (and blueprint (bp/breaks-build? blueprint))
       (do (revert-to-last-good!)
           ;; say so on its sign: a silent no-op reads as a broken click
-          (swap! !world bp/mark-failed id))
+          (swap! !world bp/refuse id (js/Date.now)))
       (swap! !world bp/approve-blueprint id))))
 
 (defn- wire-pointer!

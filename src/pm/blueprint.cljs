@@ -5,6 +5,7 @@
    three.js, no js/Date, no atoms; `pm.scene` turns `ghost-plan` into meshes
    through `pm.three/ghost!`."
   (:require [clojure.string :as str]
+            [pm.content :as c]
             [pm.plan :as p]))
 
 (def statuses
@@ -58,6 +59,19 @@
   [world id]
   (update world :blueprints
           (fn [bps] (mapv (fn [bp] (if (= id (:id bp)) (assoc bp :failed? true) bp)) (or bps [])))))
+
+(defn refuse
+  "Approval refused because the blueprint would break the build: it stays a
+   ghost, its sign says why (`mark-failed`), and the twin says it in the
+   caption too, so the refusal is something you notice (a silent no-op
+   reads as a broken click). Wording: `:blueprint-text :failed` in
+   estate.edn; no caption without it."
+  [world id now]
+  (let [w    (mark-failed world id)
+        text (get-in world [:blueprint-text :failed])]
+    (if (and (string? text) (not (str/blank? text)))
+      (assoc w :hal {:event :blueprint-refused :text text :until (+ now c/hal-ms)})
+      w)))
 
 (defn sign-text
   "A ghost's sign: its one-line summary, then how to act on it, or why its

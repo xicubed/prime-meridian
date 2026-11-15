@@ -104,3 +104,11 @@
     (is (= [:bench] (mapv :id (bp/pending w))))
     (is (= w (bp/mark-failed w :nope)) "unknown id: no-op")))
 
+
+(deftest t22-refuse-says-it-in-the-caption
+  (let [w (bp/refuse {:blueprint-text TXT :blueprints [B1]} :bench 1000)]
+    (is (= "won't build" (get-in w [:hal :text])))
+    (is (= :blueprint-refused (get-in w [:hal :event])))
+    (is (< 1000 (get-in w [:hal :until])))
+    (is (= [:bench] (mapv :id (bp/pending w))) "still a ghost"))
+  (is (nil? (:hal (bp/refuse {:blueprints [B1]} :bench 1000))) "no wording, no caption"))
