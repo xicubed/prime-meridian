@@ -3,6 +3,7 @@
    js/Date, no atoms. Never names a mirror; works from each mirror's own
    :state and :chores."
   (:require [cljs.reader :as reader]
+            [clojure.string :as str]
             [pm.world :as w]
             [pm.jumeaux :as j]))
 
@@ -134,3 +135,40 @@
         (let [mirror    (get-in world [:mirrors mirror-id])
               name-part (or (:name mirror) (name mirror-id))]
           (str name-part " (" tag ")" (subs line (count name-part))))))))
+
+(defn sample-badge
+  "A short, visible tag worn by a connection running on its pretend
+   version (GDD §4.6, §2.8): nil once a real one is swapped in for it.
+   `source` is a mirror's own :state :source, or any other connection's
+   keyword name; everything but `:hal` (the twin's own file, still local,
+   not an outside account) counts as pretend until a real one exists."
+  [source]
+  (when (not= source :hal) "SAMPLE"))
+
+(defn demo-connections
+  "Every connection's badge right now (the GDD §4.6 table): each mirror
+   by its own :state :source, plus the estate's :connections with no real
+   version yet (estate.edn data), plus agents -- real only
+   while the bridge is live. Keyed by connection id -> badge text; a real
+   connection (no badge) is dropped, so zero accounts means every key
+   shows up here."
+  [world bridge-on?]
+  (let [mirrors (into {} (keep (fn [[id m]]
+                                  (when-let [b (sample-badge (get-in m [:state :source]))]
+                                    [id b]))
+                                (:mirrors world)))
+        agents  (when-not bridge-on? {:agents "SAMPLE"})]
+    (merge (into {} (for [c (:connections world)] [c "SAMPLE"]))
+           mirrors agents)))
+
+(defn demo-line
+  "The HUD's visible demo-mode line: every current connection with its
+   sample badge, in a stable order. nil when every connection is real
+   (nothing left to flag)."
+  [world bridge-on?]
+  (let [badges (demo-connections world bridge-on?)]
+    (when (seq badges)
+      (str "demo: "
+           (str/join " · "
+             (map (fn [[id b]] (str (name id) " " b))
+                  (sort-by (comp name key) badges)))))))

@@ -3,6 +3,7 @@
            :twin   {:name "Hal"}}              ; the twin's word follows the player's :sex (:m jumeau, :f jumelle)
  :crew-talk {:surface-after-s 60   ; a prompt the twin hasn't answered after this long goes to the player
              :answer-after-s 5}    ; bb crew-fielder waits this long, then answers a routine prompt
+ :connections [:mail :phone :chores :payments]   ; connections with no real version yet (GDD §4.6): demo mode badges each SAMPLE
  :creature-spike {:flag "pony" :kind :horse :seed 1     ; ?pony[=<kind>][&seed=n]: MuJoCo creature spike (pony-spike-v0)
                   :at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4} ; east bank, terrain 1.79 m (Hal probed); yaw in degrees
  :voices {:hal      {:rate 1.0 :pitch 0.9 :lang "en-US"}   ; Hal: even, a little low

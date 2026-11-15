@@ -308,6 +308,28 @@
       (is (= (o/hud-line CP :pet (+ A 1000)) "Pet (Hal, cached) · stock 37"))
       (is (= (o/hud-line CP :flora A) "Flora (sample) · stock 15 · I'm hungry")))))
 
+(deftest t41-sample-badge
+  (is (= (o/sample-badge :sample) "SAMPLE"))
+  (is (= (o/sample-badge :phone) "SAMPLE"))
+  (is (= (o/sample-badge nil) "SAMPLE"))
+  (is (= (o/sample-badge :hal) nil)))
+
+(deftest t42-demo-connections-zero-accounts
+  (is (= (o/demo-connections W false)
+         {:mail "SAMPLE" :phone "SAMPLE" :chores "SAMPLE" :payments "SAMPLE"
+          :agents "SAMPLE" :flora "SAMPLE" :juniper "SAMPLE"})))
+
+(deftest t43-demo-connections-real-mirror-and-bridge
+  (is (= (o/demo-connections W2 true)
+         {:mail "SAMPLE" :phone "SAMPLE" :chores "SAMPLE" :payments "SAMPLE"
+          :juniper "SAMPLE"})))
+
+(deftest t44-demo-line
+  (is (= (o/demo-line W false)
+         "demo: agents SAMPLE · chores SAMPLE · flora SAMPLE · juniper SAMPLE · mail SAMPLE · payments SAMPLE · phone SAMPLE"))
+  (is (= (o/demo-line W2 true)
+         "demo: chores SAMPLE · juniper SAMPLE · mail SAMPLE · payments SAMPLE · phone SAMPLE")))
+
 ;; In-game play on sample mirrors survives a reload (Michael: "2 Juniper's hay messages")
 
 (deftest t40-play-survives-a-reload
