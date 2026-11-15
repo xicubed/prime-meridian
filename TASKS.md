@@ -74,7 +74,7 @@ Plan of record: [`docs/session-2026-10-17.md`](docs/session-2026-10-17.md) §7. 
 - [ ] W4-3 Conversation history per agent persisted in `localStorage`.
 
 ## Next (from the Nov 14 play-test)
-- [ ] N-1 The sky follows the player's clock (Michael, Nov 14): drive the scenery kit's own time-of-day settings (sun, sky, lighting) from local time, so at night it's actually night, instead of closing time's dimming veil (`pm.ui/set-night!`). Closing time keeps its last call and goodnight; only the look changes.
+- [x] N-1 (Nov 15) The sky follows the player's clock (Michael, Nov 14): drive the scenery kit's own time-of-day settings (sun, sky, lighting) from local time, so at night it's actually night, instead of closing time's dimming veil (`pm.ui/set-night!`). Closing time keeps its last call and goodnight; only the look changes.
 - [ ] N-2 Closing-time lines: goodnight fires again on every page load after bedtime (the once-per-day state isn't persisted), and "10:30 PM's close" showed before the fifteen-minute last call.
 - [ ] N-3 Blueprint ghosts read poorly: the thin wireframe vanishes against the grass, even in screenshots.
 
