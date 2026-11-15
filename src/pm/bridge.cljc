@@ -156,6 +156,36 @@
       (not= origin allowed-origin) {:ok false :status 403 :reason "bad origin"}
       :else {:ok true})))
 
+(defn answer-prompt
+  "What the bridge types into a crew member's pane when the player answers
+   its question after it has finished its turn (GDD §3.1, §2.1): the
+   question it asked, then the answer, so it can carry on."
+  [question answer]
+  (str "The player answered your question \"" question "\": " answer))
+
+(defn relay
+  "What the bridge does with one well-formed event from one of its open
+   sockets (GDD §3.1): `questions` maps agent -> {:text :sample?}.
+   A question is relayed to every other socket (the game raises its \"!\")
+   and remembered with the socket that asked (`from`); an answer is relayed
+   too (an `ask-player` still waiting on it prints it), forgets the
+   question, and -- for a real question whose asker is no longer connected
+   (`open` is the set of open sockets), never a demo sample -- is typed into
+   that member's pane when it's a crew member. Returns {:questions
+   :broadcast? :deliver}, :deliver being {:member kw :text prompt} or nil."
+  [questions ev members from open]
+  (case (:type ev)
+    :agent-event {:questions  (assoc questions (:agent ev) {:text (:text ev) :sample? false :from from})
+                  :broadcast? true :deliver nil}
+    :answer      (let [q      (get questions (:agent ev))
+                       member (keyword (:agent ev))]
+                   {:questions  (dissoc questions (:agent ev))
+                    :broadcast? true
+                    :deliver    (when (and q (not (:sample? q)) (contains? members member)
+                                       (not (contains? open (:from q))))
+                                  {:member member :text (answer-prompt (:text q) (:text ev))})})
+    {:questions questions :broadcast? false :deliver nil}))
+
 (defn decide [v live]
   (let [{:keys [action prompt-id text]} v
         {:keys [status prompt]} live]

@@ -6,13 +6,20 @@
   (:require [cljs.reader :as reader]
             [clojure.string :as str]))
 
-(def statuses #{:idle :working :blocked :done :unknown})
+(def statuses #{:idle :working :blocked :done :unknown :stalled})
 (def stale-ms 15000)
+;; An agent can sit "busy" (:working or :blocked) for a long time on its own merits, so
+;; this has to be well past ordinary stale-ms before the dot calls it quiet (GDD §4.4,
+;; §4.8, §3.1): "the bridge marks it stalled on its own when it stops reporting (for
+;; example when its usage cap runs out), so nothing shows busy forever."
+(def stall-ms 120000)
 (def pulse-ms 2000)
 (def default-colors {:working 0xf2b134 :blocked 0xe5484d :done 0x46a758 :idle 0x9aa0a6 :unknown 0x9aa0a6
                       ;; the ask_player "!" (GDD §3.1, §2.1): amber like :working, never red --
                       ;; red means :blocked, something gone wrong, not a real question.
-                      :needs-you 0xf5a623})
+                      :needs-you 0xf5a623
+                      ;; a resting pose (GDD §4.4): neither busy's amber nor blocked's red.
+                      :stalled 0x5e7a96})
 
 (def ^:private prompt-id-re #"^[0-9a-f]{40}$")
 (def ^:private prompt-kinds #{:bash :unknown})
@@ -47,10 +54,15 @@
                                     (when (and (keyword? k) (map? vv))
                                       (let [s (:status vv)
                                             s (if (contains? statuses s) s :unknown)
-                                            p (:prompt vv)]
+                                            p (:prompt vv)
+                                            since (:since vv)]
                                         [k (cond-> {:status s}
                                              (and (= s :blocked) (valid-prompt? p))
-                                             (assoc :prompt (select-keys p [:id :kind :text :risky :since])))]))))
+                                             (assoc :prompt (select-keys p [:id :kind :text :risky :since]))
+                                             ;; when this agent last changed status (scripts/crew_status.clj),
+                                             ;; so a long-unchanged "busy" status can be read as stalled below.
+                                             (and (integer? since) (not (neg? since)))
+                                             (assoc :since since))]))))
                             (:agents v))
               titles (clean-titles (:titles v))]
           (cond-> {:as-of (:as-of v) :agents agents}
@@ -68,10 +80,29 @@
                    [k (if (and (integer? v) (<= 0 v) (<= v 0xffffff)) v default)])))
           default-colors)))
 
+(defn stalled?
+  "Whether an agent entry's own status has sat unchanged, busy (:working or
+   :blocked), well past stall-ms -- the bridge's own sign that it stopped
+   reporting (GDD §4.4, §3.1), not something Herdr ever says itself."
+  [entry now]
+  (and (map? entry)
+       ;; working only: a blocked agent is waiting on the player, and keeps
+       ;; its red "!" however long that takes
+       (= :working (:status entry))
+       (integer? (:since entry)) (not (neg? (:since entry)))
+       (> (- now (:since entry)) stall-ms)))
+
+(defn effective-status
+  "The status to show for one crew agent: its ordinary status, unless it
+   has gone quiet past stall-ms while busy, in which case :stalled -- a
+   resting pose, not busy and not a red error."
+  [entry now]
+  (if (stalled? entry now) :stalled (:status entry)))
+
 (defn dot [crew agent now palette]
   (if (or (not (fresh? crew now)) (not (contains? (:agents crew) agent)))
     {:glyph "○" :color (:idle palette) :pulse? false}
-    (let [s (get-in crew [:agents agent :status])]
+    (let [s (effective-status (get-in crew [:agents agent]) now)]
       {:glyph "●" :color (or (get palette s) (:unknown palette)) :pulse? (= s :blocked)})))
 
 (defn pulse-alpha [t]

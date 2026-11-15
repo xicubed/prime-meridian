@@ -115,6 +115,71 @@
   [world plan]
   (into plan (bp/ghost-plan world)))
 
+(def ^:private snap-drop-m
+  "Metres the dropped worm falls before it's caught."
+  1.0)
+
+(def ^:private snap-lift-m
+  "Metres the fed mirror's body shoots up at the peak of the snap."
+  0.35)
+
+(defn- snap-worm!
+  "A small flat-shaded capsule for the snap's dropped worm (GDD §2.2, §4.8),
+   hidden until `play-snap!` places and shows it. Added to `root` once, at
+   `mount!` time."
+  [root]
+  (let [^js worm (t/stand-in {:shape :capsule :size [0.4 0.09 0.09] :color (color :brown) :pos [0 0 0]})]
+    (set! (.-name worm) "pm-snap-worm")
+    (t/set-visible! worm false)
+    (t/add! root worm)
+    worm))
+
+(defn- snap-body-at
+  "The `[mirror-id :body]` item's own `:at` in `plan` (the plan's positions
+   never follow world state -- GDD §2.2, §4.8 -- so this is always the
+   mirror's resting place, snap or no snap)."
+  [plan mirror-id]
+  (:at (first (filter #(= [mirror-id :body] (:key %)) plan))))
+
+(defn- snap-reset!
+  "No snap live for this mirror: hide the worm and put its body back at its
+   resting `at`."
+  [snap-worm body at]
+  (when snap-worm (t/set-visible! snap-worm false))
+  (when (and body at) (t/set-pos! body at)))
+
+(defn- snap-step!
+  "Mid-snap, at progress `p` (0..1) of `pm.plan/snap-ms`: the worm falls
+   through the first half and is caught, the body shoots up to its peak at
+   the midpoint and back down by the end."
+  [snap-worm body at p]
+  (let [[x y z] at
+        lift (* snap-lift-m (js/Math.sin (* p js/Math.PI)))
+        fall (* snap-drop-m (max 0 (- 1 (/ p 0.5))))]
+    (when snap-worm
+      (t/set-visible! snap-worm (< p 0.55))
+      (t/set-pos! snap-worm [x (+ y fall) z]))
+    (when body (t/set-pos! body [x (+ y lift) z]))))
+
+(defn play-snap!
+  "The snap on screen (GDD §2.2, §4.8): while `pm.plan/snap-pose` says one is
+   live for some mirror, drops the worm onto the water and shoots that
+   mirror's body group up and back down -- the bubble popping and the jar's
+   new count are already handled by `update!`'s label refresh. Resets both
+   once the pose is nil (nothing live, or it already finished). Mutates
+   three.js objects only through `pm.three`; never touches the scene plan
+   itself (its positions never follow world state)."
+  [world now]
+  (when-let [{:keys [root plan snap-worm]} @!mounted]
+    (let [mirror-id (:mirror (:snap world))
+          body      (and mirror-id (t/by-name root (pr-str [mirror-id :body])))
+          at        (and mirror-id (snap-body-at plan mirror-id))
+          p         (and mirror-id (p/snap-pose world mirror-id now))]
+      (if p
+        (snap-step! snap-worm body at p)
+        (snap-reset! snap-worm body at))))
+  nil)
+
 (defn- with-fixtures [world plan]
   (->> plan (with-lobby world) (with-workshop world) (with-mailbox world) (with-phone-booth world) (with-blueprints world)))
 
@@ -158,6 +223,7 @@
       (swap! !mounted assoc :texts (merge texts changes) :plan plan)))
   (sync-blueprints! world)
   (when-let [{:keys [root kit-lights]} @!mounted] (t/sync-glows! root kit-lights))
+  (play-snap! world now)
   nil)
 
 (defn mount!
@@ -174,7 +240,8 @@
                           {} plan)]
       (t/add! scene root)
       (reset! !mounted {:root root :labels labels :texts (p/label-texts plan) :plan plan
-                        :kit-lights (t/kit-light-sources scene (:kit-lights world))})
+                        :kit-lights (t/kit-light-sources scene (:kit-lights world))
+                        :snap-worm (snap-worm! root)})
       (update! world now)))
   nil)
 

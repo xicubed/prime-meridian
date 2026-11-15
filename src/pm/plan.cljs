@@ -241,6 +241,21 @@
                 :when (not= new-text (get prev k))]
             [k new-text]))))
 
+(def snap-ms
+  "How long the snap (GDD §2.2, §4.8) plays, start to finish."
+  1100)
+
+(defn snap-pose
+  "0..1 progress through mirror-id's snap at now, or nil when none is live --
+   world has no :snap, it names a different mirror, or more than snap-ms has
+   passed. Pure timing only; `pm.scene/play-snap!` turns this into a mesh
+   offset, since the scene plan's own positions never follow world state."
+  [world mirror-id now]
+  (let [{:keys [mirror at]} (:snap world)]
+    (when (and (= mirror mirror-id) (number? at) (number? now))
+      (let [p (/ (- now at) snap-ms)]
+        (when (<= 0 p 1) p)))))
+
 (defn plan-summary [plan]
   (let [mirrors  (count (distinct (map :mirror plan)))
         items    (count plan)

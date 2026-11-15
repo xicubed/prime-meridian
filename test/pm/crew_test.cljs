@@ -62,17 +62,20 @@
 (deftest t09-constants
   (is (= 15000 c/stale-ms))
   (is (= 2000 c/pulse-ms))
-  (is (= #{:idle :working :blocked :done :unknown} c/statuses)))
+  (is (= 120000 c/stall-ms))
+  (is (= #{:idle :working :blocked :done :unknown :stalled} c/statuses)))
 
 ;; Colours
 
 (deftest t10-colors-from-estate
-  (is (= {:working 15905076 :blocked 15026253 :done 4630360 :idle 10133670 :unknown 10133670 :needs-you 16098851}
+  (is (= {:working 15905076 :blocked 15026253 :done 4630360 :idle 10133670 :unknown 10133670
+          :needs-you 16098851 :stalled 6191766}
          (c/colors W)))
   (is (= c/default-colors (c/colors {}))))
 
 (deftest t11-colors-validation
-  (is (= {:working 255 :blocked 15026253 :done 4630360 :idle 10133670 :unknown 10133670 :needs-you 16098851}
+  (is (= {:working 255 :blocked 15026253 :done 4630360 :idle 10133670 :unknown 10133670
+          :needs-you 16098851 :stalled 6191766}
          (c/colors {:motion {:status-dots {:working 255 :done -1 :idle "red" :blocked 16777216 :extra 1}}}))))
 
 ;; Dots
@@ -184,3 +187,38 @@
   (is (= {:glyph "!" :color 16098851 :pulse? true} (c/ask-dot true P)))
   (is (nil? (c/ask-dot false P)))
   (is (nil? (c/ask-dot nil P))))
+
+;; Stalled: an agent that stops reporting past the timeout (GDD §4.4, §4.8, §3.1)
+
+(deftest t30-parse-keeps-a-valid-since-and-drops-a-bad-one
+  (is (= {:as-of 5 :agents {:a {:status :working :since 3}}}
+         (c/parse "{:as-of 5 :agents {:a {:status :working :since 3}}}")))
+  (is (= {:as-of 5 :agents {:a {:status :working}}}
+         (c/parse "{:as-of 5 :agents {:a {:status :working :since -1}}}")))
+  (is (= {:as-of 5 :agents {:a {:status :working}}}
+         (c/parse "{:as-of 5 :agents {:a {:status :working :since \"x\"}}}"))))
+
+(deftest t31-stalled-predicate
+  (is (false? (c/stalled? {:status :working :since 0} 119999)))
+  (is (true? (c/stalled? {:status :working :since 0} 120001)))
+  (is (false? (c/stalled? {:status :blocked :since 0} 200000)) "blocked = waiting on the player, never stalled")
+  (is (false? (c/stalled? {:status :done :since 0} 999999)))
+  (is (false? (c/stalled? {:status :working} 999999)))
+  (is (false? (c/stalled? nil 999999))))
+
+(deftest t32-effective-status-goes-stalled-past-the-timeout
+  (is (= :working (c/effective-status {:status :working :since 0} 119999)))
+  (is (= :stalled (c/effective-status {:status :working :since 0} 120001)))
+  (is (= :idle (c/effective-status {:status :idle} 999999))))
+
+(deftest t33-dot-shows-a-stalled-agent-resting-not-busy-or-red
+  (let [crew {:as-of T0 :agents {:a {:status :working :since (- T0 130000)}}}]
+    (is (= {:glyph "●" :color 6191766 :pulse? false} (c/dot crew :a T0 P)))))
+
+(deftest t34-a-long-blocked-agent-keeps-pulsing-red
+  (let [crew {:as-of T0 :agents {:a {:status :blocked :since (- T0 130000)}}}]
+    (is (= {:glyph "●" :color 15026253 :pulse? true} (c/dot crew :a T0 P)))))
+
+(deftest t35-busy-within-the-timeout-stays-busy-not-stalled
+  (let [crew {:as-of T0 :agents {:a {:status :working :since (- T0 119999)}}}]
+    (is (= {:glyph "●" :color 15905076 :pulse? false} (c/dot crew :a T0 P)))))

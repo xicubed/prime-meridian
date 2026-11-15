@@ -107,6 +107,13 @@
             world'   (-> world
                          (consume mirror (:consumes chore))
                          (record-done mirror chore at))
+            ;; The snap (GDD §2.2, §4.8): a chore marked :fx :snap in its
+            ;; estate.edn entry leaves `:snap` as data on `world` -- when and
+            ;; which mirror -- for `pm.scene/play-snap!` to animate, and for
+            ;; `pm.plan/snap-pose` to time it. Pure data; no three.js here.
+            world'   (if (= :snap (:fx chore))
+                       (assoc world' :snap {:mirror mirror :at at})
+                       world')
             entry    (cond-> (assoc event :result :counted
                                      :id (event-id event)
                                      :prev-at prev-at)

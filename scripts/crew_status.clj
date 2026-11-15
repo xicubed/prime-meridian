@@ -7,12 +7,16 @@
 ;;   bb crew-status --once   # one write
 ;;
 ;; Writes names, states, titles and parsed prompts only — never a raw screen:
-;;   {:as-of 1794100000000 :agents {:un-automate-monde {:status :blocked
+;;   {:as-of 1794100000000 :agents {:un-automate-monde {:status :blocked :since 1794099000000
 ;;                                                       :prompt {:id .. :kind :bash :text .. :risky false :since ..}}}
 ;;    :titles {:un-automate-monde "Un Automate (monde)" ...}}
 ;; A prompt's map now has 5 keys (:since is the first poll that saw it): a
 ;; member only gets one once the same dialog has been seen on two
 ;; consecutive polls at least pr/confirm-ms apart (pm.prompt/observe-prompts).
+;; An agent's own :since is when its current status began (kept across
+;; writes while the status doesn't change); pm.crew/stalled? reads it to
+;; catch an agent that stops reporting while busy past c/stall-ms (GDD
+;; §4.4, §4.8, §3.1), so nothing shows busy forever.
 ;; States are Herdr's: :idle :working :blocked :done :unknown. Herdr not running → :agents {}.
 
 (require '[babashka.process :as p]
@@ -50,6 +54,30 @@
   (let [to-read (pr/screens-to-read agents members)]
     (into {} (map (fn [m] [m (screen-for m)]) to-read))))
 
+(defn working-screens
+  "Screens of the members Herdr says are working: a busy agent's screen keeps
+   changing (its spinner and timer tick), so one that stops changing has
+   stopped reporting (with-since, pm.crew/stalled?)."
+  [agents members]
+  (into {} (keep (fn [[k v]] (when (and (= :working (:status v)) (contains? members k))
+                               [k (screen-for k)])))
+        agents))
+
+(defn with-since
+  "Attaches :since (ms) to each agent entry: the last time it showed any
+   sign of life -- its status changed, or (while working) its screen did.
+   Kept from the previous write while neither changes, set to `now` the
+   moment one does, so pm.crew/stalled? marks only an agent that has gone
+   silent mid-work (GDD §4.4, §4.8, §3.1), never one that's just busy."
+  [agents prev now screens]
+  (into {}
+        (map (fn [[k v]]
+               (let [pv    (get prev k)
+                     act   (hash [(:status v) (get screens k)])
+                     since (if (and pv (= (:act pv) act)) (:since pv) now)]
+                 [k (assoc v :since since :act act)])))
+        agents))
+
 (defn write! [m titles]
   (let [f   (io/file out-file)
         tmp (io/file (str out-file ".tmp"))]
@@ -69,15 +97,17 @@
           r1      (poll mset nil)
           _       (Thread/sleep pr/confirm-ms)
           r2      (poll mset (:seen r1))]
-      (write! (:agents r2) members))
-    (loop [last nil seen nil]
+      (write! (with-since (:agents r2) {} (System/currentTimeMillis) {}) members))
+    (loop [last nil seen nil prev {}]
       (let [members (b/roster (crew-json))
-            {:keys [agents seen]} (poll (set (keys members)) seen)]
+            {:keys [agents seen]} (poll (set (keys members)) seen)
+            now     (System/currentTimeMillis)
+            agents' (with-since agents prev now (working-screens agents (set (keys members))))]
         ;; rewrite when something changed (a prompt change counts), and every 10 s anyway
         ;; so :as-of stays fresh
-        (when (or (not= agents last) (zero? (mod (quot (System/currentTimeMillis) every-ms) 5)))
-          (write! agents members))
+        (when (or (not= agents last) (zero? (mod (quot now every-ms) 5)))
+          (write! agents' members))
         (Thread/sleep every-ms)
-        (recur agents seen)))))
+        (recur agents seen agents')))))
 
 (apply -main *command-line-args*)

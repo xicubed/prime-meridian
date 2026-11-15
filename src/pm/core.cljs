@@ -318,6 +318,9 @@
       (when-let [s (creature-spike/hud-segment)] (str " · " s))
       (when-let [s (crew/hud-text (:crew w) (mapv :agent (m/walkers w)) now)] (str " · " s))
       (when-let [s (events/hud-segment sample-events)] (str " · " s))
+      ;; The juice meter (GDD §2.1, §4.4, §4.8): each AI login's estimated
+      ;; share of its usage window left and its refill time.
+      (when-let [s (juice/hud-segment (:logins w))] (str " · " s))
       (str " · " (ws-hud-segment))
       (when-let [s (world/jack-out-text w)] (str " · jacked out: " s))
       ;; Demo mode (GDD §4.6, §4.8, §2.8): zero accounts means every
@@ -412,21 +415,28 @@
     (when (= :sending (:state e))
       (post-crew! (:member e) :deny (:id (:prompt e)) (:note e) n))))
 
+(defn- send-answer!
+  "Answers a pending ask_player question (GDD §3.1, §2.1, §4.8): sends a
+   real :answer event for `agent` out over the bridge's websocket --
+   reaching wherever the agent's side of the bridge is -- and clears its
+   \"!\" locally the same way any bridge event would, so the next tick's
+   set-dots! shows its ordinary crew dot (working again) instead of the
+   \"!\"."
+  [agent text]
+  (let [ev {:type :answer :agent agent :text text
+            :source {:agent "player" :session "ui" :machine "browser"}}]
+    (ws-send! ev)
+    (swap! !world world/apply-event ev (js/Date.now))))
+
 (defn- on-say
-  "Typing to a member with a pending ask_player question (GDD §3.1, §2.1,
-   §4.8) answers it: the reply goes out over the bridge's websocket as a
-   real :answer event -- reaching wherever the agent's side of the bridge
-   is -- and clears its \"!\" locally the same way any bridge event
-   would. Everyone else still goes through the Herdr crew-say/bridge POST
-   path."
+  "Typing to a member with a pending ask_player question answers it via
+   send-answer!. Everyone else still goes through the Herdr crew-say/bridge
+   POST path."
   [member who text]
   (let [agent (name member)]
     (if (world/needs-you? @!world agent)
       (when-let [t (not-empty (clojure.string/trim (or text "")))]
-        (let [ev {:type :answer :agent agent :text t
-                  :source {:agent "player" :session "ui" :machine "browser"}}]
-          (ws-send! ev)
-          (swap! !world world/apply-event ev (js/Date.now))))
+        (send-answer! agent t))
       (let [before-n (:n (:talk @!world))]
         (swap! !world update :talk talk/crew-say member who text (js/Date.now))
         (let [t (:talk @!world) n (:n t)]

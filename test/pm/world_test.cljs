@@ -350,3 +350,13 @@
     (is (false? (w/needs-you? W2 "le-critique")))
     (is (= (assoc ask-a :result :answered) (last (:log W2))))))
 
+;; The snap (GDD §2.2, §4.8): a counted chore marked :fx :snap leaves data
+;; `pm.scene/play-snap!` and `pm.plan/snap-pose` can see; an ordinary chore
+;; (Juniper's hay) never touches it.
+
+(deftest t43-chore-done-flags-the-snap
+  (is (= {:mirror :flora :at T0} (:snap W1))))
+
+(deftest t44-an-ordinary-chore-leaves-no-snap
+  (is (nil? (:snap (w/chore-done W hay)))))
+

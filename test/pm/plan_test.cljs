@@ -497,3 +497,17 @@
                                      {:shape :box :size [1 1 1] :glow "yes"}]} nil)]
     (is (true? (:glow a)) "a glowing part (a lamp's bulb) keeps its mark")
     (is (nil? (:glow b)) "only true counts")))
+
+;; snap-pose: the snap's pure timing (GDD §2.2, §4.8). `pm.scene/play-snap!`
+;; turns this 0..1 progress into a mesh offset; the plan's own positions
+;; never follow it (t05).
+
+(deftest t47-snap-pose-nil-with-no-snap
+  (is (nil? (p/snap-pose W :flora T0)))
+  (is (nil? (p/snap-pose (w/chore-done W fed) :juniper (+ T0 1)))))
+
+(deftest t48-snap-pose-while-live
+  (let [K (w/chore-done W fed)]
+    (is (= 0 (p/snap-pose K :flora T0)))
+    (is (< 0 (p/snap-pose K :flora (+ T0 500))))
+    (is (nil? (p/snap-pose K :flora (+ T0 p/snap-ms 1))))))

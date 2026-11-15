@@ -22,14 +22,16 @@
  ;; and follows them: its warm lamps' colour and its cottage lantern's mesh.
  ;; A built lamp shines as bright as theirs, so it lights up at dusk with them.
  :kit-lights {:lamp-color "#ffd28a" :lantern-mesh "SM_Hiroshi_Cottage_Lantern"}
- ;; The juice meter's warning (GDD §2.1, §4.4, §4.8): each AI login's
- ;; usage estimate against its plan's cap (0-1) and its own local refill
- ;; time ("HH:MM" 24h, same declared-clock convention as :bedtime). The
- ;; twin (pm.juice) warns once a login's estimate crosses 80%. Sample
- ;; data, like every connection with no real version yet (:connections
- ;; below) -- the bridge fills this for real once the juice meter itself
- ;; is built.
- :logins {:claude {:name "Claude" :pct 0.83 :refill-at "14:00"}}
+ ;; The juice meter (GDD §2.1, §4.4, §4.8): each AI login's usage window,
+ ;; as the tokens the bridge has seen (:tokens-used) against the plan's
+ ;; cap (:cap) -- pm.juice/estimate-juice turns the two into a 0-1 share
+ ;; used -- and its own local refill time ("HH:MM" 24h, same
+ ;; declared-clock convention as :bedtime). The HUD shows the estimated
+ ;; share left and the refill time; the twin also warns once a login's
+ ;; estimate crosses 80%. Sample data, like every connection with no real
+ ;; version yet (:connections below) -- the bridge fills this for real
+ ;; once it reports token counts.
+ :logins {:claude {:name "Claude" :tokens-used 83000 :cap 100000 :refill-at "14:00"}}
  :connections [:mail :phone :chores :payments]   ; connections with no real version yet (GDD §4.6): demo mode badges each SAMPLE
  :creature-spike {:flag "pony" :kind :horse :seed 1     ; ?pony[=<kind>][&seed=n]: MuJoCo creature spike (pony-spike-v0)
                   :at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4} ; east bank, terrain 1.79 m (Hal probed); yaw in degrees
@@ -167,8 +169,10 @@
    :state  {:source :sample :stock 15 :last-fed nil}
    :rules  [{:when [:due? :feed]  :say  :hungry}
             {:when [:<= :stock 2] :sign :low}]
+   ;; :fx :snap marks the chore whose chore-done plays the signature moment
+   ;; on screen (GDD §2.2, §4.8): worm drop, lunge, bubble pop, jar -1.
    :chores [{:id :feed :every "2d" :at "17:00" :who :me
-             :consumes [:stock 1] :done-at :last-fed :past "fed"}]
+             :consumes [:stock 1] :done-at :last-fed :past "fed" :fx :snap}]
    ;; Flora's :placed
    :placed [{:id :body :at [-0.9 1.6 -15.7] :scale 6 :yaw 0 :label :say   ; real axolotl, 0.26 m nose to tail, drawn ~1.5 m (a mid-size rock); in open water, clear of the foreground rock; side-on to the creek camera, facing her jar; resting on the surface (~1.55) so the water shader doesn't hide her
              :look {:parts

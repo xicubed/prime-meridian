@@ -46,6 +46,8 @@
 (def crew-json-file ".crew/crew.json")
 (def rewrite-ms 5000)
 (def ^:private req-lock (Object.))
+(defonce ^:private !channels (atom #{}))    ; open /events sockets: the game, ask-player
+(defonce ^:private !questions (atom {}))    ; agent -> {:text :sample?}, asked and not yet answered
 
 (defn- repo-path []
   (.getCanonicalPath (io/file ".")))
@@ -190,19 +192,37 @@
         {:on-open
          (fn [ch]
            (log! nil :ws 101 "open")
+           (swap! !channels conj ch)
            (doseq [ev (sample-ws-events)]
+             ;; demo questions are remembered as samples: answering one never
+             ;; types into a real member's pane
+             (swap! !questions assoc (:agent ev) {:text (:text ev) :sample? true})
              (http/send! ch (json/generate-string (events/event->json ev)))))
          :on-receive
          (fn [ch msg]
            (let [m  (try (json/parse-string msg) (catch Exception _ nil))
                  ev (events/json->event m)]
              (if (events/valid-event? ev)
-               (do (log! nil :ws 200 (str "recv " (name (events/event-kind ev))))
-                   (http/send! ch (json/generate-string {"ok" true})))
+               (let [members (set (keys (b/roster (crew-json))))
+                     {:keys [questions broadcast? deliver]} (b/relay @!questions ev members ch @!channels)]
+                 (reset! !questions questions)
+                 (log! nil :ws 200 (str "recv " (name (events/event-kind ev))))
+                 (when broadcast?
+                   (doseq [other @!channels :when (not= other ch)]
+                     (http/send! other (json/generate-string (events/event->json ev)))))
+                 (when-let [{:keys [member text]} deliver]
+                   ;; the member finished its turn instead of waiting: type the
+                   ;; answer into its pane (the say path: only when idle/done)
+                   (let [decision (b/decide {:action :say :text text} (live-for member))]
+                     (if (:ok decision)
+                       (let [ran (run-decided! member decision)]
+                         (log! member :answer (if (:ok ran) 200 502) (if (:ok ran) "delivered" (:reason ran))))
+                       (log! member :answer 409 (str "not delivered: " (:reason decision))))))
+                 (http/send! ch (json/generate-string {"ok" true})))
                (do (log! nil :ws 400 "bad event")
                    (http/send! ch (json/generate-string {"ok" false "reason" "bad event"}))))))
          :on-close
-         (fn [_ch _status] (log! nil :ws 0 "closed"))}))))
+         (fn [ch _status] (swap! !channels disj ch) (log! nil :ws 0 "closed"))}))))
 
 (defn- handle [token req]
   (if (= (:uri req) b/events-uri)
