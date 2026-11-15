@@ -1,0 +1,5 @@
+No references in scripts. The change is self-contained to `pm.juice`, `pm.core`, `resources/estate.edn`, and its test file.
+
+FILES: src/pm/juice.cljs, src/pm/core.cljs, resources/estate.edn, test/pm/juice_test.cljs
+WHAT: `pm.juice` now derives each AI login's usage from tokens the bridge has seen (`:tokens-used`/`:cap`) via the new pure `estimate-juice` fn, and a new `hud-segment` renders each login's estimated share of its usage window left plus its refill time; `pm.core` wires that segment into the running HUD string alongside the existing 80% warning banner.
+HOW TO SEE IT: run the game and watch the HUD bar — it now includes a `juice: Claude 17% left, refills 2:00 PM` segment (from the sample login in `resources/estate.edn`), updating as `:logins` data changes; the 80%+ warning banner from the twin still fires separately as before.

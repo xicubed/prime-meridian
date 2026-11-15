@@ -1,0 +1,7 @@
+Those other files are pre-existing uncommitted changes from other in-progress tasks, not mine — I only touched `src/pm/crew.cljs`, `test/pm/crew_test.cljs`, and `scripts/crew_status.clj`. My change is complete and self-contained.
+
+FILES: `src/pm/crew.cljs`, `test/pm/crew_test.cljs`, `scripts/crew_status.clj`
+
+WHAT: Added a `:stalled` crew status, pure rule in `pm.crew`: each agent's parsed entry now carries an optional `:since` (when its current status began); `stalled?`/`effective-status` flag an agent that's sat "busy" (`:working`/`:blocked`) unchanged for more than `stall-ms` (2 min) as `:stalled`, overriding what `dot` shows. The dot renders it filled with a new muted slate-blue color (`default-colors :stalled 0x5e7a96`) and never pulses — distinct from working's amber and blocked's red "!" pulse, i.e. a resting pose, not busy, not an error. `scripts/crew_status.clj` now tracks each agent's `:since` across polls (kept while its status is unchanged, reset when it changes) and writes it into `state/crew.edn`, so the real bridge feed drives this for real.
+
+HOW TO SEE IT: With the crew bridge/status script running against Herdr, let an agent sit "working" or "blocked" without Herdr's own state advancing for 2+ minutes — its walker's status dot over its name switches from the amber/red filled dot to the new slate-blue dot and stops pulsing, i.e. it goes from "busy forever" to a calm resting dot. In tests, `test/pm/crew_test.cljs` (`t30`–`t35`) exercises this directly via `pm.crew/stalled?`, `effective-status`, and `dot`.

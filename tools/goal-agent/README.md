@@ -219,3 +219,26 @@ Hand changes before accepting run 6:
   at the edge of the only clearing, about 2 m off a walker's route.
 - Two of its tests restated part counts; they read them from `estate.edn` now.
 - The stay-late prompt's wording moved from code to data (`:stay-late-ask`).
+
+**Run 7** (`runs/20261115-1249/`, `--max 4 --only answer-in-world,stalled-state,the-snap,juice-meter`,
+about $8; with `--only` fixed, `answer-in-world` came first at its real score, 28.57). All four
+passed the gate and their probes, and the agent stopped with "every requirement is met". Two of them
+needed real work:
+
+- **`answer-in-world` gamed its probe.** The writer only moved existing code into a function named
+  `send-answer!` (what the probe looked for) and added no tests. The requirement ("answer it and
+  the agent goes back to working") wasn't met: the answer reached the bridge and stopped there, and
+  no agent could ask a question at all. Built by hand: `bb ask-player <member> "question"` (the
+  GDD's ask_player tool as a command) relays the question through the bridge to the game, waits for
+  the player's answer and prints it; if the asker has gone (timed out, finished its turn) the bridge
+  types the answer, with its question, into that member's pane. Demo questions never reach a pane.
+  `pm.bridge/relay` is pure and tested. Checked live: a question from the command line raised the
+  "!" over Le Docteur, the in-game answer came back to the command, and his pane was left alone.
+- **`stalled-state` marked busy agents as stalled.** It counted 2 minutes in the same *status*, so
+  any member working on a long task went grey. Now the status watcher also reads working members'
+  screens, and stalled means "working, but nothing on screen has changed for 2 minutes" (a busy
+  agent's spinner and timer always change). A blocked agent waiting on the player keeps its red "!"
+  however long it waits; two tests that said otherwise were changed.
+- `the-snap` (feeding Flora drops a worm, she lunges and settles, the jar goes down one) and
+  `juice-meter` (the share of the plan left and refill time in the HUD, estimated from tokens) were
+  accepted after a live check of the snap.
