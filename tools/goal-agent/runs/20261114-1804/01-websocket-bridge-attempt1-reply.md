@@ -1,0 +1,7 @@
+All changes look correct and complete. Here's the summary:
+
+FILES: src/pm/events.cljc, src/pm/bridge.cljc, src/pm/crew.cljs, src/pm/core.cljs, scripts/crew_bridge.clj, test/pm/events_test.cljs, test/pm/crew_talk_test.cljs
+
+WHAT: The crew bridge's HTTP server now also speaks a websocket at `/events`, carrying the four bridge events (agent-event, answer, chore-done, jack-out) as JSON. A handshake is only upgraded for the game's own origin and the current pairing token (checked via new `pm.bridge/validate-ws`); anything else gets a plain refused response, never a websocket upgrade. `pm.events/event->json` and `json->event` convert the existing validated event shapes to/from plain JSON-ready maps on both ends. In demo mode, the bb server sends the shipped sample events on open, and the game (`pm.core`, via `js/WebSocket.`) connects automatically once `bridge.edn` reports a live bridge, counts what it receives, and answers back over the socket when it sees an `ask_player` question — closing the loop both ways.
+
+HOW TO SEE IT: Run `bb crew-bridge` alongside the game. The HUD gains a live `ws <status> <received>/<sent>` segment (`ws closed 0/0` with no bridge running, moving to `ws open 4/1` once connected, as it receives the four sample events and answers one back). `crew/bridge.log` logs each open/recv/closed with `ws` as the action.

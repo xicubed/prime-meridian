@@ -129,3 +129,16 @@ so **clicking the booth** now jacks out and back in, ringing with the sample jac
 data file instead of text in code. The booth had been placed at an unprobed height across one
 walker's route; it moved to measured open ground (1.71 m) clear of the route, and two tests that
 restated the coordinates now read them from `estate.edn`.
+
+**Run 3** (`runs/20261114-1804/`, `--max 2`, about $7), with `scripts/` now in the lane:
+
+1. `websocket-bridge` (17.33): **built**. The crew bridge (`scripts/crew_bridge.clj`) also serves
+   `ws://127.0.0.1:8091/events`, the four events as JSON both ways, accepted only for the game's
+   origin with the pairing token. Checked live: the game's origin upgrades (101), another origin
+   gets 403, a wrong token 401; the game shows `ws open 4/0` after receiving the sample events.
+2. `talk-bubble` (21.11, which overtook `blueprint-ghost` once the bridge existed): **built**.
+   Clicking a walker opens 💭 on that crew member with the say… box focused.
+
+Hand change before accepting run 3: the game answered every incoming question with "on it" in the
+twin's name, a made-up reply to what the GDD says is the player's question to answer; removed, the
+game only counts what arrives.
