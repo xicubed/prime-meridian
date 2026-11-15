@@ -4,6 +4,7 @@
    `window.hiroshi` directly."
   (:require [pm.three :as t]
             [pm.plan :as p]
+            [pm.blueprint :as bp]
             [pm.content :as c]))
 
 (def palette
@@ -58,7 +59,7 @@
            :pos    pos)))
 
 (defn- mount-item! [root item]
-  (let [{:keys [key at yaw parts label label-at text]} item
+  (let [{:keys [key at yaw parts label label-at text ghost?]} item
         ^js item-group (t/group {:name (pr-str key) :pos at :rot [0 (p/radians yaw) 0]})]
     (doseq [[i part] (map-indexed vector parts)]
       (let [^js mesh (t/stand-in {:shape (:shape part)
@@ -68,6 +69,7 @@
                                   :rot   (mapv p/radians (:rot part))})]
         (set! (.-name mesh) (str (pr-str key) "/" i))
         (t/add! item-group mesh)))
+    (when ghost? (t/ghost! item-group))
     (t/add! root item-group)
     (when label
       (let [sprite (t/label (label-opts label label-at text))]
@@ -89,11 +91,42 @@
     (conj plan booth)
     plan))
 
+(defn- with-blueprints
+  "`plan` plus a ghosted item for every pending blueprint (GDD §2.1, §4.8):
+   an agent-made change shown in place, with its one-line summary, before
+   the player approves it."
+  [world plan]
+  (into plan (bp/ghost-plan world)))
+
 (defn- with-fixtures [world plan]
-  (->> plan (with-mailbox world) (with-phone-booth world)))
+  (->> plan (with-mailbox world) (with-phone-booth world) (with-blueprints world)))
+
+(defn- blueprint-key [bp] [:blueprint (:id bp)])
+
+(defn- sync-blueprints!
+  "Approving or rejecting a blueprint (GDD §2.1, §4.8) has to change a mesh
+   already mounted as a ghost -- the one case where this namespace creates
+   or removes something after `mount!`. Runs once per status change (a
+   pending blueprint going :approved un-ghosts its mesh so it reads as
+   real; going :rejected removes its mesh and sign so it vanishes)."
+  [world]
+  (when-let [{:keys [root labels] bp-status :bp-status} @!mounted]
+    (let [prev (or bp-status {})
+          now  (into {} (map (fn [bp] [(blueprint-key bp) (:status bp)])) (bp/all world))]
+      (doseq [[k status] now
+              :when (not= status (get prev k))]
+        (case status
+          :approved (do (when-let [^js g (t/by-name root (pr-str k))] (t/unghost! g))
+                        (when-let [sprite (get labels k)] (t/set-visible! sprite false)))
+          :rejected (do (when-let [^js g (t/by-name root (pr-str k))] (t/remove! root g))
+                        (when-let [sprite (get labels k)] (t/remove! root sprite)))
+          nil))
+      (swap! !mounted assoc :bp-status now)))
+  nil)
 
 (defn update!
-  "Refresh only the labels whose text changed since the last call. Never
+  "Refresh the labels whose text changed since the last call, and apply any
+   blueprint approvals/rejections (`sync-blueprints!`). Otherwise never
    creates or removes meshes/labels."
   [world now]
   (when-let [{:keys [labels texts]} @!mounted]
@@ -103,6 +136,7 @@
         (when-let [sprite (get labels k)]
           (t/set-label-text! sprite text)))
       (swap! !mounted assoc :texts (merge texts changes) :plan plan)))
+  (sync-blueprints! world)
   nil)
 
 (defn mount!

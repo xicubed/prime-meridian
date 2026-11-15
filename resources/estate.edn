@@ -84,6 +84,27 @@
                       [{:shape :box :size [0.9 2.0 0.9]   :at [0 1.0   0]    :color :booth-red}   ; body
                        {:shape :box :size [1.0 0.15 1.0]  :at [0 2.075 0]    :color :booth-red}   ; roof
                        {:shape :box :size [0.7 1.5 0.05]  :at [0 1.1 0.43]   :color :glass}]}}    ; glass panel
+ ;; Blueprints (GDD §2.1, §4.5, §4.8): an agent-made change first shows in
+ ;; place as a ghost with a one-line summary, before the player approves it.
+ ;; Approving one that can't become real geometry (pm.blueprint/breaks-build?)
+ ;; never reaches the live world -- pm.core/apply-approved! reverts to the
+ ;; last working build instead, so the lamp post below always bounces back
+ ;; on approval, no matter what the player does to it. Demo mode until real
+ ;; agents propose these: a bench by the mailbox, east bank, clear of Un
+ ;; Architecte's route; a lamp post with a generation-gone-wrong shape.
+ :blueprint-text {:hint   "click to build · right-click to dismiss"                ; shown on every pending ghost's sign
+                  :failed "that one won't build, so the estate stays as it was"}  ; after a refused approval
+ :blueprints [{:id :bench-by-mailbox :at [4.4 0.86 -4.6] :yaw 0   ; open ground north of the booth, probed 0.86 m (Hal)
+               :summary "proposed: a bench by the mailbox"
+               :look {:parts
+                      [{:shape :box :size [1.1 0.1 0.4]  :at [0 0.45 0] :color :brown}    ; seat
+                       {:shape :box :size [0.08 0.45 0.08] :at [ 0.45 0.225 0.15] :color :brown}  ; legs
+                       {:shape :box :size [0.08 0.45 0.08] :at [ 0.45 0.225 -0.15] :color :brown}
+                       {:shape :box :size [0.08 0.45 0.08] :at [-0.45 0.225 0.15] :color :brown}
+                       {:shape :box :size [0.08 0.45 0.08] :at [-0.45 0.225 -0.15] :color :brown}]}}
+              {:id :lamp-post-by-canal :at [3.8 0.63 -5.0] :yaw 0  ; probed 0.63 m (Hal)
+               :summary "proposed: a lamp post by the canal"
+               :look {:parts [{:shape :pyramid :size [0.3 2.5 0.3] :color :tin}]}}]
  ;; Display scale (standing rule): creatures and crew are drawn big enough to
  ;; see from the kit's camera views without zooming in, about the size of a
  ;; mid-size rock (~1 m). Real size doesn't matter; proportions do. Author a

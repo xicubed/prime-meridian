@@ -171,6 +171,39 @@
     (set! (.-receiveShadow m) true)
     m))
 
+(defn ghost!
+  "Makes every mesh under `obj` look like a pending blueprint (GDD §2.1,
+   §4.8): translucent and wireframed, so it reads as proposed, not real.
+   Clones each mesh's material first (shared stand-in materials are never
+   mutated in place). Returns obj."
+  [^js obj]
+  (.traverse obj
+    (fn [^js o]
+      (when (.-isMesh o)
+        (let [^js mat (.clone (.-material o))]
+          (set! (.-transparent mat) true)
+          (set! (.-opacity mat) 0.35)
+          (set! (.-wireframe mat) true)
+          (set! (.-depthWrite mat) false)
+          (set! (.-material o) mat)))))
+  obj)
+
+(defn unghost!
+  "Reverses `ghost!` (GDD §2.1, §4.8): once a blueprint is approved, its
+   meshes go back to looking solid and real -- opaque, filled, normal
+   depth-write -- on the materials `ghost!` already cloned per-mesh.
+   Returns obj."
+  [^js obj]
+  (.traverse obj
+    (fn [^js o]
+      (when (.-isMesh o)
+        (let [^js mat (.-material o)]
+          (set! (.-transparent mat) false)
+          (set! (.-opacity mat) 1)
+          (set! (.-wireframe mat) false)
+          (set! (.-depthWrite mat) true)))))
+  obj)
+
 (defn- hex->css [n]
   (str "#" (.padStart (.toString (bit-and n 0xffffff) 16) 6 "0")))
 

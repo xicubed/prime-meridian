@@ -6,6 +6,7 @@
    World state lives in one atom; the render loop reads it."
   (:require [pm.three :as t]
             [pm.audio :as audio]
+            [pm.blueprint :as bp]
             [pm.bricks :as bricks]
             [pm.brook :as brook]
             [pm.chores :as chores]
@@ -564,9 +565,44 @@
       (when-let [ev (first (filter #(= :jack-out (:event %)) sample-events))]
         (swap! !world world/apply-event ev now)))))
 
+(defn- blueprint-id-of [k]
+  (when (and (vector? k) (= :blueprint (first k))) (second k)))
+
+;; The last `!world` that was actually showing -- not a change still being
+;; tried. `revert-to-last-good!` restores this when an approval would break
+;; the build (GDD §4.8).
+(defonce ^:private !last-good (atom nil))
+
+(defn revert-to-last-good!
+  "A bad change can never take down the running game (GDD §2.1, §4.8): put
+   `!world` back to the last build that was actually showing, so a bad
+   blueprint can never leave the estate broken."
+  []
+  (when-let [last-world @!last-good]
+    (reset! !world last-world)
+    (js/console.warn "Prime Meridian: blueprint reverted -- kept the last working build")))
+
+(defn apply-approved!
+  "Approve blueprint `id` (GDD §2.1, §4.5, §4.8): a change that can become
+   real geometry goes straight into `!world` -- the running scene redraws
+   it next frame, no page reload. A change that can't (`pm.blueprint/
+   breaks-build?`) never reaches `!world` at all: revert-to-last-good!
+   puts the estate back to the build that was already working."
+  [id]
+  (let [before    @!world
+        blueprint (first (filter #(= id (:id %)) (bp/all before)))]
+    (reset! !last-good before)
+    (if (and blueprint (bp/breaks-build? blueprint))
+      (do (revert-to-last-good!)
+          ;; say so on its sign: a silent no-op reads as a broken click
+          (swap! !world bp/mark-failed id))
+      (swap! !world bp/approve-blueprint id))))
+
 (defn- wire-pointer!
   "Click a creature to do its first due chore (through pm.chores); never
-   interferes with the kit's own camera drag."
+   interferes with the kit's own camera drag. A blueprint's ghost (GDD
+   §2.1, §4.8): click it to approve the change (it goes solid in place),
+   right-click it to reject (it vanishes)."
   [^js h]
   (let [^js canvas  (.. h -renderer -domElement)
         !press      (atom nil)
@@ -596,11 +632,32 @@
               (let [{m :mirror k :key a :agent} (pick-at e)]
                 (cond
                   (= k pick/booth-key) (toggle-jack-out!)
+                  (blueprint-id-of k) (apply-approved! (blueprint-id-of k))
                   (some? a) (open-agent-talk! a)
                   (pick/clickable? @!world m)
                   (do (swap! !world chores/click content/hal-lines m (js/Date.now) (tz-offset-min))
                       (js/console.log (pr-str (peek (:log @!world)))))))))))
       #js {:capture true :passive true})
+    ;; Reject = a right-button *click* on a ghost (press and release in
+    ;; place, like pm.pick/click?), not the contextmenu event: on macOS that
+    ;; fires on press, so starting a camera pan over a ghost would reject it.
+    (let [!rpress (atom nil)]
+      (.addEventListener canvas "pointerdown"
+        (fn [^js e]
+          (when (and (.-isPrimary e) (= 2 (.-button e)))
+            (reset! !rpress {:x (.-clientX e) :y (.-clientY e) :t (.-timeStamp e)})))
+        #js {:passive true})
+      (.addEventListener js/window "pointerup"
+        (fn [^js e]
+          (when-let [down @!rpress]
+            (reset! !rpress nil)
+            (when (pick/click? down {:x (.-clientX e) :y (.-clientY e) :t (.-timeStamp e)})
+              (when-let [id (blueprint-id-of (:key (pick-at e)))]
+                (swap! !world bp/reject-blueprint id)))))
+        #js {:capture true :passive true})
+      (.addEventListener canvas "contextmenu"
+        (fn [^js e]
+          (when (blueprint-id-of (:key (pick-at e))) (.preventDefault e)))))
     (.addEventListener canvas "pointermove"
       (fn [^js e]
         (when (zero? (.-buttons e))
@@ -608,7 +665,7 @@
             (when (>= (- now @!last-hover) 50)
               (reset! !last-hover now)
               (let [{m :mirror k :key a :agent} (pick-at e)]
-                (if (or (= k pick/booth-key) (some? a) (pick/clickable? @!world m))
+                (if (or (= k pick/booth-key) (blueprint-id-of k) (some? a) (pick/clickable? @!world m))
                   (do
                     (when (nil? @!cursor) (reset! !cursor (.. canvas -style -cursor)))
                     (set! (.. canvas -style -cursor) "pointer"))
