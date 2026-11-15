@@ -1,0 +1,7 @@
+All good — `public/index.html` is clean, and all touched files are within `src/pm/`, `test/pm/`, `resources/`, `scripts/`. The build gate passes (0 warnings, 883 tests, 0 failures).
+
+FILES: src/pm/closing.cljs (new), test/pm/closing_test.cljs (new), src/pm/ui.cljs (added `set-night!`, now creates its own night-veil DOM element instead of relying on index.html), src/pm/core.cljs (wires `closing/tick` and `ui/set-night!` into the render loop), resources/estate.edn (`:bedtime "22:30"`); resources/content/hal-lines.edn already carried the `:last-call`/`:closing-time` twin lines.
+
+WHAT: `pm.closing` is a pure rules namespace driven by `now`/`offset-min`: `bedtime` reads `:bedtime` from world (default `"22:30"`), `last-call?` is true in the 15-minute window before it, `closing-time?` is true from bedtime through the rest of that local day. `closing/tick` fires the twin's `:last-call` line once as that window opens and `:closing-time` ("goodnight") line once at bedtime, same `:hal` banner path as jack-in, each once per local day. `pm.core`'s render loop calls `closing/tick` every frame and flips `pm.ui/set-night!` on/off based on `closing-time?`, which dims a full-screen veil over whatever's rendering (kit or scaffold).
+
+HOW TO SEE IT: run the game, open dev tools, and fast-forward the clock (or temporarily set `:bedtime` in resources/estate.edn a few minutes ahead) — at 15 minutes before bedtime the twin's last-call line appears in the caption/talk panel, and at bedtime the screen dims (night veil) and the twin's goodnight line appears.

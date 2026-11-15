@@ -1,0 +1,7 @@
+This all looks correct. Everything compiles with 0 warnings and all 883 tests (including the 10 new `pm.closing-test` cases) pass.
+
+FILES: `src/pm/closing.cljs` (new), `test/pm/closing_test.cljs` (new), `resources/estate.edn`, `src/pm/core.cljs`, `src/pm/ui.cljs`, `public/index.html`.
+
+WHAT: Adds closing time (GDD §2.3/§4.8). `resources/estate.edn` declares `:bedtime "22:30"`. The new pure `pm.closing` namespace (`bedtime`, `last-call?`, `closing-time?`, `tick`) computes, from `now`+timezone offset, whether it's in the 15-minutes-before-bedtime window or past bedtime, and fires the twin's `:last-call`/`:closing-time` line (from `resources/content/hal-lines.edn`) once each per local day via the existing `:hal` banner path. `pm.core` ticks this every frame and toggles a `#night` dimming overlay (`pm.ui/set-night!`) while it's past bedtime — works identically with or without the kit.
+
+HOW TO SEE IT: Run the game, then override the clock via the browser devtools (e.g. temporarily edit your system clock, or just trust the gate/tests) to 10:15–10:29pm local — the twin's caption bubble says last call ("Last call. 10:30 PM comes up fast." or similar); at 10:30pm the estate dims (the `#night` veil fades in) and the twin says goodnight ("10:30 PM. Goodnight.").

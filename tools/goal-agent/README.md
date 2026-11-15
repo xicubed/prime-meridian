@@ -162,3 +162,23 @@ Hand changes before accepting run 4:
 
 Checked live with scripted clicks: the bench goes solid; the lamp post stays a ghost and its sign reads
 "that one won't build, so the estate stays as it was".
+
+**Run 5** (`runs/20261114-2035/`, `--max 3 --only chore-done-event,ask-player,closing-time`, about $9):
+
+1. `chore-done-event`: **built**. A chore-done arriving from the bridge needs a valid source, is
+   stamped with the time it arrived, and counts once per due window.
+2. `ask-player`: **built**. An agent's question raises an amber "!" over its walker and opens its
+   say… box; what you type goes back over the websocket as an `:answer` naming that agent, and the
+   "!" clears. The demo question comes from Le Critique.
+3. `closing-time`: **built** on the second attempt (the first edited `public/index.html`, outside
+   the lane, and was sent back). `:bedtime "22:30"` in `estate.edn`; last call 15 minutes before,
+   then the estate dims to night and the twin says goodnight, lines in `hal-lines.edn`.
+
+Hand changes before accepting run 5:
+- Now that the game acts on every websocket event, the bridge's demo (all the sample events sent on
+  connect) jacked the player out on every page load and marked Flora fed. It now sends only the
+  sample question; the booth and the canal demo the other two locally. Checked live: no jack-out on
+  load, "!" over Le Critique, the answer reaches the bridge and the "!" clears.
+- The lamp post was a deliberately broken blueprint (a shape that doesn't exist) to demo refusal;
+  the Director asked for it to just work, so it is now a post, a shade and a bulb, all drawable. The
+  refusal path is still covered by tests.
