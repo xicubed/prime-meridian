@@ -169,7 +169,7 @@
             ;; only the questions: the game now acts on every event it gets, and
             ;; the sample jack-out / chore-done would freeze the estate and mark
             ;; Flora fed on every page load (the booth and the canal demo those
-            ;; locally); the sample :answer would clear the "!" unseen (Hal)
+            ;; locally); the sample :answer would clear the "!" unseen
             (filter #(= :agent-event (:type %)))
             vec)
        (catch Exception _ [])))
