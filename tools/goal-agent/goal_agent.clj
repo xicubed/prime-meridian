@@ -7,7 +7,7 @@
 ;;   bb goal-agent extract [--force]   GDD -> tools/goal-agent/requirements.edn (a model drafts
 ;;                                     it once; a person reviews it before it is used)
 ;;   bb goal-agent plan [--today D]    scan + gaps + priority scores, no writes
-;;   bb goal-agent run [--max N] [--only ID] [--dry-run] [--today D]
+;;   bb goal-agent run [--max N] [--only ID,ID] [--dry-run] [--today D]   (--only: the Director narrows the goals)
 ;;                                     the loop: pick -> write -> gate -> re-scan -> next
 ;;   bb goal-agent test                unit tests of the reasoning layer (goal.core)
 ;;
@@ -319,7 +319,7 @@ at in the running game.
     (println (str/join "\n" other)) (System/exit 1))
   (let [dir  (hpath "runs" (stamp))
         secs (gdd-sections)
-        reqs (cond->> (requirements) only (filter #(= (keyword only) (:id %))))]
+        reqs (cond->> (requirements) only (filter #(contains? (set (map keyword (str/split only #","))) (:id %))))]
     (fs/create-dirs dir)
     (log! dir "# Goal agent run " (stamp) "\n\ntoday " today ", writer " (name (:writer config)) ", max " max " iteration(s)" (when dry-run ", dry run") "\n")
     (loop [n 1 parked #{}]
