@@ -352,3 +352,11 @@
     (is (= W0 (o/apply-play W0 {:mirrors {:juniper {:state {:oats 3}}}})))
     (is (= W0 (o/apply-play W0 "garbage")))
     (is (nil? (o/play-of WH W0)))))
+
+(deftest builds-last-between-sessions
+  (let [w0    {:blueprints [{:id :bench :status :pending} {:id :lamp :status :pending} {:id :sign :status :pending}]}
+        built (-> w0 (assoc-in [:blueprints 0 :status] :approved) (assoc-in [:blueprints 1 :status] :rejected))
+        saved (o/play-of built {})]
+    (is (= {:bench :approved :lamp :rejected} (:blueprints saved)) "pending ones aren't saved")
+    (is (= [:approved :rejected :pending] (mapv :status (:blueprints (o/apply-play w0 saved)))))
+    (is (= w0 (o/apply-play w0 {:blueprints {:bench :exploded :gone :approved}})) "only real statuses, only known ids")))

@@ -112,3 +112,11 @@
     (is (< 1000 (get-in w [:hal :until])))
     (is (= [:bench] (mapv :id (bp/pending w))) "still a ghost"))
   (is (nil? (:hal (bp/refuse {:blueprints [B1]} :bench 1000))) "no wording, no caption"))
+
+(deftest t23-built-plan-draws-approved-solid
+  (let [w {:blueprints [(assoc B1 :status :approved) (assoc B2 :id :x :status :pending)]}
+        [item & more] (bp/built-plan w)]
+    (is (nil? more))
+    (is (= [:blueprint :bench] (:key item)))
+    (is (nil? (:ghost? item)))
+    (is (nil? (:label item)))))

@@ -226,7 +226,8 @@
       (swap! !world overlay/apply-play p))))
 
 (defn- on-play-change! [_ _ old new]
-  (when-not (identical? (:mirrors old) (:mirrors new))
+  (when-not (and (identical? (:mirrors old) (:mirrors new))
+                 (identical? (:blueprints old) (:blueprints new)))
     (let [text (pr-str (overlay/play-of new sample-estate))]
       (when (not= text @!play-text)
         (reset! !play-text text)

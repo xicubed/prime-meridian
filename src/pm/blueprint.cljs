@@ -116,6 +116,23 @@
                   (seq parts)
                   (not (every? valid-part-strict? parts))))))
 
+(defn built-plan
+  "Scene items for every approved blueprint, drawn solid from the start (a
+   build saved from an earlier session, pm.overlay/apply-play): same shape
+   as `ghost-plan`'s items, no ghost, no sign."
+  [world]
+  (vec
+    (for [bp (all world) :when (= :approved (:status bp))]
+      (let [{:keys [id at yaw look]} bp
+            [x y z] at
+            parts (p/look-parts look nil)
+            top   (p/parts-top parts)]
+        {:key    [:blueprint id]
+         :at     at
+         :yaw    (if (number? yaw) yaw 0)
+         :parts  parts
+         :center [x (+ y (/ top 2)) z]}))))
+
 (defn ghost-plan
   "Scene items for every pending blueprint, shaped like `pm.plan/scene-plan`
    items (so `pm.scene` mounts them the same way) plus `:ghost?` true and a

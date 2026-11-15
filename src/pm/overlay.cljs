@@ -90,8 +90,9 @@
 (defn play-of
   "What the player did in the game to mirrors the twin doesn't keep
    (sample ones, e.g. a pet fed with a key): their state wherever it
-   differs from the sample `estate`, so a reload doesn't undo it. nil when
-   nothing differs."
+   differs from the sample `estate`, so a reload doesn't undo it; plus every
+   blueprint the player built or dismissed (:blueprints {id status}). nil
+   when nothing differs."
   [world estate]
   (let [ms (for [[id m] (:mirrors world)
                  :when (not= :hal (get-in m [:state :source]))
@@ -99,23 +100,41 @@
                        s0 (dissoc (get-in estate [:mirrors id :state]) :source)]
                  :when (not= s s0)]
              [id {:state s}])]
-    (when (seq ms) {:mirrors (into {} ms)})))
+    (let [built (into {} (for [bp (:blueprints world)
+                               :when (contains? #{:approved :rejected} (:status bp))]
+                           [(:id bp) (:status bp)]))]
+      (cond-> nil
+        (seq ms)    (assoc :mirrors (into {} ms))
+        (seq built) (assoc :blueprints built)))))
 
 (defn apply-play
   "Lay what `play-of` saved back over a freshly loaded world: same field
    rules as the twin's file, never over a mirror the twin keeps, never
    touching :source."
   [world play]
-  (if-not (and (map? play) (map? (:mirrors play)))
+  (if-not (map? play)
     world
-    (reduce (fn [w [id entry]]
+    (-> (if-not (map? (:mirrors play))
+          world
+          (reduce (fn [w [id entry]]
               (let [m (get-in w [:mirrors id])]
                 (if (and m (not= :hal (get-in m [:state :source]))
                          (map? entry) (map? (:state entry)))
                   (update-in w [:mirrors id :state] merge
                              (into {} (filter (fn [[k v]] (accept? m k v)) (:state entry))))
                   w)))
-            world (:mirrors play))))
+            world (:mirrors play)))
+        ;; what the player built or dismissed stays built or dismissed (GDD
+        ;; §2.1): only :approved/:rejected, only for blueprints still in the data
+        (update :blueprints
+                (fn [bps]
+                  (let [saved (when (map? (:blueprints play)) (:blueprints play))]
+                    (if (seq saved)
+                      (mapv (fn [bp]
+                              (let [s (get saved (:id bp))]
+                                (if (contains? #{:approved :rejected} s) (assoc bp :status s) bp)))
+                            bps)
+                      bps)))))))
 
 (defn source-tag
   ([source] (source-tag source nil nil))

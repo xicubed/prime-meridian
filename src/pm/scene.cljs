@@ -113,7 +113,7 @@
    an agent-made change shown in place, with its one-line summary, before
    the player approves it."
   [world plan]
-  (into plan (bp/ghost-plan world)))
+  (-> plan (into (bp/ghost-plan world)) (into (bp/built-plan world))))
 
 (def ^:private snap-drop-m
   "Metres the dropped worm falls before it's caught."

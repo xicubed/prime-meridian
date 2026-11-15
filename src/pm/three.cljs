@@ -558,6 +558,11 @@
               ^js l  (PL. (if lamp (.-color lamp) 0xffd28a) 0
                           (if lamp (.-distance lamp) 10) (if lamp (.-decay lamp) 2))]
           (.add o l)
+          ;; its own material: built from saved state it never went through
+          ;; ghost! (which clones), and stand-in materials are shared
+          (when-not (.. o -userData -ownMaterial)
+            (set! (.-material o) (.clone (.-material o)))
+            (set! (.. o -userData -ownMaterial) true))
           (set! (.. o -userData -light) l)))))
   obj)
 
