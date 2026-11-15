@@ -1,0 +1,5 @@
+Probe matches, and the fixture is wired into the live scene via `pm.scene/with-fixtures`.
+
+FILES: resources/estate.edn, src/pm/plan.cljs, src/pm/scene.cljs, test/pm/plan_test.cljs
+WHAT: Added a `:workshop` fixture to the estate (GDD §2.4/§4.8) — a labelled stand-in building (floor, back wall, shelf, three desks) west of the lobby, with a plain always-on sign reading "Workshop — this repo. Desks: open tasks. Shelves: landed work." `pm.plan/workshop-item` turns that data into a scene item exactly like `lobby-item`/`mailbox-item`, and `pm.scene/with-workshop` mounts it alongside the other fixtures every frame.
+HOW TO SEE IT: Run the game and look just west of the lobby/kitchen (world x ≈ -3.5, z ≈ -1.5) — a low building with three brown desks and a shelf against the back wall, with its sign reading the workshop text, standing for the game's own repo.

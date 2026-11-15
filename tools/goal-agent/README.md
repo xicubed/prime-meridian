@@ -204,3 +204,18 @@ Hand changes before accepting run 5:
 - The lamp post was a deliberately broken blueprint (a shape that doesn't exist) to demo refusal;
   the Director asked for it to just work, so it is now a post, a shade and a bulb, all drawable. The
   refusal path is still covered by tests.
+
+**Run 6** (`runs/20261115-1150/`, `--max 4 --only` the day's eight, about $4.40): the lobby, the
+workshop, the juice warning (the twin says "Claude's at 83%, refills at 2:00 PM" once usage crosses
+80%) and staying past closing (a one-time ask at bedtime) were **built**. The scores exposed a bug in
+`--only`: it filtered the list before scoring, so `answer-in-world`'s finished dependencies looked
+open and its score fell from 28.6 to about 7. Now `goal.core/narrow` keeps every requirement in view
+and sets the others aside like deferred ones (test added).
+
+Hand changes before accepting run 6:
+- The lobby went in the creek and the workshop under the tree canopy ("height approximate until
+  probed"). A probe grid of the estate showed almost no open dry ground, so the Director chose: the
+  lobby is the kit's own cottage (a signpost at its steps) and the workshop is a smaller open-air one
+  at the edge of the only clearing, about 2 m off a walker's route.
+- Two of its tests restated part counts; they read them from `estate.edn` now.
+- The stay-late prompt's wording moved from code to data (`:stay-late-ask`).

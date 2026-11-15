@@ -1,0 +1,5 @@
+FILES: src/pm/closing.cljs, src/pm/ui.cljs, src/pm/core.cljs, test/pm/closing_test.cljs
+
+WHAT: At bedtime (closing time), once `pm.closing/tick` marks the day closed, `pm.closing/asking-to-stay?` goes true and stays true until answered — a single open ask, never re-fired that night. Clicking "Stay" calls the new `pm.closing/stay-late`, which records the answer (`:closing :stay-late? true`), has the twin say one of the `:stay-late` lines once (already in `resources/content/hal-lines.edn`), and flips `asking-to-stay?` back to false for the rest of that local day — the estate keeps running at night (the existing `pm.ui/set-night!` veil) with no further prompt. A new local day resets it, so the ask returns the next night.
+
+HOW TO SEE IT: Set the system clock (or use a short `:bedtime` in the world, e.g. `{:bedtime "09:00"}`) so closing time arrives; at that moment a "Staying past closing?" banner with a Stay button appears over the scene (alongside the night veil darkening). Click Stay: the twin's caption shows a `:stay-late` line, the banner disappears, and it won't reappear for the rest of that day no matter how long you keep playing.

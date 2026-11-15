@@ -1,0 +1,5 @@
+FILES: `src/pm/juice.cljs` (new), `test/pm/juice_test.cljs` (new), `src/pm/core.cljs` (wired `pm.juice/tick` into the frame loop), `resources/estate.edn` (sample `:logins` data).
+
+WHAT: `pm.juice` tracks each AI login's usage estimate (`:logins {id {:name :pct :refill-at}}` on the world, e.g. `{:name "Claude" :pct 0.83 :refill-at "14:00"}`). `juice-warning` is the pure one-liner ("Claude's at 83%, refills at 2:00 PM.") once `:pct` is at or above 80% (`warn-at`); `tick` advances per-login "already warned" state in `world` so the twin says it once per crossing (fires again only after the login drops back below 80% — a refill — and crosses again), using the same `:hal` banner path as closing-time/jack-in.
+
+HOW TO SEE IT: Load the game — the sample login (Claude at 83%) is already over threshold, so on the first frame the twin's speech bubble/caption shows "Claude's at 83%, refills at 2:00 PM." and it's logged in the talk panel under the twin's name, exactly like the existing last-call/goodnight lines.

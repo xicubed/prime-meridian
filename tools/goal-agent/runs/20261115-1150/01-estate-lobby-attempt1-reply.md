@@ -1,0 +1,3 @@
+FILES: resources/estate.edn, src/pm/plan.cljs, src/pm/scene.cljs, test/pm/plan_test.cljs
+WHAT: Added a `:lobby` fixture to the estate (front of the grounds, clear of walker routes) — a small platform with a back wall and kitchen counter, carrying a permanent sign "Lobby & kitchen — bring your questions here." `pm.plan/lobby-item` turns that data into a scene item (same pattern as the mailbox/phone booth), and `pm.scene/with-fixtures` now mounts it alongside them every load.
+HOW TO SEE IT: Load the game — near the front of the estate (world x≈0.3, z≈-1.5) there's now a low platform with a wall and counter, labelled with a permanent sign reading "Lobby & kitchen — bring your questions here."

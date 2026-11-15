@@ -319,7 +319,7 @@ at in the running game.
     (println (str/join "\n" other)) (System/exit 1))
   (let [dir  (hpath "runs" (stamp))
         secs (gdd-sections)
-        reqs (cond->> (requirements) only (filter #(contains? (set (map keyword (str/split only #","))) (:id %))))]
+        reqs (g/narrow (requirements) (when only (map keyword (str/split only #","))))]
     (fs/create-dirs dir)
     (log! dir "# Goal agent run " (stamp) "\n\ntoday " today ", writer " (name (:writer config)) ", max " max " iteration(s)" (when dry-run ", dry run") "\n")
     (loop [n 1 parked #{}]

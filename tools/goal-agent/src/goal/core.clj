@@ -117,6 +117,18 @@
   (let [top (first (ranked reqs gap-map today))]
     (when (and top (pos? (:score top))) top)))
 
+(defn narrow
+  "The Director's `--only` list: every requirement stays in view (so a
+   dependency that's already done still counts as done, and what a pick
+   unblocks is counted against the whole list), but the ones outside `ids`
+   are set aside like deferred ones: they score 0 and don't hold up the
+   stop rule. Filtering the list instead made a done dependency look open
+   and cut its dependents' scores to a quarter. No `ids`: unchanged."
+  [reqs ids]
+  (if (seq ids)
+    (mapv #(if (contains? (set ids) (:id %)) % (assoc % :deferred? true)) reqs)
+    reqs))
+
 (defn all-met?
   "True when every requirement that isn't deferred is done."
   [reqs gap-map]

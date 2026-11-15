@@ -65,3 +65,15 @@
 (deftest requirement-shape
   (is (g/valid-requirement? {:id :x :title "t" :milestone "2026-11-09" :evidence [{:path "src/" :re "a"}]}))
   (is (not (g/valid-requirement? {:id :x :title "t" :milestone "Nov 9" :evidence []}))))
+
+(deftest narrow-keeps-dependencies-in-view
+  (let [reqs [{:id :dep :size 1 :milestone "2026-11-01"}
+              {:id :top :size 2 :milestone "2026-11-09" :depends [:dep]}
+              {:id :other :size 1 :milestone "2026-11-01"}]
+        gm   {:dep {:status :done} :top {:status :missing} :other {:status :missing}}
+        full (g/priority-score (second reqs) gm reqs "2026-11-15")
+        nar  (g/narrow reqs [:top])]
+    (is (= full (g/priority-score (second nar) gm nar "2026-11-15"))
+        "a done dependency outside --only still counts as done")
+    (is (zero? (g/priority-score (nth nar 2) gm nar "2026-11-15")) "outside --only: not picked")
+    (is (= reqs (g/narrow reqs nil)))))
