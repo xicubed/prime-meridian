@@ -513,6 +513,13 @@
       (update-paths! (:paths @!state) (:walkers @!state) extras)
       (swap! !state update :frame inc))))
 
+(defn walkers-root
+  "The group every walker's anchor hangs under (\"pm-walkers\"), or nil
+   before start!. It sits beside the estate plan's root, not inside it, so
+   clicks raycast it separately (pm.core's pick-at)."
+  []
+  (:root @!state))
+
 (defn set-dots!
   "No-op before start!. Redraws a walker's label only when its runs change.
    `asks-player` (pm.world's map of pending ask_player questions, keyed by

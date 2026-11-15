@@ -489,7 +489,9 @@
             (swap! !talk-ui assoc :listed (:entries t') :listed-n (:n t') :listed-bridge bridge-on)))
         (swap! !talk-ui assoc :listed nil :listed-n nil :listed-bridge nil)))
     (let [asked (set (map keyword (keys (:asks-player @!world))))
-          rows  (talk/crew-roster (:crew @!world) now (bridge-on?) (:crew-log @!world) (:expanded @!talk-ui) asked)]
+          rows  (talk/with-questions
+                  (talk/crew-roster (:crew @!world) now (bridge-on?) (:crew-log @!world) (:expanded @!talk-ui) asked)
+                  (:asks-player @!world))]
       (when (not= rows (:roster @!talk-ui))
         (ui/render-roster! rows on-say on-expand offset-of jum)
         (swap! !talk-ui assoc :roster rows)))
@@ -640,10 +642,14 @@
                                       :width (.-width rect) :height (.-height rect)}
                             xy       (pick/ndc (.-clientX e) (.-clientY e) rect-m)]
                         (when xy
-                          (let [hits (t/pick-names (scene/mounted-root) (.-camera h) xy)]
+                          (let [hits  (t/pick-names (scene/mounted-root) (.-camera h) xy)
+                                ;; walkers hang under their own root beside the
+                                ;; estate's, so they need their own raycast
+                                whits (when-let [^js wr (bricks/walkers-root)]
+                                        (t/pick-names wr (.-camera h) xy))]
                             {:mirror (pick/pick-mirror (scene/current-plan) hits)
                              :key    (pick/pick-key hits)
-                             :agent  (pick/pick-agent (m/walkers @!world) hits)}))))]
+                             :agent  (pick/pick-agent (m/walkers @!world) whits)}))))]
     (.addEventListener canvas "pointerdown"
       (fn [^js e]
         (when (and (.-isPrimary e) (zero? (.-button e)))

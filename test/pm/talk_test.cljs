@@ -380,3 +380,10 @@
         R (tk/restore old)]
     (is (= (mapv :n (:entries R)) [1 2 5 6]))
     (is (= (:last-say R) {:juniper "Hay, please?"}))))
+
+(deftest with-questions-attaches-the-asked-text
+  (let [rows [{:member :le-critique :who "Le Critique"} {:member :le-testeur :who "Le Testeur"}]
+        out  (tk/with-questions rows {"le-critique" {:text "Rocks: round or jagged?" :since 1}})]
+    (is (= "Rocks: round or jagged?" (:question (first out))))
+    (is (nil? (:question (second out))))
+    (is (= rows (tk/with-questions rows {})) "nothing asked: rows unchanged")))

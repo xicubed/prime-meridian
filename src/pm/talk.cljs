@@ -574,6 +574,18 @@
      :crew-log (str (:who e) " " (:text e) " · " (clock-text (:at e) offset-min))
      nil)))
 
+(defn with-questions
+  "Roster `rows` with each pending ask_player question (GDD §3.1) attached
+   as :question, the text the agent asked, from `asks` (pm.world's
+   :asks-player, keyed by agent name string). The row shows it, so the \"!\"
+   comes with what it's asking."
+  [rows asks]
+  (mapv (fn [row]
+          (if-let [q (get-in asks [(name (:member row)) :text])]
+            (assoc row :question q)
+            row))
+        rows))
+
 (defn crew-roster
   "The 💭 roster strip: every crew member, walker or not. `asked` (a set
    of member keywords with a pending ask_player question, GDD §3.1, §2.1)

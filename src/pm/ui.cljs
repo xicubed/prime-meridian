@@ -207,13 +207,14 @@
               ^js who   (js/document.createElement "span")
               ^js inp   (js/document.createElement "input")]
           (set! (.-className r) "row")
-          (set! (.-textContent glyph) (if (= :unknown (:status row)) "○" "●"))
+          (set! (.-textContent glyph) (cond (:question row) "!" (= :unknown (:status row)) "○" :else "●"))
+          (when (:question row) (set! (.. glyph -style -color) "#f5a623"))
           (set! (.-className who) "who")
           (set! (.-textContent who) (:who row))
           (set! (.. who -style -cursor) "pointer")
           (.addEventListener who "click" (fn [_] (on-expand (:member row))))
           (set! (.-type inp) "text")
-          (.setAttribute inp "placeholder" "say…")
+          (.setAttribute inp "placeholder" (if (:question row) "answer…" "say…"))
           (.setAttribute inp "data-member" (name (:member row)))
           (set! (.-disabled inp) (not (:say? row)))
           (.addEventListener inp "keydown"
@@ -224,6 +225,12 @@
           (.appendChild r who)
           (.appendChild r inp)
           (.appendChild root r)
+          (when-let [q (:question row)]
+            (let [^js qd (js/document.createElement "div")]
+              (set! (.-className qd) "roster-log")
+              (set! (.. qd -style -opacity) "1")
+              (set! (.-textContent qd) q)
+              (.appendChild root qd)))
           (when (:expanded? row)
             (let [^js sub (js/document.createElement "div")]
               (set! (.-className sub) "roster-log")
