@@ -78,3 +78,29 @@
 
 (deftest t10-tick-not-a-number-now-is-a-no-op
   (is (= (cl/tick W nil 0) W)))
+
+(deftest t11-asking-to-stay-only-once-closed-and-unanswered
+  (is (false? (cl/asking-to-stay? W)))
+  (let [w1 (cl/tick W (at 1350) 0)]
+    (is (true? (cl/asking-to-stay? w1)))
+    (let [w2 (cl/stay-late w1 (at 1351))]
+      (is (false? (cl/asking-to-stay? w2))))))
+
+(deftest t12-stay-late-says-its-line-once-and-no-further-ask
+  (let [w1 (cl/tick W (at 1350) 0)
+        w2 (cl/stay-late w1 (at 1360) )]
+    (is (= (:event (:hal w2)) :stay-late))
+    (is (true? (get-in w2 [:closing :stay-late?])))
+    (is (false? (cl/asking-to-stay? w2)))
+    ;; later ticks that same day never re-open the ask
+    (let [w3 (cl/tick w2 (at 1400) 0)]
+      (is (false? (cl/asking-to-stay? w3))))))
+
+(deftest t13-stay-late-not-a-number-now-is-a-no-op
+  (is (= (cl/stay-late W nil) W)))
+
+(deftest t14-a-new-day-resets-the-ask
+  (let [w1 (cl/tick W (at 1350) 0)
+        w2 (cl/stay-late w1 (at 1360))
+        w3 (cl/tick w2 (+ (at 1350) 86400000) 0)]
+    (is (true? (cl/asking-to-stay? w3)))))

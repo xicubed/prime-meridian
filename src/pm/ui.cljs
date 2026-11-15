@@ -44,26 +44,48 @@
   (when-let [^js cap-el (el "caption")]
     (.remove (.-classList cap-el) "show")))
 
-(defn- night-el
-  "Closing time's night veil (GDD §2.3, §4.8): a dimming overlay over the
-   rendered scene (kit or scaffold alike), created on first use instead of
-   living in public/index.html so the feature stays self-contained in
-   src/pm/. Styled inline so it needs no stylesheet rule either."
+(defn- stay-late-el
+  "The twin's one-time stay-late ask (GDD §2.3, §4.8): shown once closing
+   time hits and hidden once answered. Created on first use, same
+   self-contained pattern as the night veil, so it needs no
+   public/index.html change."
   []
-  (or (el "night")
-      (let [^js nt (js/document.createElement "div")]
-        (set! (.-id nt) "night")
-        (.setAttribute nt "aria-hidden" "true")
-        (set! (.. nt -style -cssText)
-              (str "position:fixed;inset:0;z-index:150;background:#050712;"
-                   "opacity:0;pointer-events:none;mix-blend-mode:multiply;"
-                   "transition:opacity 3s ease;"))
-        (.appendChild js/document.body nt)
-        nt)))
+  (or (el "stay-late")
+      (let [^js box (js/document.createElement "div")]
+        (set! (.-id box) "stay-late")
+        (set! (.. box -style -cssText)
+              (str "position:fixed;left:50%;bottom:260px;transform:translateX(-50%);"
+                   "z-index:230;padding:10px 16px;border-radius:10px;"
+                   "background:rgba(20,24,32,.9);color:#f3efe2;"
+                   "font:16px system-ui, sans-serif;display:none;"
+                   "align-items:center;gap:10px;"))
+        (let [^js q (js/document.createElement "span")
+              ^js b (js/document.createElement "button")]
+          (set! (.-id q) "stay-late-text")
+          (set! (.-id b) "stay-late-button")
+          (.appendChild box q)
+          (.appendChild box b))
+        (.appendChild js/document.body box)
+        box)))
 
-(defn set-night! [on?]
-  (when-let [^js nt (night-el)]
-    (set! (.. nt -style -opacity) (if on? ".75" "0"))))
+(defn wire-stay-late!
+  "Calls `on-stay` once when the player clicks the ask's Stay button.
+   Creates the prompt on first call if it doesn't exist yet."
+  [on-stay]
+  (stay-late-el)
+  (when-let [^js btn (el "stay-late-button")]
+    (.addEventListener btn "click"
+      (fn [^js e] (.stopPropagation e) (on-stay)))))
+
+(defn set-stay-late!
+  "Shows or hides the ask, worded from `words` ({:ask :button}, the
+   :stay-late-ask entry in estate.edn). Safe to call every frame: only text
+   and the display style change, no listeners are touched."
+  [asking? words]
+  (when-let [^js box (stay-late-el)]
+    (when-let [^js q (el "stay-late-text")] (set! (.-textContent q) (or (:ask words) "")))
+    (when-let [^js b (el "stay-late-button")] (set! (.-textContent b) (or (:button words) "")))
+    (set! (.. box -style -display) (if (and asking? (:button words)) "flex" "none"))))
 
 (defn set-badge! [text alert?]
   (when-let [^js b (el "talk-badge")]

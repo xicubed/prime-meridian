@@ -68,6 +68,7 @@
                                   :pos   (:at part)
                                   :rot   (mapv p/radians (:rot part))})]
         (set! (.-name mesh) (str (pr-str key) "/" i))
+        (when (:glow part) (set! (.. mesh -userData -glow) true))
         (t/add! item-group mesh)))
     (when ghost? (t/ghost! item-group))
     (t/add! root item-group)
@@ -75,6 +76,22 @@
       (let [sprite (t/label (label-opts label label-at text))]
         (t/add! root sprite)
         sprite))))
+
+(defn- with-lobby
+  "`plan` plus the lobby's own item (GDD §2.4, §4.8), when `world` places
+   one."
+  [world plan]
+  (if-let [lobby (p/lobby-item world)]
+    (conj plan lobby)
+    plan))
+
+(defn- with-workshop
+  "`plan` plus the workshop's own item (GDD §2.4, §4.8), when `world` places
+   one."
+  [world plan]
+  (if-let [workshop (p/workshop-item world)]
+    (conj plan workshop)
+    plan))
 
 (defn- with-mailbox
   "`plan` plus the mailbox's own item (GDD §2.4), when `world` places one."
@@ -99,7 +116,7 @@
   (into plan (bp/ghost-plan world)))
 
 (defn- with-fixtures [world plan]
-  (->> plan (with-mailbox world) (with-phone-booth world) (with-blueprints world)))
+  (->> plan (with-lobby world) (with-workshop world) (with-mailbox world) (with-phone-booth world) (with-blueprints world)))
 
 (defn- blueprint-key [bp] [:blueprint (:id bp)])
 
@@ -116,7 +133,10 @@
       (doseq [[k status] now
               :when (not= status (get prev k))]
         (case status
-          :approved (do (when-let [^js g (t/by-name root (pr-str k))] (t/unghost! g))
+          :approved (do (when-let [^js g (t/by-name root (pr-str k))]
+                          (t/unghost! g)
+                          ;; a built lamp lights like the kit's own lamps
+                          (t/light-glows! g (:kit-lights @!mounted)))
                         (when-let [sprite (get labels k)] (t/set-visible! sprite false)))
           :rejected (do (when-let [^js g (t/by-name root (pr-str k))] (t/remove! root g))
                         (when-let [sprite (get labels k)] (t/remove! root sprite)))
@@ -137,6 +157,7 @@
           (t/set-label-text! sprite text)))
       (swap! !mounted assoc :texts (merge texts changes) :plan plan)))
   (sync-blueprints! world)
+  (when-let [{:keys [root kit-lights]} @!mounted] (t/sync-glows! root kit-lights))
   nil)
 
 (defn mount!
@@ -152,7 +173,8 @@
                               acc))
                           {} plan)]
       (t/add! scene root)
-      (reset! !mounted {:root root :labels labels :texts (p/label-texts plan) :plan plan})
+      (reset! !mounted {:root root :labels labels :texts (p/label-texts plan) :plan plan
+                        :kit-lights (t/kit-light-sources scene (:kit-lights world))})
       (update! world now)))
   nil)
 

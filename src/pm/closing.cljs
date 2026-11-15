@@ -64,6 +64,26 @@
   (and (number? now)
        (>= (local-minute now offset-min) (minute-of-day (bedtime world)))))
 
+(defn asking-to-stay?
+  "True once bedtime's hit and the twin's one-time stay-late ask is still
+   open (GDD §2.3, §4.8): shown from the moment `tick` marks the day closed
+   until `stay-late` answers it. Never re-opens that same local day."
+  [world]
+  (let [c (:closing world)]
+    (and (boolean (:closed? c)) (not (:stay-late? c)))))
+
+(defn stay-late
+  "Answers the twin's ask: the player's staying, so the estate stays at
+   night with no further prompt tonight (GDD §2.3, §4.8) -- `asking-to-stay?`
+   goes false for the rest of this local day, and the twin says so once over
+   the same :hal banner path as every other closing-time line."
+  [world now]
+  (if-not (number? now)
+    world
+    (-> world
+        (update :closing assoc :stay-late? true)
+        (c/hal-say c/hal-lines :stay-late {} now))))
+
 (defn tick
   "Advances closing time's own little bit of state in `world`: fires the
    twin's last-call line once as that window opens, and its goodnight line

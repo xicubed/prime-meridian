@@ -17,6 +17,8 @@
             [pm.camera :as camera]
             [pm.creature-spike :as creature-spike]
             [pm.events :as events]
+            [pm.juice :as juice]
+            [pm.sky :as sky]
             [pm.jumeaux :as j]
             [pm.kit :as kit]
             [pm.motion :as m]
@@ -335,6 +337,21 @@
 (defn- tz-offset-min []
   (- (.getTimezoneOffset (js/Date.))))
 
+(defonce ^:private !sky (atom nil))   ; the kit hour pm.sky last set
+
+(defn- sky-tick!
+  "The sky follows the clock (pm.sky): sets the kit's lighting when the
+   schedule's hour changes. A `?hour=` in the URL pins the kit's own choice;
+   no kit (the scaffold) = nothing to light."
+  [now off]
+  (when-let [^js h (kit/handle)]
+    (when-let [^js rig (.-rig h)]
+      (when-not (.get (js/URLSearchParams. (.. js/window -location -search)) "hour")
+        (let [want (sky/hour-at (sky/schedule @!world) (sky/local-minute now off))]
+          (when-let [{:keys [set immediate?]} (sky/follow @!sky want)]
+            (.setHour rig (name set) immediate?)
+            (reset! !sky set)))))))
+
 (defn- offset-of [at]
   (- (.getTimezoneOffset (js/Date. at))))
 
@@ -515,12 +532,17 @@
     (scene/update! @!world (js/Date.now))
     ;; Closing time (GDD §2.3, §4.8): last call, then goodnight, by the
     ;; player's own bedtime (declared data, pm.closing). The twin's banner
-    ;; rides the same :hal path as jack-in; going to night is just a visual
-    ;; layer (pm.ui/set-night!) over whatever's rendering -- kit or scaffold.
+    ;; rides the same :hal path as jack-in. Night itself is the sky's
+    ;; (pm.sky, following the clock), not a dimming layer.
     (let [closing-now (js/Date.now)
           off         (tz-offset-min)]
       (swap! !world closing/tick closing-now off)
-      (ui/set-night! (closing/closing-time? @!world closing-now off)))
+      (sky-tick! closing-now off)
+      (ui/set-stay-late! (closing/asking-to-stay? @!world) (:stay-late-ask @!world)))
+    ;; The juice meter's warning (GDD §2.1, §4.4, §4.8): the twin says a
+    ;; one-line warning the first time a login's usage estimate crosses
+    ;; 80%, same :hal banner path as closing time and jack-in.
+    (swap! !world juice/tick (js/Date.now))
     (talk-tick! (js/Date.now))
     (when (zero? (mod (swap! !frames inc) 30))
       (hud! (str "Prime Meridian · " @!mode " · " @!backend " · frame " @!frames
@@ -756,7 +778,10 @@
         (ui/set-panel-open! (:open? (:talk @!world))))))
   (when-let [^js cb (js/document.getElementById "hold-toggle")]
     (.addEventListener cb "change"
-      (fn [^js e] (on-hold-toggle! (.. e -target -checked))))))
+      (fn [^js e] (on-hold-toggle! (.. e -target -checked)))))
+  ;; Staying past closing (GDD §2.3, §4.8): the twin asks once; clicking
+  ;; Stay answers it and the ask doesn't come back tonight.
+  (ui/wire-stay-late! (fn [] (swap! !world closing/stay-late (js/Date.now)))))
 
 (defn- jack-in! []
   (swap! !world content/hal-say content/hal-lines :jack-in {} (js/Date.now)))

@@ -395,6 +395,52 @@
     (is (near? [(p/parts-top FS)] [13.14]))
     (is (= (nth P0 2) (nth (p/scene-plan WS T0) 2)))))
 
+;; lobby-item: home, with the kitchen (GDD §2.4, §4.8). A plain, always-on
+;; sign -- not driven by any mirror's state.
+
+(deftest t41-lobby-nil-cases
+  (is (nil? (p/lobby-item {})))
+  (is (nil? (p/lobby-item {:lobby {}})))
+  (is (nil? (p/lobby-item {:lobby {:at [1 2]}})))
+  (is (nil? (p/lobby-item {:lobby {:at "x"}}))))
+
+(deftest t42-lobby-real-estate
+  (let [item (p/lobby-item W)]
+    (is (= [:lobby :box] (:key item)))
+    (is (= (get-in W [:lobby :at]) (:at item)))
+    (is (= 0 (:yaw item)))
+    (is (= :sign (:label item)))
+    (is (string? (:text item)))
+    (is (seq (:text item)))
+    (is (= (count (get-in W [:lobby :look :parts])) (count (:parts item))))))
+
+(deftest t43-lobby-text-falls-back-when-missing-or-not-a-string
+  (is (= "" (:text (p/lobby-item {:lobby {:at [0 0 0]}}))))
+  (is (= "" (:text (p/lobby-item {:lobby {:at [0 0 0] :text 7}})))))
+
+;; workshop-item: one per project, standing for a code repo (GDD §2.4,
+;; §4.8). A plain, always-on sign -- not driven by any mirror's state.
+
+(deftest t44-workshop-nil-cases
+  (is (nil? (p/workshop-item {})))
+  (is (nil? (p/workshop-item {:workshop {}})))
+  (is (nil? (p/workshop-item {:workshop {:at [1 2]}})))
+  (is (nil? (p/workshop-item {:workshop {:at "x"}}))))
+
+(deftest t45-workshop-real-estate
+  (let [item (p/workshop-item W)]
+    (is (= [:workshop :box] (:key item)))
+    (is (= (get-in W [:workshop :at]) (:at item)))
+    (is (= 0 (:yaw item)))
+    (is (= :sign (:label item)))
+    (is (string? (:text item)))
+    (is (seq (:text item)))
+    (is (= (count (get-in W [:workshop :look :parts])) (count (:parts item))))))
+
+(deftest t46-workshop-text-falls-back-when-missing-or-not-a-string
+  (is (= "" (:text (p/workshop-item {:workshop {:at [0 0 0]}}))))
+  (is (= "" (:text (p/workshop-item {:workshop {:at [0 0 0] :text 7}})))))
+
 ;; mailbox-item: the estate's mailbox (GDD §2.4), backed by the sample
 ;; inbox (GDD §4.6) rather than any world state.
 
@@ -445,3 +491,9 @@
 (deftest t40-phone-booth-rings-with-the-reason
   (let [W2 (w/apply-event W jo T0)]
     (is (= "Someone needs you: \"Dinner!\"" (:text (p/phone-booth-item W2))))))
+
+(deftest glow-survives-look-parts
+  (let [[a b] (p/look-parts {:parts [{:shape :box :size [1 1 1] :glow true}
+                                     {:shape :box :size [1 1 1] :glow "yes"}]} nil)]
+    (is (true? (:glow a)) "a glowing part (a lamp's bulb) keeps its mark")
+    (is (nil? (:glow b)) "only true counts")))

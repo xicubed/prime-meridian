@@ -9,6 +9,27 @@
  ;; goodnight (pm.closing). Declared data, so a night-shift nurse's estate
  ;; closes at 9am instead -- just a different string here.
  :bedtime "22:30"
+ ;; The sky follows the clock (pm.sky): local times the scenery kit's own
+ ;; lighting changes (its four states: :day :golden :blue :night). These are
+ ;; roughly a November day in the northern US; a player elsewhere, or in
+ ;; summer, writes their own. The kit's buttons still pick a sky by hand
+ ;; until the next change here.
+ :sky [["06:45" :blue] ["07:15" :golden] ["08:15" :day]
+       ["16:00" :golden] ["16:45" :blue] ["17:30" :night]]
+ ;; The one-time ask at bedtime (pm.closing/asking-to-stay?): its words.
+ :stay-late-ask {:ask "Staying past closing?" :button "Stay"}
+ ;; The scenery kit's own night lights, as a built lamp's bulb (:glow) finds
+ ;; and follows them: its warm lamps' colour and its cottage lantern's mesh.
+ ;; A built lamp shines as bright as theirs, so it lights up at dusk with them.
+ :kit-lights {:lamp-color "#ffd28a" :lantern-mesh "SM_Hiroshi_Cottage_Lantern"}
+ ;; The juice meter's warning (GDD §2.1, §4.4, §4.8): each AI login's
+ ;; usage estimate against its plan's cap (0-1) and its own local refill
+ ;; time ("HH:MM" 24h, same declared-clock convention as :bedtime). The
+ ;; twin (pm.juice) warns once a login's estimate crosses 80%. Sample
+ ;; data, like every connection with no real version yet (:connections
+ ;; below) -- the bridge fills this for real once the juice meter itself
+ ;; is built.
+ :logins {:claude {:name "Claude" :pct 0.83 :refill-at "14:00"}}
  :connections [:mail :phone :chores :payments]   ; connections with no real version yet (GDD §4.6): demo mode badges each SAMPLE
  :creature-spike {:flag "pony" :kind :horse :seed 1     ; ?pony[=<kind>][&seed=n]: MuJoCo creature spike (pony-spike-v0)
                   :at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4} ; east bank, terrain 1.79 m (Hal probed); yaw in degrees
@@ -71,6 +92,15 @@
             :tint 0x8e5cc4}                                                       ; woods' edge, north end of the west bank, watching the pair
            {:id :le-docteur :name "Le Docteur" :agent :le-docteur
             :route [[-6.0 -17.5] [-6.0 -20.0]] :pause-s 6 :tint 0x2f9e8f}]       ; south plateau by Flora; the rock at [-5 -17] is not walkable
+ ;; The lobby, with your kitchen (GDD §2.4, §4.8): home base, where agents
+ ;; bring their questions. It's the kit's cottage (the estate's one real
+ ;; house, upstream on raised ground): just a signpost at its steps, probed
+ ;; 6.18 m. (Hal; the Director chose the cottage over a new building.)
+ :lobby {:at [2.7 6.18 -23.6] :yaw 0
+         :text "Lobby & kitchen — bring your questions here"
+         :look {:parts
+                [{:shape :box :size [0.1 1.4 0.1]   :at [0 0.7 0]  :color :brown}     ; post
+                 {:shape :box :size [0.9 0.4 0.06]  :at [0 1.3 0]  :color :tin}]}}    ; board
  ;; The mailbox (GDD §2.4): the inbox needing attention; overflows when it
  ;; does. Backed by the sample inbox, me@acme.com (GDD §4.6), with no
  ;; accounts connected — pm.plan/mailbox-item reads its unread count from
@@ -90,6 +120,17 @@
                       [{:shape :box :size [0.9 2.0 0.9]   :at [0 1.0   0]    :color :booth-red}   ; body
                        {:shape :box :size [1.0 0.15 1.0]  :at [0 2.075 0]    :color :booth-red}   ; roof
                        {:shape :box :size [0.7 1.5 0.05]  :at [0 1.1 0.43]   :color :glass}]}}    ; glass panel
+ ;; The workshop (GDD §2.4, §4.8): one per project, standing for a code
+ ;; repo -- this one stands for the game's own. Desks are open tasks;
+ ;; shelves fill as work lands. Open-air, at the edge of the west-bank
+ ;; clearing (the only open ground there is), probed 1.63-1.79 m, about 2 m
+ ;; off the walker route that crosses the clearing. (Hal)
+ :workshop {:at [-6.2 1.69 -3.5] :yaw 0
+            :text "Workshop — this repo. Desks: open tasks. Shelves: landed work."
+            :look {:parts
+                   [{:shape :box :size [0.3 1.2 2.0]   :at [-0.6 0.6 0]    :color :tin}      ; shelves
+                    {:shape :box :size [0.5 0.46 0.8]  :at [0.25 0.23 -0.55] :color :brown}  ; desk 1
+                    {:shape :box :size [0.5 0.46 0.8]  :at [0.25 0.23 0.55]  :color :brown}]}} ; desk 2
  ;; Blueprints (GDD §2.1, §4.5, §4.8): an agent-made change first shows in
  ;; place as a ghost with a one-line summary, before the player approves it.
  ;; Approving one that can't become real geometry (pm.blueprint/breaks-build?)
@@ -112,7 +153,7 @@
                :summary "proposed: a lamp post by the canal"
                :look {:parts [{:shape :box :size [0.3 2.4 0.3] :at [0 1.2 0] :color :tin}            ; the post: drawable and thick enough to click
                               {:shape :cone :size [0.7 0.4 0.7] :at [0 2.75 0] :color :tin}          ; the shade: a big click target
-                              {:shape :sphere :size [0.3 0.3 0.3] :at [0 2.45 0] :color :gold}]}}]   ; the bulb, under the shade
+                              {:shape :sphere :size [0.3 0.3 0.3] :at [0 2.45 0] :color :gold :glow true}]}}]   ; the bulb: lights up like the kit's lamps once built
  ;; Display scale (standing rule): creatures and crew are drawn big enough to
  ;; see from the kit's camera views without zooming in, about the size of a
  ;; mid-size rock (~1 m). Real size doesn't matter; proportions do. Author a

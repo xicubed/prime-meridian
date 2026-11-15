@@ -67,8 +67,9 @@
         sy   (second size)
         at   (if (:at part) (vec (:at part)) [0 (/ sy 2) 0])
         rot  (if (:rot part) (vec (:rot part)) [0 0 0])]
-    {:shape (:shape part) :size size :at at :rot rot
-     :color (normalize-color (:color part))}))
+    (cond-> {:shape (:shape part) :size size :at at :rot rot
+             :color (normalize-color (:color part))}
+      (true? (:glow part)) (assoc :glow true))))
 
 (defn- raw-parts [look]
   (if (contains? look :parts)
@@ -137,6 +138,49 @@
                       base)))))
             (:placed mirror))))
       (sort (keys (:mirrors world))))))
+
+(defn lobby-item
+  "The lobby's scene item (GDD §2.4, §4.8): home, with your kitchen, where
+   agents bring their questions. Placement, look and sign text come from
+   `world`'s `:lobby` only -- a plain, always-on label, not driven by any
+   mirror's state. nil when `world` has no valid `:lobby`."
+  [world]
+  (let [{:keys [at yaw look text]} (:lobby world)]
+    (when (valid-at? at)
+      (let [[x y z] at
+            parts (look-parts look nil)
+            top   (parts-top parts)
+            yaw   (if (number? yaw) yaw 0)]
+        {:key      [:lobby :box]
+         :at       at
+         :yaw      yaw
+         :parts    parts
+         :center   [x (+ y (/ top 2)) z]
+         :label    :sign
+         :label-at [x (+ y top label-lift) z]
+         :text     (if (string? text) text "")}))))
+
+(defn workshop-item
+  "The workshop's scene item (GDD §2.4, §4.8): one per project, standing for
+   a code repo -- desks are open tasks, shelves fill as work lands.
+   Placement, look and sign text come from `world`'s `:workshop` only -- a
+   plain, always-on label, not driven by any mirror's state. nil when
+   `world` has no valid `:workshop`."
+  [world]
+  (let [{:keys [at yaw look text]} (:workshop world)]
+    (when (valid-at? at)
+      (let [[x y z] at
+            parts (look-parts look nil)
+            top   (parts-top parts)
+            yaw   (if (number? yaw) yaw 0)]
+        {:key      [:workshop :box]
+         :at       at
+         :yaw      yaw
+         :parts    parts
+         :center   [x (+ y (/ top 2)) z]
+         :label    :sign
+         :label-at [x (+ y top label-lift) z]
+         :text     (if (string? text) text "")}))))
 
 (defn mailbox-item
   "The mailbox's scene item (GDD §2.4): `world`'s `:mailbox` gives its

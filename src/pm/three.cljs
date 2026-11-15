@@ -524,6 +524,59 @@
                      (.push out (.-name o)))))
       (vec out))))
 
+(defn find-first
+  "The first object under `root` (depth-first) satisfying `pred`, or nil."
+  [^js root pred]
+  (when root
+    (let [found (atom nil)]
+      (.traverse root (fn [^js o] (when (and (nil? @found) (pred o)) (reset! found o))))
+      @found)))
+
+(defn kit-light-sources
+  "The scenery kit's own night lights, found once in `scene` by what
+   `kit` (estate.edn's :kit-lights) says they look like: a lamp (a point
+   light of `:lamp-color`) and a lantern mesh (named `:lantern-mesh`) whose
+   glowing material brightens at night. Either may be nil (no kit)."
+  [^js scene {:keys [lamp-color lantern-mesh]}]
+  (let [^js T     (three)
+        ^js Color (.-Color T)
+        hex       (when (string? lamp-color) (.getHex (Color. lamp-color)))]
+    {:lamp    (when hex (find-first scene #(and (.-isPointLight ^js %) (= hex (.getHex (.-color ^js %))))))
+     :lantern (when (string? lantern-mesh)
+                (some-> (find-first scene #(and (.-isMesh ^js %) (= lantern-mesh (.-name ^js %)))) .-material))}))
+
+(defn light-glows!
+  "Gives every mesh under `obj` marked as glowing (a built lamp's bulb) a
+   point light like the kit's lamp (its colour, range and falloff), once.
+   Returns obj."
+  [^js obj {:keys [^js lamp]}]
+  (.traverse obj
+    (fn [^js o]
+      (when (and (.-isMesh o) (.. o -userData -glow) (not (.. o -userData -light)))
+        (let [^js T  (three)
+              ^js PL (.-PointLight T)
+              ^js l  (PL. (if lamp (.-color lamp) 0xffd28a) 0
+                          (if lamp (.-distance lamp) 10) (if lamp (.-decay lamp) 2))]
+          (.add o l)
+          (set! (.. o -userData -light) l)))))
+  obj)
+
+(defn sync-glows!
+  "Every lit glow under `root` follows the kit's own night lights each
+   frame: its light as bright as the kit's lamp, its bulb glowing like the
+   kit's lantern. So it fades in at dusk exactly when theirs do."
+  [^js root {:keys [^js lamp ^js lantern]}]
+  (when root
+    (.traverse root
+      (fn [^js o]
+        (when-let [^js l (.. o -userData -light)]
+          (when lamp (set! (.-intensity l) (.-intensity lamp)))
+          (when lantern
+            (let [^js m (.-material o)]
+              (.copy (.-emissive m) (.-emissive lantern))
+              (set! (.-emissiveIntensity m) (.-emissiveIntensity lantern))))))))
+  nil)
+
 (defn by-name
   "root.getObjectByName(name), or nil."
   [^js root name]
