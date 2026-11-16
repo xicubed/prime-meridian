@@ -1,0 +1,7 @@
+This is balanced and valid EDN, matching the existing style. The implementation is complete and self-consistent.
+
+**FILES:** `src/pm/construct.cljs`, `src/pm/ui.cljs`, `src/pm/core.cljs`, `resources/estate.edn`, `test/pm/construct_test.cljs`
+
+**WHAT:** Added the Construct's fourth beat, `jump-program` — the first pretend jack-out. After the sparring match ends, the twin's line shows the hardline (the phone booth) and the one rule that matters, then the phone rings with a pretend chore and waits on your click to jack out, then holds "frozen" waiting on your click to jack back in, then shows the twin's closing line before the beat ends. It's entirely self-contained sample data (its own `:construct` timestamps), exactly like the existing white-room/program-rack/sparring beats, so it needs no bridge and plays the same in a public clone.
+
+**HOW TO SEE IT:** Run the dev server, jack in as a first-time player (or add `?construct` to the URL to replay it) and click through the opening beats and the sparring match's rock approval. Right after, a white overlay shows the twin's hardline line, then "It's ringing…" — click to jack out, see the frozen "You're out…" panel, click again to jack back in, and the twin's closing line appears before the Construct hands off.

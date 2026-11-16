@@ -1,0 +1,5 @@
+That's fine to leave — it's outside the repo and harmless. The feature is implemented and verified.
+
+FILES: src/pm/construct.cljs, resources/estate.edn, src/pm/ui.cljs, src/pm/core.cljs, test/pm/construct_test.cljs
+WHAT: Added the Construct's fifth and final beat, `free-your-mind` — once beat 4 (jump-program) finishes, the white room fades out over `dissolve-ms` (1.5s) revealing the estate underneath (which already shows only the own-agent building dropped so far, since no other program has one yet), then the twin's step-back line ("I can open the door. Walking through it is your part.") shows for `line-ms`, then the Construct is marked fully seen.
+HOW TO SEE IT: Load the game fresh (e.g. `?fresh` in the URL), jack in, and click through beats 1–4 (opening line, program rack, sparring match, jump out/in); right after jacking back in, the white overlay dissolves to transparent and the twin's final line appears before the overlay disappears for good.

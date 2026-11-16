@@ -256,3 +256,19 @@ Hand changes before accepting run 8:
 - Play-tested with timed screenshots. The building that "drops out of the white sky" falls while the
   screen is still white and off camera, so nobody sees it; that belongs to beat 5 (the white room
   dissolving into the estate), so it's TASKS N-5 rather than a fix here.
+
+**Run 9** (`runs/20261115-2041/`, `--max 3 --only construct-sparring,construct-jump,construct-free-your-mind`,
+about $6): the Construct's last three beats were **built**. This time the writer put every line in
+`estate.edn` from the start (run 8's hand change had become the codebase's own example). Beat 3: a
+SAMPLE worker takes a practice job, gets stuck, raises a "!", you answer, a blueprint of a rounder
+rock appears, you approve it. Beat 4: the twin shows the phone booth, it rings with a pretend chore,
+you jack out and back in. Beat 5: the white room dissolves into the estate and the twin steps back.
+
+Hand changes before accepting run 9:
+- The click hints ("click to answer", "click to jack out", ...) moved to data too.
+- Your own agent's building now lands in beat 5, as the white dissolves, with the camera framing it
+  (`construct/land-building`, `camera/frame!`, `:land-camera` in data); in run 8 it fell unseen
+  behind the white screen (TASKS N-5, done).
+- Play-tested end to end with real clicks in a muted headless Chrome: jack in, the five beats, about
+  a minute, then marked seen. The first attempt clicked while the kit's loading screen was still on
+  top, so the test now waits for the kit like a player would.

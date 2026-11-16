@@ -1,0 +1,7 @@
+All changes are within `src/pm/`, `test/pm/`, and `resources/` as required. The gate passes clean.
+
+FILES: resources/estate.edn, src/pm/construct.cljs, src/pm/core.cljs, src/pm/ui.cljs, test/pm/construct_test.cljs
+
+WHAT: Adds the Construct's beat 3, the sparring match (`pm.construct/sparring`). After the program-rack beat finishes, the twin hands a practice job to a sample-badged worker ("make this rock rounder"), the worker visibly works it, then raises a "!" and waits for your click to answer; answering surfaces a blueprint of the rounder rock that waits for your click to approve; approving it changes the rock on screen (a CSS rock shape flips from squarish to round). All pure data/time-driven (`now` passed in, no bridge needed), so it plays identically in a public clone.
+
+HOW TO SEE IT: Load the game fresh (or add `?construct` to the URL), click to jack in, and let the white room play through beats 1–2 (silence → twin's line → program rack → "Felt that?"). The sparring screen then shows "A Worker (SAMPLE)" working a rock; click once it raises its "!" to answer; click again on the blueprint summary to approve — the rock on screen switches from squarish to round and the twin says "Approved. Watch the rock, not me." before the beat ends.
