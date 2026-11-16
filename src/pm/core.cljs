@@ -744,6 +744,12 @@
                   (audio/set-param! k v)
                   (when (= k :flow) (audio/set-file-volume! v))))))))
 
+(def ^:private brook-key "pm.brook")
+(defn- brook-choice! [on?]
+  (try (.setItem js/localStorage brook-key (if on? "1" "0")) (catch :default _ nil)))
+(defn- brook-on? []
+  (try (not= "0" (.getItem js/localStorage brook-key)) (catch :default _ true)))
+
 (defn wire-kit-brook-ui!
   "With the kit: the brook is the recorded loop placed on the kit's water
    (pm.brook). Flow sets the pitch; synth/depth only apply to the scaffold."
@@ -756,8 +762,19 @@
       (fn [^js e]
         (.stopPropagation e)
         (if (brook/playing?)
-          (do (brook/stop!) (set! (.-textContent btn) "▶ brook"))
-          (do (brook/play! h (:sounds @!world)) (set! (.-textContent btn) "■ brook"))))))
+          (do (brook/stop!) (set! (.-textContent btn) "▶ brook") (brook-choice! false))
+          (do (brook/play! h (:sounds @!world)) (set! (.-textContent btn) "■ brook") (brook-choice! true))))))
+  ;; Browsers play nothing before the player's first click or key, so the
+  ;; brook starts on that first gesture anywhere -- unless the player turned
+  ;; it off last time (remembered per browser).
+  (let [start (fn start [_]
+                (js/removeEventListener "pointerdown" start true)
+                (js/removeEventListener "keydown" start true)
+                (when (and (brook-on?) (not (brook/playing?)))
+                  (brook/play! h (:sounds @!world))
+                  (when-let [^js b (js/document.getElementById "brook-toggle")] (set! (.-textContent b) "■ brook"))))]
+    (js/addEventListener "pointerdown" start true)
+    (js/addEventListener "keydown" start true))
   (when-let [el (js/document.getElementById "brook-flow")]
     (set! (.-value el) "0.33")
     (.addEventListener el "input"
