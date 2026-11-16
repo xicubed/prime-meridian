@@ -274,6 +274,23 @@
       (let [p (/ (- now at) snap-ms)]
         (when (<= 0 p 1) p)))))
 
+(def building-drop-ms
+  "How long the Construct's building drop (GDD §2.6, §2.7) plays, start to
+   finish, once your own agent program loads."
+  1200)
+
+(defn building-drop-pose
+  "0..1 progress through the building drop at `now`, or nil when none is
+   live -- `world` has no :construct :building-at (`pm.construct/
+   load-program` records it), or more than building-drop-ms has passed.
+   Pure timing only; `pm.scene/play-building-drop!` turns this into a mesh
+   offset, since the scene plan's own positions never follow world state."
+  [world now]
+  (let [at (get-in world [:construct :building-at])]
+    (when (and (number? at) (number? now))
+      (let [p (/ (- now at) building-drop-ms)]
+        (when (<= 0 p 1) p)))))
+
 (defn plan-summary [plan]
   (let [mirrors  (count (distinct (map :mirror plan)))
         items    (count plan)

@@ -526,3 +526,25 @@
     (is (= "hungry" (p/with-mark w "hungry" false)))
     (is (= "hungry" (p/with-mark {} "hungry" true)) "no mark in the data: unchanged")
     (is (false? (p/needs-you? (assoc-in w [:mirrors :m :chores 0 :who] :wife) :m two-days)) "someone else's chore")))
+
+;; building-drop-pose: the Construct's building-drop pure timing (GDD §2.6,
+;; §2.7). `pm.scene/play-building-drop!` turns this 0..1 progress into a
+;; mesh offset; the plan's own positions never follow it (same shape as
+;; snap-pose above).
+
+(deftest t49-building-drop-pose-nil-with-no-drop-live
+  (is (nil? (p/building-drop-pose {} T0)))
+  (is (nil? (p/building-drop-pose {:construct {}} T0))))
+
+(deftest t50-building-drop-pose-while-live
+  (let [w {:construct {:building-at T0}}]
+    (is (= 0 (p/building-drop-pose w T0)))
+    (is (< 0 (p/building-drop-pose w (+ T0 500)) 1))
+    (is (= 1 (p/building-drop-pose w (+ T0 p/building-drop-ms))))
+    (is (nil? (p/building-drop-pose w (+ T0 p/building-drop-ms 1))))))
+
+(deftest t51-building-drop-pose-bad-now-or-at
+  (let [w {:construct {:building-at T0}}]
+    (is (nil? (p/building-drop-pose w nil)))
+    (is (nil? (p/building-drop-pose w "nope")))
+    (is (nil? (p/building-drop-pose {:construct {:building-at "nope"}} T0)))))

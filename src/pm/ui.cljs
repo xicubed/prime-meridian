@@ -1,7 +1,8 @@
 (ns pm.ui
   "DOM and speech side effects for talk captions. No game logic: pm.core
    decides what to show, pm.ui only shows it."
-  (:require [pm.talk :as talk]))
+  (:require [clojure.string :as str]
+            [pm.talk :as talk]))
 
 (defn- el [id]
   (js/document.getElementById id))
@@ -86,6 +87,84 @@
     (when-let [^js q (el "stay-late-text")] (set! (.-textContent q) (or (:ask words) "")))
     (when-let [^js b (el "stay-late-button")] (set! (.-textContent b) (or (:button words) "")))
     (set! (.. box -style -display) (if (and asking? (:button words)) "flex" "none"))))
+
+(defn- white-room-el
+  "The Construct's white room (GDD §2.7): a plain white screen above
+   everything else, created on first use, same self-contained pattern as
+   the night veil and the stay-late ask, so it needs no public/index.html
+   change."
+  []
+  (or (el "construct-white-room")
+      (let [^js box (js/document.createElement "div")]
+        (set! (.-id box) "construct-white-room")
+        (set! (.. box -style -cssText)
+              (str "position:fixed;inset:0;z-index:500;background:#fff;"
+                   "display:none;align-items:center;justify-content:center;"
+                   "padding:10vh 10vw;box-sizing:border-box;text-align:center;"
+                   "font:24px/1.5 system-ui, sans-serif;color:#1b1f2a;"))
+        (.appendChild js/document.body box)
+        box)))
+
+(defn set-white-room!
+  "Shows or hides the Construct's white room (GDD §2.7): blank and silent
+   while `state` is {:phase :silent}, the twin's opening line once it's
+   {:phase :twin :line ...}, gone once `state` is nil."
+  [state]
+  (let [^js box (white-room-el)]
+    (set! (.-textContent box) (or (:line state) ""))
+    (set! (.. box -style -display) (if state "flex" "none"))))
+
+(defn- program-rack-el
+  "The Construct's program rack, beat 2 (GDD §2.6, §2.7): the rack of
+   programs scrolling past, then your own agent's loaded line. Shares the
+   white room's look, created on first use, same self-contained pattern,
+   so it needs no public/index.html change."
+  []
+  (or (el "construct-program-rack")
+      (let [^js box (js/document.createElement "div")]
+        (set! (.-id box) "construct-program-rack")
+        (set! (.. box -style -cssText)
+              (str "position:fixed;inset:0;z-index:500;background:#fff;"
+                   "display:none;align-items:center;justify-content:center;"
+                   "padding:10vh 10vw;box-sizing:border-box;text-align:center;"
+                   "font:24px/1.5 system-ui, sans-serif;color:#1b1f2a;"))
+        (.appendChild js/document.body box)
+        box)))
+
+(defn set-program-rack!
+  "Shows or hides the program rack (GDD §2.6, §2.7): the rack's names
+   scrolling past while `state` is {:phase :rack :programs [...]}, the
+   twin's loaded line once it's {:phase :loaded :line ...}, gone once
+   `state` is nil."
+  [state]
+  (let [^js box (program-rack-el)
+        phase   (name (or (:phase state) :none))]
+    ;; rebuilt only when the phase changes: this runs every frame, and
+    ;; rebuilding would restart the scroll
+    (when (not= phase (.. box -dataset -phase))
+      (set! (.. box -dataset -phase) phase)
+      (set! (.-innerHTML box) "")
+      (case (:phase state)
+        :rack   (let [^js col (js/document.createElement "div")]
+                  ;; the rack scrolls up past you, names big, your own agent last on screen
+                  ;; so it lands as the rack stops
+                  (set! (.. col -style -cssText)
+                        (str "display:flex;flex-direction:column;gap:18px;font-size:34px;"
+                             "animation:pm-rack-scroll 2.2s cubic-bezier(.2,.7,.3,1) forwards;"))
+                  (doseq [p (reverse (:programs state))]
+                    (let [^js d (js/document.createElement "div")]
+                      (set! (.-textContent d) (:name p))
+                      (.appendChild col d)))
+                  (when-not (el "pm-rack-style")
+                    (let [^js st (js/document.createElement "style")]
+                      (set! (.-id st) "pm-rack-style")
+                      (set! (.-textContent st) "@keyframes pm-rack-scroll{from{transform:translateY(60vh);opacity:.3}to{transform:translateY(-38%);opacity:1}}")
+                      (.appendChild (.-head js/document) st)))
+                  (set! (.. box -style -overflow) "hidden")
+                  (.appendChild box col))
+        :loaded (set! (.-textContent box) (:line state))
+        nil))
+    (set! (.. box -style -display) (if state "flex" "none"))))
 
 (defn set-badge! [text alert?]
   (when-let [^js b (el "talk-badge")]

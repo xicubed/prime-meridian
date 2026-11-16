@@ -180,6 +180,44 @@
         (snap-reset! snap-worm body at))))
   nil)
 
+(def ^:private building-drop-height-m
+  "Metres above its resting place the loaded program's building starts,
+   falling from the white sky (GDD §2.6, §2.7) once your own agent program
+   loads."
+  15.0)
+
+(def ^:private building-drop-key
+  "The workshop stands for your own agent's project (GDD §2.4, §2.6, §2.7):
+   this repo. It's the building that drops out of the white sky once your
+   own agent program loads."
+  [:workshop :box])
+
+(defn- building-drop-step!
+  "Mid-drop, at progress `p` (0..1) of `pm.plan/building-drop-ms`: the
+   building falls from `building-drop-height-m` above `at` down to it."
+  [group at p]
+  (let [[x y z] at
+        fall (* building-drop-height-m (max 0 (- 1 p)))]
+    (when group (t/set-pos! group [x (+ y fall) z]))))
+
+(defn play-building-drop!
+  "The Construct's building drop on screen (GDD §2.6, §2.7): while
+   `pm.plan/building-drop-pose` says one is live, the workshop's group
+   falls from high in the white sky down to its resting place; put back at
+   rest once the pose is nil (nothing live, or it already finished).
+   Mutates three.js objects only through `pm.three`; never touches the
+   scene plan itself (its positions never follow world state)."
+  [world now]
+  (when-let [{:keys [root plan]} @!mounted]
+    (let [^js group (t/by-name root (pr-str building-drop-key))
+          at        (:at (first (filter #(= building-drop-key (:key %)) plan)))
+          p         (p/building-drop-pose world now)]
+      (when (and group at)
+        (if p
+          (building-drop-step! group at p)
+          (t/set-pos! group at)))))
+  nil)
+
 (defn- with-fixtures [world plan]
   (->> plan (with-lobby world) (with-workshop world) (with-mailbox world) (with-phone-booth world) (with-blueprints world)))
 
@@ -227,6 +265,7 @@
   (sync-blueprints! world)
   (when-let [{:keys [root kit-lights]} @!mounted] (t/sync-glows! root kit-lights))
   (play-snap! world now)
+  (play-building-drop! world now)
   nil)
 
 (defn mount!

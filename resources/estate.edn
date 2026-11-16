@@ -23,6 +23,16 @@
  ;; A built lamp shines as bright as theirs, so it lights up at dusk with them.
  ;; SAMPLE or REAL, per object (ⓘ panel): what the twin says when a REAL
  ;; mirror's chore can't be recorded, since a real thing mustn't change only on screen.
+ ;; The Construct (GDD §2.6, §2.7; pm.construct): the first five minutes for a new
+ ;; player. The twin's lines are original, drafted for this scene (the film is only
+ ;; the beat sheet). The rack lists your own agent first: it's chosen for you.
+ :construct-script
+ {:opening  "This is the white room. Nothing in here is real yet. We load what you need, then we go make it real."
+  :loaded   "Felt that? That's me, the real me, plugged in."
+  :programs [{:id :own-agent :name "Your own agent"}
+             {:id :mail :name "Mail"} {:id :calendar :name "Calendar"} {:id :github :name "GitHub"}
+             {:id :blender :name "Blender"} {:id :stripe :name "Stripe"} {:id :notion :name "Notion"}
+             {:id :maps :name "Maps"} {:id :smart-home :name "Smart home"}]}
  ;; A due chore of yours is one of the day's "!"s (GDD §2.1): this mark leads the
  ;; creature's speech until you do it (click her, tick it in 💭, or text the twin).
  :needs-you-mark "!"

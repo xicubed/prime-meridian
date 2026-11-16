@@ -15,6 +15,7 @@
             [pm.crew :as crew]
             [pm.crew-log :as cl]
             [pm.camera :as camera]
+            [pm.construct :as construct]
             [pm.creature-spike :as creature-spike]
             [pm.events :as events]
             [pm.juice :as juice]
@@ -293,15 +294,49 @@
 (defn- write-talk! [text]
   (try (.setItem js/localStorage talk-key text) (catch :default _ nil)))
 
+;; The Construct's first beat (GDD §2.7, §4.8): whether this player has
+;; ever seen the white room lives outside `world` (localStorage), the same
+;; way !sample-only mirrors its own key instead of living on `world`.
+(def construct-key "pm.construct.v1")
+(defonce ^:private !construct-seen?
+  ;; ?construct replays it without touching anything else saved (?fresh resets everything)
+  (atom (and (not (.has (js/URLSearchParams. (.. js/window -location -search)) "construct"))
+             (try (= "1" (.getItem js/localStorage construct-key)) (catch :default _ false)))))
+
 (defn- fresh-start!
   "Testing aid: `?fresh` in the URL forgets the talk history and what was done
-   to sample creatures in this browser. The twin's state (and its cache) and
-   the voice setting are kept."
+   to sample creatures in this browser, and lets the Construct's white room
+   (GDD §2.7) play again. The twin's state (and its cache) and the voice
+   setting are kept."
   []
   (when (.has (js/URLSearchParams. (.-search js/location)) "fresh")
     (try (.removeItem js/localStorage talk-key)
          (.removeItem js/localStorage play-key)
-         (catch :default _ nil))))
+         (.removeItem js/localStorage construct-key)
+         (catch :default _ nil))
+    (reset! !construct-seen? false)))
+
+(defn- construct-tick!
+  "Drives the Construct's first two beats (GDD §2.6, §2.7, §4.8) every frame
+   until a first-time player has been through them once: records when the
+   white room was entered, shows beat 1 (silent, then the twin's opening
+   line) and beat 2 (the program rack, then your own agent loading as its
+   sample version, its building dropping out of the white sky) through
+   pm.ui, and marks it seen -- in `!world`'s own localStorage cache is not
+   enough, since `!construct-seen?` must survive a reload -- once both
+   beats are done."
+  [now]
+  (when-not @!construct-seen?
+    (swap! !world construct/enter @!construct-seen? now)
+    (let [room (construct/white-room @!world @!construct-seen? now)
+          rack (construct/program-rack @!world @!construct-seen? now)]
+      (ui/set-white-room! room)
+      (ui/set-program-rack! rack)
+      (when (= :loaded (:phase rack))
+        (swap! !world construct/load-program (:id (:program rack)) now))
+      (when (and (nil? room) (nil? rack) (:entered-at (:construct @!world)))
+        (reset! !construct-seen? true)
+        (try (.setItem js/localStorage construct-key "1") (catch :default _ nil))))))
 
 (defn- restore-talk! []
   (let [text (read-talk)]
@@ -583,6 +618,9 @@
     (when-let [h (kit/handle)] (camera/save-tick! h now))
     (bricks/set-dots! (:crew @!world) (:asks-player @!world) (js/Date.now))
     (scene/update! @!world (js/Date.now))
+    ;; The Construct's first beat (GDD §2.7, §4.8): a first-time player
+    ;; lands in a silent white room before the twin steps in.
+    (construct-tick! (js/Date.now))
     ;; Closing time (GDD §2.3, §4.8): last call, then goodnight, by the
     ;; player's own bedtime (declared data, pm.closing). The twin's banner
     ;; rides the same :hal path as jack-in. Night itself is the sky's
