@@ -77,7 +77,7 @@ Plan of record: [`docs/session-2026-10-17.md`](docs/session-2026-10-17.md) §7. 
 - [x] N-1 (Nov 15) The sky follows the player's clock (Michael, Nov 14): drive the scenery kit's own time-of-day settings (sun, sky, lighting) from local time, so at night it's actually night, instead of closing time's dimming veil (`pm.ui/set-night!`). Closing time keeps its last call and goodnight; only the look changes.
 - [ ] N-2 Closing-time lines: goodnight fires again on every page load after bedtime (the once-per-day state isn't persisted), and "10:30 PM's close" showed before the fifteen-minute last call.
 - [ ] N-4 Share your estate (Michael, Nov 15; after v1): builds already save as a small data layer (pm.overlay/play-of :blueprints); export just that as a file or a link (`?estate=...`) another player can load into their own world. Builds only, never life data (mirror states, mail, chores). GDD: v1 is single-player, a shared world is vision; this is the first, read-only step.
-- [ ] N-5 The Construct's building drop plays behind the white screen (invisible) and off camera: move it to beat 5 ("free your mind"), where the white dissolves into the estate and the camera frames your agent's workshop as it lands.
+- [x] N-5 (Nov 15) The Construct's building drop plays behind the white screen (invisible) and off camera: move it to beat 5 ("free your mind"), where the white dissolves into the estate and the camera frames your agent's workshop as it lands.
 - [ ] N-3 Blueprint ghosts read poorly: the thin wireframe vanishes against the grass, even in screenshots.
 
 ## Business (Pepper)

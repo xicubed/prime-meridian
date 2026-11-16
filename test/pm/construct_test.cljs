@@ -93,10 +93,13 @@
     (is (= #{:mail} (get-in w [:construct :loaded])))
     (is (nil? (get-in w [:construct :building-at])))))
 
-(deftest t15-load-program-own-agent-also-drops-its-building
+(deftest t15-own-agent-building-lands-in-beat-5
   (let [w (construct/load-program SC :own-agent T0)]
     (is (= #{:own-agent} (get-in w [:construct :loaded])))
-    (is (= T0 (get-in w [:construct :building-at])))))
+    (is (nil? (get-in w [:construct :building-at])) "not while the screen is still white")
+    (is (= (+ T0 5) (get-in (construct/land-building w (+ T0 5)) [:construct :building-at])))
+    (is (= (+ T0 5) (get-in (-> w (construct/land-building (+ T0 5)) (construct/land-building (+ T0 9))) [:construct :building-at])) "once")
+    (is (= SC (construct/land-building SC T0)) "nothing loaded, nothing lands")))
 
 (deftest t16-load-program-is-a-no-op-once-loaded-or-with-a-bad-now
   (let [w (construct/load-program SC :own-agent T0)]
@@ -108,3 +111,207 @@
   (is (string? (construct/loaded-line SC)))
   (is (not (str/blank? (construct/loaded-line SC))))
   (is (not (str/includes? (construct/loaded-line SC) "kung fu"))))
+
+;; Beat 3: the sparring match (GDD §2.1, §2.7, §3.1, §4.5)
+
+(def ^:private beat2-done-at
+  (+ T0 construct/silent-ms construct/line-ms construct/rack-ms construct/line-ms))
+
+(deftest t18-sparring-nil-before-beat2-is-done
+  (let [w (construct/enter SC false T0)]
+    (is (nil? (construct/sparring w false T0)))
+    (is (nil? (construct/sparring w false (dec beat2-done-at))))))
+
+(deftest t19-sparring-nil-for-a-returning-player-or-before-entered
+  (is (nil? (construct/sparring {} true T0)))
+  (is (nil? (construct/sparring SC false T0))))
+
+(deftest t20-sparring-nil-bad-now
+  (let [w (construct/enter SC false T0)]
+    (is (nil? (construct/sparring w false nil)))
+    (is (nil? (construct/sparring w false "nope")))))
+
+(deftest t21-sparring-job-then-working-then-waits-on-an-answer
+  (let [w (construct/enter SC false T0)]
+    (is (= {:phase :job :line (construct/job-line SC)}
+           (construct/sparring w false beat2-done-at)))
+    (is (= {:phase :working :worker (construct/worker-name SC) :text (construct/working-line SC)}
+           (construct/sparring w false (+ beat2-done-at construct/line-ms))))
+    (is (= {:phase :ask :worker (construct/worker-name SC) :prompt (construct/ask-line SC)}
+           (construct/sparring w false (+ beat2-done-at construct/line-ms construct/work-ms))))
+    ;; it waits indefinitely for the player's answer, however long that takes
+    (is (= {:phase :ask :worker (construct/worker-name SC) :prompt (construct/ask-line SC)}
+           (construct/sparring w false (+ beat2-done-at construct/line-ms construct/work-ms 999999))))))
+
+(deftest t22-answer-then-blueprint-waits-on-approval
+  (let [ask-at (+ beat2-done-at construct/line-ms construct/work-ms)
+        w      (-> SC (construct/enter false T0) (construct/answer false ask-at))]
+    (is (= {:phase :blueprint :summary (construct/blueprint-summary SC)}
+           (construct/sparring w false ask-at)))
+    (is (= {:phase :blueprint :summary (construct/blueprint-summary SC)}
+           (construct/sparring w false (+ ask-at 999999))))))
+
+(deftest t23-approve-then-done-then-nil
+  (let [ask-at     (+ beat2-done-at construct/line-ms construct/work-ms)
+        approve-at (+ ask-at 500)
+        w          (-> SC (construct/enter false T0)
+                       (construct/answer false ask-at)
+                       (construct/approve-rock false approve-at))]
+    (is (= {:phase :done :line (construct/rock-done-line SC)}
+           (construct/sparring w false approve-at)))
+    (is (= {:phase :done :line (construct/rock-done-line SC)}
+           (construct/sparring w false (+ approve-at (dec construct/line-ms)))))
+    (is (nil? (construct/sparring w false (+ approve-at construct/line-ms))))))
+
+(deftest t24-answer-is-a-no-op-once-answered-seen-or-with-a-bad-now
+  (let [w (construct/answer SC false T0)]
+    (is (= T0 (get-in w [:construct :answered-at])))
+    (is (= w (construct/answer w false (+ T0 999))))
+    (is (= SC (construct/answer SC true T0)))
+    (is (= SC (construct/answer SC false nil)))))
+
+(deftest t25-approve-rock-requires-an-answer-first
+  (is (= SC (construct/approve-rock SC false T0)) "no answer yet: no-op"))
+
+(deftest t26-approve-rock-is-a-no-op-once-approved-seen-or-with-a-bad-now
+  (let [answered (construct/answer SC false T0)
+        w        (construct/approve-rock answered false (+ T0 10))]
+    (is (= (+ T0 10) (get-in w [:construct :approved-at])))
+    (is (= w (construct/approve-rock w false (+ T0 999))))
+    (is (= answered (construct/approve-rock answered true (+ T0 10))))
+    (is (= answered (construct/approve-rock answered false nil)))))
+
+(deftest t27-sparring-lines-are-original-not-film-quotes
+  (doseq [line [(construct/job-line SC) (construct/working-line SC) (construct/ask-line SC)
+                (construct/blueprint-summary SC) (construct/rock-done-line SC)]]
+    (is (string? line))
+    (is (not (str/blank? line)))
+    (is (not (str/includes? line "kung fu"))))
+  (is (string? (construct/worker-name SC)))
+  (is (not (str/blank? (construct/worker-name SC)))))
+
+;; Beat 4: the jump program (GDD §2.3, §2.7, §4.8) -- the first pretend jack-out
+
+(def ^:private beat3-done-at
+  (+ beat2-done-at construct/line-ms construct/work-ms 500 construct/line-ms))
+
+(defn- sparring-done [world]
+  (let [ask-at     (+ beat2-done-at construct/line-ms construct/work-ms)
+        approve-at (+ ask-at 500)]
+    (-> world
+        (construct/answer false ask-at)
+        (construct/approve-rock false approve-at))))
+
+(deftest t28-jump-program-nil-before-sparring-is-done
+  (let [w (-> SC (construct/enter false T0) sparring-done)]
+    (is (nil? (construct/jump-program w false T0)))
+    (is (nil? (construct/jump-program w false (dec beat3-done-at))))))
+
+(deftest t29-jump-program-nil-for-a-returning-player-or-before-entered
+  (is (nil? (construct/jump-program {} true T0)))
+  (is (nil? (construct/jump-program SC false T0))))
+
+(deftest t30-jump-program-nil-bad-now
+  (let [w (-> SC (construct/enter false T0) sparring-done)]
+    (is (nil? (construct/jump-program w false nil)))
+    (is (nil? (construct/jump-program w false "nope")))))
+
+(deftest t31-jump-program-show-then-rings-and-waits-on-jump-out
+  (let [w (-> SC (construct/enter false T0) sparring-done)]
+    (is (= {:phase :show :line (construct/show-line SC)}
+           (construct/jump-program w false beat3-done-at)))
+    (is (= {:phase :show :line (construct/show-line SC)}
+           (construct/jump-program w false (+ beat3-done-at (dec construct/line-ms)))))
+    (is (= {:phase :ring :prompt (construct/ring-line SC)}
+           (construct/jump-program w false (+ beat3-done-at construct/line-ms))))
+    ;; it waits indefinitely for the player to jack out, however long that takes
+    (is (= {:phase :ring :prompt (construct/ring-line SC)}
+           (construct/jump-program w false (+ beat3-done-at construct/line-ms 999999))))))
+
+(deftest t32-jump-out-then-waits-on-jump-in
+  (let [ring-at (+ beat3-done-at construct/line-ms)
+        w       (-> SC (construct/enter false T0) sparring-done
+                    (construct/jump-out false ring-at))]
+    (is (= {:phase :out :prompt (construct/out-line SC)}
+           (construct/jump-program w false ring-at)))
+    (is (= {:phase :out :prompt (construct/out-line SC)}
+           (construct/jump-program w false (+ ring-at 999999))))))
+
+(deftest t33-jump-in-then-back-then-nil
+  (let [ring-at (+ beat3-done-at construct/line-ms)
+        in-at   (+ ring-at 500)
+        w       (-> SC (construct/enter false T0) sparring-done
+                    (construct/jump-out false ring-at)
+                    (construct/jump-in false in-at))]
+    (is (= {:phase :back :line (construct/back-line SC)}
+           (construct/jump-program w false in-at)))
+    (is (= {:phase :back :line (construct/back-line SC)}
+           (construct/jump-program w false (+ in-at (dec construct/line-ms)))))
+    (is (nil? (construct/jump-program w false (+ in-at construct/line-ms))))))
+
+(deftest t34-jump-out-is-a-no-op-once-jumped-out-seen-or-with-a-bad-now
+  (let [w (construct/jump-out SC false T0)]
+    (is (= T0 (get-in w [:construct :jumped-out-at])))
+    (is (= w (construct/jump-out w false (+ T0 999))))
+    (is (= SC (construct/jump-out SC true T0)))
+    (is (= SC (construct/jump-out SC false nil)))))
+
+(deftest t35-jump-in-requires-jump-out-first
+  (is (= SC (construct/jump-in SC false T0)) "no jack-out yet: no-op"))
+
+(deftest t36-jump-in-is-a-no-op-once-jumped-in-seen-or-with-a-bad-now
+  (let [out-w (construct/jump-out SC false T0)
+        w     (construct/jump-in out-w false (+ T0 10))]
+    (is (= (+ T0 10) (get-in w [:construct :jumped-in-at])))
+    (is (= w (construct/jump-in w false (+ T0 999))))
+    (is (= out-w (construct/jump-in out-w true (+ T0 10))))
+    (is (= out-w (construct/jump-in out-w false nil)))))
+
+(deftest t37-jump-program-lines-are-original-not-film-quotes
+  (doseq [line [(construct/show-line SC) (construct/ring-line SC) (construct/out-line SC)
+                (construct/back-line SC)]]
+    (is (string? line))
+    (is (not (str/blank? line)))
+    (is (not (str/includes? line "kung fu")))))
+
+;; Beat 5: free your mind (GDD §2.7, §4.8) -- the Construct's last beat
+
+(defn- jump-program-done [world]
+  (let [ring-at (+ beat3-done-at construct/line-ms)
+        in-at   (+ ring-at 500)]
+    (-> world
+        (construct/jump-out false ring-at)
+        (construct/jump-in false in-at))))
+
+(def ^:private beat4-done-at
+  (+ beat3-done-at construct/line-ms 500 construct/line-ms))
+
+(deftest t38-free-your-mind-nil-before-jump-program-is-done
+  (let [w (-> SC (construct/enter false T0) sparring-done jump-program-done)]
+    (is (nil? (construct/free-your-mind w false T0)))
+    (is (nil? (construct/free-your-mind w false (dec beat4-done-at))))))
+
+(deftest t39-free-your-mind-nil-for-a-returning-player-or-before-entered
+  (is (nil? (construct/free-your-mind {} true T0)))
+  (is (nil? (construct/free-your-mind SC false T0))))
+
+(deftest t40-free-your-mind-nil-bad-now
+  (let [w (-> SC (construct/enter false T0) sparring-done jump-program-done)]
+    (is (nil? (construct/free-your-mind w false nil)))
+    (is (nil? (construct/free-your-mind w false "nope")))))
+
+(deftest t41-free-your-mind-dissolves-then-the-twins-line-then-nil
+  (let [w (-> SC (construct/enter false T0) sparring-done jump-program-done)]
+    (is (= {:phase :dissolve} (construct/free-your-mind w false beat4-done-at)))
+    (is (= {:phase :dissolve}
+           (construct/free-your-mind w false (+ beat4-done-at (dec construct/dissolve-ms)))))
+    (is (= {:phase :line :line (construct/step-back-line SC)}
+           (construct/free-your-mind w false (+ beat4-done-at construct/dissolve-ms))))
+    (is (= {:phase :line :line (construct/step-back-line SC)}
+           (construct/free-your-mind w false (+ beat4-done-at construct/dissolve-ms (dec construct/line-ms)))))
+    (is (nil? (construct/free-your-mind w false (+ beat4-done-at construct/dissolve-ms construct/line-ms))))))
+
+(deftest t42-step-back-line-is-the-original-not-a-film-quote
+  (is (string? (construct/step-back-line SC)))
+  (is (not (str/blank? (construct/step-back-line SC))))
+  (is (not (str/includes? (construct/step-back-line SC) "kung fu"))))

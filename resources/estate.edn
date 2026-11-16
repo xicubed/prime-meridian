@@ -33,7 +33,33 @@
   :programs [{:id :own-agent :name "Your own agent"}
              {:id :mail :name "Mail"} {:id :calendar :name "Calendar"} {:id :github :name "GitHub"}
              {:id :blender :name "Blender"} {:id :stripe :name "Stripe"} {:id :notion :name "Notion"}
-             {:id :maps :name "Maps"} {:id :smart-home :name "Smart home"}]}
+             {:id :maps :name "Maps"} {:id :smart-home :name "Smart home"}]
+  ;; Beat 3, the sparring match (GDD §2.7): "the whole loop in miniature."
+  ;; A sample-badged worker takes a practice job, gets stuck, raises a "!",
+  ;; you answer, a blueprint of the rounder rock appears, and approving it
+  ;; changes the rock -- five minutes in, you've played the whole game.
+  :sparring {:worker     {:name "A Worker"}
+             :job        "Try it on something small first: tell that worker to make this rock rounder."
+             :working    "Rounding the practice rock..."
+             :ask        "I can round it more, but I want your word before I touch it again. Rounder, like this?"
+             :blueprint  "blueprint: the rounder rock"
+             :done       "Approved. Watch the rock, not me."}
+  ;; Beat 4, the jump program (GDD §2.3, §2.7, §4.8): the first pretend
+  ;; jack-out. The twin shows the hardline and the one rule that matters,
+  ;; the phone rings with a pretend chore, you jack out, and you jack back
+  ;; in -- all of it sample, so nothing real is ever at stake here.
+  :jump {:show "That's the hardline: the phone booth. One rule matters here -- when real life calls, you go."
+         :ring "It's ringing: a pretend chore, the kettle's boiled over. Jack out and see what happens."
+         :out  "You're out. The estate holds everything right where it is until you jack back in."
+         :back "Nothing broke. Jack out, jack back in, and the work waited for you -- that's the whole trick."}
+  ;; Beat 5, free your mind (GDD §2.7, §4.8): the Construct's last beat. The
+  ;; white room dissolves into the half-barren estate -- only the buildings
+  ;; for the programs loaded so far -- and the twin steps back.
+  :free {:line "I can open the door. Walking through it is your part."}
+  ;; what a click does at each interactive moment, shown under the line
+  :hints {:ask "click to answer" :blueprint "click to approve" :ring "click to jack out" :out "click to jack back in"}
+  ;; where the camera looks as your agent's building (the workshop) lands in beat 5
+  :land-camera {:target [-6.2 2.1 -3.5] :offset [3.8 2.3 4.1]}}
  ;; A due chore of yours is one of the day's "!"s (GDD §2.1): this mark leads the
  ;; creature's speech until you do it (click her, tick it in 💭, or text the twin).
  :needs-you-mark "!"

@@ -329,29 +329,70 @@
       (brook/play! h (:sounds @!world))
       (when-let [^js btn (js/document.getElementById "brook-toggle")] (set! (.-textContent btn) "■ brook")))))
 
+(defn- answer-sparring!
+  "The player's click answering the sample worker's '!' (GDD §2.1, §2.7, §3.1)."
+  []
+  (swap! !world construct/answer @!construct-seen? (js/Date.now)))
+
+(defn- approve-sparring!
+  "The player's click approving the rounder-rock blueprint (GDD §2.1, §2.7, §4.5)."
+  []
+  (swap! !world construct/approve-rock @!construct-seen? (js/Date.now)))
+
+(defn- jump-out!
+  "The player's click jacking out during the Construct's fourth beat (GDD
+   §2.3, §2.7, §4.8): the first pretend jack-out."
+  []
+  (swap! !world construct/jump-out @!construct-seen? (js/Date.now)))
+
+(defn- jump-in!
+  "The player's click jacking back in, right after."
+  []
+  (swap! !world construct/jump-in @!construct-seen? (js/Date.now)))
+
 (defn- construct-tick!
-  "Drives the Construct's first two beats (GDD §2.6, §2.7, §4.8) every frame
-   until a first-time player has been through them once: records when the
-   white room was entered, shows beat 1 (silent, then the twin's opening
-   line) and beat 2 (the program rack, then your own agent loading as its
-   sample version, its building dropping out of the white sky) through
-   pm.ui, and marks it seen -- in `!world`'s own localStorage cache is not
-   enough, since `!construct-seen?` must survive a reload -- once both
-   beats are done."
+  "Drives the Construct's five beats (GDD §2.3, §2.6, §2.7, §3.1, §4.5,
+   §4.8) every frame until a first-time player has been through them once:
+   records when the white room was entered, shows beat 1 (silent, then the
+   twin's opening line), beat 2 (the program rack, then your own agent
+   loading as its sample version, its building dropping out of the white
+   sky), beat 3 (the sparring match: a sample-badged worker's practice job,
+   its '!', the rounder rock's blueprint, the rock changing once it's
+   approved), beat 4 (the jump program: the twin shows the hardline, the
+   phone rings with a pretend chore, you jack out, you jack back in) and
+   beat 5 (free your mind: the white room dissolves into the half-barren
+   estate, then the twin's step-back line) through pm.ui, and marks it seen
+   -- in `!world`'s own localStorage cache is not enough, since
+   `!construct-seen?` must survive a reload -- once all five beats are
+   done."
   [now]
   (when-not @!construct-seen?
     (let [room (construct/white-room @!world @!construct-seen? now)
           rack (construct/program-rack @!world @!construct-seen? now)
-          line (or (:line room) (:line rack))]
+          spar (construct/sparring @!world @!construct-seen? now)
+          jump (construct/jump-program @!world @!construct-seen? now)
+          free (construct/free-your-mind @!world @!construct-seen? now)
+          line (or (:line room) (:line rack) (:line spar) (:line jump) (:line free))]
       ;; the twin says its Construct lines aloud too, once each
       (when (and line (not= line @!construct-said) (:voice? (:talk @!world)))
         (reset! !construct-said line)
         (ui/speak! line (talk/voice-for @!world {:kind :hal})))
       (ui/set-white-room! room)
       (ui/set-program-rack! rack)
+      ;; the click hints are data too (:construct-script :hints)
+      (let [hints (get-in @!world [:construct-script :hints])]
+        (ui/set-sparring! (when spar (assoc spar :hint (get hints (:phase spar)))))
+        (ui/set-jump-program! (when jump (assoc jump :hint (get hints (:phase jump))))))
+      (ui/set-free-your-mind! free)
+      ;; beat 5: as the white dissolves, your agent's building lands, in view
+      (when (and (= :dissolve (:phase free)) (nil? (get-in @!world [:construct :building-at])))
+        (swap! !world construct/land-building now)
+        (when-let [h (kit/handle)]
+          (let [{:keys [target offset]} (get-in @!world [:construct-script :land-camera])]
+            (camera/frame! h target offset))))
       (when (= :loaded (:phase rack))
         (swap! !world construct/load-program (:id (:program rack)) now))
-      (when (and (nil? room) (nil? rack) (:entered-at (:construct @!world)))
+      (when (and (nil? room) (nil? rack) (nil? spar) (nil? jump) (nil? free) (:entered-at (:construct @!world)))
         (reset! !construct-seen? true)
         (try (.setItem js/localStorage construct-key "1") (catch :default _ nil))))))
 
@@ -954,7 +995,9 @@
   ;; Staying past closing (GDD §2.3, §4.8): the twin asks once; clicking
   ;; Stay answers it and the ask doesn't come back tonight.
   (ui/wire-stay-late! (fn [] (swap! !world closing/stay-late (js/Date.now))))
-  (ui/wire-white-room! jack-in-construct!))
+  (ui/wire-white-room! jack-in-construct!)
+  (ui/wire-sparring! answer-sparring! approve-sparring!)
+  (ui/wire-jump-program! jump-out! jump-in!))
 
 (defn- jack-in! []
   (swap! !world content/hal-say content/hal-lines :jack-in {} (js/Date.now)))

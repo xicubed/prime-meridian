@@ -176,6 +176,176 @@
         nil))
     (set! (.. box -style -display) (if state "flex" "none"))))
 
+(defn- sparring-el
+  "The Construct's sparring match, beat 3 (GDD §2.1, §2.7, §3.1, §4.5): the
+   whole loop in miniature. Shares the earlier beats' look, created on
+   first use, same self-contained pattern."
+  []
+  (or (el "construct-sparring")
+      (let [^js box (js/document.createElement "div")]
+        (set! (.-id box) "construct-sparring")
+        (set! (.. box -style -cssText)
+              (str "position:fixed;inset:0;z-index:500;background:#fff;"
+                   "display:none;flex-direction:column;align-items:center;justify-content:center;"
+                   "gap:16px;padding:10vh 10vw;box-sizing:border-box;text-align:center;"
+                   "font:24px/1.5 system-ui, sans-serif;color:#1b1f2a;"))
+        (.appendChild js/document.body box)
+        box)))
+
+(defn- append-rock!
+  "A plain CSS rock, the done-when's \"the rock changes in front of you\":
+   squarish before the blueprint's approved, round once it is, so the
+   change is visible without the 3D scene the white room sits above."
+  [^js box rounder?]
+  (let [^js r (js/document.createElement "div")]
+    (set! (.. r -style -cssText)
+          (str "width:90px;height:70px;margin:0 auto;background:#8a8f99;"
+               "transition:border-radius .6s ease;"
+               "border-radius:" (if rounder? "50%" "16%") ";"))
+    (.appendChild box r)))
+
+(defn- append-line!
+  [^js box text]
+  (let [^js p (js/document.createElement "div")]
+    (set! (.-textContent p) (or text ""))
+    (.appendChild box p)))
+
+(defn- append-hint!
+  [^js box text]
+  (let [^js q (js/document.createElement "div")]
+    (set! (.. q -style -cssText) "margin-top:4px;font-size:18px;color:#9aa0a6;cursor:pointer;")
+    (set! (.-textContent q) (or text ""))
+    (.appendChild box q)))
+
+(defn set-sparring!
+  "Shows or hides the sparring match (GDD §2.1, §2.7, §3.1, §4.5): the
+   twin's job line while `state` is {:phase :job}, the sample-badged
+   worker working the rock at {:phase :working}, its '!' question waiting
+   on an answer at {:phase :ask}, the rounder rock's blueprint waiting on
+   approval at {:phase :blueprint}, the rock changed at {:phase :done},
+   gone once `state` is nil."
+  [state]
+  (let [^js box (sparring-el)
+        phase   (name (or (:phase state) :none))]
+    (when (not= phase (.. box -dataset -phase))
+      (set! (.. box -dataset -phase) phase)
+      (set! (.-innerHTML box) "")
+      (case (:phase state)
+        :job       (append-line! box (:line state))
+        :working   (do (append-rock! box false)
+                        (append-line! box (str (:worker state) " (SAMPLE) · " (:text state))))
+        :ask       (do (append-rock! box false)
+                        (append-line! box (str (:worker state) " (SAMPLE) raises a !"))
+                        (append-hint! box (str (:prompt state) " (" (:hint state) ")")))
+        :blueprint (do (append-rock! box false)
+                       (append-line! box (:summary state))
+                       (append-hint! box (:hint state)))
+        :done      (do (append-rock! box true)
+                        (append-line! box (:line state)))
+        nil))
+    (set! (.. box -style -display) (if state "flex" "none"))))
+
+(defn wire-sparring!
+  "Calls `on-answer` when the player clicks during the worker's '!'
+   ({:phase :ask}), `on-approve` when they click during the blueprint
+   ({:phase :blueprint}); a no-op click any other time."
+  [on-answer on-approve]
+  (let [^js box (sparring-el)]
+    (.addEventListener box "click"
+      (fn [^js e]
+        (.stopPropagation e)
+        (case (.. box -dataset -phase)
+          "ask"       (on-answer)
+          "blueprint" (on-approve)
+          nil)))))
+
+(defn- jump-program-el
+  "The Construct's jump program, beat 4 (GDD §2.3, §2.7, §4.8): the first
+   pretend jack-out. Shares the earlier beats' look, created on first use,
+   same self-contained pattern."
+  []
+  (or (el "construct-jump")
+      (let [^js box (js/document.createElement "div")]
+        (set! (.-id box) "construct-jump")
+        (set! (.. box -style -cssText)
+              (str "position:fixed;inset:0;z-index:500;background:#fff;"
+                   "display:none;flex-direction:column;align-items:center;justify-content:center;"
+                   "gap:16px;padding:10vh 10vw;box-sizing:border-box;text-align:center;"
+                   "font:24px/1.5 system-ui, sans-serif;color:#1b1f2a;"))
+        (.appendChild js/document.body box)
+        box)))
+
+(defn set-jump-program!
+  "Shows or hides the jump program (GDD §2.3, §2.7, §4.8): the twin's line
+   showing the hardline while `state` is {:phase :show}, the phone ringing
+   with the pretend chore at {:phase :ring} (waiting on the jack-out
+   click), the estate held frozen at {:phase :out} (waiting on the
+   jack-back-in click), the twin's line once you're back at {:phase
+   :back}, gone once `state` is nil."
+  [state]
+  (let [^js box (jump-program-el)
+        phase   (name (or (:phase state) :none))]
+    (when (not= phase (.. box -dataset -phase))
+      (set! (.. box -dataset -phase) phase)
+      (set! (.-innerHTML box) "")
+      (case (:phase state)
+        :show (append-line! box (:line state))
+        :ring (do (append-line! box (:prompt state))
+                  (append-hint! box (:hint state)))
+        :out  (do (append-line! box (:prompt state))
+                  (append-hint! box (:hint state)))
+        :back (append-line! box (:line state))
+        nil))
+    (set! (.. box -style -display) (if state "flex" "none"))))
+
+(defn wire-jump-program!
+  "Calls `on-jump-out` when the player clicks during the ringing phone
+   ({:phase :ring}), `on-jump-in` when they click while jacked out
+   ({:phase :out}); a no-op click any other time."
+  [on-jump-out on-jump-in]
+  (let [^js box (jump-program-el)]
+    (.addEventListener box "click"
+      (fn [^js e]
+        (.stopPropagation e)
+        (case (.. box -dataset -phase)
+          "ring" (on-jump-out)
+          "out"  (on-jump-in)
+          nil)))))
+
+(defn- free-mind-el
+  "The Construct's fifth and final beat, free your mind (GDD §2.7, §4.8):
+   the white room dissolving away. Shares the earlier beats' white-room
+   look but fades its own opacity (rather than just toggling display), so
+   the estate underneath -- already showing only the buildings for the
+   programs loaded so far -- comes through as it dissolves. Created on
+   first use, same self-contained pattern, so it needs no
+   public/index.html change."
+  []
+  (or (el "construct-free")
+      (let [^js box (js/document.createElement "div")]
+        (set! (.-id box) "construct-free")
+        (set! (.. box -style -cssText)
+              (str "position:fixed;inset:0;z-index:500;background:#fff;"
+                   "display:none;align-items:center;justify-content:center;"
+                   "padding:10vh 10vw;box-sizing:border-box;text-align:center;"
+                   "font:24px/1.5 system-ui, sans-serif;color:#1b1f2a;"
+                   "transition:opacity 1.5s linear;"))
+        (.appendChild js/document.body box)
+        box)))
+
+(defn set-free-your-mind!
+  "Shows or hides the Construct's last beat (GDD §2.7, §4.8): opaque white
+   at {:phase :dissolve}'s start, fading to transparent over that phase --
+   the white room dissolving into the estate -- then the twin's step-back
+   line over the now-clear estate at {:phase :line :line ...}, gone once
+   `state` is nil."
+  [state]
+  (let [^js box (free-mind-el)]
+    (set! (.-textContent box) (or (:line state) ""))
+    (set! (.. box -style -display) (if state "flex" "none"))
+    (set! (.. box -style -opacity) (if (= :dissolve (:phase state)) "0" "1"))
+    (set! (.. box -style -background) (if (= :dissolve (:phase state)) "transparent" "#fff"))))
+
 (defn set-badge! [text alert?]
   (when-let [^js b (el "talk-badge")]
     (set! (.-textContent b) text))

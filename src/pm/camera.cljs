@@ -54,6 +54,18 @@
     (let [^js p (.. h -camera -position) ^js t (.-target o)]
       {:pos [(.-x p) (.-y p) (.-z p)] :target [(.-x t) (.-y t) (.-z t)]})))
 
+(defn frame!
+  "Points the kit's camera at `target` from `target` + `offset` (both
+   [x y z], metres): the Construct's last beat uses it so the player sees
+   their agent's building land. No-op without the kit's rig."
+  [^js h target offset]
+  (when-let [^js o (orbit h)]
+    (when (and (vec3? target) (vec3? offset))
+      (let [[tx ty tz] target [dx dy dz] offset]
+        (.set (.-target o) tx ty tz)
+        (.set (.-position (.-camera h)) (+ tx dx) (+ ty dy) (+ tz dz))
+        (.update o)))))
+
 (defn restore!
   "Put the saved camera back (call once the kit is ready). Returns true if it did."
   [^js h]
