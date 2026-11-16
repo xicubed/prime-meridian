@@ -1,0 +1,7 @@
+This all looks correct and matches the convention used elsewhere (`stay-late-el` precedent). The gate passes with 0 warnings and all tests green. The feature is complete and minimal.
+
+FILES: src/pm/construct.cljs (new), test/pm/construct_test.cljs (new), src/pm/ui.cljs, src/pm/core.cljs
+
+WHAT: Added the Construct's first beat (GDD §2.7). A pure `pm.construct` namespace tracks when a first-time player's session started and returns `{:phase :silent}` for 1.5s, then `{:phase :twin :line ...}` with the twin's original opening line ("This is the white room. Nothing in here is real yet. We load what you need, then we go make it real.") for 6s, then nil. `pm.core` drives this every frame for a player who's never seen it (tracked in localStorage, like the other source/voice flags), and `pm.ui` shows it as a full-screen white overlay above the rest of the UI — silent and blank, then the line. Once the beat finishes it's marked seen and never shows again (reset via `?fresh` in the URL, same as the other testing aids).
+
+HOW TO SEE IT: Load the game fresh (clear site data, or add `?fresh` to the URL) — the screen goes solid white and silent for about 1.5 seconds, then the twin's opening line fades in over the white room for a few seconds before it clears into the ordinary estate/scaffold view underneath.

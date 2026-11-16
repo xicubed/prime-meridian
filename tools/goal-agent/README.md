@@ -242,3 +242,17 @@ needed real work:
 - `the-snap` (feeding Flora drops a worm, she lunges and settles, the jar goes down one) and
   `juice-meter` (the share of the plan left and refill time in the HUD, estimated from tokens) were
   accepted after a live check of the snap.
+
+**Run 8** (`runs/20261115-1803/`, `--max 2 --only construct-white-room,construct-programs`, about $5):
+the Construct's first two beats were **built**, pure and tested (`pm.construct`): a first-time
+player's page opens on a silent white room, the twin steps in with its opening line, a rack of
+programs scrolls past, and your own agent loads first. It plays once per browser.
+
+Hand changes before accepting run 8:
+- The twin's lines and the program list were written into the code; they moved to data
+  (`:construct-script` in `estate.edn`), and the tests read them from there.
+- `?construct` replays it without wiping anything else (`?fresh` resets everything).
+- The rack was one static line of names; it now scrolls up as a column and lands on your own agent.
+- Play-tested with timed screenshots. The building that "drops out of the white sky" falls while the
+  screen is still white and off camera, so nobody sees it; that belongs to beat 5 (the white room
+  dissolving into the estate), so it's TASKS N-5 rather than a fix here.
