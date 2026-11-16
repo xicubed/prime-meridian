@@ -93,6 +93,57 @@
     (when-let [^js b (el "close-up-button")] (set! (.-textContent b) (or (:leave words) "")))
     (set! (.. box -style -display) (if (and asking? (:button words)) "flex" "none"))))
 
+(defonce ^:private !speaker (atom nil))
+
+(defn set-speaker!
+  "Who speaks the Construct's lines, shown above each one (e.g. the twin's name,
+   then \"your twin\"), so a new player knows who's talking."
+  [label]
+  (reset! !speaker label))
+
+(defn- construct-css!
+  "The Construct's shared styles, added once: the speaker label, the line,
+   the click hint as a button, the rock, the worker and the phone booth."
+  []
+  (when-not (el "pm-construct-style")
+    (let [^js st (js/document.createElement "style")]
+      (set! (.-id st) "pm-construct-style")
+      (set! (.-textContent st)
+            (str ".pm-who{font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:#6b7280;margin-bottom:6px}"
+                 ".pm-say{font-size:30px;line-height:1.4;max-width:900px;color:#1b1f2a}"
+                 ".pm-hint{margin-top:18px;display:inline-block;padding:10px 22px;border-radius:999px;"
+                 "border:2px solid #1b1f2a;font-size:18px;color:#1b1f2a;cursor:pointer;animation:pm-pulse 1.6s ease-in-out infinite}"
+                 "@keyframes pm-pulse{50%{box-shadow:0 0 0 8px rgba(27,31,42,.08)}}"
+                 ".pm-stage{display:flex;align-items:flex-end;gap:28px;justify-content:center;height:150px;margin-bottom:30px}"
+                 ".pm-rock{width:130px;height:96px;background:#8a8f99;transition:clip-path .9s ease}"
+                 ".pm-worker{position:relative;width:34px;height:84px}"
+                 ".pm-worker:before{content:'';position:absolute;left:5px;top:0;width:24px;height:24px;border-radius:50%;background:#4a7bd0}"
+                 ".pm-worker:after{content:'';position:absolute;left:0;top:28px;width:34px;height:56px;border-radius:14px 14px 6px 6px;background:#4a7bd0}"
+                 ".pm-bang{position:absolute;left:4px;top:-52px;font:700 40px system-ui;color:#e5a50a;animation:pm-bob 1s ease-in-out infinite}"
+                 "@keyframes pm-bob{50%{transform:translateY(-6px)}}"
+                 ".pm-tag{position:absolute;left:-14px;top:90px;font-size:11px;letter-spacing:.1em;color:#6b7280}"
+                 ".pm-booth{width:60px;height:130px;background:#c0392b;border-radius:6px 6px 2px 2px;position:relative}"
+                 ".pm-booth:before{content:'';position:absolute;left:10px;top:18px;width:40px;height:60px;background:#f6e7c8;border-radius:2px}"
+                 ".pm-booth.ring{animation:pm-ring .18s linear infinite}"
+                 ".pm-booth.out{opacity:.35}"
+                 "@keyframes pm-ring{25%{transform:rotate(-3deg)}75%{transform:rotate(3deg)}}"))
+      (.appendChild (.-head js/document) st))))
+
+(defn- append-say!
+  "One spoken line: who's speaking (default the twin), then the words."
+  ([^js box text] (append-say! box text @!speaker))
+  ([^js box text who]
+   (construct-css!)
+   (let [^js w (js/document.createElement "div")
+         ^js p (js/document.createElement "div")]
+     (when who
+       (set! (.-className w) "pm-who")
+       (set! (.-textContent w) who)
+       (.appendChild box w))
+     (set! (.-className p) "pm-say")
+     (set! (.-textContent p) (or text ""))
+     (.appendChild box p))))
+
 (defn- white-room-el
   "The Construct's white room (GDD §2.7): a plain white screen above
    everything else, created on first use, same self-contained pattern as
@@ -116,11 +167,20 @@
    {:phase :twin :line ...}, gone once `state` is nil."
   [state]
   (let [^js box (white-room-el)
-        waiting? (= :waiting (:phase state))]
-    (set! (.-textContent box) (or (:line state) (:prompt state) ""))
-    ;; the jack-in prompt reads as a quiet hint, the twin's line as speech
-    (set! (.. box -style -color) (if waiting? "#9aa0a6" "#1b1f2a"))
-    (set! (.. box -style -fontSize) (if waiting? "18px" "24px"))
+        waiting? (= :waiting (:phase state))
+        key      (str (:phase state) (:line state))]
+    ;; rebuilt only when it changes: this runs every frame
+    (when (not= key (.. box -dataset -key))
+      (set! (.. box -dataset -key) key)
+      (set! (.-innerHTML box) "")
+      (set! (.. box -style -flexDirection) "column")
+      (cond
+        waiting?      (do (construct-css!)
+                          (let [^js h (js/document.createElement "div")]
+                            (set! (.-className h) "pm-hint")
+                            (set! (.-textContent h) (:prompt state))
+                            (.appendChild box h)))
+        (:line state) (append-say! box (:line state))))
     (set! (.. box -style -cursor) (if waiting? "pointer" "default"))
     (set! (.. box -style -display) (if state "flex" "none"))))
 
@@ -177,7 +237,8 @@
                       (.appendChild (.-head js/document) st)))
                   (set! (.. box -style -overflow) "hidden")
                   (.appendChild box col))
-        :loaded (set! (.-textContent box) (:line state))
+        :loaded (do (set! (.. box -style -flexDirection) "column")
+                    (append-say! box (:line state)))
         nil))
     (set! (.. box -style -display) (if state "flex" "none"))))
 
@@ -197,28 +258,61 @@
         (.appendChild js/document.body box)
         box)))
 
-(defn- append-rock!
-  "A plain CSS rock, the done-when's \"the rock changes in front of you\":
-   squarish before the blueprint's approved, round once it is, so the
-   change is visible without the 3D scene the white room sits above."
-  [^js box rounder?]
-  (let [^js r (js/document.createElement "div")]
-    (set! (.. r -style -cssText)
-          (str "width:90px;height:70px;margin:0 auto;background:#8a8f99;"
-               "transition:border-radius .6s ease;"
-               "border-radius:" (if rounder? "50%" "16%") ";"))
-    (.appendChild box r)))
+(def ^:private jagged
+  "polygon(4% 62%,14% 22%,30% 30%,42% 2%,58% 18%,74% 6%,88% 34%,99% 52%,90% 84%,66% 98%,40% 88%,16% 96%)")
 
-(defn- append-line!
-  [^js box text]
-  (let [^js p (js/document.createElement "div")]
-    (set! (.-textContent p) (or text ""))
-    (.appendChild box p)))
+(def ^:private rounded
+  ;; the same twelve points on an ellipse, so the change animates point by point
+  (str "polygon("
+       (->> (range 12)
+            (map (fn [i] (let [a (+ Math/PI (* i (/ (* 2 Math/PI) 12)))]
+                           (str (.toFixed (+ 50 (* 49 (Math/cos a))) 1) "% "
+                                (.toFixed (+ 52 (* 46 (Math/sin a))) 1) "%"))))
+            (interpose ",")
+            (apply str))
+       ")"))
+
+(defn- append-rock!
+  "A plain CSS rock beside the SAMPLE worker, the done-when's \"the rock
+   changes in front of you\": jagged before the blueprint's approved,
+   rounding off once it is, visible without the 3D scene the white room
+   sits above. `asking?` puts the worker's '!' over its head."
+  [^js box rounder? asking? tag]
+  (construct-css!)
+  (let [^js stage (js/document.createElement "div")
+        ^js wk    (js/document.createElement "div")
+        ^js r     (js/document.createElement "div")]
+    (set! (.-className stage) "pm-stage")
+    (set! (.-className wk) "pm-worker")
+    (let [^js t (js/document.createElement "div")]
+      (set! (.-className t) "pm-tag") (set! (.-textContent t) tag) (.appendChild wk t))
+    (when asking?
+      (let [^js b (js/document.createElement "div")]
+        (set! (.-className b) "pm-bang") (set! (.-textContent b) "!") (.appendChild wk b)))
+    (set! (.-className r) "pm-rock")
+    (set! (.. r -style -clipPath) jagged)
+    (.appendChild stage wk)
+    (.appendChild stage r)
+    (.appendChild box stage)
+    (when rounder?
+      ;; next frame, so the jagged-to-round change animates in view
+      (js/requestAnimationFrame (fn [] (js/requestAnimationFrame (fn [] (set! (.. r -style -clipPath) rounded))))))))
+
+(defn- append-booth!
+  "The phone booth for the jump program (red, like the estate's), ringing
+   (shaking) or dimmed while you're jacked out."
+  [^js box mode]
+  (construct-css!)
+  (let [^js b (js/document.createElement "div")]
+    (set! (.-className b) (str "pm-booth " (name mode)))
+    (.appendChild box b)))
 
 (defn- append-hint!
+  "What a click does now, as a button-like pill (the whole screen takes the click)."
   [^js box text]
+  (construct-css!)
   (let [^js q (js/document.createElement "div")]
-    (set! (.. q -style -cssText) "margin-top:4px;font-size:18px;color:#9aa0a6;cursor:pointer;")
+    (set! (.-className q) "pm-hint")
     (set! (.-textContent q) (or text ""))
     (.appendChild box q)))
 
@@ -236,17 +330,18 @@
       (set! (.. box -dataset -phase) phase)
       (set! (.-innerHTML box) "")
       (case (:phase state)
-        :job       (append-line! box (:line state))
-        :working   (do (append-rock! box false)
-                        (append-line! box (str (:worker state) " (SAMPLE) · " (:text state))))
-        :ask       (do (append-rock! box false)
-                        (append-line! box (str (:worker state) " (SAMPLE) raises a !"))
-                        (append-hint! box (str (:prompt state) " (" (:hint state) ")")))
-        :blueprint (do (append-rock! box false)
-                       (append-line! box (:summary state))
+        :job       (do (append-rock! box false false (:tag state))
+                       (append-say! box (:line state)))
+        :working   (do (append-rock! box false false (:tag state))
+                       (append-say! box (:text state) (str (:worker state) " · " (:tag state))))
+        :ask       (do (append-rock! box false true (:tag state))
+                       (append-say! box (:prompt state) (str (:worker state) " · " (:tag state)))
                        (append-hint! box (:hint state)))
-        :done      (do (append-rock! box true)
-                        (append-line! box (:line state)))
+        :blueprint (do (append-rock! box false false (:tag state))
+                       (append-say! box (:summary state) (:blueprint-who state))
+                       (append-hint! box (:hint state)))
+        :done      (do (append-rock! box true false (:tag state))
+                       (append-say! box (:line state)))
         nil))
     (set! (.. box -style -display) (if state "flex" "none"))))
 
@@ -294,12 +389,12 @@
       (set! (.. box -dataset -phase) phase)
       (set! (.-innerHTML box) "")
       (case (:phase state)
-        :show (append-line! box (:line state))
-        :ring (do (append-line! box (:prompt state))
+        :show (do (append-booth! box :still) (append-say! box (:line state)))
+        :ring (do (append-booth! box :ring) (append-say! box (:prompt state))
                   (append-hint! box (:hint state)))
-        :out  (do (append-line! box (:prompt state))
+        :out  (do (append-booth! box :out) (append-say! box (:prompt state))
                   (append-hint! box (:hint state)))
-        :back (append-line! box (:line state))
+        :back (do (append-booth! box :still) (append-say! box (:line state)))
         nil))
     (set! (.. box -style -display) (if state "flex" "none"))))
 
@@ -342,14 +437,38 @@
   "Shows or hides the Construct's last beat (GDD §2.7, §4.8): opaque white
    at {:phase :dissolve}'s start, fading to transparent over that phase --
    the white room dissolving into the estate -- then the twin's step-back
-   line over the now-clear estate at {:phase :line :line ...}, gone once
-   `state` is nil."
+   line, on a card over the now-clear estate, at {:phase :line :line ...},
+   gone once `state` is nil."
   [state]
-  (let [^js box (free-mind-el)]
-    (set! (.-textContent box) (or (:line state) ""))
-    (set! (.. box -style -display) (if state "flex" "none"))
-    (set! (.. box -style -opacity) (if (= :dissolve (:phase state)) "0" "1"))
-    (set! (.. box -style -background) (if (= :dissolve (:phase state)) "transparent" "#fff"))))
+  (let [^js box (free-mind-el)
+        phase (:phase state)
+        key   (str phase (:line state))]
+    (when (not= key (.. box -dataset -key))
+      (set! (.. box -dataset -key) key)
+      (set! (.-innerHTML box) "")
+      (set! (.. box -style -flexDirection) "column")
+      (case phase
+        ;; start white, then fade out over the transition, next frame so it animates
+        :dissolve (do (set! (.. box -style -transition) "none")
+                      (set! (.. box -style -background) "#fff")
+                      (set! (.. box -style -opacity) "1")
+                      (js/requestAnimationFrame
+                        (fn [] (js/requestAnimationFrame
+                                 (fn [] (set! (.. box -style -transition) "opacity 1.5s linear")
+                                        (set! (.. box -style -opacity) "0"))))))
+        :line     (let [^js card (js/document.createElement "div")]
+                    ;; over the estate now: a card so it reads on any background
+                    (set! (.. box -style -transition) "none")
+                    (set! (.. box -style -background) "transparent")
+                    (set! (.. box -style -opacity) "1")
+                    (set! (.. card -style -cssText)
+                          "background:rgba(255,255,255,.94);border-radius:14px;padding:18px 28px;box-shadow:0 6px 24px rgba(0,0,0,.18)")
+                    (append-say! card (:line state))
+                    (.appendChild box card))
+        nil))
+    ;; the estate stays clickable under the card; only the white blocks clicks
+    (set! (.. box -style -pointerEvents) (if (= :line phase) "none" "auto"))
+    (set! (.. box -style -display) (if state "flex" "none"))))
 
 (defn set-badge! [text alert?]
   (when-let [^js b (el "talk-badge")]

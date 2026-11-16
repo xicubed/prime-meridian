@@ -381,7 +381,9 @@
       (ui/set-program-rack! rack)
       ;; the click hints are data too (:construct-script :hints)
       (let [hints (get-in @!world [:construct-script :hints])]
-        (ui/set-sparring! (when spar (assoc spar :hint (get hints (:phase spar)))))
+        (ui/set-sparring! (when spar (assoc spar :hint (get hints (:phase spar))
+                                            :tag (get-in @!world [:construct-script :sample])
+                                            :blueprint-who (get-in @!world [:construct-script :blueprint-who]))))
         (ui/set-jump-program! (when jump (assoc jump :hint (get hints (:phase jump))))))
       (ui/set-free-your-mind! free)
       ;; beat 5: as the white dissolves, your agent's building lands, in view
@@ -999,6 +1001,9 @@
                       (fn [] (swap! !world closing/close-up
                                     (get-in @!world [:stay-late-ask :sign]) (js/Date.now))))
   (ui/wire-white-room! jack-in-construct!)
+  ;; who's talking in the Construct: the twin's name, then its role
+  (ui/set-speaker! (str (get-in @!world [:jumeaux :twin :name]) " · "
+                        (get-in @!world [:construct-script :speaker])))
   (ui/wire-sparring! answer-sparring! approve-sparring!)
   (ui/wire-jump-program! jump-out! jump-in!))
 
