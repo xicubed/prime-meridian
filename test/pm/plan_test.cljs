@@ -6,7 +6,10 @@
             [pm.fixtures :as fx]))
 
 (def T0 1800000000000)
-(def W  (assoc (w/load-estate w/estate-edn) :lines fx/lines-v0))
+;; The estate without its needs-you mark: these tests are about lines and
+;; layout; the mark a due chore adds is tested on its own
+;; (due-chore-leads-with-the-needs-you-mark).
+(def W  (-> (w/load-estate w/estate-edn) (assoc :lines fx/lines-v0) (dissoc :needs-you-mark)))
 (defn ev [m c at via] {:event :chore-done :mirror m :chore c :at at :via via :who :me})
 (def fed (ev :flora :feed T0 :key))
 (def hay (ev :juniper :hay T0 :key))
@@ -511,3 +514,15 @@
     (is (= 0 (p/snap-pose K :flora T0)))
     (is (< 0 (p/snap-pose K :flora (+ T0 500))))
     (is (nil? (p/snap-pose K :flora (+ T0 p/snap-ms 1))))))
+
+(deftest due-chore-leads-with-the-needs-you-mark
+  (let [w {:needs-you-mark "!"
+           :mirrors {:m {:chores [{:id :feed :every "2d" :who :me :done-at :last}]
+                         :state {:last 0}}}}
+        two-days (* 2 24 3600 1000)]
+    (is (true? (p/needs-you? w :m two-days)))
+    (is (false? (p/needs-you? w :m (dec two-days))))
+    (is (= "! hungry" (p/with-mark w "hungry" true)))
+    (is (= "hungry" (p/with-mark w "hungry" false)))
+    (is (= "hungry" (p/with-mark {} "hungry" true)) "no mark in the data: unchanged")
+    (is (false? (p/needs-you? (assoc-in w [:mirrors :m :chores 0 :who] :wife) :m two-days)) "someone else's chore")))

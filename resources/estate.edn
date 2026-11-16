@@ -23,6 +23,9 @@
  ;; A built lamp shines as bright as theirs, so it lights up at dusk with them.
  ;; SAMPLE or REAL, per object (ⓘ panel): what the twin says when a REAL
  ;; mirror's chore can't be recorded, since a real thing mustn't change only on screen.
+ ;; A due chore of yours is one of the day's "!"s (GDD §2.1): this mark leads the
+ ;; creature's speech until you do it (click her, tick it in 💭, or text the twin).
+ :needs-you-mark "!"
  :real-text {:no-bridge    "That one's real: start the bridge (bb crew-bridge) to record it."
              :not-recorded "Couldn't record that for real"}
  :kit-lights {:lamp-color "#ffd28a" :lantern-mesh "SM_Hiroshi_Cottage_Lantern"}

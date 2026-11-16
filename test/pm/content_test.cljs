@@ -15,7 +15,7 @@
                              :stock-sign ["jar {stock}" "worms {stock}"]}
                    :juniper {:hungry ["hay0" "hay1" "hay2"] :low ["bales {bales}" "few {bales}"]
                              :stock-sign ["barn {bales}"]}}})
-(def WT (assoc W :lines LT))
+(def WT (-> W (assoc :lines LT) (dissoc :needs-you-mark)))   ; lines only; the mark is tested in plan-test
 (def L  {:mirrors {:flora {:hungry ["h0" "h1 {stock}" "h2"]}
                    :juniper {:low "bales {bales}"}
                    :odd {:empty [] :num [7] :mixed ["ok" 7]}}

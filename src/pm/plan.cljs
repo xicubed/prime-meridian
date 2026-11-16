@@ -20,6 +20,23 @@
         (w/fill idle state)
         ""))))
 
+(defn needs-you?
+  "True when one of the player's own chores on `mirror-id` is due (GDD §2.1:
+   a due chore is one of the day's \"!\"s, answered by doing it -- clicking
+   the creature, ticking it in 💭, or texting the twin)."
+  [world mirror-id now]
+  (boolean (some #(and (= :me (:who %)) (w/due? world mirror-id (:id %) now))
+                 (get-in world [:mirrors mirror-id :chores]))))
+
+(defn with-mark
+  "`text` led by the world's needs-you mark (`:needs-you-mark` in
+   estate.edn) when `due?`; unchanged otherwise or with no mark."
+  [world text due?]
+  (let [m (:needs-you-mark world)]
+    (if (and due? (string? m) (seq m))
+      (if (seq text) (str m " " text) m)
+      text)))
+
 (def shapes
   "Valid part shapes."
   #{:box :cylinder :capsule :sphere :cone})
@@ -134,7 +151,8 @@
                         (assoc base
                                :label label
                                :label-at [x (+ y top label-lift) z]
-                               :text (label-text markers label idle state)))
+                               :text (cond-> (label-text markers label idle state)
+                                       (= :say label) (as-> t (with-mark world t (needs-you? world mirror-id now))))))
                       base)))))
             (:placed mirror))))
       (sort (keys (:mirrors world))))))
