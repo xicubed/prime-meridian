@@ -390,7 +390,8 @@
       (let [hints (get-in @!world [:construct-script :hints])]
         (ui/set-sparring! (when spar (assoc spar :hint (get hints (:phase spar))
                                             :tag (get-in @!world [:construct-script :sample])
-                                            :blueprint-who (get-in @!world [:construct-script :blueprint-who]))))
+                                            :blueprint-who (get-in @!world [:construct-script :blueprint-who])
+                                            :rock-labels (get-in @!world [:construct-script :rock-labels]))))
         (ui/set-jump-program! (when jump (assoc jump :hint (get hints (:phase jump))))))
       (ui/set-free-your-mind! free)
       ;; beat 5: as the white dissolves, your agent's building lands, in view

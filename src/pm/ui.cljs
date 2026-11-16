@@ -117,6 +117,12 @@
                  ".pm-stage{display:flex;align-items:flex-end;gap:28px;justify-content:center;height:150px;margin-bottom:30px}"
                  ".pm-rock{width:130px;height:96px;background:#8a8f99;transition:clip-path .9s ease}"
                  ".pm-worker{position:relative;width:34px;height:84px}"
+                 ".pm-fig{display:flex;flex-direction:column;align-items:center;gap:8px}"
+                 ".pm-arrow{font-size:44px;color:#4a7bd0;align-self:center;margin-bottom:22px}"
+                 ".pm-cap{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#6b7280}"
+                 ".pm-ghost{background:#4a7bd0;position:relative;opacity:.9;animation:pm-ghost 1.4s ease-in-out infinite}"
+                 ".pm-ghost-in{position:absolute;left:3px;top:3px;width:124px;height:90px;background:#eef3fb}"
+                 "@keyframes pm-ghost{50%{opacity:.45}}"
                  ".pm-worker:before{content:'';position:absolute;left:5px;top:0;width:24px;height:24px;border-radius:50%;background:#4a7bd0}"
                  ".pm-worker:after{content:'';position:absolute;left:0;top:28px;width:34px;height:56px;border-radius:14px 14px 6px 6px;background:#4a7bd0}"
                  ".pm-bang{position:absolute;left:4px;top:-52px;font:700 40px system-ui;color:#e5a50a;animation:pm-bob 1s ease-in-out infinite}"
@@ -259,7 +265,9 @@
         box)))
 
 (def ^:private jagged
-  "polygon(4% 62%,14% 22%,30% 30%,42% 2%,58% 18%,74% 6%,88% 34%,99% 52%,90% 84%,66% 98%,40% 88%,16% 96%)")
+  ;; a spiky rock: twelve points alternating long and short, the same twelve
+  ;; the rounded one uses, so approving it morphs point by point
+  "polygon(1.0% 52.0%,26.7% 39.4%,25.5% 12.2%,50.0% 26.7%,74.5% 12.2%,73.3% 39.4%,99.0% 52.0%,73.3% 64.6%,74.5% 91.8%,50.0% 77.3%,25.5% 91.8%,26.7% 64.6%)")
 
 (def ^:private rounded
   ;; the same twelve points on an ellipse, so the change animates point by point
@@ -272,12 +280,14 @@
             (apply str))
        ")"))
 
+(def ^:private oval "ellipse(49% 46% at 50% 52%)")
+
 (defn- append-rock!
   "A plain CSS rock beside the SAMPLE worker, the done-when's \"the rock
    changes in front of you\": jagged before the blueprint's approved,
    rounding off once it is, visible without the 3D scene the white room
    sits above. `asking?` puts the worker's '!' over its head."
-  [^js box rounder? asking? tag]
+  [^js box rounder? asking? tag & [labels]]
   (construct-css!)
   (let [^js stage (js/document.createElement "div")
         ^js wk    (js/document.createElement "div")
@@ -292,11 +302,40 @@
     (set! (.-className r) "pm-rock")
     (set! (.. r -style -clipPath) jagged)
     (.appendChild stage wk)
-    (.appendChild stage r)
+    (if-let [[now-label ghost-label] labels]
+      ;; the blueprint: today's rock beside a ghost of the proposed one, so
+      ;; you see what you're approving before you approve it
+      (let [^js g  (js/document.createElement "div")
+            ^js gi (js/document.createElement "div")
+            fig    (fn [^js el label]
+                     (let [^js f (js/document.createElement "div")
+                           ^js c (js/document.createElement "div")]
+                       (set! (.-className f) "pm-fig")
+                       (.appendChild f el)
+                       (set! (.-className c) "pm-cap")
+                       (set! (.-textContent c) label)
+                       (.appendChild f c)
+                       f))]
+        (set! (.-className g) "pm-rock pm-ghost")
+        (set! (.. g -style -clipPath) oval)
+        (set! (.-className gi) "pm-rock pm-ghost-in")
+        (set! (.. gi -style -clipPath) oval)
+        (.appendChild g gi)
+        (.appendChild stage (fig r now-label))
+        (let [^js arrow (js/document.createElement "div")]
+          (set! (.-className arrow) "pm-arrow")
+          (set! (.-textContent arrow) "→")
+          (.appendChild stage arrow))
+        (.appendChild stage (fig g ghost-label)))
+      (.appendChild stage r))
     (.appendChild box stage)
     (when rounder?
       ;; next frame, so the jagged-to-round change animates in view
-      (js/requestAnimationFrame (fn [] (js/requestAnimationFrame (fn [] (set! (.. r -style -clipPath) rounded))))))))
+      (do
+        ;; morph point by point, then settle into a true oval (a polygon
+        ;; can't animate into an ellipse directly)
+        (.addEventListener r "transitionend" (fn [_] (set! (.. r -style -clipPath) oval)) #js {:once true})
+        (js/requestAnimationFrame (fn [] (js/requestAnimationFrame (fn [] (set! (.. r -style -clipPath) rounded)))))))))
 
 (defn- append-booth!
   "The phone booth for the jump program (red, like the estate's), ringing
@@ -337,7 +376,7 @@
         :ask       (do (append-rock! box false true (:tag state))
                        (append-say! box (:prompt state) (str (:worker state) " · " (:tag state)))
                        (append-hint! box (:hint state)))
-        :blueprint (do (append-rock! box false false (:tag state))
+        :blueprint (do (append-rock! box false false (:tag state) (:rock-labels state))
                        (append-say! box (:summary state) (:blueprint-who state))
                        (append-hint! box (:hint state)))
         :done      (do (append-rock! box true false (:tag state))

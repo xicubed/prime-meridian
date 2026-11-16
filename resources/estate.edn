@@ -31,6 +31,7 @@
  {:speaker  "your twin"     ; shown under the twin's name above each of its lines
   :sample   "SAMPLE"        ; the practice worker's tag
   :blueprint-who "Blueprint"
+  :rock-labels ["now" "proposed"]   ; the two rocks side by side while you decide
   :start    "click anywhere to jack in"   ; the first click is also what lets the browser play sound
   :opening  "This is the white room. Nothing in here is real yet. We load what you need, then we go make it real."
   :loaded   "Felt that? That's me, the real me, plugged in."
