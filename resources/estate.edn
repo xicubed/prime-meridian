@@ -32,7 +32,8 @@
   :sample   "SAMPLE"        ; the practice worker's tag
   :blueprint-who "Blueprint"
   :rock-labels ["now" "proposed"]   ; the two rocks side by side while you decide
-  :start    "click anywhere to jack in"   ; the first click is also what lets the browser play sound
+  :start    "Jack in"   ; the first click is also what lets the browser play sound
+  :voice    {:on "🔊 Voice on" :off "🔇 Voice off"}   ; the switch beside it (same as the 🔊 button)
   :opening  "This is the white room. Nothing in here is real yet. We load what you need, then we go make it real."
   :loaded   "Felt that? That's me, the real me, plugged in."
   :programs [{:id :own-agent :name "Your own agent"}
@@ -62,7 +63,7 @@
   ;; for the programs loaded so far -- and the twin steps back.
   :free {:line "I can open the door. Walking through it is your part."}
   ;; what a click does at each interactive moment, shown under the line
-  :hints {:ask "click to answer" :blueprint "click to approve" :ring "click to jack out" :out "click to jack back in"}
+  :hints {:ask "Yes, rounder" :blueprint "Approve" :ring "Jack out" :out "Jack back in"}   ; the buttons
   ;; where the camera looks as your agent's building (the workshop) lands in beat 5
   :land-camera {:target [-6.2 2.1 -3.5] :offset [3.8 2.3 4.1]}}
  ;; A due chore of yours is one of the day's "!"s (GDD §2.1): this mark leads the

@@ -384,7 +384,12 @@
       (when (and line (not= line @!construct-said) (:voice? (:talk @!world)))
         (reset! !construct-said line)
         (ui/speak! line (talk/voice-for @!world {:kind :hal})))
-      (ui/set-white-room! room)
+      (ui/set-white-room!
+        (when room
+          (let [on? (boolean (:voice? (:talk @!world)))
+                labels (get-in @!world [:construct-script :voice])]
+            (assoc room :voice on?
+                        :voice-label (when (ui/speech?) (if on? (:on labels) (:off labels)))))))
       (ui/set-program-rack! rack)
       ;; the click hints are data too (:construct-script :hints)
       (let [hints (get-in @!world [:construct-script :hints])]
@@ -1025,7 +1030,10 @@
   (ui/wire-stay-late! (fn [] (swap! !world closing/stay-late (js/Date.now)))
                       (fn [] (swap! !world closing/close-up
                                     (get-in @!world [:stay-late-ask :sign]) (js/Date.now))))
-  (ui/wire-white-room! jack-in-construct!)
+  ;; the voice switch on the jack-in screen works the 🔊 button itself, so
+  ;; the two can't disagree
+  (ui/wire-white-room! jack-in-construct!
+                       (fn [] (some-> (js/document.getElementById "voice-toggle") (.click))))
   ;; who's talking in the Construct: the twin's name, then its role
   (ui/set-speaker! (str (get-in @!world [:jumeaux :twin :name]) " · "
                         (get-in @!world [:construct-script :speaker])))

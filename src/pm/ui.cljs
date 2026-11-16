@@ -111,8 +111,12 @@
       (set! (.-textContent st)
             (str ".pm-who{font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:#6b7280;margin-bottom:6px}"
                  ".pm-say{font-size:30px;line-height:1.4;max-width:900px;color:#1b1f2a}"
-                 ".pm-hint{margin-top:18px;display:inline-block;padding:10px 22px;border-radius:999px;"
-                 "border:2px solid #1b1f2a;font-size:18px;color:#1b1f2a;cursor:pointer;animation:pm-pulse 1.6s ease-in-out infinite}"
+                 ".pm-row{display:flex;gap:14px;justify-content:center;align-items:center;margin-top:22px}"
+                 ".pm-btn{display:inline-block;padding:12px 28px;border-radius:999px;border:0;"
+                 "background:#1b1f2a;color:#fff;font:600 18px system-ui,sans-serif;cursor:pointer;animation:pm-pulse 1.6s ease-in-out infinite}"
+                 ".pm-btn:hover{background:#4a7bd0}"
+                 ".pm-voice{padding:10px 18px;border-radius:999px;border:2px solid #c7ccd4;background:#fff;"
+                 "color:#1b1f2a;font:15px system-ui,sans-serif;cursor:pointer}"
                  "@keyframes pm-pulse{50%{box-shadow:0 0 0 8px rgba(27,31,42,.08)}}"
                  ".pm-stage{display:flex;align-items:flex-end;gap:28px;justify-content:center;height:150px;margin-bottom:30px}"
                  ".pm-rock{width:130px;height:96px;background:#8a8f99;transition:clip-path .9s ease}"
@@ -150,6 +154,8 @@
      (set! (.-textContent p) (or text ""))
      (.appendChild box p))))
 
+(declare append-hint! button-click?)
+
 (defn- white-room-el
   "The Construct's white room (GDD §2.7): a plain white screen above
    everything else, created on first use, same self-contained pattern as
@@ -174,26 +180,35 @@
   [state]
   (let [^js box (white-room-el)
         waiting? (= :waiting (:phase state))
-        key      (str (:phase state) (:line state))]
+        key      (str (:phase state) (:line state) (:voice state))]
     ;; rebuilt only when it changes: this runs every frame
     (when (not= key (.. box -dataset -key))
       (set! (.. box -dataset -key) key)
       (set! (.-innerHTML box) "")
       (set! (.. box -style -flexDirection) "column")
       (cond
-        waiting?      (do (construct-css!)
-                          (let [^js h (js/document.createElement "div")]
-                            (set! (.-className h) "pm-hint")
-                            (set! (.-textContent h) (:prompt state))
-                            (.appendChild box h)))
+        waiting?      (do (append-hint! box (:prompt state))
+                          ;; the voice switch, right where you start: it's the same
+                          ;; setting as the 🔊 button, remembered per browser
+                          (when-let [label (:voice-label state)]
+                            (let [^js row (.-lastChild box)
+                                  ^js v   (js/document.createElement "button")]
+                              (set! (.-className v) "pm-voice")
+                              (set! (.-textContent v) label)
+                              (.appendChild row v))))
         (:line state) (append-say! box (:line state))))
-    (set! (.. box -style -cursor) (if waiting? "pointer" "default"))
     (set! (.. box -style -display) (if state "flex" "none"))))
 
 (defn wire-white-room!
-  "Calls `on-click` when the player clicks the white room (the jack-in)."
-  [on-click]
-  (.addEventListener (white-room-el) "click" (fn [^js e] (.stopPropagation e) (on-click))))
+  "Calls `on-click` when the player clicks Jack in, `on-voice` when they
+   click the voice switch beside it."
+  [on-click on-voice]
+  (.addEventListener (white-room-el) "click"
+    (fn [^js e]
+      (.stopPropagation e)
+      (cond
+        (some-> (.-target e) (.closest ".pm-voice")) (on-voice)
+        (button-click? e) (on-click)))))
 
 (defn- program-rack-el
   "The Construct's program rack, beat 2 (GDD §2.6, §2.7): the rack of
@@ -347,13 +362,22 @@
     (.appendChild box b)))
 
 (defn- append-hint!
-  "What a click does now, as a button-like pill (the whole screen takes the click)."
+  "The one thing to do now, as a real button (only buttons take clicks in
+   the Construct, so a stray click can't skip a step)."
   [^js box text]
   (construct-css!)
-  (let [^js q (js/document.createElement "div")]
-    (set! (.-className q) "pm-hint")
-    (set! (.-textContent q) (or text ""))
-    (.appendChild box q)))
+  (let [^js row (js/document.createElement "div")
+        ^js b   (js/document.createElement "button")]
+    (set! (.-className row) "pm-row")
+    (set! (.-className b) "pm-btn")
+    (set! (.-textContent b) (or text ""))
+    (.appendChild row b)
+    (.appendChild box row)))
+
+(defn- button-click?
+  "True when a click landed on one of the Construct's action buttons."
+  [^js e]
+  (some? (some-> (.-target e) (.closest ".pm-btn"))))
 
 (defn set-sparring!
   "Shows or hides the sparring match (GDD §2.1, §2.7, §3.1, §4.5): the
@@ -393,10 +417,11 @@
     (.addEventListener box "click"
       (fn [^js e]
         (.stopPropagation e)
-        (case (.. box -dataset -phase)
-          "ask"       (on-answer)
-          "blueprint" (on-approve)
-          nil)))))
+        (when (button-click? e)
+          (case (.. box -dataset -phase)
+            "ask"       (on-answer)
+            "blueprint" (on-approve)
+            nil))))))
 
 (defn- jump-program-el
   "The Construct's jump program, beat 4 (GDD §2.3, §2.7, §4.8): the first
@@ -446,10 +471,11 @@
     (.addEventListener box "click"
       (fn [^js e]
         (.stopPropagation e)
-        (case (.. box -dataset -phase)
-          "ring" (on-jump-out)
-          "out"  (on-jump-in)
-          nil)))))
+        (when (button-click? e)
+          (case (.. box -dataset -phase)
+            "ring" (on-jump-out)
+            "out"  (on-jump-in)
+            nil))))))
 
 (defn- free-mind-el
   "The Construct's fifth and final beat, free your mind (GDD §2.7, §4.8):
