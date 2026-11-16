@@ -46,6 +46,10 @@
   "That's {name} calling. I've got the desks here."
   "{name}'s asking for you directly."
   "Real life first: {name}'s waiting."],
+ ;; the player answered the bedtime ask with "Close up": the estate jacks out for the night
+ :close-up
+ ["Closing up. Goodnight — I'll keep an eye on things."
+  "Goodnight. Everything keeps till morning."]
  :stay-late
  ["You're staying. Noted — I won't ask again tonight."
   "Alright. I asked once; that's enough. Stay as long as you want."

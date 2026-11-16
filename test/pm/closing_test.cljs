@@ -1,7 +1,8 @@
 (ns pm.closing-test
   (:require [cljs.test :refer [deftest is]]
             [clojure.string :as str]
-            [pm.closing :as cl]))
+            [pm.closing :as cl]
+            [pm.world]))
 
 (def DAY (* 20000 86400000))                ; an arbitrary local-midnight-aligned day, at offset 0
 (defn at [minute] (+ DAY (* minute 60000)))
@@ -104,3 +105,20 @@
         w2 (cl/stay-late w1 (at 1360))
         w3 (cl/tick w2 (+ (at 1350) 86400000) 0)]
     (is (true? (cl/asking-to-stay? w3)))))
+
+(deftest t15-close-up-jacks-out-for-the-night
+  (let [sign "closed sign"
+        w1 (cl/tick W (at 1350) 0)
+        w2 (cl/close-up w1 sign (at 1360))]
+    (is (= :close-up (:event (:hal w2))) "the twin says goodnight")
+    (is (true? (pm.world/jacked-out? w2)) "the estate freezes, like the booth")
+    (is (= sign (pm.world/jack-out-text w2)))
+    (is (false? (cl/asking-to-stay? w2)) "no second ask")
+    (is (false? (cl/asking-to-stay? (cl/tick w2 (at 1400) 0))) "not later tonight either")
+    (let [w3 (pm.world/jack-in w2 (at 1410))]
+      (is (false? (pm.world/jacked-out? w3)) "the booth brings you back in")
+      (is (false? (cl/asking-to-stay? w3)) "and you aren't asked again tonight"))
+    (is (true? (cl/asking-to-stay? (cl/tick w2 (+ (at 1350) 86400000) 0))) "a new night asks again")))
+
+(deftest t16-close-up-bad-now-is-a-no-op
+  (is (= W (cl/close-up W "x" nil))))

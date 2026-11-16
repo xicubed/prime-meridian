@@ -17,7 +17,8 @@
  :sky [["06:45" :blue] ["07:15" :golden] ["08:15" :day]
        ["16:00" :golden] ["16:45" :blue] ["17:30" :night]]
  ;; The one-time ask at bedtime (pm.closing/asking-to-stay?): its words.
- :stay-late-ask {:ask "Staying past closing?" :button "Stay"}
+ :stay-late-ask {:ask "Staying past closing?" :button "Stay" :leave "Close up"
+                :sign "Closed for the night. Click the booth to come back in."}
  ;; The scenery kit's own night lights, as a built lamp's bulb (:glow) finds
  ;; and follows them: its warm lamps' colour and its cottage lantern's mesh.
  ;; A built lamp shines as bright as theirs, so it lights up at dusk with them.

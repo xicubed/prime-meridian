@@ -992,9 +992,12 @@
   (when-let [^js cb (js/document.getElementById "hold-toggle")]
     (.addEventListener cb "change"
       (fn [^js e] (on-hold-toggle! (.. e -target -checked)))))
-  ;; Staying past closing (GDD §2.3, §4.8): the twin asks once; clicking
-  ;; Stay answers it and the ask doesn't come back tonight.
-  (ui/wire-stay-late! (fn [] (swap! !world closing/stay-late (js/Date.now))))
+  ;; Staying past closing (GDD §2.3, §4.8): the twin asks once; Stay keeps
+  ;; the estate open, Close up jacks out for the night (the booth brings you
+  ;; back); either way the ask doesn't come back tonight.
+  (ui/wire-stay-late! (fn [] (swap! !world closing/stay-late (js/Date.now)))
+                      (fn [] (swap! !world closing/close-up
+                                    (get-in @!world [:stay-late-ask :sign]) (js/Date.now))))
   (ui/wire-white-room! jack-in-construct!)
   (ui/wire-sparring! answer-sparring! approve-sparring!)
   (ui/wire-jump-program! jump-out! jump-in!))

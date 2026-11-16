@@ -70,7 +70,7 @@
    until `stay-late` answers it. Never re-opens that same local day."
   [world]
   (let [c (:closing world)]
-    (and (boolean (:closed? c)) (not (:stay-late? c)))))
+    (and (boolean (:closed? c)) (not (:stay-late? c)) (not (:closed-up? c)))))
 
 (defn stay-late
   "Answers the twin's ask: the player's staying, so the estate stays at
@@ -83,6 +83,21 @@
     (-> world
         (update :closing assoc :stay-late? true)
         (c/hal-say c/hal-lines :stay-late {} now))))
+
+(defn close-up
+  "The other answer to the twin's ask: the player's done for the night. The
+   twin says goodnight and the estate jacks out (the same freeze as the
+   phone booth, GDD §2.3), the booth's sign reading `sign` -- it's still the
+   player's call: clicking the booth comes back in (`pm.world/jack-in`), and
+   the ask doesn't return tonight."
+  [world sign now]
+  (if-not (number? now)
+    world
+    (-> world
+        (update :closing assoc :closed-up? true)
+        (assoc :jack {:out? true :reason :closing :line sign :at now
+                      :log-n (count (:log world))})
+        (c/hal-say c/hal-lines :close-up {} now))))
 
 (defn tick
   "Advances closing time's own little bit of state in `world`: fires the

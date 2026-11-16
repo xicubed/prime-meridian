@@ -61,22 +61,26 @@
                    "font:16px system-ui, sans-serif;display:none;"
                    "align-items:center;gap:10px;"))
         (let [^js q (js/document.createElement "span")
-              ^js b (js/document.createElement "button")]
+              ^js b (js/document.createElement "button")
+              ^js l (js/document.createElement "button")]
           (set! (.-id q) "stay-late-text")
           (set! (.-id b) "stay-late-button")
+          (set! (.-id l) "close-up-button")
           (.appendChild box q)
-          (.appendChild box b))
+          (.appendChild box b)
+          (.appendChild box l))
         (.appendChild js/document.body box)
         box)))
 
 (defn wire-stay-late!
-  "Calls `on-stay` once when the player clicks the ask's Stay button.
-   Creates the prompt on first call if it doesn't exist yet."
-  [on-stay]
+  "Calls `on-stay` or `on-close-up` when the player clicks the ask's Stay or
+   Close up button. Creates the prompt on first call if it doesn't exist yet."
+  [on-stay on-close-up]
   (stay-late-el)
-  (when-let [^js btn (el "stay-late-button")]
-    (.addEventListener btn "click"
-      (fn [^js e] (.stopPropagation e) (on-stay)))))
+  (doseq [[id f] [["stay-late-button" on-stay] ["close-up-button" on-close-up]]]
+    (when-let [^js btn (el id)]
+      (.addEventListener btn "click"
+        (fn [^js e] (.stopPropagation e) (f))))))
 
 (defn set-stay-late!
   "Shows or hides the ask, worded from `words` ({:ask :button}, the
@@ -86,6 +90,7 @@
   (when-let [^js box (stay-late-el)]
     (when-let [^js q (el "stay-late-text")] (set! (.-textContent q) (or (:ask words) "")))
     (when-let [^js b (el "stay-late-button")] (set! (.-textContent b) (or (:button words) "")))
+    (when-let [^js b (el "close-up-button")] (set! (.-textContent b) (or (:leave words) "")))
     (set! (.. box -style -display) (if (and asking? (:button words)) "flex" "none"))))
 
 (defn- white-room-el
