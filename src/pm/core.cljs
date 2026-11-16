@@ -43,6 +43,12 @@
 
 (defonce !gfx (atom nil)) ; {:renderer :scene :camera :cube}
 
+;; The demo build (GDD §4.8, §6; `bb demo-build`): pretend data only. It
+;; never asks for the twin's file, the crew's status, the crew log, the hold
+;; or the bridge, so nothing real can reach it even on a host that served
+;; them; every mirror stays SAMPLE.
+(goog-define DEMO false)
+
 (def state-url "/state/mirrors.edn")
 (def state-poll-ms 5000)
 
@@ -269,9 +275,10 @@
    twin's file again, re-read now."
   [id]
   (if (contains? @!sample-only id)
-    (do (swap! !sample-only disj id)
-        (swap! !world dissoc :state-as-of)
-        (fetch-state!))
+    (when-not DEMO   ; the demo has no real side to switch to
+      (swap! !sample-only disj id)
+      (swap! !world dissoc :state-as-of)
+      (fetch-state!))
     (do (swap! !sample-only conj id)
         (swap! !world #(-> % (overlay/to-sample sample-estate id)
                            (overlay/apply-play (overlay/parse-file @!play-text))))))
@@ -1075,11 +1082,12 @@
   (restore-cache!)
   (add-watch !world ::state-cache on-world-change!)
   (add-watch !world ::play-cache on-play-change!)
-  (start-state-poll!)
-  (start-crew-poll!)
-  (start-bridge-poll!)
-  (start-crew-log-poll!)
-  (start-hold-poll!)
+  (when-not DEMO
+    (start-state-poll!)
+    (start-crew-poll!)
+    (start-bridge-poll!)
+    (start-crew-log-poll!)
+    (start-hold-poll!))
   (kit/load! start-kit! start-scaffold!))
 
 (defn reload!

@@ -15,6 +15,12 @@
                    ;; the gate (0 warnings) still catch everything.
                    :hud false}}
   ;; Unit tests for the pure namespaces (pm.world, ...): *-test namespaces under test/.
+  ;; the demo for class (bb demo-build): pretend data only, release-optimized
+  :demo {:target :browser
+         :output-dir "dist/demo/js"
+         :asset-path "/js"
+         :modules {:main {:init-fn pm.core/init!}}
+         :closure-defines {pm.core/DEMO true}}
   :test {:target    :node-test
          :output-to "out/test.js"
          :ns-regexp "-test$"
