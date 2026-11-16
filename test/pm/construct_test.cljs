@@ -24,8 +24,9 @@
   (let [w (construct/enter SC false T0)]
     (is (nil? (construct/white-room w true T0)))))
 
-(deftest t04-white-room-nil-before-entered
-  (is (nil? (construct/white-room {} false T0))))
+(deftest t04-white-room-waits-for-the-jack-in-click
+  (is (= {:phase :waiting :prompt (:start (construct/script SC))} (construct/white-room SC false T0)))
+  (is (nil? (construct/white-room SC true T0)) "a returning player never sees it"))
 
 (deftest t05-white-room-nil-bad-now
   (let [w (construct/enter SC false T0)]

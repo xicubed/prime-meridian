@@ -46,16 +46,19 @@
 
 (defn white-room
   "The Construct's first beat (GDD §2.7) at `now`: nil for a returning
-   player (`seen?` true), or before `enter` has recorded `world`'s
-   :entered-at. For a first-time player: {:phase :silent} for `silent-ms`
+   player (`seen?` true). For a first-time player: {:phase :waiting
+   :prompt ...} until the jack-in click (`enter`), then {:phase :silent} for `silent-ms`
    after entering, then {:phase :twin :line (opening-line world)} for `line-ms`
    more -- the moment the twin steps in and speaks -- then nil again (the
    first beat's done; the second, `program-rack`, picks up from there)."
   [world seen? now]
   (when-not seen?
-    (when-let [entered-at (:entered-at (:construct world))]
+    (if-not (:entered-at (:construct world))
+      ;; before the jack-in click: the browser plays no sound until the
+      ;; player's first click, so the Construct starts with one
+      {:phase :waiting :prompt (:start (script world))}
       (when (number? now)
-        (let [elapsed (- now entered-at)]
+        (let [elapsed (- now (:entered-at (:construct world)))]
           (cond
             (< elapsed 0) nil
             (< elapsed silent-ms) {:phase :silent}

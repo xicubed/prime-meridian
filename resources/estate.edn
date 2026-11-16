@@ -27,7 +27,8 @@
  ;; player. The twin's lines are original, drafted for this scene (the film is only
  ;; the beat sheet). The rack lists your own agent first: it's chosen for you.
  :construct-script
- {:opening  "This is the white room. Nothing in here is real yet. We load what you need, then we go make it real."
+ {:start    "click anywhere to jack in"   ; the first click is also what lets the browser play sound
+  :opening  "This is the white room. Nothing in here is real yet. We load what you need, then we go make it real."
   :loaded   "Felt that? That's me, the real me, plugged in."
   :programs [{:id :own-agent :name "Your own agent"}
              {:id :mail :name "Mail"} {:id :calendar :name "Calendar"} {:id :github :name "GitHub"}

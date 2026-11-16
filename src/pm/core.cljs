@@ -316,6 +316,19 @@
          (catch :default _ nil))
     (reset! !construct-seen? false)))
 
+(defonce ^:private !construct-said (atom nil))
+
+(defn- jack-in-construct!
+  "The jack-in click (GDD §2.7): starts the Construct, and -- being the
+   player's first click -- lets the browser play sound: the brook starts
+   and the twin's lines are spoken (if voice is on)."
+  []
+  (swap! !world construct/enter @!construct-seen? (js/Date.now))
+  (when-let [h (kit/handle)]
+    (when-not (brook/playing?)
+      (brook/play! h (:sounds @!world))
+      (when-let [^js btn (js/document.getElementById "brook-toggle")] (set! (.-textContent btn) "■ brook")))))
+
 (defn- construct-tick!
   "Drives the Construct's first two beats (GDD §2.6, §2.7, §4.8) every frame
    until a first-time player has been through them once: records when the
@@ -327,9 +340,13 @@
    beats are done."
   [now]
   (when-not @!construct-seen?
-    (swap! !world construct/enter @!construct-seen? now)
     (let [room (construct/white-room @!world @!construct-seen? now)
-          rack (construct/program-rack @!world @!construct-seen? now)]
+          rack (construct/program-rack @!world @!construct-seen? now)
+          line (or (:line room) (:line rack))]
+      ;; the twin says its Construct lines aloud too, once each
+      (when (and line (not= line @!construct-said) (:voice? (:talk @!world)))
+        (reset! !construct-said line)
+        (ui/speak! line (talk/voice-for @!world {:kind :hal})))
       (ui/set-white-room! room)
       (ui/set-program-rack! rack)
       (when (= :loaded (:phase rack))
@@ -936,7 +953,8 @@
       (fn [^js e] (on-hold-toggle! (.. e -target -checked)))))
   ;; Staying past closing (GDD §2.3, §4.8): the twin asks once; clicking
   ;; Stay answers it and the ask doesn't come back tonight.
-  (ui/wire-stay-late! (fn [] (swap! !world closing/stay-late (js/Date.now)))))
+  (ui/wire-stay-late! (fn [] (swap! !world closing/stay-late (js/Date.now))))
+  (ui/wire-white-room! jack-in-construct!))
 
 (defn- jack-in! []
   (swap! !world content/hal-say content/hal-lines :jack-in {} (js/Date.now)))

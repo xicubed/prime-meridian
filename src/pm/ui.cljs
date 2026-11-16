@@ -110,9 +110,19 @@
    while `state` is {:phase :silent}, the twin's opening line once it's
    {:phase :twin :line ...}, gone once `state` is nil."
   [state]
-  (let [^js box (white-room-el)]
-    (set! (.-textContent box) (or (:line state) ""))
+  (let [^js box (white-room-el)
+        waiting? (= :waiting (:phase state))]
+    (set! (.-textContent box) (or (:line state) (:prompt state) ""))
+    ;; the jack-in prompt reads as a quiet hint, the twin's line as speech
+    (set! (.. box -style -color) (if waiting? "#9aa0a6" "#1b1f2a"))
+    (set! (.. box -style -fontSize) (if waiting? "18px" "24px"))
+    (set! (.. box -style -cursor) (if waiting? "pointer" "default"))
     (set! (.. box -style -display) (if state "flex" "none"))))
+
+(defn wire-white-room!
+  "Calls `on-click` when the player clicks the white room (the jack-in)."
+  [on-click]
+  (.addEventListener (white-room-el) "click" (fn [^js e] (.stopPropagation e) (on-click))))
 
 (defn- program-rack-el
   "The Construct's program rack, beat 2 (GDD §2.6, §2.7): the rack of
