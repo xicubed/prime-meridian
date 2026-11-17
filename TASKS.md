@@ -80,6 +80,18 @@ Plan of record: [`docs/session-2026-10-17.md`](docs/session-2026-10-17.md) §7. 
 - [x] N-5 (Nov 15) The Construct's building drop plays behind the white screen (invisible) and off camera: move it to beat 5 ("free your mind"), where the white dissolves into the estate and the camera frames your agent's workshop as it lands.
 - [ ] N-3 Blueprint ghosts read poorly: the thin wireframe vanishes against the grass, even in screenshots.
 
+## Next (from Nov 16)
+The twin on the estate (GDD §2.1). Built today: he walks (black body, white joints), is in the crew key, and clicking him opens a say… box that the bridge passes into his Hermes chat (`scripts/hal_relay.py`). Michael's call: the game passes the message, the twin answers in his chat.
+- [ ] T-1 Replies on the estate (optional, his call): `bb hal-say "…"` shows the twin's answer as his speech bubble over his walker, spoken when voice is on, and in the 💭 history.
+- [ ] T-2 Errands: `bb hal-errand <where> "<what>"` walks the twin to a crew member, the mailbox or a creature's jar, then says it there (the existing planner; wandering pauses for the errand).
+- [ ] T-3 The twin's dot: hollow today because he isn't a Herdr pane. Show "thinking" from when a say is relayed until the chat answers, idle otherwise.
+- [ ] T-4 Demo build: rebuild it (it predates the crew key, wandering, the twin, the booth card and the mailbox) and give the demo's twin something without a relay: his say box explains he's only reachable in a real game, plus SAMPLE errands on a timer.
+- [ ] T-5 A link to show people: Netlify (permanent, account his pick; the ~81 MB terrain GLB may need compressing) or a `cloudflared` quick tunnel (needs an install on his go). localhost.run was too slow.
+- [ ] T-6 A night track (night borrows blue hour's), and check the theme's whispered vocals against the twin's lines.
+- [ ] T-7 Wandering follow-ups: re-run the walkable-ground probe whenever placed things move (the spots are data in `:wander :areas`); a wanderer still walks through a fresh build's footprint until then.
+- [ ] T-8 v1.1 from the finish list: jack-out priority, the Construct as a Hermes onboarding skill.
+- [ ] T-9 v2 idea: living objects (docs/ideas-living-objects.md): stateful things that age, speak, and pass messages through the twin; Flora's hunger in the game first, a text only when she's well overdue (replacing the 09:00/17:00 cron).
+
 ## Business (Pepper)
 Owner: Business Manager (GDD §9b, §10d). Real-world steps that need ID, bank, or a signature are the Director's; Pepper preps everything around them.
 - [ ] B-1 Payments account: finish the provider's business verification before the first sale. Director does the identity/bank steps; Pepper first gets lotect.com review-ready (what we sell, contact info, privacy and refund policies).
