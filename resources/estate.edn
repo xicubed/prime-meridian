@@ -140,9 +140,13 @@
                             :right ["mixamorig:RightUpLeg" "mixamorig:RightLeg" "mixamorig:RightFoot" "mixamorig:RightToeBase"]}}
             :feet {:drop-cap 0.35
                    :step-max 0.4}}
+ ;; The crew key (pm.ui/render-crew-key!): who's on the estate; click a name
+ ;; to fly to them (the camera sits at this offset and follows them).
+ :crew-key {:title "Crew" :offset [3.2 2.2 3.6]}
  :walkers [{:id :un-automate-monde :name "Un Automate" :agent :un-automate-monde
             :route [[-6.5 -6.5] [-6.0 -10.0] [-5.0 -14.0]] :pause-s 3
-            :character {:file "/assets/characters/polybot.glb" :rig :mixamo}}
+            :character {:file "/assets/characters/polybot.glb" :rig :mixamo}
+            :key-color 0x6fbf5a}                                                   ; the crew key's swatch: Polybot is green
            {:id :le-testeur :name "Le Testeur" :agent :le-testeur
             :route [[-5.0 -14.0] [-6.0 -10.0] [-6.5 -6.5]] :pause-s 5}            ; NVIDIA's mannequin, untinted (white)
            {:id :un-architecte :name "Un Architecte" :agent :un-architecte

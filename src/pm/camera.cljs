@@ -66,6 +66,20 @@
         (.set (.-position (.-camera h)) (+ tx dx) (+ ty dy) (+ tz dz))
         (.update o)))))
 
+(defn follow!
+  "Keeps the camera on a moving `target` [x y z]: moves the orbit target and
+   the camera by the same step, so the view keeps its angle and distance
+   while the thing walks. No-op without the kit's rig."
+  [^js h target]
+  (when-let [^js o (orbit h)]
+    (when (vec3? target)
+      (let [^js t (.-target o) ^js p (.-position (.-camera h))
+            [tx ty tz] target
+            dx (- tx (.-x t)) dy (- ty (.-y t)) dz (- tz (.-z t))]
+        (.set t tx ty tz)
+        (.set p (+ (.-x p) dx) (+ (.-y p) dy) (+ (.-z p) dz))
+        (.update o)))))
+
 (defn restore!
   "Put the saved camera back (call once the kit is ready). Returns true if it did."
   [^js h]

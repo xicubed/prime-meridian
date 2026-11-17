@@ -493,7 +493,7 @@
   (- (.getTimezoneOffset (js/Date.))))
 
 (defonce ^:private !sky (atom nil))   ; the kit hour pm.sky last set
-(declare toggle-jack-out!)
+(declare toggle-jack-out! crew-key-tick!)
 (defonce ^:private !gesture? (atom false))   ; browsers play nothing before one
 
 (defn- music-scene
@@ -714,6 +714,7 @@
     (when (kit/handle) (creature-spike/tick! dt' now))
     (when-let [h (kit/handle)] (camera/save-tick! h now))
     (bricks/set-dots! (:crew @!world) (:asks-player @!world) (js/Date.now))
+    (crew-key-tick! (js/Date.now))
     (scene/update! @!world (js/Date.now))
     ;; The Construct's first beat (GDD §2.7, §4.8): a first-time player
     ;; lands in a silent white room before the twin steps in.
@@ -828,6 +829,55 @@
     (set! (.-value el) "0.33")
     (.addEventListener el "input"
       (fn [^js e] (brook/set-flow! (js/parseFloat (.. e -target -value)))))))
+
+(declare open-agent-talk!)
+(defonce ^:private !follow (atom nil))   ; walker id the camera is following
+
+(defn- walker-colours
+  "A walker's colours for the crew key: :body and :joints. A tint colours
+   the mannequin's body and darkens its joints; :key-color overrides (a
+   glTF character's own look); untinted is the mannequin's white."
+  [entry]
+  (let [white 0xf4f2ee dark 0x16171a]
+    (cond
+      (:colors entry)    {:body (get-in entry [:colors :body]) :joints (get-in entry [:colors :joints])}
+      (:key-color entry) {:body (:key-color entry) :joints dark}
+      (:tint entry)      {:body (m/tint-hex white (:tint entry)) :joints dark}
+      :else              {:body white :joints dark})))
+
+(defn- crew-key-tick!
+  "The crew key: one row per walker; clicking flies the camera to them and
+   follows them until the player takes the camera back (any press on the
+   estate)."
+  [now]
+  (let [w @!world
+        colors (crew/colors w)
+        rows (mapv (fn [entry]
+                     (let [agent  (or (:agent entry) (:id entry))
+                           asked? (contains? (:asks-player w) (name agent))
+                           d      (or (crew/ask-dot asked? colors)
+                                      (crew/dot (:crew w) agent now colors))]
+                       ;; the same dot as over their head, so the key shows who needs you
+                       (merge {:id (:id entry) :agent agent :name (:name entry)
+                               :dot (:color d) :glyph (:glyph d)
+                               :needs-you? (or asked? (and (crew/fresh? (:crew w) now)
+                                                   (= :blocked (crew/effective-status (get-in w [:crew :agents agent]) now))))}
+                              (walker-colours entry))))
+                   (:walkers w))]
+    (ui/render-crew-key! (get-in w [:crew-key :title]) rows
+      (fn [id]
+        (when-let [h (kit/handle)]
+          (when-let [{:keys [pos]} (first (filter #(= id (:id %)) (bricks/spots)))]
+            (let [[x y z] pos]
+              (camera/frame! h [x (+ y 1.0) z] (get-in w [:crew-key :offset]))
+              (reset! !follow id))))
+        ;; someone waiting on you: their entry in 💭 opens too, ready to answer
+        (when-let [row (first (filter #(= id (:id %)) rows))]
+          (when (:needs-you? row) (open-agent-talk! (:agent row))))))
+    (when-let [id @!follow]
+      (when-let [h (kit/handle)]
+        (when-let [{:keys [pos]} (first (filter #(= id (:id %)) (bricks/spots)))]
+          (let [[x y z] pos] (camera/follow! h [x (+ y 1.0) z])))))))
 
 (defn- toggle-jack-out!
   "The phone booth (GDD §2.3, §4.8): with no real bridge sending `:jack-out`
@@ -964,6 +1014,7 @@
                              :agent  (pick/pick-agent (m/walkers @!world) whits)}))))]
     (.addEventListener canvas "pointerdown"
       (fn [^js e]
+        (reset! !follow nil)   ; the player takes the camera back
         (when (and (.-isPrimary e) (zero? (.-button e)))
           (reset! !press {:x (.-clientX e) :y (.-clientY e) :t (.-timeStamp e)})))
       #js {:passive true})

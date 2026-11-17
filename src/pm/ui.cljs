@@ -626,6 +626,52 @@
         (.appendChild box card)))
     (set! (.. box -style -display) (if rows "flex" "none"))))
 
+(defn- hex-css [n] (str "#" (.padStart (.toString (or n 0) 16) 6 "0")))
+
+(defn render-crew-key!
+  "The crew key (who's on the estate): one row per walker -- a little figure
+   in its own colours, its status dot and its name. Click a row to fly the
+   camera to them. `rows` [{:id :name :body :joints :dot}] (colours as
+   ints); rebuilt only when they change. `on-pick` gets the walker id."
+  [title rows on-pick]
+  (let [^js box (or (el "crew-key")
+                    (let [^js b (js/document.createElement "details")]
+                      (set! (.-id b) "crew-key")
+                      (set! (.-open b) true)
+                      (set! (.. b -style -cssText)
+                            (str "position:fixed;left:12px;top:50%;transform:translateY(-50%);z-index:60;"
+                                 "background:rgba(20,24,32,.72);color:#f3efe2;border-radius:12px;"
+                                 "padding:8px 10px;font:13px system-ui,sans-serif;min-width:150px;"
+                                 "backdrop-filter:blur(4px)"))
+                      (.appendChild js/document.body b)
+                      b))
+        key (pr-str [title rows])]
+    (when (not= key (.. box -dataset -key))
+      (set! (.. box -dataset -key) key)
+      (let [open? (.-open box)]
+        (set! (.-innerHTML box) "")
+        (let [^js s (js/document.createElement "summary")]
+          (set! (.. s -style -cssText) "cursor:pointer;font-size:11px;letter-spacing:.12em;text-transform:uppercase;opacity:.8;margin-bottom:4px")
+          (set! (.-textContent s) title)
+          (.appendChild box s))
+        (doseq [{:keys [id name body joints dot glyph]} rows]
+          (let [^js r (js/document.createElement "div")]
+            (set! (.. r -style -cssText) "display:flex;align-items:center;gap:8px;padding:4px 4px;border-radius:8px;cursor:pointer")
+            (.addEventListener r "mouseenter" (fn [_] (set! (.. r -style -background) "rgba(255,255,255,.12)")))
+            (.addEventListener r "mouseleave" (fn [_] (set! (.. r -style -background) "transparent")))
+            ;; the icon: a tiny figure, head and body in the walker's colour, joints as a ring
+            (set! (.-innerHTML r)
+                  (str "<svg width='18' height='24' viewBox='0 0 18 24'>"
+                       "<circle cx='9' cy='5' r='4' fill='" (hex-css body) "' stroke='" (hex-css joints) "' stroke-width='1.5'/>"
+                       "<rect x='4' y='10' width='10' height='13' rx='4' fill='" (hex-css body) "' stroke='" (hex-css joints) "' stroke-width='1.5'/>"
+                       "</svg>"
+                       "<span style='width:12px;text-align:center;font-weight:700;color:" (hex-css dot) "'>" (if (= "!" glyph) "!" "●") "</span>"
+                       "<span></span>"))
+            (set! (.-textContent (aget (.-children r) 2)) name)
+            (.addEventListener r "click" (fn [^js e] (.preventDefault e) (.stopPropagation e) (on-pick id)))
+            (.appendChild box r)))
+        (set! (.-open box) open?)))))
+
 (defn set-badge! [text alert?]
   (when-let [^js b (el "talk-badge")]
     (set! (.-textContent b) text))

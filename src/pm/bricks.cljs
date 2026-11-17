@@ -542,6 +542,16 @@
                    walkers views)]
       (swap! !state assoc :views views'))))
 
+(defn spots
+  "Where each walker is now: [{:id :agent :name :pos [x y z]}], for the crew
+   key's click-to-find. Empty before start!."
+  []
+  (if-not (:started? @!state)
+    []
+    (mapv (fn [w] {:id (:id w) :agent (:agent w) :name (:name w)
+                   :pos (let [[x z] (:pos w)] [x (or (:y w) 0) z])})
+          (:walkers @!state))))
+
 (defn hud-segment []
   (m/hud-text (:status @!state)))
 
