@@ -691,9 +691,10 @@
             (swap! !talk-ui assoc :listed (:entries t') :listed-n (:n t') :listed-bridge bridge-on)))
         (swap! !talk-ui assoc :listed nil :listed-n nil :listed-bridge nil)))
     (let [asked (set (map keyword (keys (:asks-player @!world))))
-          rows  (talk/with-questions
-                  (talk/crew-roster (:crew @!world) now (bridge-on?) (:crew-log @!world) (:expanded @!talk-ui) asked)
-                  (:asks-player @!world))]
+          twin  (first (filter #(= :hal (:agent %)) (:walkers @!world)))
+          rows  (-> (talk/crew-roster (:crew @!world) now (bridge-on?) (:crew-log @!world) (:expanded @!talk-ui) asked)
+                    (talk/with-questions (:asks-player @!world))
+                    (talk/with-twin twin (bridge-on?)))]
       (when (not= rows (:roster @!talk-ui))
         (ui/render-roster! rows on-say on-expand offset-of jum)
         (swap! !talk-ui assoc :roster rows)))
@@ -877,7 +878,8 @@
               (reset! !follow id))))
         ;; someone waiting on you: their entry in 💭 opens too, ready to answer
         (when-let [row (first (filter #(= id (:id %)) rows))]
-          (when (:needs-you? row) (open-agent-talk! (:agent row))))))
+          (when (or (:needs-you? row) (= :hal (:agent row)))   ; the twin is always there to talk to
+            (open-agent-talk! (:agent row))))))
     (when-let [id @!follow]
       (when-let [h (kit/handle)]
         (when-let [{:keys [pos]} (first (filter #(= id (:id %)) (bricks/spots)))]

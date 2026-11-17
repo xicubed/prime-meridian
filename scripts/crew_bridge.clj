@@ -46,6 +46,26 @@
 (def crew-log-file "state/crew-log.edn")
 (def log-file "crew/bridge.log")
 (def crew-json-file ".crew/crew.json")
+;; The twin lives in a Hermes chat, not a Herdr pane: a say to the twin is
+;; passed into that chat by scripts/hal_relay.py. The session id is local
+;; (state/ is gitignored); no file, no twin in the roster.
+(def hal-session-file "state/hal-session")
+(def hal-python (str (System/getProperty "user.home") "/.hermes/hermes-agent/venv/bin/python"))
+
+(defn- hal-session []
+  (let [s (try (str/trim (slurp hal-session-file)) (catch Exception _ ""))]
+    (when (re-matches #"[A-Za-z0-9_-]{1,120}" s) s)))
+
+(defn- relay-to-hal!
+  "Passes the player's words into the twin's Hermes chat, tagged as from the game."
+  [text]
+  (let [{:keys [exit out err]} (p/sh {:extra-env {"PYTHONPATH" (str (System/getProperty "user.home") "/.hermes/hermes-agent")}}
+                                     hal-python "scripts/hal_relay.py" (hal-session)
+                                     (str "[from the game] " text))
+        ok? (and (zero? exit) (str/includes? (str out) "\"ok\": true"))]
+    (if ok?
+      {:ok true :reason "sent"}
+      {:ok false :status 502 :reason (str "relay failed" (when-let [e (not-empty (str/trim (str err out)))] (str ": " (subs e 0 (min 160 (count e))))))})))
 (def rewrite-ms 5000)
 (def ^:private req-lock (Object.))
 (defonce ^:private !channels (atom #{}))    ; open /events sockets: the game, ask-player
@@ -266,7 +286,8 @@
                 {:status 413 :headers {"Content-Type" "application/json"}
                  :body (json/generate-string {"ok" false "reason" "too large"})})
             (let [body (try (json/parse-string body-str) (catch Exception _ :bad-json))
-                  ctx  {:token token :members (set (keys (b/roster (crew-json))))}
+                  ctx  {:token token :members (cond-> (set (keys (b/roster (crew-json))))
+                                                (hal-session) (conj :hal))}
                   req' {:method method :uri (:uri req) :origin origin :body body}
                   v    (b/validate req' ctx)]
               (if-not (:ok v)
@@ -289,6 +310,11 @@
                       (log! nil :hold 500 "hold not saved")
                       {:status 500 :headers (merge {"Content-Type" "application/json"} (b/cors-headers origin))
                        :body (json/generate-string {"ok" false "reason" "hold not saved"})}))
+                  (if (and (= :hal (:member v)) (= :say (:action v)))
+                    (let [r  (relay-to-hal! (:text v))
+                          rp (b/reply r origin)]
+                      (log! :hal :say (:status rp) (:reason r))
+                      {:status (:status rp) :headers (:headers rp) :body (json/generate-string (:body rp))})
                   (let [live     (live-for (:member v))
                         decision (b/decide v live)]
                     (if-not (:ok decision)
@@ -302,7 +328,7 @@
                         (log! (:member v) (:action v) (:status r) reason)
                         (when (and (:ok ran) (contains? #{:allow :deny} (:action v)))
                           (append-crew-log! (:member v) (if (= :allow (:action v)) :allowed :declined) (:prompt live)))
-                        {:status (:status r) :headers (:headers r) :body (json/generate-string (:body r))}))))))))))))))
+                        {:status (:status r) :headers (:headers r) :body (json/generate-string (:body r))})))))))))))))))
 
 (defn -main [& _]
   (let [token (random-token)]

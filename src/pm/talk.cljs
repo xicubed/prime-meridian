@@ -615,6 +615,18 @@
                     :log (if expanded? (cl/for-member log (:member row) roster-log-n) []))))
          (crew-roster crew-state now bridge-on? asked))))
 
+(defn with-twin
+  "Adds the twin's row to the roster (GDD §2.1): the twin lives in a Hermes chat,
+   not a Herdr pane, so Herdr never lists him. `twin` is the estate walker
+   whose :agent is :hal ({:agent :name}); nil leaves the roster alone. Its
+   say… box is open whenever the bridge is: the bridge passes the words on."
+  [rows twin bridge-on?]
+  (if (and (map? twin) (keyword? (:agent twin))
+           (not-any? #(= (:agent twin) (:member %)) rows))
+    (conj (vec rows) {:member (:agent twin) :who (:name twin) :status :idle
+                      :say? (boolean bridge-on?) :expanded? false :log []})
+    (vec rows)))
+
 (defn gone?
   "True when e belongs to a crew member who's no longer in a fresh
    crew-state (they left). Stale or missing crew-state never fades a line."
