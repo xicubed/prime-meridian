@@ -16,6 +16,17 @@
  ;; until the next change here.
  :sky [["06:45" :blue] ["07:15" :golden] ["08:15" :day]
        ["16:00" :golden] ["16:45" :blue] ["17:30" :night]]
+ ;; The soundtrack (pm.music): instrumental, made with Suno on Michael's
+ ;; Premier plan (public/assets/audio/LICENSES.md). One track at a time,
+ ;; crossfading: the Construct's theme, the dojo while sparring, then the sky's
+ ;; hour picks. Night has no track of its own yet, so it keeps blue hour's.
+ :music {:volume 0.3 :fade-s 4
+         :tracks {:construct "/assets/audio/music/nuclear-vision.mp3"   ; class demo only: a remix (LICENSES.md)
+                  :dojo      "/assets/audio/music/the-dojo.mp3"
+                  :afternoon "/assets/audio/music/afternoon-in-the-simulation.mp3"
+                  :golden    "/assets/audio/music/golden-hour-uplink.mp3"
+                  :blue      "/assets/audio/music/blue-hour-signal.mp3"}
+         :by-sky {:day :afternoon :golden :golden :blue :blue :night :blue}}
  ;; The one-time ask at bedtime (pm.closing/asking-to-stay?): its words.
  :stay-late-ask {:ask "Staying past closing?" :button "Stay" :leave "Close up"
                 :sign "Closed for the night. Click the booth to come back in."}

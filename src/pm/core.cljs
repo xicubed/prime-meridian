@@ -9,6 +9,7 @@
             [pm.blueprint :as bp]
             [pm.bricks :as bricks]
             [pm.brook :as brook]
+            [pm.music :as music]
             [pm.chores :as chores]
             [pm.closing :as closing]
             [pm.content :as content]
@@ -492,6 +493,28 @@
   (- (.getTimezoneOffset (js/Date.))))
 
 (defonce ^:private !sky (atom nil))   ; the kit hour pm.sky last set
+(defonce ^:private !gesture? (atom false))   ; browsers play nothing before one
+
+(defn- music-scene
+  "What the soundtrack follows right now (pm.music/track-for's input)."
+  [now off]
+  (let [w @!world seen @!construct-seen?
+        pinned (some-> (.get (js/URLSearchParams. (.. js/window -location -search)) "hour") js/parseFloat)
+        minute (if (and pinned (not (js/isNaN pinned))) (js/Math.round (* 60 pinned)) (sky/local-minute now off))]
+    {:sparring?  (some? (construct/sparring w seen now))
+     :construct? (boolean (some some? [(let [r (construct/white-room w seen now)] (when (not= :waiting (:phase r)) r))
+                                       (construct/program-rack w seen now)
+                                       (construct/jump-program w seen now)
+                                       (construct/free-your-mind w seen now)]))
+     :sky        (or @!sky (sky/hour-at (sky/schedule w) minute))}))
+
+(defn- music-tick!
+  "Keeps the soundtrack on the track the scene wants (pm.music), once the
+   player has clicked or pressed a key and unless they turned it off."
+  [now off]
+  (when (and @!gesture? (music/on?))
+    (let [m (:music @!world)]
+      (music/play! m (music/track-for m (music-scene now off))))))
 
 (defn- sky-tick!
   "The sky follows the clock (pm.sky): sets the kit's lighting when the
@@ -702,6 +725,7 @@
           off         (tz-offset-min)]
       (swap! !world closing/tick closing-now off)
       (sky-tick! closing-now off)
+      (music-tick! closing-now off)
       (sources-tick!)
       (ui/set-stay-late! (closing/asking-to-stay? @!world) (:stay-late-ask @!world)))
     ;; The juice meter's warning (GDD §2.1, §4.4, §4.8): the twin says a
@@ -773,6 +797,7 @@
   ;; brook starts on that first gesture anywhere -- unless the player turned
   ;; it off last time (remembered per browser).
   (let [start (fn start [_]
+                (reset! !gesture? true)
                 (js/removeEventListener "pointerdown" start true)
                 (js/removeEventListener "keydown" start true)
                 (when (and (brook-on?) (not (brook/playing?)))
@@ -780,6 +805,15 @@
                   (when-let [^js b (js/document.getElementById "brook-toggle")] (set! (.-textContent b) "■ brook"))))]
     (js/addEventListener "pointerdown" start true)
     (js/addEventListener "keydown" start true))
+  (when-let [^js mb (js/document.getElementById "music-toggle")]
+    (set! (.-textContent mb) (if (music/on?) "♪ music" "♪ off"))
+    (.addEventListener mb "click"
+      (fn [^js e]
+        (.stopPropagation e)
+        (reset! !gesture? true)
+        (let [m  (:music @!world)
+              on (music/toggle! m (music/track-for m (music-scene (js/Date.now) (tz-offset-min))))]
+          (set! (.-textContent mb) (if on "♪ music" "♪ off"))))))
   (when-let [el (js/document.getElementById "brook-flow")]
     (set! (.-value el) "0.33")
     (.addEventListener el "input"

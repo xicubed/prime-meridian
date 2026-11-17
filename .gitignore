@@ -38,3 +38,6 @@ assets/private/
 
 # the demo build (bb demo-build): static files, rebuilt from source
 /dist/
+
+# a remix of another Suno creator's song: class demo only, never published (public/assets/audio/LICENSES.md)
+/public/assets/audio/music/nuclear-vision.mp3
