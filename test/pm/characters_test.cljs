@@ -4,7 +4,10 @@
             [pm.avoid :as a]
             [pm.world :as w]))
 
-(def W (w/load-estate w/estate-edn))
+(def W
+  ;; these test route-following and avoidance on the real estate's routes, so
+  ;; wandering (its own tests: pm.wander-test) is switched off here
+  (update (w/load-estate w/estate-edn) :walkers (fn [ws] (mapv #(dissoc % :wander) ws))))
 
 (defn near? [a b] (< (js/Math.abs (- a b)) 1e-6))
 (defn vnear? [a b] (and (= (count a) (count b)) (every? true? (map near? a b))))
@@ -73,8 +76,10 @@
     (is (nil? (m/character c)))))
 
 (deftest t10-walkers-estate-characters
-  (is (= [{:file "/assets/characters/polybot.glb" :rig :mixamo} nil nil nil nil nil]
-         (mapv :character (m/walkers W)))))
+  ;; read from the estate itself: each walker's :character, as m/character keeps it
+  (is (= (mapv #(m/character (:character %)) (:walkers W))
+         (mapv :character (m/walkers W))))
+  (is (= {:file "/assets/characters/polybot.glb" :rig :mixamo} (:character (first (m/walkers W))))))
 
 (deftest t11-walker-character-nil-cases
   (is (nil? (:character (m/walker {:id :f :route [[0 0] [1 0]]}))))
@@ -103,8 +108,8 @@
 
 (deftest t15-walkers-radius-estate-scaled
   (let [W14 (assoc-in W [:motion :display-scale] 1.4)]
-    (is (every? true? (map near? (vec (repeat 6 0.42)) (mapv :radius (m/walkers W14)))))
-    (is (= (vec (repeat 6 0.3)) (mapv :radius (m/walkers W))))))
+    (is (every? true? (map near? (vec (repeat (count (:walkers W)) 0.42)) (mapv :radius (m/walkers W14)))))
+    (is (= (vec (repeat (count (:walkers W)) 0.3)) (mapv :radius (m/walkers W))))))
 
 (deftest t16-walker-radius-unscaled
   (is (= 0.4 (:radius (m/walker {:id :a :route [[0 0]] :radius 0.4})))))

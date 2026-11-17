@@ -95,6 +95,8 @@
     (+ (* top ds) label-gap)
     (* (:label-y figure) ds)))
 
+(declare valid-colors?)
+
 (defn- valid-point? [p]
   (and (vector? p) (= 2 (count p)) (every? number? p)))
 
@@ -121,7 +123,11 @@
             tint    (when (and (integer? tint) (<= 0 tint 0xffffff)) tint)
             loop?   (true? (:loop entry))
             face    (:face entry)
-            face    (when (valid-point? face) face)]
+            face    (when (valid-point? face) face)
+            ;; wandering: the walkable spots (estate.edn :wander :points)
+            ;; within :radius of where the walker usually is (its first
+            ;; route point), handed in by `walkers`
+            spots   (filterv valid-point? (:spots entry))]
         {:id id :name nm :route route :pause-s pause-s
          :pos [x0 z0] :heading heading :to 0 :dir 1 :pause pause-s :leg 0
          :ground nil :y nil
@@ -129,7 +135,23 @@
          :character (character (:character entry))
          :senses (senses default-senses (:senses entry))
          :speed speed :facing nil :aware {} :glance false :agent agent
-         :tint tint :loop loop? :face face}))))
+         :tint tint :colors (when (valid-colors? (:colors entry)) (:colors entry))
+         :loop loop? :face (when-not (seq spots) face)
+         :spots spots}))))
+
+(defn wander-spots
+  "The walkable spots a wandering walker roams: its :wander area's points
+   (estate.edn :wander :areas) within the estate's :wander :radius of its
+   home -- its first route point. An area is one side of the creek, so a
+   walker never wades across. [] for a walker that doesn't wander."
+  [world entry]
+  (let [area (:wander entry)
+        pts  (filter valid-point? (when (keyword? area) (get-in world [:wander :areas area])))
+        r    (get-in world [:wander :radius])
+        home (first (filter valid-point? (:route entry)))]
+    (if (and home (number? r) (pos? r))
+      (filterv #(<= (pt-dist % home) r) pts)
+      [])))
 
 (defn walkers [world]
   (let [cfg  (avoid-config world)
@@ -140,7 +162,8 @@
                   (let [entry (if (and (number? (:radius entry)) (pos? (:radius entry)))
                                 entry
                                 (assoc entry :radius (:radius cfg)))
-                        entry (assoc entry :senses (senses scfg (:senses entry)))
+                        entry (assoc entry :senses (senses scfg (:senses entry))
+                                           :spots (wander-spots world entry))
                         w (walker entry)]
                     (when w (update w :radius * ds)))))
           (:walkers world))))
@@ -173,10 +196,28 @@
 
 ;; -- step / follow ---------------------------------------------------------
 
+(defn next-spot
+  "A wandering walker's next spot: one of its :spots at least `min-m` from
+   where it stands, chosen by its id and leg number -- varied, but the same
+   every run, so it's testable. nil when there's nowhere to go."
+  [w min-m]
+  (let [here (:pos w)
+        far  (filterv #(>= (pt-dist % here) min-m) (:spots w))]
+    (when (seq far)
+      (nth far (mod (js/Math.abs (hash [(:id w) (:leg w)])) (count far))))))
+
+(def ^:private wander-min-m 2.5)
+(def stuck-s "Seconds a wanderer can stand still mid-leg before it picks another spot." 8)
+(def ^:private stuck-speed 0.08)
+
 (defn- pick [w]
-  (let [[i' dir'] (next-index (count (:route w)) (:to w) (:dir w) (:loop w))]
-    (assoc w :to i' :dir dir' :pause 0 :leg (inc (:leg w))
-             :aim nil :goal nil :side nil :wait 0 :waited false)))
+  (if-let [nxt (when (seq (:spots w)) (next-spot w wander-min-m))]
+    ;; wandering: a fresh leg from here to the next spot
+    (assoc w :route [(:pos w) nxt] :to 1 :dir 1 :pause 0 :leg (inc (:leg w))
+             :aim nil :goal nil :side nil :wait 0 :waited false)
+    (let [[i' dir'] (next-index (count (:route w)) (:to w) (:dir w) (:loop w))]
+      (assoc w :to i' :dir dir' :pause 0 :leg (inc (:leg w))
+               :aim nil :goal nil :side nil :wait 0 :waited false))))
 
 (defn- arrive [w]
   (if (> (:pause-s w) 0)
@@ -274,12 +315,19 @@
 
       :else
       (let [gp     (goal-point w)
-            dg     (pt-dist gp (:pos w))]
-        (if (or (<= dg arrive-m) (and idle? (nil? (:aim w))))
-          (arrive w)
-          (if (and (:aim w) (<= (pt-dist (:aim w) (:pos w)) arrive-m))
-            (assoc w :aim nil)
-            w))))))
+            dg     (pt-dist gp (:pos w))
+            [vx vz] (:vel w)
+            ;; a wanderer that hasn't really moved for stuck-s (wedged on a
+            ;; straight line to a spot) gives that spot up and picks another
+            stuck  (if (and (seq (:spots w)) (pos? dt') (< (js/Math.hypot vx vz) stuck-speed))
+                     (+ (or (:stuck w) 0) dt')
+                     0)
+            w      (assoc w :stuck stuck)]
+        (cond
+          (>= stuck stuck-s) (pick (assoc w :stuck 0))
+          (or (<= dg arrive-m) (and idle? (nil? (:aim w)))) (arrive w)
+          (and (:aim w) (<= (pt-dist (:aim w) (:pos w)) arrive-m)) (assoc w :aim nil)
+          :else w)))))
 
 ;; -- Senses -------------------------------------------------------------
 
@@ -412,6 +460,28 @@
       (bit-or (bit-shift-left (mul br tr) 16)
               (bit-shift-left (mul bg tg) 8)
               (mul bb tb)))
+    base))
+
+(defn- luminance [hex]
+  (let [r (bit-and (bit-shift-right hex 16) 255)
+        g (bit-and (bit-shift-right hex 8) 255)
+        b (bit-and hex 255)]
+    (/ (+ (* 0.2126 r) (* 0.7152 g) (* 0.0722 b)) 255)))
+
+(defn valid-colors?
+  "A walker's own colours: {:body hex :joints hex}."
+  [c]
+  (and (map? c)
+       (every? #(and (integer? %) (<= 0 % 0xffffff)) [(:body c) (:joints c)])))
+
+(defn recolor-hex
+  "The mannequin is two colours: a light shell and dark joints. With a
+   walker's own `colors` ({:body :joints}), the light parts take :body and
+   the dark ones :joints -- so a mannequin can be inverted, which a tint
+   (multiplying) can't do. Anything else stays as it was."
+  [base colors]
+  (if (and (integer? base) (valid-colors? colors))
+    (if (> (luminance base) 0.5) (:body colors) (:joints colors))
     base))
 
 (defn figure-hexes [palette tint]

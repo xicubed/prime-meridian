@@ -5,7 +5,11 @@
             [pm.avoid :as a]
             [pm.world :as w]))
 
-(def W (w/load-estate w/estate-edn))
+(def W
+  ;; the six crew members on their written routes (wandering off; Hal, the
+  ;; twin, left out): these pin the route-following the crew was built on
+  (update (w/load-estate w/estate-edn) :walkers
+          (fn [ws] (into [] (comp (remove #(= :hal (:id %))) (map #(dissoc % :wander))) ws))))
 (def C (f/feet-config W))
 (def C0 (assoc C :smooth-s 0 :tilt-blend-s 0))
 

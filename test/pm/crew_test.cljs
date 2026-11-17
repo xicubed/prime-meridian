@@ -2,7 +2,11 @@
   (:require [cljs.test :refer [deftest is]]
             [pm.crew :as c] [pm.motion :as m] [pm.world :as w]))
 
-(def W (w/load-estate w/estate-edn))
+(def W
+  ;; the six crew members as written (routes, wandering off); Hal, the twin,
+  ;; isn't crew -- his own tests cover him
+  (update (w/load-estate w/estate-edn) :walkers
+          (fn [ws] (into [] (comp (remove #(= :hal (:id %))) (map #(dissoc % :wander))) ws))))
 (def T0 1794097290232)
 (def C {:as-of T0 :agents {:un-automate-monde {:status :working} :le-testeur {:status :blocked}
                            :un-architecte {:status :done}}})

@@ -17,7 +17,11 @@
           (every? (fn [k] (approx= (get a k) (get b k) eps)) (keys a)))
      :else (= a b))))
 
-(def W (w/load-estate w/estate-edn))
+(def W
+  ;; the six crew members on their written routes (wandering off; Hal, the
+  ;; twin, left out): these pin the route-following the crew was built on
+  (update (w/load-estate w/estate-edn) :walkers
+          (fn [ws] (into [] (comp (remove #(= :hal (:id %))) (map #(dissoc % :wander))) ws))))
 
 (def cfg {:flag "pony" :kind :horse :seed 1 :at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4})
 

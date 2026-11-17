@@ -28,9 +28,9 @@
 (defn- part-color [kw]
   (get scene/palette kw))
 
-(defn- build-figure! [heading tint]
+(defn- build-figure! [heading tint colors]
   (let [^js fig (t/group {:rot [0 heading 0]})
-        hexes   (m/figure-hexes scene/palette tint)]
+        hexes   (mapv #(m/recolor-hex % colors) (m/figure-hexes scene/palette tint))]
     (doseq [[k part] (map-indexed vector (:parts m/figure))]
       (t/add! fig (t/stand-in {:shape (:shape part)
                                 :size  (:size part)
@@ -42,7 +42,7 @@
 (defn- build-view! [^js root ds w]
   (let [[x z] (:pos w)
         y     (:y w)
-        ^js fig (build-figure! (:heading w) (:tint w))
+        ^js fig (build-figure! (:heading w) (:tint w) (:colors w))
         _       (t/set-scale! fig ds)
         ;; Nameplates: bigger and lighter than the creatures' signs, so names and
         ;; status dots read at a distance (Michael: "the contrast is low").
@@ -216,7 +216,7 @@
                                                    (cond
                                                      (nil? ch)
                                                      (do (.setMannequin c)
-                                                         (tint/tint-object! (.-object c) (:tint w))
+                                                         (do (tint/tint-object! (.-object c) (:tint w)) (tint/recolor-object! (.-object c) (:colors w)))
                                                          {:top (t/top-y (.-object c)) :error nil :rig :soma})
 
                                                      (and r (.-scene r))
@@ -224,7 +224,7 @@
                                                            rig (aget (.-CHARACTER_RIGS mod) key)]
                                                        (if (nil? rig)
                                                          (do (.setMannequin c)
-                                                             (tint/tint-object! (.-object c) (:tint w))
+                                                             (do (tint/tint-object! (.-object c) (:tint w)) (tint/recolor-object! (.-object c) (:colors w)))
                                                              {:top (t/top-y (.-object c))
                                                               :error {:name (:name w) :reason (str "no rig " key)}
                                                               :rig :soma})
@@ -233,14 +233,14 @@
                                                            {:top (t/top-y (.-object c)) :error nil :rig (:rig ch)}
                                                            (catch :default e
                                                              (.setMannequin c)
-                                                             (tint/tint-object! (.-object c) (:tint w))
+                                                             (do (tint/tint-object! (.-object c) (:tint w)) (tint/recolor-object! (.-object c) (:colors w)))
                                                              {:top (t/top-y (.-object c))
                                                               :error {:name (:name w) :reason (m/short-reason (or (.-message e) e))}
                                                               :rig :soma}))))
 
                                                      :else
                                                      (do (.setMannequin c)
-                                                         (tint/tint-object! (.-object c) (:tint w))
+                                                         (do (tint/tint-object! (.-object c) (:tint w)) (tint/recolor-object! (.-object c) (:colors w)))
                                                          {:top (t/top-y (.-object c))
                                                           :error {:name (:name w) :reason (.-error r)}
                                                           :rig :soma}))))

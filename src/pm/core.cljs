@@ -868,8 +868,12 @@
       (fn [id]
         (when-let [h (kit/handle)]
           (when-let [{:keys [pos]} (first (filter #(= id (:id %)) (bricks/spots)))]
-            (let [[x y z] pos]
-              (camera/frame! h [x (+ y 1.0) z] (get-in w [:crew-key :offset]))
+            (let [[x y z] pos
+                  [ox oy oz] (get-in w [:crew-key :offset])
+                  ;; come in from the creek's side (the open middle of the
+                  ;; estate), not out of the woods behind them
+                  ox (if (pos? x) (- (js/Math.abs ox)) (js/Math.abs ox))]
+              (camera/frame! h [x (+ y 1.0) z] [ox oy oz])
               (reset! !follow id))))
         ;; someone waiting on you: their entry in 💭 opens too, ready to answer
         (when-let [row (first (filter #(= id (:id %)) rows))]

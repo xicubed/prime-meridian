@@ -4,7 +4,10 @@
             [pm.motion :as m]
             [pm.world :as w]))
 
-(def W (w/load-estate w/estate-edn))
+(def W
+  ;; these test route-following and avoidance on the real estate's routes, so
+  ;; wandering (its own tests: pm.wander-test) is switched off here
+  (update (w/load-estate w/estate-edn) :walkers (fn [ws] (mapv #(dissoc % :wander) ws))))
 (def cfg {:speed 1.2 :horizon-s 2})
 
 (defn near? [a b] (< (js/Math.abs (- a b)) 1e-6))

@@ -2,7 +2,11 @@
   (:require [cljs.test :refer [deftest is]]
             [pm.motion :as m] [pm.avoid :as a] [pm.crew :as c] [pm.tint :as tint] [pm.world :as w]))
 
-(def W (w/load-estate w/estate-edn))
+(def W
+  ;; the six crew members as written (routes, wandering off); Hal, the twin,
+  ;; isn't crew -- his own tests cover him
+  (update (w/load-estate w/estate-edn) :walkers
+          (fn [ws] (into [] (comp (remove #(= :hal (:id %))) (map #(dissoc % :wander))) ws))))
 (def WS (m/walkers W))
 (defn by-id [id] (first (filter #(= id (:id %)) WS)))
 (defn near? [x y] (< (js/Math.abs (- x y)) 1e-6))

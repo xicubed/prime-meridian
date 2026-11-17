@@ -140,25 +140,46 @@
                             :right ["mixamorig:RightUpLeg" "mixamorig:RightLeg" "mixamorig:RightFoot" "mixamorig:RightToeBase"]}}
             :feet {:drop-cap 0.35
                    :step-max 0.4}}
+ ;; Wandering (pm.motion/wander-spots): walkable spots on the kit's terrain,
+ ;; probed on a 1.5 m grid (ground first, or low grass; no water, rocks, bushes,
+ ;; walls or roofs; no steep steps between neighbours; clear of placed things),
+ ;; split by the creek so nobody wades across. A walker with :wander <area>
+ ;; roams its area's spots within :radius of home, picking the next at random. (Hal)
+ :wander {:radius 9
+          :areas {:north-west [[-6.5 -8.5] [-6.5 -7.0] [-8.0 -5.5] [-6.5 -5.5] [-5.0 -5.5] [-8.0 -4.0] [-9.5 -2.5] [-8.0 -2.5] [-9.5 -1.0]]
+                  :east       [[7.0 -13.0] [8.5 -13.0] [10.0 -13.0] [7.0 -11.5] [8.5 -11.5] [10.0 -11.5] [4.0 -10.0] [5.5 -10.0] [7.0 -10.0] [8.5 -10.0] [4.0 -8.5] [8.5 -8.5] [1.0 -7.0] [2.5 -7.0]]
+                  :south      [[-3.5 -25.0] [-9.5 -23.5] [-6.5 -23.5] [-5.0 -23.5] [-8.0 -22.0] [-6.5 -22.0] [-5.0 -22.0] [-11.0 -20.5] [-9.5 -20.5] [-6.5 -20.5] [-5.0 -20.5] [-11.0 -19.0] [-8.0 -19.0] [-6.5 -19.0] [-5.0 -19.0] [-6.5 -17.5] [-6.5 -16.0] [-3.5 -16.0] [-6.5 -14.5] [-5.0 -14.5] [-3.5 -14.5]]}}
  ;; The crew key (pm.ui/render-crew-key!): who's on the estate; click a name
  ;; to fly to them (the camera sits at this offset and follows them).
- :crew-key {:title "Crew" :offset [3.2 2.2 3.6]}
+ :crew-key {:title "Crew" :offset [3.6 2.4 2.4]}   ; x is flipped to the creek's side
  :walkers [{:id :un-automate-monde :name "Un Automate" :agent :un-automate-monde
+            :wander :north-west
             :route [[-6.5 -6.5] [-6.0 -10.0] [-5.0 -14.0]] :pause-s 3
             :character {:file "/assets/characters/polybot.glb" :rig :mixamo}
             :key-color 0x6fbf5a}                                                   ; the crew key's swatch: Polybot is green
            {:id :le-testeur :name "Le Testeur" :agent :le-testeur
+            :wander :south
             :route [[-5.0 -14.0] [-6.0 -10.0] [-6.5 -6.5]] :pause-s 5}            ; NVIDIA's mannequin, untinted (white)
            {:id :un-architecte :name "Un Architecte" :agent :un-architecte
+            :wander :east
             :route [[6.0 -4.0] [4.0 -6.0] [3.5 -7.5]] :pause-s 8 :tint 0x4a7bd0}   ; east bank, north side: walks slowly, stops to think
            {:id :le-coureur :name "Le Coureur" :agent :le-coureur
+            :wander :east
             :route [[3.0 -8.5] [5.0 -10.0] [3.0 -12.0] [2.2 -10.0]] :loop true
             :speed 1.9 :pause-s 1 :tint 0xe8833a}                                 ; east bank, south side: a longer, quicker loop
            {:id :le-critique :name "Le Critique" :agent :le-critique
+            :wander :north-west
             :route [[-8.0 -4.0] [-7.2 -5.2]] :pause-s 6 :face [-6.0 -10.0]
             :tint 0x8e5cc4}                                                       ; woods' edge, north end of the west bank, watching the pair
            {:id :le-docteur :name "Le Docteur" :agent :le-docteur
-            :route [[-6.0 -17.5] [-6.0 -20.0]] :pause-s 6 :tint 0x2f9e8f}]       ; south plateau by Flora; the rock at [-5 -17] is not walkable
+            :wander :south
+            :route [[-6.0 -17.5] [-6.0 -20.0]] :pause-s 6 :tint 0x2f9e8f}
+           ;; Hal, the twin: the player's own bot (GDD §2.1), on the estate. The
+           ;; mannequin inverted: black body, white joints. Posted by the phone
+           ;; booth and mailbox (his errands start there), roaming the east bank.
+           {:id :hal :name "Hal" :agent :hal :wander :east
+            :route [[2.5 -7.0] [4.0 -8.5]] :pause-s 5
+            :colors {:body 0x1b1b1f :joints 0xf4f2ee}}]       ; south plateau by Flora; the rock at [-5 -17] is not walkable
  ;; The lobby, with your kitchen (GDD §2.4, §4.8): home base, where agents
  ;; bring their questions. It's the kit's cottage (the estate's one real
  ;; house, upstream on raised ground): just a signpost at its steps, probed

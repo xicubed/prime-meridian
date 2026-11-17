@@ -3,7 +3,11 @@
             [pm.motion :as m] [pm.avoid :as a] [pm.world :as w]
             [pm.creature :as c] [pm.creature-motion :as cm] [pm.species :as species]))
 
-(def W (w/load-estate w/estate-edn))
+(def W
+  ;; the crew's original routes (wandering off: pm.wander-test covers it), and
+  ;; Hal's new post left out, so these laps measure the scenes they were written for
+  (update (w/load-estate w/estate-edn) :walkers
+          (fn [ws] (into [] (comp (remove #(= :hal (:id %))) (map #(dissoc % :wander))) ws))))
 (def cfg {:speed 1.2 :horizon-s 2})
 (def horse (c/parse (get species/texts :horse)))
 (def dog   (c/parse (get species/texts :dog)))
