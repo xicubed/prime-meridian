@@ -535,6 +535,97 @@
     (set! (.. box -style -pointerEvents) (if (= :line phase) "none" "auto"))
     (set! (.. box -style -display) (if state "flex" "none"))))
 
+(defn- card-el
+  "A centred card over the estate (the Construct's look), created on first
+   use: `id` names it; clicks on the backdrop close nothing by themselves."
+  [id z backdrop]
+  (or (el id)
+      (let [^js box (js/document.createElement "div")]
+        (set! (.-id box) id)
+        (set! (.. box -style -cssText)
+              (str "position:fixed;inset:0;z-index:" z ";display:none;align-items:center;justify-content:center;"
+                   "background:" backdrop ";font:16px/1.45 system-ui,sans-serif;"))
+        (.appendChild js/document.body box)
+        box)))
+
+(defn show-jack-out!
+  "The jack-out (GDD §2.3): while the estate is frozen, it dims and a card
+   says why, with a Jack back in button. `state` nil hides it;
+   {:who :line :button} shows it. Rebuilt only when it changes."
+  [state on-back]
+  (let [^js box (card-el "jack-out-veil" 450 "rgba(12,14,22,.45)")
+        key     (pr-str state)]
+    (when (not= key (.. box -dataset -key))
+      (set! (.. box -dataset -key) key)
+      (set! (.-innerHTML box) "")
+      (set! (.. box -style -backdropFilter) "grayscale(.7)")
+      (when state
+        (construct-css!)
+        (let [^js card (js/document.createElement "div")]
+          (set! (.. card -style -cssText) "background:#fff;border-radius:16px;padding:26px 34px;max-width:620px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3)")
+          (append-say! card (:line state) (:who state))
+          (when-let [n (:note state)]
+            (let [^js p (js/document.createElement "div")]
+              (set! (.. p -style -cssText) "margin-top:10px;font-size:15px;color:#6b7280")
+              (set! (.-textContent p) n)
+              (.appendChild card p)))
+          (append-hint! card (:button state))
+          (.addEventListener card "click" (fn [^js e] (.stopPropagation e) (when (button-click? e) (on-back))))
+          (.appendChild box card))))
+    (set! (.. box -style -display) (if state "flex" "none"))))
+
+(defn show-mail!
+  "The mailbox's inbox (GDD §2.4, §4.6): `rows` from pm.content/inbox-rows,
+   newest first, SAMPLE-badged; click a row to read it, Close to go back.
+   nil hides it."
+  [{:keys [title rows close sample]}]
+  (let [^js box (card-el "mail-panel" 440 "rgba(12,14,22,.25)")]
+    (set! (.-innerHTML box) "")
+    (when rows
+      (construct-css!)
+      (let [^js card (js/document.createElement "div")
+            ^js h    (js/document.createElement "div")
+            ^js list (js/document.createElement "div")]
+        (set! (.. card -style -cssText) "background:#fff;border-radius:16px;padding:22px 26px;width:min(640px,90vw);max-height:80vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.3);color:#1b1f2a")
+        (set! (.-className h) "pm-who")
+        (set! (.-textContent h) title)
+        (.appendChild card h)
+        (doseq [r rows]
+          (let [^js row  (js/document.createElement "div")
+                ^js top  (js/document.createElement "div")
+                ^js body (js/document.createElement "div")]
+            (set! (.. row -style -cssText) "border-top:1px solid #e5e7eb;padding:10px 4px;cursor:pointer")
+            (set! (.. top -style -cssText) "display:flex;gap:10px;align-items:baseline")
+            (set! (.-innerHTML top)
+                  (str "<b style='min-width:120px'></b><span style='flex:1'></span>"
+                       "<span style='font-size:12px;color:#6b7280'></span>"))
+            (set! (.-textContent (aget (.-children top) 0)) (:who r))
+            (set! (.-textContent (aget (.-children top) 1))
+                  (str (when (:held? r) "⚠ held back · ") (:subject r)))
+            (set! (.-textContent (aget (.-children top) 2))
+                  (str (:ago r) (when (:sample? r) (str " · " sample))))
+            (set! (.. body -style -cssText) "display:none;margin-top:8px;color:#374151;white-space:pre-wrap")
+            (set! (.-textContent body) (:body r))
+            (.addEventListener row "click"
+              (fn [_] (set! (.. body -style -display)
+                            (if (= "none" (.. body -style -display)) "block" "none"))))
+            (.appendChild row top)
+            (.appendChild row body)
+            (.appendChild list row)))
+        (.appendChild card list)
+        (let [^js row (js/document.createElement "div")
+              ^js b   (js/document.createElement "button")]
+          (set! (.-className row) "pm-row")
+          (set! (.-className b) "pm-btn")
+          (set! (.. b -style -animation) "none")
+          (set! (.-textContent b) close)
+          (.addEventListener b "click" (fn [_] (show-mail! nil)))
+          (.appendChild row b)
+          (.appendChild card row))
+        (.addEventListener card "click" (fn [^js e] (.stopPropagation e)))
+        (.appendChild box card)))
+    (set! (.. box -style -display) (if rows "flex" "none"))))
+
 (defn set-badge! [text alert?]
   (when-let [^js b (el "talk-badge")]
     (set! (.-textContent b) text))

@@ -51,6 +51,11 @@
    jacks out, clicking it again jacks back in."
   [:phone-booth :box])
 
+(def mailbox-key
+  "The mailbox's scene-item key (pm.plan/mailbox-item): clicking it opens
+   the inbox."
+  [:mailbox :box])
+
 (defn clickable? [world mirror-id]
   (let [m (get-in world [:mirrors mirror-id])]
     (boolean (and m (seq (:chores m))))))

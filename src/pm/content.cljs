@@ -124,6 +124,30 @@
           mail    (- (count msgs) flagged)]
       {:mail mail :flagged flagged})))
 
+(defn inbox-rows
+  "The mailbox's list (GDD §2.4, §4.6), newest first: one row per message,
+   {:id :who :subject :ago :body :held? :sample?}. A message the Clerk
+   flagged is :held? -- its body is never shown, only the Clerk's note
+   (the reader with no keys, GDD §3)."
+  [inbox]
+  (when (and (map? inbox) (sequential? (:messages inbox)))
+    (->> (:messages inbox)
+         (filter map?)
+         (sort-by #(or (:minutes-ago %) 0))
+         (mapv (fn [m]
+                 (let [note (:clerk-note m)
+                       held (and (string? note) (not (str/blank? note)))
+                       mins (or (:minutes-ago m) 0)]
+                   {:id      (:id m)
+                    :who     (or (:from-name m) (:from m) "")
+                    :subject (or (:subject m) "")
+                    :ago     (cond (< mins 60) (str mins " min ago")
+                                   (< mins 1440) (str (quot mins 60) " h ago")
+                                   :else (str (quot mins 1440) " d ago"))
+                    :body    (if held note (or (:body m) ""))
+                    :held?   held
+                    :sample? (true? (:sample m))}))))))
+
 (defn mail-line [inbox]
   (when-let [{:keys [mail flagged]} (mail-counts inbox)]
     (if (zero? flagged)

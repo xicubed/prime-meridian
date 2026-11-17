@@ -341,3 +341,19 @@
   (is (= (c/missing-hal {}) #{:jack-in :chore-done :chore-not-due :chore-undone}))
   (is (= (c/missing-hal {:jack-in [] :chore-done "x"}) #{:jack-in :chore-not-due :chore-undone}))
   (is (= (c/missing-hal {:jack-in ["a" 7] :chore-done ["b"]}) #{:jack-in :chore-not-due :chore-undone})))
+
+(deftest inbox-rows-newest-first-and-held-mail-shows-only-the-note
+  (let [inbox c/sample-inbox
+        rows  (c/inbox-rows inbox)
+        msgs  (filter map? (:messages inbox))]
+    (is (= (count msgs) (count rows)))
+    (is (apply <= (map (fn [r] (:minutes-ago (first (filter #(= (:id r) (:id %)) msgs)))) rows)) "newest first")
+    (doseq [m msgs :when (:clerk-note m)]
+      (let [r (first (filter #(= (:id m) (:id %)) rows))]
+        (is (:held? r))
+        (is (= (:clerk-note m) (:body r)) "a held message shows the Clerk's note, never its body")))
+    (is (every? :sample? rows) "the sample inbox is all SAMPLE")))
+
+(deftest inbox-rows-of-nothing
+  (is (nil? (c/inbox-rows nil)))
+  (is (= [] (c/inbox-rows {:messages []}))))

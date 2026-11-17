@@ -493,6 +493,7 @@
   (- (.getTimezoneOffset (js/Date.))))
 
 (defonce ^:private !sky (atom nil))   ; the kit hour pm.sky last set
+(declare toggle-jack-out!)
 (defonce ^:private !gesture? (atom false))   ; browsers play nothing before one
 
 (defn- music-scene
@@ -725,6 +726,15 @@
           off         (tz-offset-min)]
       (swap! !world closing/tick closing-now off)
       (sky-tick! closing-now off)
+      ;; jacked out at the booth: the estate dims and says why (not the
+      ;; Construct's practice jump, which has its own screen)
+      (ui/show-jack-out!
+        (when (and (world/jacked-out? @!world) (not (construct/jump-program @!world @!construct-seen? closing-now)))
+          {:who    (get-in @!world [:jack-card :who])
+           :line   (world/jack-out-text @!world)
+           :note   (get-in @!world [:jack-card :note])
+           :button (get-in @!world [:construct-script :hints :out])})
+        (fn [] (toggle-jack-out!)))
       (music-tick! closing-now off)
       (sources-tick!)
       (ui/set-stay-late! (closing/asking-to-stay? @!world) (:stay-late-ask @!world)))
@@ -966,6 +976,9 @@
               (let [{m :mirror k :key a :agent} (pick-at e)]
                 (cond
                   (= k pick/booth-key) (toggle-jack-out!)
+                  (= k pick/mailbox-key)
+                  (ui/show-mail! (assoc (:mail-panel @!world)
+                                        :rows (content/inbox-rows content/sample-inbox)))
                   (blueprint-id-of k) (on-blueprint-click! (blueprint-id-of k))
                   (some? a) (open-agent-talk! a)
                   (pick/clickable? @!world m)
