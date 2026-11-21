@@ -28,7 +28,8 @@
     /* the game's layer */
     /* Status ("admin") bubble: a small ⓘ next to 💭; click to open the status, which scrolls if long. */
     #admin { position: fixed; left: 64px; bottom: 170px; z-index: 200; font: 14px/1.4 system-ui, sans-serif; }
-    #admin > summary { list-style: none; cursor: pointer; font: 20px system-ui; background: rgba(0,0,0,.35); color: #f3efe2; border-radius: 8px; padding: 4px 10px; user-select: none; }
+    #admin > summary { list-style: none; cursor: pointer; font: 20px system-ui; background: rgba(0,0,0,.35); color: #f3efe2; border-radius: 8px; padding: 4px 10px; user-select: none;
+                       display: inline-block; position: relative; z-index: 230; } /* above #hud (220): open, the HUD box covered the ⓘ and it couldn't be closed */
     #admin > summary::-webkit-details-marker { display: none; }
     #admin[open] > summary { background: rgba(20,24,32,.88); }
     /* Scene menu (the kit's bottom bar of camera views): folded away until 🎬 opens it. */
