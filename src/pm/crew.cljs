@@ -119,6 +119,14 @@
   (when asked?
     {:glyph "!" :color (:needs-you palette) :pulse? true}))
 
+(defn think-dot
+  "The twin's dot while a say to him is out and unanswered (pm.talk/twin-thinking?):
+   the ordinary :working colour, since he isn't a Herdr pane with a status of
+   his own. nil otherwise, so the caller falls back to `dot`."
+  [thinking? palette]
+  (when thinking?
+    {:glyph "●" :color (:working palette) :pulse? false}))
+
 (defn label-runs [d nm now]
   [{:text (str (:glyph d) " ") :color (:color d) :alpha (if (:pulse? d) (pulse-alpha now) 1)}
    {:text nm :color nil :alpha 1}])

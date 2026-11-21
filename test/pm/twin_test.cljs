@@ -18,3 +18,20 @@
   (let [rows (talk/with-twin [] twin true)]
     (is (= rows (talk/with-twin rows twin true))))
   (is (= [] (talk/with-twin [] nil true))))
+
+(def T0 1800000000000)
+
+(deftest thinking-from-a-say-until-his-reply
+  (let [a    (:agent twin)
+        talk (talk/crew-say nil a (:name twin) "Hal, where's the mailbox?" T0)
+        sent (update-in talk [:entries 0] assoc :state :sent)]
+    (is (false? (talk/twin-thinking? nil {} a T0)) "nothing said")
+    (is (true? (talk/twin-thinking? talk {} a (+ T0 1000))) "sending counts")
+    (is (true? (talk/twin-thinking? sent {} a (+ T0 1000))))
+    (is (false? (talk/twin-thinking? sent {(name a) {:text "By the booth." :since (+ T0 5000)}} a (+ T0 6000)))
+        "his reply ends it")
+    (is (true? (talk/twin-thinking? sent {(name a) {:text "earlier" :since (- T0 5000)}} a (+ T0 1000)))
+        "an older say doesn't count as the reply")
+    (is (false? (talk/twin-thinking? sent {} a (+ T0 talk/twin-think-ms 1))) "and it times out")
+    (is (= :working (:status (last (talk/with-twin [] twin true true)))))
+    (is (= :idle (:status (last (talk/with-twin [] twin true false)))))))

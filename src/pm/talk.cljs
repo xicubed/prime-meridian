@@ -615,17 +615,35 @@
                     :log (if expanded? (cl/for-member log (:member row) roster-log-n) []))))
          (crew-roster crew-state now bridge-on? asked))))
 
+(def twin-think-ms 600000)   ; a say to the twin counts as "thinking" this long without a reply
+
+(defn twin-thinking?
+  "True from the moment a say to the twin went out (a :crew-say for his
+   :member, sent or sending) until his reply shows up as a :say (`says`,
+   pm.world's :says, keyed by agent name string) newer than it, or
+   twin-think-ms pass. The twin's dot isn't a Herdr status: this is it."
+  [talk says twin-agent now]
+  (let [sent  (->> (:entries (or talk empty-talk))
+                   (filter #(and (= :crew-say (:kind %)) (= twin-agent (:member %))
+                                 (contains? #{:sent :sending} (:state %)) (number? (:at %))))
+                   (map :at) (reduce max 0))
+        reply (or (get-in says [(name twin-agent) :since]) 0)]
+    (and (pos? sent) (> sent reply) (< (- now sent) twin-think-ms))))
+
 (defn with-twin
   "Adds the twin's row to the roster (GDD §2.1): the twin lives in a Hermes chat,
    not a Herdr pane, so Herdr never lists him. `twin` is the estate walker
-   whose :agent is :hal ({:agent :name}); nil leaves the roster alone. Its
-   say… box is open whenever the bridge is: the bridge passes the words on."
-  [rows twin bridge-on?]
-  (if (and (map? twin) (keyword? (:agent twin))
-           (not-any? #(= (:agent twin) (:member %)) rows))
-    (conj (vec rows) {:member (:agent twin) :who (:name twin) :status :idle
-                      :say? (boolean bridge-on?) :expanded? false :log []})
-    (vec rows)))
+   named as the twin (pm.world/twin-walker, {:agent :name}); nil leaves the
+   roster alone. Its say… box is open whenever the bridge is: the bridge
+   passes the words on. `thinking?` shows him :working from a say until he
+   answers."
+  ([rows twin bridge-on?] (with-twin rows twin bridge-on? false))
+  ([rows twin bridge-on? thinking?]
+   (if (and (map? twin) (keyword? (:agent twin))
+            (not-any? #(= (:agent twin) (:member %)) rows))
+     (conj (vec rows) {:member (:agent twin) :who (:name twin) :status (if thinking? :working :idle)
+                       :say? (boolean bridge-on?) :expanded? false :log []})
+     (vec rows))))
 
 (defn gone?
   "True when e belongs to a crew member who's no longer in a fresh

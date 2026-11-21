@@ -493,7 +493,7 @@
   (- (.getTimezoneOffset (js/Date.))))
 
 (defonce ^:private !sky (atom nil))   ; the kit hour pm.sky last set
-(declare toggle-jack-out! crew-key-tick!)
+(declare toggle-jack-out! crew-key-tick! twin-thinking? twin-dots)
 (defonce ^:private !gesture? (atom false))   ; browsers play nothing before one
 
 (defn- music-scene
@@ -691,10 +691,10 @@
             (swap! !talk-ui assoc :listed (:entries t') :listed-n (:n t') :listed-bridge bridge-on)))
         (swap! !talk-ui assoc :listed nil :listed-n nil :listed-bridge nil)))
     (let [asked (set (map keyword (keys (:asks-player @!world))))
-          twin  (first (filter #(= :hal (:agent %)) (:walkers @!world)))
+          twin  (world/twin-walker @!world)
           rows  (-> (talk/crew-roster (:crew @!world) now (bridge-on?) (:crew-log @!world) (:expanded @!talk-ui) asked)
                     (talk/with-questions (:asks-player @!world))
-                    (talk/with-twin twin (bridge-on?)))]
+                    (talk/with-twin twin (bridge-on?) (twin-thinking? @!world now)))]
       (when (not= rows (:roster @!talk-ui))
         (ui/render-roster! rows on-say on-expand offset-of jum)
         (swap! !talk-ui assoc :roster rows)))
@@ -714,7 +714,8 @@
     (when-let [h (kit/handle)] (bricks/tick! h dt'))
     (when (kit/handle) (creature-spike/tick! dt' now))
     (when-let [h (kit/handle)] (camera/save-tick! h now))
-    (bricks/set-dots! (:crew @!world) (:asks-player @!world) (js/Date.now))
+    (bricks/set-dots! (:crew @!world) (:asks-player @!world) (js/Date.now)
+                      (twin-dots @!world (js/Date.now) (crew/colors @!world)))
     (bricks/set-says! (world/says-now @!world (js/Date.now)))
     (crew-key-tick! (js/Date.now))
     (scene/update! @!world (js/Date.now))
@@ -847,6 +848,21 @@
       (:tint entry)      {:body (m/tint-hex white (:tint entry)) :joints dark}
       :else              {:body white :joints dark})))
 
+(defn- twin-thinking?
+  "The twin's own status (TASKS T-3): :working from a say to him until his
+   reply lands as a :say, else idle. false with no twin walker."
+  [w now]
+  (if-let [twin (world/twin-walker w)]
+    (talk/twin-thinking? (:talk w) (:says w) (:agent twin) now)
+    false))
+
+(defn- twin-dots
+  "{twin-agent dot} while the twin is thinking, for set-dots! and the key."
+  [w now colors]
+  (if-let [twin (world/twin-walker w)]
+    (if-let [d (crew/think-dot (twin-thinking? w now) colors)] {(:agent twin) d} {})
+    {}))
+
 (defn- crew-key-tick!
   "The crew key: one row per walker; clicking flies the camera to them and
    follows them until the player takes the camera back (any press on the
@@ -854,10 +870,12 @@
   [now]
   (let [w @!world
         colors (crew/colors w)
+        tdots  (twin-dots w now colors)
         rows (mapv (fn [entry]
                      (let [agent  (or (:agent entry) (:id entry))
                            asked? (contains? (:asks-player w) (name agent))
                            d      (or (crew/ask-dot asked? colors)
+                                      (get tdots agent)
                                       (crew/dot (:crew w) agent now colors))]
                        ;; the same dot as over their head, so the key shows who needs you
                        (merge {:id (:id entry) :agent agent :name (:name entry)

@@ -281,13 +281,17 @@
 
 (def say-ms 12000)   ; how long an agent's :say bubble stays over its walker
 
-(defn- twin-agent?
-  "True when `agent` (an event's agent name string) is the walker named as
-   the twin (`:jumeaux`): the twin is data, never a name in code."
-  [world agent]
+(defn twin-walker
+  "The estate walker that is the twin: the one named as the twin in
+   `:jumeaux` (the twin is data, never a name in code); nil when none."
+  [world]
   (let [twin-name (j/twin (j/names world))]
-    (boolean (some #(and (= agent (some-> (:agent %) name)) (= twin-name (:name %)))
-                   (:walkers world)))))
+    (first (filter #(and (keyword? (:agent %)) (= twin-name (:name %))) (:walkers world)))))
+
+(defn- twin-agent?
+  "True when `agent` (an event's agent name string) is the twin walker's."
+  [world agent]
+  (= agent (some-> (twin-walker world) :agent name)))
 
 (defn says-now
   "Agent name -> text for every :say still showing at `now`."
