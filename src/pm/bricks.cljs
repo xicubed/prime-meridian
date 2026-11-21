@@ -558,6 +558,29 @@
 
 (def say-max 64)   ; characters on the speech plate; the 💭 history keeps the whole line
 
+(defn send-on-errand!
+  "Sends the walker whose :agent is `agent` to `[x z]` (pm.motion/send-on-errand).
+   No-op before start! or for an unknown agent; returns true when sent."
+  [agent to]
+  (when (:started? @!state)
+    (let [i (first (keep-indexed (fn [i w] (when (= agent (:agent w)) i)) (:walkers @!state)))]
+      (when i
+        (swap! !state update-in [:walkers i] m/send-on-errand to)
+        true))))
+
+(defn errand-arrivals!
+  "The agents that have just arrived at their errand's spot since the last
+   call (each reported once): the caller says their words there."
+  []
+  (if-not (:started? @!state)
+    []
+    (let [ws (:walkers @!state)
+          arrived (into [] (keep (fn [w] (when (and (m/errand-arrived? w) (not (:reported? (:errand w)))) (:agent w)))) ws)]
+      (when (seq arrived)
+        (swap! !state assoc :walkers
+               (mapv (fn [w] (if (some #{(:agent w)} arrived) (assoc-in w [:errand :reported?] true) w)) ws)))
+      arrived)))
+
 (defn say-plate-text
   "The speech plate's text for `text`: nil/blank hides it; long lines are cut
    with an ellipsis so the plate's font stays readable."

@@ -62,6 +62,11 @@
   (is (false? (events/valid-event? "oops")))
   (is (false? (events/valid-event? (assoc AGENT-EVENT :kind :unknown-kind))))
   (is (true? (events/valid-event? (assoc AGENT-EVENT :kind :say :text "On it."))))
+  (is (true? (events/valid-event? (assoc AGENT-EVENT :kind :errand :where "mailbox"))))
+  (is (false? (events/valid-event? (assoc AGENT-EVENT :kind :errand))) "an errand needs a :where")
+  (is (false? (events/valid-event? (assoc AGENT-EVENT :where "mailbox"))) "a question has none")
+  (let [e (assoc AGENT-EVENT :kind :errand :where "mailbox")]
+    (is (= e (events/json->event (events/event->json e))) "the :where crosses the wire"))
   (is (false? (events/valid-event? (assoc AGENT-EVENT :agent "W-3"))))
   (is (false? (events/valid-event? (dissoc AGENT-EVENT :text))))
   (is (false? (events/valid-event? (assoc AGENT-EVENT :text ""))))

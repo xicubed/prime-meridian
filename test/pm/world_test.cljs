@@ -376,3 +376,15 @@
 (deftest t44-an-ordinary-chore-leaves-no-snap
   (is (nil? (:snap (w/chore-done W hay)))))
 
+
+(deftest t30c-errand-targets-stand-a-little-short
+  (let [spots [{:agent :le-coureur :pos [10 1.8 0]}]]
+    (is (= [8.8 0] (w/errand-target W "le-coureur" spots [0 0] 1.2)) "1.2 m short of a colleague")
+    (is (= [9.5 0] (w/errand-target W "le-coureur" spots [9.5 0] 1.2)) "already close: stay put")
+    (let [[x _ z] (get-in W [:mailbox :at])
+          to (w/errand-target W "mailbox" [] [x (+ z 5)] 1.2)]
+      (is (< (js/Math.abs (- 1.2 (js/Math.hypot (- x (first to)) (- z (second to))))) 1e-6) "1.2 m from the mailbox"))
+    (is (nil? (w/errand-target W "nowhere" spots [0 0] 1.2)))
+    (is (nil? (w/errand-target W "mailbox" spots nil 1.2)))
+    (let [W2 (w/apply-event W {:type :agent-event :agent "hal" :kind :errand :where "mailbox" :text "Two letters." :source SRC} T0)]
+      (is (= {:where "mailbox" :text "Two letters." :since T0 :state :pending} (get-in W2 [:errands "hal"]))))))

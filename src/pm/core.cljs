@@ -626,6 +626,35 @@
 
 (defonce ^:private !sample-say (atom {:timer nil :n 0}))
 
+(def errand-stand-off-m 1.2)
+
+(defn- errands-tick!
+  "Errands (TASKS T-2): a :pending errand sends its walker to its :where
+   (world/errand-target from the walkers' live spots) and becomes :going;
+   an unknown :where is said from where the walker stands. When a walker
+   arrives (bricks/errand-arrivals!), its errand's words become its :say
+   there, and the errand is done."
+  [now]
+  (let [w     @!world
+        spots (bricks/spots)]   ; [] until the walkers are up: errands wait
+    (doseq [[agent {:keys [where state]}] (:errands w)
+            :when (and (= :pending state) (seq spots))]
+      (let [from  (some (fn [s] (when (= (keyword agent) (:agent s)) (let [[x _ z] (:pos s)] [x z]))) spots)
+            to    (world/errand-target w where spots from errand-stand-off-m)]
+        (if (and to (bricks/send-on-errand! (keyword agent) to))
+          (swap! !world assoc-in [:errands agent :state] :going)
+          ;; nowhere to go (not started, unknown place): say it here
+          (swap! !world (fn [w] (let [{:keys [text]} (get-in w [:errands agent])]
+                                  (-> (update w :errands dissoc agent)
+                                      (world/apply-event {:type :agent-event :agent agent :kind :say :text text
+                                                          :source {:agent "game" :session "errand" :machine "local"}} now))))))))
+    (doseq [agent (bricks/errand-arrivals!)]
+      (let [a (name agent)]
+        (when-let [{:keys [text]} (get-in @!world [:errands a])]
+          (swap! !world (fn [w] (-> (update w :errands dissoc a)
+                                    (world/apply-event {:type :agent-event :agent a :kind :say :text text
+                                                        :source {:agent "game" :session "errand" :machine "local"}} now)))))))))
+
 (defn- sample-say-tick!
   "The demo build's twin (TASKS T-4): one SAMPLE line every :sample-every-s,
    only once the Construct is behind the player and the estate isn't frozen,
@@ -742,6 +771,7 @@
     (bricks/set-dots! (:crew @!world) (:asks-player @!world) (js/Date.now)
                       (twin-dots @!world (js/Date.now) (crew/colors @!world)))
     (bricks/set-says! (world/says-now @!world (js/Date.now)))
+    (errands-tick! (js/Date.now))
     (crew-key-tick! (js/Date.now))
     (scene/update! @!world (js/Date.now))
     ;; The Construct's first beat (GDD §2.7, §4.8): a first-time player

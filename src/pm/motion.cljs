@@ -211,18 +211,62 @@
 (def ^:private stuck-speed 0.08)
 
 (defn- pick [w]
-  (if-let [nxt (when (seq (:spots w)) (next-spot w wander-min-m))]
-    ;; wandering: a fresh leg from here to the next spot
-    (assoc w :route [(:pos w) nxt] :to 1 :dir 1 :pause 0 :leg (inc (:leg w))
-             :aim nil :goal nil :side nil :wait 0 :waited false)
+  (cond
+    ;; an errand just done (paused at the spot): back to whatever it was doing
+    (:arrived? (:errand w))
+    (let [{:keys [route-before to-before dir-before]} (:errand w)
+          w' (dissoc w :errand)]
+      (if (seq (:spots w'))
+        (pick w')
+        (assoc w' :route route-before :to to-before :dir dir-before :pause 0 :leg (inc (:leg w'))
+                  :aim nil :goal nil :side nil :wait 0 :waited false)))
+
+    (seq (:spots w))
+    (if-let [nxt (next-spot w wander-min-m)]
+      ;; wandering: a fresh leg from here to the next spot
+      (assoc w :route [(:pos w) nxt] :to 1 :dir 1 :pause 0 :leg (inc (:leg w))
+               :aim nil :goal nil :side nil :wait 0 :waited false)
+      (let [[i' dir'] (next-index (count (:route w)) (:to w) (:dir w) (:loop w))]
+        (assoc w :to i' :dir dir' :pause 0 :leg (inc (:leg w))
+                 :aim nil :goal nil :side nil :wait 0 :waited false)))
+
+    :else
     (let [[i' dir'] (next-index (count (:route w)) (:to w) (:dir w) (:loop w))]
       (assoc w :to i' :dir dir' :pause 0 :leg (inc (:leg w))
                :aim nil :goal nil :side nil :wait 0 :waited false))))
 
+(def errand-pause-s "How long a walker stands at an errand's spot before carrying on." 6)
+
+(defn send-on-errand
+  "Sends walker `w` to `[x z]` on an errand (TASKS T-2): a straight leg from
+   here to there, wandering or its route set aside until it arrives, where it
+   pauses errand-pause-s (`arrived?` turns true on arrival; the caller reads it
+   with `errand-arrived?` and says the errand's words). nil `to` leaves w alone."
+  [w to]
+  (if-not (valid-point? to)
+    w
+    (assoc w :errand {:to to :arrived? false
+                      :route-before (:route w) :to-before (:to w) :dir-before (:dir w)}
+             ;; :aim set straight at the spot: a driven character that happens to be
+             ;; idle this frame would otherwise count as arrived (see `follow`)
+             :route [(:pos w) to] :to 1 :dir 1 :pause 0 :leg (inc (:leg w))
+             :aim to :goal nil :side nil :wait 0 :waited false)))
+
+(defn errand-arrived?
+  "True while w stands at its errand's spot (arrived, not yet carried on)."
+  [w]
+  (true? (:arrived? (:errand w))))
+
 (defn- arrive [w]
-  (if (> (:pause-s w) 0)
+  (cond
+    (and (:errand w) (not (:arrived? (:errand w))))
+    (assoc w :errand (assoc (:errand w) :arrived? true)
+             :pause errand-pause-s :aim nil :goal nil :side nil :wait 0 :waited false)
+
+    (> (:pause-s w) 0)
     (assoc w :pause (:pause-s w) :aim nil :goal nil :side nil :wait 0 :waited false)
-    (pick w)))
+
+    :else (pick w)))
 
 (defn step [w speed dt]
   (let [dt'   (max 0 dt)
@@ -324,7 +368,10 @@
                      0)
             w      (assoc w :stuck stuck)]
         (cond
-          (>= stuck stuck-s) (pick (assoc w :stuck 0))
+          ;; wedged on an errand: say it from here rather than wander off with it
+          (>= stuck stuck-s) (if (and (:errand w) (not (:arrived? (:errand w))))
+                               (arrive (assoc w :stuck 0))
+                               (pick (assoc w :stuck 0)))
           (or (<= dg arrive-m) (and idle? (nil? (:aim w)))) (arrive w)
           (and (:aim w) (<= (pt-dist (:aim w) (:pos w)) arrive-m)) (assoc w :aim nil)
           :else w)))))

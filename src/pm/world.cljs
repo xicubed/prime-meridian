@@ -323,6 +323,24 @@
     (when (and (sequential? v) (seq v) (integer? n))
       (nth v (mod n (count v))))))
 
+(defn errand-target
+  "Where an errand's `where` is on the ground, as [x z]: another walker's
+   place (`spots`, pm.bricks/spots: [{:agent :pos [x y z]}]), or any estate
+   thing with an :at ([x y z]: :mailbox, :phone-booth, :lobby...). A point
+   `stand-off` metres short of it, from `from` ([x z], the walker's own spot),
+   so nobody walks into the mailbox or onto a colleague. nil when unknown."
+  [world where spots from stand-off]
+  (let [k    (when (string? where) (keyword where))
+        spot (some (fn [s] (when (= k (:agent s)) (:pos s))) spots)
+        at   (or spot (let [a (get-in world [k :at])] (when (and (vector? a) (= 3 (count a))) a)))]
+    (when (and at (every? number? at) (vector? from) (= 2 (count from)))
+      (let [[tx _ tz] at [fx fz] from
+            dx (- tx fx) dz (- tz fz)
+            d  (js/Math.hypot dx dz)]
+        (if (<= d stand-off)
+          from
+          [(- tx (* stand-off (/ dx d))) (- tz (* stand-off (/ dz d)))])))))
+
 (defmethod apply-event :agent-event
   [world event now]
   (if-not (events/valid-agent-event? event)
@@ -331,6 +349,12 @@
       :question (-> world
                     (assoc-in [:asks-player (:agent event)] {:text (:text event) :since now})
                     (log-event event :asked))
+      ;; an errand: remembered until the scene has sent the walker (pm.core);
+      ;; its words become a :say when it gets there
+      :errand   (-> world
+                    (assoc-in [:errands (:agent event)] {:where (:where event) :text (:text event)
+                                                         :since now :state :pending})
+                    (log-event event :errand))
       ;; a :say: the bubble over the walker; the twin's line also goes to
       ;; the caption (and so the 💭 history and voice), like his other lines
       :say      (-> world

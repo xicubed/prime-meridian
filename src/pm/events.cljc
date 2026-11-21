@@ -14,8 +14,10 @@
 ;; The agent-event :kinds the game knows about: an explicit `ask_player`
 ;; call, which is what puts a "!" over someone (GDD §3.1), and a `:say`,
 ;; a line the agent speaks on the estate (a bubble over its walker; the
-;; twin's also in the caption and the 💭 history), no answer expected.
-(def agent-event-kinds #{:question :say})
+;; twin's also in the caption and the 💭 history), no answer expected; and an
+;; `:errand`, a :say the agent walks somewhere first to deliver (:where names
+;; the place: another agent, "mailbox", "phone-booth", "lobby", or a mirror).
+(def agent-event-kinds #{:question :say :errand})
 
 (def ^:private source-fields #{:agent :session :machine})
 (def ^:private agent-re #"^[a-z][a-z0-9_-]{0,31}$")
@@ -42,6 +44,7 @@
        (agent-name? (:agent e))
        (contains? agent-event-kinds (:kind e))
        (non-blank-str? (:text e))
+       (if (= :errand (:kind e)) (non-blank-str? (:where e)) (nil? (:where e)))
        (valid-source? (:source e))))
 
 (defn valid-answer? [e]
@@ -125,8 +128,9 @@
   [e]
   (when (valid-event? e)
     (case (event-kind e)
-      :agent-event {"type" "agent-event" "agent" (:agent e) "kind" (name (:kind e))
-                    "text" (:text e) "source" (source->json (:source e))}
+      :agent-event (cond-> {"type" "agent-event" "agent" (:agent e) "kind" (name (:kind e))
+                            "text" (:text e) "source" (source->json (:source e))}
+                     (:where e) (assoc "where" (:where e)))
       :answer      {"type" "answer" "agent" (:agent e) "text" (:text e)
                     "source" (source->json (:source e))}
       :chore-done  {"event" "chore-done" "mirror" (name (:mirror e)) "chore" (name (:chore e))
@@ -147,8 +151,9 @@
     (let [ty (get m "type") ev (get m "event")
           kw (fn [v] (when (string? v) (keyword v)))]
       (cond
-        (= ty "agent-event") {:type :agent-event :agent (get m "agent") :kind (kw (get m "kind"))
-                              :text (get m "text") :source (json->source (get m "source"))}
+        (= ty "agent-event") (cond-> {:type :agent-event :agent (get m "agent") :kind (kw (get m "kind"))
+                                      :text (get m "text") :source (json->source (get m "source"))}
+                               (contains? m "where") (assoc :where (get m "where")))
         (= ty "answer")      {:type :answer :agent (get m "agent") :text (get m "text")
                               :source (json->source (get m "source"))}
         (= ev "chore-done")  {:event :chore-done :mirror (kw (get m "mirror")) :chore (kw (get m "chore"))

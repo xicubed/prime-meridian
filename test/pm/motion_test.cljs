@@ -403,3 +403,29 @@
   (is (every? #(contains? #{:box :sphere :cylinder :cone :capsule} (:shape %)) (:parts m/figure)))
   (is (= #{:crew :crew-head :eye} (set (map :color (:parts m/figure)))))
   (is (= 1.95 (:label-y m/figure))))
+
+;; Errands (TASKS T-2): a straight leg to the spot, a pause there, then back to the route.
+(defn- run-steps [w n speed dt] (nth (iterate #(m/step % speed dt) w) n))
+
+(deftest errand-goes-there-pauses-and-returns-to-its-route
+  (let [w0 (assoc F :pause 0 :to 1 :leg 1)
+        e  (m/send-on-errand w0 [10 0])]
+    (is (= [[0 0] [10 0]] (:route e)) "a straight leg from here")
+    (is (false? (m/errand-arrived? e)))
+    (is (= [[0 0] [3 4] [6 0]] (get-in e [:errand :route-before])))
+    (let [there (run-steps e 60 1.0 0.25)]   ; 15 s of walking at 1 m/s covers 10 m
+      (is (true? (m/errand-arrived? there)) "arrived and paused")
+      (is (< (m/pt-dist (:pos there) [10 0]) 0.6))
+      (let [after (run-steps there 40 1.0 0.25)]   ; the pause (6 s) passes
+        (is (nil? (:errand after)) "the errand is over")
+        (is (= [[0 0] [3 4] [6 0]] (:route after)) "back on its own route")))
+    (is (= w0 (m/send-on-errand w0 nil)) "no spot, no errand")))
+
+(deftest errand-wanderer-goes-back-to-wandering
+  (let [w0 (assoc F :pause 0 :to 1 :leg 1 :spots [[0 0] [5 5] [-5 5] [5 -5]])
+        there (run-steps (m/send-on-errand w0 [10 0]) 60 1.0 0.25)
+        after (run-steps there 40 1.0 0.25)]
+    (is (true? (m/errand-arrived? there)))
+    (is (nil? (:errand after)))
+    (is (= 2 (count (:route after))) "a fresh wander leg")
+    (is (some #{(second (:route after))} (:spots w0)) "to one of its spots")))
