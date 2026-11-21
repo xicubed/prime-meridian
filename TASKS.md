@@ -82,10 +82,10 @@ Plan of record: [`docs/session-2026-10-17.md`](docs/session-2026-10-17.md) §7. 
 
 ## Next (from Nov 16)
 The twin on the estate (GDD §2.1). Built today: he walks (black body, white joints), is in the crew key, and clicking him opens a say… box that the bridge passes into his Hermes chat (`scripts/hal_relay.py`). Michael's call: the game passes the message, the twin answers in his chat.
-- [ ] T-1 Replies on the estate (optional, his call): `bb hal-say "…"` shows the twin's answer as his speech bubble over his walker, spoken when voice is on, and in the 💭 history.
-- [ ] T-2 Errands: `bb hal-errand <where> "<what>"` walks the twin to a crew member, the mailbox or a creature's jar, then says it there (the existing planner; wandering pauses for the errand).
-- [ ] T-3 The twin's dot: hollow today because he isn't a Herdr pane. Show "thinking" from when a say is relayed until the chat answers, idle otherwise.
-- [ ] T-4 Demo build: rebuild it (it predates the crew key, wandering, the twin, the booth card and the mailbox) and give the demo's twin something without a relay: his say box explains he's only reachable in a real game, plus SAMPLE errands on a timer.
+- [x] 2026-11-20 T-1 Replies on the estate: `bb hal-say "…"` shows the twin's answer on a speech plate over his walker (every walker has one), as his caption, spoken when voice is on, and in the 💭 history.
+- [x] 2026-11-20 T-2 Errands: `bb hal-say "<what>" --at <where>` walks the twin (or any member, `--as`) to a crew member, the mailbox, the booth or the lobby, says it there, then goes back to wandering. Creature jars: not yet (mirrors have a `:home`, no `:at`).
+- [x] 2026-11-20 T-3 The twin's dot: amber (working) from a say to him until his reply lands as a :say, idle otherwise; 10 min timeout.
+- [x] 2026-11-20 T-4 Demo build rebuilt (black-box check passes); the demo's twin: his say box stays open and he answers that he's only reachable from a real game; a SAMPLE line every 45 s (`estate.edn :twin-talk`).
 - [ ] T-5 A link to show people: Netlify (permanent, account his pick; the ~81 MB terrain GLB may need compressing) or a `cloudflared` quick tunnel (needs an install on his go). localhost.run was too slow.
 - [ ] T-6 A night track (night borrows blue hour's), and check the theme's whispered vocals against the twin's lines.
 - [ ] T-7 Wandering follow-ups: re-run the walkable-ground probe whenever placed things move (the spots are data in `:wander :areas`); a wanderer still walks through a fresh build's footprint until then.
