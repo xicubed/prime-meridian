@@ -157,6 +157,23 @@
             (:placed mirror))))
       (sort (keys (:mirrors world))))))
 
+(defn creature-rows
+  "The creatures for the crew key (one row per mirror of :kind :creature,
+   in id order): {:id :name :kind :creature :at [x y z] :color <int>}, the
+   spot being its :body item (else its first placed item) and the colour the
+   first colour of that item's look, through `palette` (the same hex as on
+   screen). A mirror with nothing placed has no row: nothing to fly to."
+  [world palette]
+  (into []
+        (keep (fn [id]
+                (let [m    (get-in world [:mirrors id])
+                      body (or (first (filter #(= :body (:id %)) (:placed m))) (first (:placed m)))
+                      at   (:at body)]
+                  (when (and (= :creature (:kind m)) (valid-at? at))
+                    {:id id :name (or (:name m) (name id)) :kind :creature :at at
+                     :color (get palette (some :color (raw-parts (:look body))) (:stand-in palette))}))))
+        (sort (keys (:mirrors world)))))
+
 (defn lobby-item
   "The lobby's scene item (GDD §2.4, §4.8): home, with your kitchen, where
    agents bring their questions. Placement, look and sign text come from

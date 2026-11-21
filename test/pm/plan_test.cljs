@@ -548,3 +548,17 @@
     (is (nil? (p/building-drop-pose w nil)))
     (is (nil? (p/building-drop-pose w "nope")))
     (is (nil? (p/building-drop-pose {:construct {:building-at "nope"}} T0)))))
+
+(deftest creature-rows-for-the-key
+  (let [pal  {:pink 0xff9ec4 :brown 0x8a5a3b :stand-in 0x999999}
+        rows (p/creature-rows W pal)
+        ids  (set (map :id rows))]
+    (is (every? #(= :creature (:kind %)) rows))
+    (is (= (set (keep (fn [[id m]] (when (= :creature (:kind m)) id)) (:mirrors W))) ids)
+        "one row per creature mirror")
+    (let [flora (first (filter #(= :flora (:id %)) rows))]
+      (is (= "Flora" (:name flora)))
+      (is (= (:at (first (filter #(= :body (:id %)) (get-in W [:mirrors :flora :placed])))) (:at flora)) "her body's spot")
+      (is (= 0xff9ec4 (:color flora)) "her body's first colour"))
+    (is (not (contains? (set (map :id (p/creature-rows (assoc-in W [:mirrors :flora :placed] []) pal))) :flora))
+        "nothing placed, nothing to fly to")))

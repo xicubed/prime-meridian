@@ -654,16 +654,22 @@
           (set! (.. s -style -cssText) "cursor:pointer;font-size:11px;letter-spacing:.12em;text-transform:uppercase;opacity:.8;margin-bottom:4px")
           (set! (.-textContent s) title)
           (.appendChild box s))
-        (doseq [{:keys [id name body joints dot glyph]} rows]
+        (doseq [{:keys [id name body joints dot glyph kind color]} rows]
           (let [^js r (js/document.createElement "div")]
             (set! (.. r -style -cssText) "display:flex;align-items:center;gap:8px;padding:4px 4px;border-radius:8px;cursor:pointer")
             (.addEventListener r "mouseenter" (fn [_] (set! (.. r -style -background) "rgba(255,255,255,.12)")))
             (.addEventListener r "mouseleave" (fn [_] (set! (.. r -style -background) "transparent")))
-            ;; the icon: a tiny figure, head and body in the walker's colour, joints as a ring
+            ;; the icon: a tiny figure, head and body in the walker's colour, joints as a
+            ;; ring; a creature is a low round body with a tail, in its own colour
             (set! (.-innerHTML r)
                   (str "<svg width='18' height='24' viewBox='0 0 18 24'>"
-                       "<circle cx='9' cy='5' r='4' fill='" (hex-css body) "' stroke='" (hex-css joints) "' stroke-width='1.5'/>"
-                       "<rect x='4' y='10' width='10' height='13' rx='4' fill='" (hex-css body) "' stroke='" (hex-css joints) "' stroke-width='1.5'/>"
+                       (if (= :creature kind)
+                         (str "<ellipse cx='8' cy='15' rx='7' ry='5' fill='" (hex-css color) "' stroke='rgba(0,0,0,.45)' stroke-width='1.2'/>"
+                              "<circle cx='13' cy='12' r='3.5' fill='" (hex-css color) "' stroke='rgba(0,0,0,.45)' stroke-width='1.2'/>"
+                              "<path d='M1 15 q-2 4 3 6' fill='none' stroke='" (hex-css color) "' stroke-width='2'/>"
+                              "<circle cx='14' cy='11' r='.9' fill='#222'/>")
+                         (str "<circle cx='9' cy='5' r='4' fill='" (hex-css body) "' stroke='" (hex-css joints) "' stroke-width='1.5'/>"
+                              "<rect x='4' y='10' width='10' height='13' rx='4' fill='" (hex-css body) "' stroke='" (hex-css joints) "' stroke-width='1.5'/>"))
                        "</svg>"
                        "<span style='width:12px;text-align:center;font-weight:700;color:" (hex-css dot) "'>" (if (= "!" glyph) "!" "●") "</span>"
                        "<span></span>"))

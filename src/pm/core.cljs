@@ -28,6 +28,7 @@
             [pm.overlay :as overlay]
             [pm.pick :as pick]
             [pm.scene :as scene]
+            [pm.plan :as plan]
             [pm.talk :as talk]
             [pm.ui :as ui]
             [pm.world :as world]
@@ -938,21 +939,31 @@
                                :needs-you? (or asked? (and (crew/fresh? (:crew w) now)
                                                    (= :blocked (crew/effective-status (get-in w [:crew :agents agent]) now))))}
                               (walker-colours entry))))
-                   (:walkers w))]
+                   (:walkers w))
+        ;; the creatures too (Michael: "icons for Flora to zoom to her fast"):
+        ;; a row each, the "!" when a chore of yours on them is due
+        creatures (mapv (fn [c] (assoc c :dot (if (plan/needs-you? w (:id c) now) (:needs-you colors) (:color c))
+                                         :glyph (if (plan/needs-you? w (:id c) now) "!" "●")
+                                         :needs-you? (plan/needs-you? w (:id c) now)))
+                        (plan/creature-rows w scene/palette))
+        rows (into rows creatures)
+        fly! (fn [h [x y z] lift]
+               (let [[ox oy oz] (get-in w [:crew-key :offset])
+                     ;; come in from the creek's side (the open middle of the
+                     ;; estate), not out of the woods behind them
+                     ox (if (pos? x) (- (js/Math.abs ox)) (js/Math.abs ox))]
+                 (camera/frame! h [x (+ y lift) z] [ox oy oz])))]
     (ui/render-crew-key! (get-in w [:crew-key :title]) rows
       (fn [id]
         (when-let [h (kit/handle)]
-          (when-let [{:keys [pos]} (first (filter #(= id (:id %)) (bricks/spots)))]
-            (let [[x y z] pos
-                  [ox oy oz] (get-in w [:crew-key :offset])
-                  ;; come in from the creek's side (the open middle of the
-                  ;; estate), not out of the woods behind them
-                  ox (if (pos? x) (- (js/Math.abs ox)) (js/Math.abs ox))]
-              (camera/frame! h [x (+ y 1.0) z] [ox oy oz])
-              (reset! !follow id))))
+          (if-let [{:keys [pos]} (first (filter #(= id (:id %)) (bricks/spots)))]
+            (do (fly! h pos 1.0) (reset! !follow id))
+            (when-let [c (first (filter #(= id (:id %)) creatures))]
+              (fly! h (:at c) 0.3) (reset! !follow nil))))
         ;; someone waiting on you: their entry in 💭 opens too, ready to answer
         (when-let [row (first (filter #(= id (:id %)) rows))]
-          (when (or (:needs-you? row) (= :hal (:agent row)))   ; the twin is always there to talk to
+          (when (and (:agent row)
+                     (or (:needs-you? row) (= (:agent row) (:agent (world/twin-walker w)))))   ; the twin is always there to talk to
             (open-agent-talk! (:agent row))))))
     (when-let [id @!follow]
       (when-let [h (kit/handle)]
