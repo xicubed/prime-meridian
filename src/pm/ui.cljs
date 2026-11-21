@@ -628,6 +628,22 @@
 
 (defn- hex-css [n] (str "#" (.padStart (.toString (or n 0) 16) 6 "0")))
 
+(defn figure-svg
+  "The little figure used as an icon: a walker is head and body in its own
+   colours with the joints as a ring; a creature (:kind :creature) is a low
+   round body with a tail in its :color. `size` px tall."
+  [{:keys [kind color body joints]} size]
+  (let [w (js/Math.round (* size 0.75))]
+    (str "<svg width='" w "' height='" size "' viewBox='0 0 18 24'>"
+         (if (= :creature kind)
+           (str "<ellipse cx='8' cy='15' rx='7' ry='5' fill='" (hex-css color) "' stroke='rgba(0,0,0,.45)' stroke-width='1.2'/>"
+                "<circle cx='13' cy='12' r='3.5' fill='" (hex-css color) "' stroke='rgba(0,0,0,.45)' stroke-width='1.2'/>"
+                "<path d='M1 15 q-2 4 3 6' fill='none' stroke='" (hex-css color) "' stroke-width='2'/>"
+                "<circle cx='14' cy='11' r='.9' fill='#222'/>")
+           (str "<circle cx='9' cy='5' r='4' fill='" (hex-css (or body 0xf3efe2)) "' stroke='" (hex-css (or joints 0x333333)) "' stroke-width='1.5'/>"
+                "<rect x='4' y='10' width='10' height='13' rx='4' fill='" (hex-css (or body 0xf3efe2)) "' stroke='" (hex-css (or joints 0x333333)) "' stroke-width='1.5'/>"))
+         "</svg>")))
+
 (defn render-crew-key!
   "The crew key (who's on the estate): one row per walker -- a little figure
    in its own colours, its status dot and its name. Click a row to fly the
@@ -666,15 +682,7 @@
             ;; the icon: a tiny figure, head and body in the walker's colour, joints as a
             ;; ring; a creature is a low round body with a tail, in its own colour
             (set! (.-innerHTML r)
-                  (str "<svg width='18' height='24' viewBox='0 0 18 24'>"
-                       (if (= :creature kind)
-                         (str "<ellipse cx='8' cy='15' rx='7' ry='5' fill='" (hex-css color) "' stroke='rgba(0,0,0,.45)' stroke-width='1.2'/>"
-                              "<circle cx='13' cy='12' r='3.5' fill='" (hex-css color) "' stroke='rgba(0,0,0,.45)' stroke-width='1.2'/>"
-                              "<path d='M1 15 q-2 4 3 6' fill='none' stroke='" (hex-css color) "' stroke-width='2'/>"
-                              "<circle cx='14' cy='11' r='.9' fill='#222'/>")
-                         (str "<circle cx='9' cy='5' r='4' fill='" (hex-css body) "' stroke='" (hex-css joints) "' stroke-width='1.5'/>"
-                              "<rect x='4' y='10' width='10' height='13' rx='4' fill='" (hex-css body) "' stroke='" (hex-css joints) "' stroke-width='1.5'/>"))
-                       "</svg>"
+                  (str (figure-svg {:kind kind :color color :body body :joints joints} 24)
                        "<span style='width:12px;text-align:center;font-weight:700;color:" (hex-css dot) "'>" (if (= "!" glyph) "!" "●") "</span>"
                        "<span></span>"))
             (set! (.-textContent (aget (.-children r) 2)) name)
@@ -875,8 +883,15 @@
         ^js sub   (js/document.createElement "span")
         ^js arrow (js/document.createElement "span")]
     (set! (.-className r) "row contact")
-    (set! (.-textContent glyph) (cond (:question row) "!" (= :unknown (:status row)) "○" :else "●"))
-    (when (:question row) (set! (.. glyph -style -color) "#f5a623"))
+    ;; the avatar: their figure in a round frame, the status (or !) as a small badge on
+    ;; its corner, the way a phone shows a contact
+    (set! (.-className glyph) (str "avatar" (when (:question row) " asking")))
+    (set! (.-innerHTML glyph)
+          (str (if (= :all (:member row))
+                 "<span class='all'>∗</span>"
+                 (figure-svg row 26))
+               "<i class='badge' style='background:" (hex-css (or (:dot row) 0x9aa0a6)) "'>" (when (:question row) "!") "</i>"))
+    (when (= :unknown (:status row)) (.add (.-classList glyph) "hollow"))
     (set! (.-className who) "who")
     (set! (.-textContent who) (:who row))
     (set! (.-className sub) "preview")

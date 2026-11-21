@@ -553,7 +553,7 @@
   (- (.getTimezoneOffset (js/Date.))))
 
 (defonce ^:private !sky (atom nil))   ; the kit hour pm.sky last set
-(declare toggle-jack-out! crew-key-tick! twin-thinking? twin-dots)
+(declare toggle-jack-out! crew-key-tick! twin-thinking? twin-dots walker-colours)
 (defonce ^:private !gesture? (atom false))   ; browsers play nothing before one
 
 (defn- music-scene
@@ -817,12 +817,24 @@
           twin  (world/twin-walker @!world)
           w     @!world
           ;; the creatures are contacts too: their lines and chores make their thread
-          pets  (vec (for [[id m] (sort-by key (:mirrors w)) :when (= :creature (:kind m))]
-                       {:member id :who (or (:name m) (name id)) :kind :creature :status :idle :say? false
-                        :question (when (plan/needs-you? w id now) (talk/say-text w id now))}))
+          colors (crew/colors w)
+          pets  (vec (for [c (plan/creature-rows w scene/palette)
+                           :let [id (:id c) due? (plan/needs-you? w id now)]]
+                       {:member id :who (:who c (:name c)) :kind :creature :status :idle :say? false :color (:color c)
+                        :dot (if due? (:needs-you colors) (:color c))
+                        :question (when due? (talk/say-text w id now))}))
+          tdots (twin-dots w now colors)
+          ;; each crew row carries its walker's look and status dot, for the phone's avatars
+          dressed (fn [row]
+                    (let [entry (first (filter #(= (:member row) (:agent %)) (:walkers w)))
+                          d     (or (crew/ask-dot (boolean (:question row)) colors)
+                                    (get tdots (:member row))
+                                    (crew/dot (:crew w) (:member row) now colors))]
+                      (merge row (when entry (walker-colours entry)) {:dot (:color d)})))
           rows  (-> (talk/crew-roster (:crew w) now (bridge-on?) (:crew-log w) (:expanded @!talk-ui) asked)
                     (talk/with-questions (:asks-player w))
                     (talk/with-twin twin (bridge-on?) (twin-thinking? w now))
+                    (->> (mapv dressed))
                     (into pets))
           ;; each contact's last line, for the contacts list
           previews (reduce (fn [acc e] (if-let [c (ui/entry-contact e (:agent twin))] (assoc acc c (:text e)) acc))
