@@ -632,8 +632,12 @@
   "The crew key (who's on the estate): one row per walker -- a little figure
    in its own colours, its status dot and its name. Click a row to fly the
    camera to them. `rows` [{:id :name :body :joints :dot}] (colours as
-   ints); rebuilt only when they change. `on-pick` gets the walker id."
-  [title rows on-pick]
+   ints), or for a creature {:id :name :kind :creature :color :dot :real?
+   :can-real?}; rebuilt only when they change. `on-pick` gets the row's id;
+   a creature row ends in its SAMPLE/REAL checkbox (GDD §4.6: checked =
+   REAL, her numbers from the twin's record; greyed when there's no real
+   data), and `on-toggle` gets its id."
+  [title rows on-toggle on-pick]
   (let [^js box (or (el "crew-key")
                     (let [^js b (js/document.createElement "details")]
                       (set! (.-id b) "crew-key")
@@ -654,7 +658,7 @@
           (set! (.. s -style -cssText) "cursor:pointer;font-size:11px;letter-spacing:.12em;text-transform:uppercase;opacity:.8;margin-bottom:4px")
           (set! (.-textContent s) title)
           (.appendChild box s))
-        (doseq [{:keys [id name body joints dot glyph kind color]} rows]
+        (doseq [{:keys [id name body joints dot glyph kind color real? can-real?]} rows]
           (let [^js r (js/document.createElement "div")]
             (set! (.. r -style -cssText) "display:flex;align-items:center;gap:8px;padding:4px 4px;border-radius:8px;cursor:pointer")
             (.addEventListener r "mouseenter" (fn [_] (set! (.. r -style -background) "rgba(255,255,255,.12)")))
@@ -675,6 +679,21 @@
                        "<span></span>"))
             (set! (.-textContent (aget (.-children r) 2)) name)
             (.addEventListener r "click" (fn [^js e] (.preventDefault e) (.stopPropagation e) (on-pick id)))
+            (when (= :creature kind)
+              (let [^js lab (js/document.createElement "label")
+                    ^js cb  (js/document.createElement "input")]
+                (set! (.-type cb) "checkbox")
+                (set! (.-checked cb) (boolean real?))
+                (set! (.-disabled cb) (not can-real?))
+                (set! (.. lab -style -cssText) "margin-left:auto;display:flex;align-items:center;gap:4px;font-size:10px;letter-spacing:.08em;opacity:.85;cursor:pointer")
+                (set! (.-title lab) (cond (not can-real?) "SAMPLE: no real data behind this one yet"
+                                          real? "REAL: the numbers are your twin's record; a feed here goes through the bridge. Untick for SAMPLE."
+                                          :else "SAMPLE: pretend numbers, changes stay in this browser. Tick for REAL."))
+                (.appendChild lab cb)
+                (.appendChild lab (js/document.createTextNode (if real? "REAL" "SAMPLE")))
+                (.addEventListener lab "click" (fn [^js e] (.stopPropagation e)))
+                (.addEventListener cb "change" (fn [^js e] (.stopPropagation e) (on-toggle id)))
+                (.appendChild r lab)))
             (.appendChild box r)))
         (set! (.-open box) open?)))))
 
@@ -910,25 +929,11 @@
   (when-let [^js box (el "brain-ui")]
     (.removeAttribute box "hidden")))
 
-(defn render-sources!
-  "The SAMPLE/REAL switch in the ⓘ panel (GDD §4.6): one button per mirror
-   from `rows` (pm.overlay/source-rows); a click calls (on-toggle id). A
-   mirror with no real data behind it stays SAMPLE and says so."
-  [rows on-toggle]
-  (when-let [^js admin (el "admin")]
-    (let [^js box (or (el "sources")
-                      (let [^js d (js/document.createElement "div")]
-                        (set! (.-id d) "sources")
-                        (set! (.. d -style -cssText) "padding:6px 12px;font:14px system-ui,sans-serif;display:flex;gap:6px;flex-wrap:wrap;align-items:center")
-                        (.appendChild admin d)
-                        d))]
-      (set! (.-innerHTML box) "")
-      (doseq [{:keys [id name real? can-real?]} rows]
-        (let [^js b (js/document.createElement "button")]
-          (set! (.-textContent b) (str name ": " (if real? "REAL" "SAMPLE") (when-not can-real? " (no real data)")))
-          (set! (.-disabled b) (not can-real?))
-          (set! (.-title b) (if real? "Real: changes go to the twin's file through the bridge. Click for SAMPLE."
-                                "Sample: changes stay in this browser. Click for REAL."))
-          (.addEventListener b "click" (fn [^js e] (.stopPropagation e) (on-toggle id)))
-          (.appendChild box b))))))
+(defn remove-sources!
+  "The SAMPLE/REAL switch used to be a row of buttons in the ⓘ panel; it
+   lives on the creatures' crew-key rows now (render-crew-key!). Drops the
+   old box if a stale page still has one."
+  []
+  (when-let [^js box (el "sources")]
+    (.remove box)))
 

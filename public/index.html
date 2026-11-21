@@ -111,8 +111,9 @@
   <div id="cozy-loading"><h1>Prime Meridian</h1><p id="cozy-load-status">Loading the estate…</p></div>
   <pre id="cozy-audit" aria-hidden="true"></pre>
   <input type="checkbox" id="views-toggle" hidden><label id="views-label" for="views-toggle" title="Scene views">🎬</label>
-  <details id="admin"><summary title="Status">ⓘ</summary><div id="hud">Prime Meridian</div>
-    <p id="credits" style="font-size:11px;opacity:.75;margin:6px 0 0">Music made with Suno by DJ Mik'AĪ'ele. Construct theme: "(Nu)Clear Vision", a remix of a song by cyberpirate420 on Suno (class demo only).</p>
+  <details id="admin"><summary title="Status">ⓘ</summary><div id="hud"><span id="hud-text">Prime Meridian</span>
+    <p id="credits" style="font-size:11px;opacity:.75;margin:6px 0 0">Music made with Suno by DJ Mik'AĪ'ele. Construct theme: "(Nu)Clear Vision", a remix of a song by cyberpirate420 on Suno (class demo only).</p></div>
+    <!-- everything but the summary is position: fixed, so the ⓘ never moves when it opens -->
     <div id="brain-ui" hidden><label>age <select id="brain-age"></select></label> <button id="brain-drop">drop again</button></div>
   </details>
   <div id="brook">

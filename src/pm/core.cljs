@@ -288,11 +288,15 @@
 
 (defonce ^:private !source-rows (atom nil))
 
-(defn- sources-tick! []
+(defn- sources-tick!
+  "The SAMPLE/REAL rows now live on the creatures' crew-key rows (Michael:
+   'a checkbox behind her icon'; the ⓘ must never move); this keeps the
+   current rows for crew-key-tick! and drops any old ⓘ box."
+  []
   (let [rows (overlay/source-rows @!world @!sample-only @!twin-has)]
     (when (not= rows @!source-rows)
       (reset! !source-rows rows)
-      (ui/render-sources! rows toggle-source!))))
+      (ui/remove-sources!))))
 
 (def talk-key "pm.talk.v1")
 (defonce ^:private !talk-text (atom nil))
@@ -445,7 +449,7 @@
 (defonce !frames (atom 0))
 
 (defn hud! [text]
-  (when-let [el (js/document.getElementById "hud")]
+  (when-let [el (or (js/document.getElementById "hud-text") (js/document.getElementById "hud"))]
     (set! (.-textContent el) text)))
 
 (defonce !backend (atom "init…"))
@@ -942,9 +946,12 @@
                    (:walkers w))
         ;; the creatures too (Michael: "icons for Flora to zoom to her fast"):
         ;; a row each, the "!" when a chore of yours on them is due
-        creatures (mapv (fn [c] (assoc c :dot (if (plan/needs-you? w (:id c) now) (:needs-you colors) (:color c))
-                                         :glyph (if (plan/needs-you? w (:id c) now) "!" "●")
-                                         :needs-you? (plan/needs-you? w (:id c) now)))
+        creatures (mapv (fn [c] (let [src (first (filter #(= (:id c) (:id %)) @!source-rows))]
+                                  (assoc c :dot (if (plan/needs-you? w (:id c) now) (:needs-you colors) (:color c))
+                                           :glyph (if (plan/needs-you? w (:id c) now) "!" "●")
+                                           :needs-you? (plan/needs-you? w (:id c) now)
+                                           ;; the SAMPLE/REAL switch (GDD §4.6) rides on the row
+                                           :real? (boolean (:real? src)) :can-real? (boolean (:can-real? src)))))
                         (plan/creature-rows w scene/palette))
         rows (into rows creatures)
         fly! (fn [h [x y z] lift]
@@ -953,7 +960,7 @@
                      ;; estate), not out of the woods behind them
                      ox (if (pos? x) (- (js/Math.abs ox)) (js/Math.abs ox))]
                  (camera/frame! h [x (+ y lift) z] [ox oy oz])))]
-    (ui/render-crew-key! (get-in w [:crew-key :title]) rows
+    (ui/render-crew-key! (get-in w [:crew-key :title]) rows toggle-source!
       (fn [id]
         (when-let [h (kit/handle)]
           (if-let [{:keys [pos]} (first (filter #(= id (:id %)) (bricks/spots)))]
