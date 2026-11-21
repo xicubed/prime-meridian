@@ -215,7 +215,9 @@
    :broadcast? :deliver}, :deliver being {:member kw :text prompt} or nil."
   [questions ev members from open]
   (case (:type ev)
-    :agent-event {:questions  (assoc questions (:agent ev) {:text (:text ev) :sample? false :from from})
+    :agent-event {:questions  (if (= :question (:kind ev))
+                                (assoc questions (:agent ev) {:text (:text ev) :sample? false :from from})
+                                questions)   ; a :say wants no answer: relayed, not remembered
                   :broadcast? true :deliver nil}
     :answer      (let [q      (get questions (:agent ev))
                        member (keyword (:agent ev))]

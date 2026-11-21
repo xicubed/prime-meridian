@@ -61,6 +61,7 @@
   (is (false? (events/valid-event? nil)))
   (is (false? (events/valid-event? "oops")))
   (is (false? (events/valid-event? (assoc AGENT-EVENT :kind :unknown-kind))))
+  (is (true? (events/valid-event? (assoc AGENT-EVENT :kind :say :text "On it."))))
   (is (false? (events/valid-event? (assoc AGENT-EVENT :agent "W-3"))))
   (is (false? (events/valid-event? (dissoc AGENT-EVENT :text))))
   (is (false? (events/valid-event? (assoc AGENT-EVENT :text ""))))

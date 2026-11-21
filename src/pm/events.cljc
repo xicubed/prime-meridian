@@ -11,9 +11,11 @@
   (:require [clojure.string :as str]
             #?(:clj [clojure.edn :as edn] :cljs [cljs.reader :as reader])))
 
-;; The only agent-event :kind the game knows about yet: an explicit
-;; `ask_player` call, which is what puts a "!" over someone (GDD §3.1).
-(def agent-event-kinds #{:question})
+;; The agent-event :kinds the game knows about: an explicit `ask_player`
+;; call, which is what puts a "!" over someone (GDD §3.1), and a `:say`,
+;; a line the agent speaks on the estate (a bubble over its walker; the
+;; twin's also in the caption and the 💭 history), no answer expected.
+(def agent-event-kinds #{:question :say})
 
 (def ^:private source-fields #{:agent :session :machine})
 (def ^:private agent-re #"^[a-z][a-z0-9_-]{0,31}$")

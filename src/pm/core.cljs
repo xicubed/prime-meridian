@@ -715,6 +715,7 @@
     (when (kit/handle) (creature-spike/tick! dt' now))
     (when-let [h (kit/handle)] (camera/save-tick! h now))
     (bricks/set-dots! (:crew @!world) (:asks-player @!world) (js/Date.now))
+    (bricks/set-says! (world/says-now @!world (js/Date.now)))
     (crew-key-tick! (js/Date.now))
     (scene/update! @!world (js/Date.now))
     ;; The Construct's first beat (GDD §2.7, §4.8): a first-time player

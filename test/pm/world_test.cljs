@@ -245,6 +245,22 @@
 (deftest t30-apply-event-unknown-is-a-no-op
   (is (= W (w/apply-event W {:event :mystery :mirror :flora} T0))))
 
+(def SRC {:agent "hal-say" :session "t" :machine "local"})
+
+(deftest t30b-a-say-shows-on-the-walker-and-the-twins-goes-to-the-caption
+  (let [twin (first (filter #(= (get-in W [:jumeaux :twin :name]) (:name %)) (:walkers W)))
+        tw   (name (:agent twin))
+        crew (name (:agent (first (remove #(= twin %) (:walkers W)))))
+        W2   (w/apply-event W {:type :agent-event :agent tw :kind :say :text "On it." :source SRC} T0)
+        W3   (w/apply-event W {:type :agent-event :agent crew :kind :say :text "Sanding." :source SRC} T0)]
+    (is (some? twin) "the estate has a walker named as the twin")
+    (is (= {tw "On it."} (w/says-now W2 T0)))
+    (is (= {} (w/says-now W2 (+ T0 w/say-ms))) "the bubble ends")
+    (is (= "On it." (get-in W2 [:hal :text])) "the twin's line is his caption too")
+    (is (= {crew "Sanding."} (w/says-now W3 T0)))
+    (is (nil? (get-in W3 [:hal :text])) "a crew member's say is only its bubble")
+    (is (empty? (:asks-player W2)) "a say raises no !")))
+
 (deftest t31-jack-out-freezes-with-its-reason-shown
   (let [W2 (w/apply-event W jo-household T0)]
     (is (= true (w/jacked-out? W2)))

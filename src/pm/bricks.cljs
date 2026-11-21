@@ -13,7 +13,10 @@
             [pm.feet :as f]
             [pm.crew :as crew]
             [pm.tint :as tint]
-            [pm.creature-spike :as cs]))
+            [pm.creature-spike :as cs]
+            [clojure.string :as str]))
+
+(def say-gap 0.5)   ; metres between a walker's nameplate and its speech plate
 
 (defonce !state
   (atom {:status nil :walkers [] :views [] :ground-meshes [] :frame 0
@@ -51,11 +54,18 @@
                            :border (part-color :bubble-ink)
                            :paper (part-color :bubble-paper) :ink (part-color :bubble-ink)
                            :pos [0 (m/label-height nil ds) 0]})
+        ;; The speech plate: what the walker last said (a :say event), above the
+        ;; nameplate in the same look; hidden until there is something to say.
+        ^js say (t/label {:text "" :height (:height scene/plate)
+                           :canvas [1280 128] :font-max (:font-max scene/plate)
+                           :border (part-color :bubble-ink)
+                           :paper (part-color :bubble-paper) :ink (part-color :bubble-ink)
+                           :pos [0 (+ (m/label-height nil ds) say-gap) 0]})
         ^js anchor (t/group {:name (str "pm-walkers/" (name (:id w))) :pos [x (or y 0) z]})]
-    (t/add! anchor fig lbl)
+    (t/add! anchor fig lbl say)
     (t/set-visible! anchor (some? y))
     (t/add! root anchor)
-    {:anchor anchor :figure fig :char nil :sent nil :label lbl :top nil}))
+    {:anchor anchor :figure fig :char nil :sent nil :label lbl :say say :said nil :top nil}))
 
 ;; -- ?paths debug overlay ----------------------------------------------------
 
@@ -384,6 +394,7 @@
                      (t/update-world! obj)
                      (t/set-visible! (:figure view) false)
                      (t/set-pos! (:label view) [0 (m/label-height top ds) 0])
+                     (t/set-pos! (:say view) [0 (+ (m/label-height top ds) say-gap) 0])
                      (let [cmd (m/steer-command nil w)
                            chain (get legs rig)
                            names (t/object-names obj)
@@ -420,7 +431,8 @@
           (when-let [^js obj (.-object c)]
             (t/remove! root obj)))
         (t/set-visible! (:figure view) true)
-        (t/set-pos! (:label view) [0 (m/label-height nil ds) 0]))
+        (t/set-pos! (:label view) [0 (m/label-height nil ds) 0])
+        (t/set-pos! (:say view) [0 (+ (m/label-height nil ds) say-gap) 0]))
       (swap! !state assoc
              :views (mapv #(dissoc % :char :sent) views)
              :status {:mode :failed :reason (m/short-reason (or (.-message e) e))}
@@ -540,6 +552,32 @@
                              (assoc view :runs runs))
                          view)))
                    walkers views)]
+      (swap! !state assoc :views views'))))
+
+(def say-max 64)   ; characters on the speech plate; the 💭 history keeps the whole line
+
+(defn say-plate-text
+  "The speech plate's text for `text`: nil/blank hides it; long lines are cut
+   with an ellipsis so the plate's font stays readable."
+  [text]
+  (when (and (string? text) (not (str/blank? text)))
+    (let [t (str/trim text)]
+      (if (> (count t) say-max) (str (subs t 0 (dec say-max)) "…") t))))
+
+(defn set-says!
+  "No-op before start!. `says` is agent name string -> text (pm.world/says-now):
+   each walker's speech plate shows its line, or hides when it has none.
+   Redraws only when a walker's text changes."
+  [says]
+  (when (:started? @!state)
+    (let [{:keys [walkers views]} @!state
+          views' (mapv (fn [w view]
+                         (let [t (say-plate-text (get says (name (:agent w))))]
+                           (if (not= t (:said view))
+                             (do (t/set-label-text! (:say view) t)
+                                 (assoc view :said t))
+                             view)))
+                       walkers views)]
       (swap! !state assoc :views views'))))
 
 (defn spots

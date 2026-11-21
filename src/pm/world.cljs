@@ -5,7 +5,8 @@
             [clojure.string :as str]
             [shadow.resource :as rc]
             [pm.content :as c]
-            [pm.events :as events]))
+            [pm.events :as events]
+            [pm.jumeaux :as j]))
 
 (def estate-edn (rc/inline "estate.edn"))
 
@@ -278,13 +279,38 @@
 ;; the scene can show the marker on whichever character it names and
 ;; clear it once answered.
 
+(def say-ms 12000)   ; how long an agent's :say bubble stays over its walker
+
+(defn- twin-agent?
+  "True when `agent` (an event's agent name string) is the walker named as
+   the twin (`:jumeaux`): the twin is data, never a name in code."
+  [world agent]
+  (let [twin-name (j/twin (j/names world))]
+    (boolean (some #(and (= agent (some-> (:agent %) name)) (= twin-name (:name %)))
+                   (:walkers world)))))
+
+(defn says-now
+  "Agent name -> text for every :say still showing at `now`."
+  [world now]
+  (into {} (keep (fn [[agent {:keys [text since]}]]
+                   (when (and (number? since) (< (- now since) say-ms)) [agent text])))
+        (:says world)))
+
 (defmethod apply-event :agent-event
   [world event now]
-  (if (events/valid-agent-event? event)
-    (-> world
-        (assoc-in [:asks-player (:agent event)] {:text (:text event) :since now})
-        (log-event event :asked))
-    (log-event world event :ignored :reason :invalid)))
+  (if-not (events/valid-agent-event? event)
+    (log-event world event :ignored :reason :invalid)
+    (case (:kind event)
+      :question (-> world
+                    (assoc-in [:asks-player (:agent event)] {:text (:text event) :since now})
+                    (log-event event :asked))
+      ;; a :say: the bubble over the walker; the twin's line also goes to
+      ;; the caption (and so the 💭 history and voice), like his other lines
+      :say      (-> world
+                    (assoc-in [:says (:agent event)] {:text (:text event) :since now})
+                    (cond-> (twin-agent? world (:agent event))
+                      (assoc :hal {:event :twin-say :text (:text event) :until (+ now c/hal-ms)}))
+                    (log-event event :said)))))
 
 (defmethod apply-event :answer
   [world event now]
