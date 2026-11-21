@@ -86,6 +86,7 @@ The twin on the estate (GDD §2.1). Built today: he walks (black body, white joi
 - [x] 2026-11-20 T-2 Errands: `bb hal-say "<what>" --at <where>` walks the twin (or any member, `--as`) to a crew member, the mailbox, the booth or the lobby, says it there, then goes back to wandering. Creature jars: not yet (mirrors have a `:home`, no `:at`).
 - [x] 2026-11-20 T-3 The twin's dot: amber (working) from a say to him until his reply lands as a :say, idle otherwise; 10 min timeout.
 - [x] 2026-11-20 T-4 Demo build rebuilt (black-box check passes); the demo's twin: his say box stays open and he answers that he's only reachable from a real game; a SAMPLE line every 45 s (`estate.edn :twin-talk`).
+- [ ] T-10 A member that loses its login raises a "!" (Michael, Nov 21: "that should be one ! if they lose auth, to let me auth"): the status watcher spots Claude Code's auth-failure screen and the member blocks with a prompt the player answers by logging in (`claude auth login`); limits are part of the world (GDD §4.4).
 - [ ] T-5 A link to show people: Netlify (permanent, account his pick; the ~81 MB terrain GLB may need compressing) or a `cloudflared` quick tunnel (needs an install on his go). localhost.run was too slow.
 - [ ] T-6 A night track (night borrows blue hour's), and check the theme's whispered vocals against the twin's lines.
 - [ ] T-7 Wandering follow-ups: re-run the walkable-ground probe whenever placed things move (the spots are data in `:wander :areas`); a wanderer still walks through a fresh build's footprint until then.
