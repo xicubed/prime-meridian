@@ -433,3 +433,9 @@
     (is (nil? (:errand after)))
     (is (= 2 (count (:route after))) "a fresh wander leg")
     (is (some #{(second (:route after))} (:spots w0)) "to one of its spots")))
+
+(deftest errand-stays-on-its-own-bank
+  (let [wanderer (assoc F :spots [[-8 -4] [-6.5 -5.5] [-9.5 -2.5]])]
+    (is (true? (m/reachable? wanderer [-7 -4.5])) "near its own spots")
+    (is (false? (m/reachable? wanderer [4.9 -8.1])) "across the creek: no")
+    (is (true? (m/reachable? F [4.9 -8.1])) "a route walker is trusted")))

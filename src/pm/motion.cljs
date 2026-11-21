@@ -254,6 +254,17 @@
              :route [(:pos w) to] :to 1 :dir 1 :pause 0 :leg (inc (:leg w))
              :aim to :goal nil :side nil :wait 0 :waited false :leg-t 0 :stuck 0)))
 
+(def reach-m "An errand's spot must be within this of one of a wanderer's own walkable spots." 3.0)
+
+(defn reachable?
+  "Can walker `w` be sent to `to` on a straight leg? A wanderer's spots are its
+   side of the creek (estate.edn :wander): a spot near none of them is across
+   the water or off the map, and a straight leg there wedges the walker in the
+   creek bed (it happened). A route walker (no spots) is trusted."
+  [w to]
+  (or (empty? (:spots w))
+      (boolean (some #(<= (pt-dist % to) reach-m) (:spots w)))))
+
 (defn errand-arrived?
   "True while w stands at its errand's spot (arrived, not yet carried on)."
   [w]

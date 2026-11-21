@@ -648,7 +648,7 @@
             to    (world/errand-target w where spots from errand-stand-off-m)]
         (if (and to (bricks/send-on-errand! (keyword agent) to))
           (swap! !world assoc-in [:errands agent :state] :going)
-          ;; nowhere to go (not started, unknown place): say it here
+          ;; nowhere to go (unknown place, or across the creek): say it here
           (swap! !world (fn [w] (let [{:keys [text]} (get-in w [:errands agent])]
                                   (-> (update w :errands dissoc agent)
                                       (world/apply-event {:type :agent-event :agent agent :kind :say :text text

@@ -560,11 +560,13 @@
 
 (defn send-on-errand!
   "Sends the walker whose :agent is `agent` to `[x z]` (pm.motion/send-on-errand).
-   No-op before start! or for an unknown agent; returns true when sent."
+   No-op before start!, for an unknown agent, or for a spot the walker can't
+   reach on its own side of the creek (pm.motion/reachable?); returns true
+   when sent."
   [agent to]
   (when (:started? @!state)
     (let [i (first (keep-indexed (fn [i w] (when (= agent (:agent w)) i)) (:walkers @!state)))]
-      (when i
+      (when (and i (m/reachable? (get-in @!state [:walkers i]) to))
         (swap! !state update-in [:walkers i] m/send-on-errand to)
         true))))
 
