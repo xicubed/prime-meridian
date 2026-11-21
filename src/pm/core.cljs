@@ -842,6 +842,7 @@
           key   [rows previews (ui/thread)]]
       (when (not= key (:roster @!talk-ui))
         (ui/render-roster! rows on-say on-expand offset-of jum previews)
+        (ui/show-hold-row! (and (some? twin) (= (ui/thread) (:agent twin))))
         (swap! !talk-ui assoc :roster key)))
     (let [sw (talk/hold-switch (:hold @!world) (bridge-on?) @!hold-ui jum)]
       (when (not= sw (:hold-sw @!talk-ui))

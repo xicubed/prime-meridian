@@ -966,6 +966,13 @@
               (set! (.-textContent p) "Tick a chore above to do it; untick to undo.")
               (.appendChild root p))))))))
 
+(defn show-hold-row!
+  "The 'I'll answer' switch is the twin's setting: it shows only in his
+   thread (Michael: it was 'taking up valuable real estate' everywhere)."
+  [show?]
+  (when-let [^js row (el "hold-row")]
+    (set! (.-hidden row) (not show?))))
+
 (defn render-hold-switch!
   "Draws the 'I'll answer' switch from (talk/hold-switch ...)'s result."
   [sw]
