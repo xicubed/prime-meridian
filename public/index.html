@@ -73,8 +73,8 @@
     /* The 💭 panel is split: the history scrolls in the top part; the say… boxes (the
        crew roster) and the hold switch stay pinned at the bottom, like a chat composer,
        so nobody scrolls back over the history to talk to someone (Michael). */
-    #talk-panel { position: fixed; left: 14px; bottom: 222px; width: min(380px, calc(100vw - 28px)); max-height: 50vh; overflow: hidden; z-index: 220; background: rgba(20,24,32,.88); color: #f3efe2; border-radius: 10px; font: 16px/1.4 system-ui, sans-serif;
-                  display: flex; flex-direction: column; }
+    #talk-panel { position: fixed; left: 14px; bottom: 222px; top: 72px; width: min(380px, calc(100vw - 28px)); overflow: hidden; z-index: 220; background: rgba(20,24,32,.88); color: #f3efe2; border-radius: 10px; font: 16px/1.4 system-ui, sans-serif;
+                  display: flex; flex-direction: column; }   /* top to the buttons: the history gets the room */
     #talk-list { list-style: none; margin: 0; padding: 8px 12px; order: 1; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
     #crew-roster { order: 2; flex: 0 0 auto; }
     #hold-row { order: 3; flex: 0 0 auto; }
@@ -88,7 +88,7 @@
     #talk-list li.request .text { font-weight: 500; }
     #talk-toggle.alert #talk-badge { background: #e5484d; color: #fff; }
     #crew-roster { list-style: none; margin: 0; padding: 8px 12px 4px; display: flex; flex-direction: column; gap: 4px;
-      border-top: 1px solid rgba(255,255,255,.15); max-height: 40%; overflow-y: auto; }
+      border-top: 1px solid rgba(255,255,255,.15); max-height: 34%; overflow-y: auto; }
     #crew-roster .row { display: flex; align-items: center; gap: 6px; font-size: 14px; }
     #crew-roster input[type=text] { flex: 1; min-width: 0; font: inherit; background: rgba(255,255,255,.08); color: inherit;
       border: 1px solid rgba(255,255,255,.2); border-radius: 6px; padding: 2px 6px; }

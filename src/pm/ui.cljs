@@ -643,7 +643,7 @@
                       (set! (.-id b) "crew-key")
                       (set! (.-open b) true)
                       (set! (.. b -style -cssText)
-                            (str "position:fixed;left:12px;top:50%;transform:translateY(-50%);z-index:60;"
+                            (str "position:fixed;right:12px;top:50%;transform:translateY(-50%);z-index:60;"
                                  "background:rgba(20,24,32,.72);color:#f3efe2;border-radius:12px;"
                                  "padding:8px 10px;font:13px system-ui,sans-serif;min-width:150px;"
                                  "backdrop-filter:blur(4px)"))
