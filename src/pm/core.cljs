@@ -751,8 +751,11 @@
     (when-not (:open? (:talk @!world))
       (swap! !world update :talk talk/open-panel)
       (ui/set-panel-open! true))
-    (swap! !talk-ui update :expanded (fn [s] (conj (or s #{}) member)))
-    (js/setTimeout #(ui/focus-say-input! member) 0)))
+    (ui/set-thread! member)   ; the phone opens on their thread
+    (js/setTimeout #(ui/focus-say-input! member) 50)))
+
+;; a thread change redraws the list and the contacts/composer on the next tick
+(ui/on-phone-change! (fn [] (swap! !talk-ui assoc :listed nil :roster nil)))
 
 (defn- on-hold-toggle! [checked?]
   (if-let [b (:bridge @!world)]
@@ -806,17 +809,28 @@
         (when-not (and (identical? (:entries t') (:listed @!talk-ui)) (= bridge-on (:listed-bridge @!talk-ui)))
           (let [keep-scroll? (= (:n t') (:listed-n @!talk-ui))]
             (ui/render-panel! (:entries t') offset-of label-of pick! on-check keep-scroll?
-                               {:bridge-on? bridge-on :on-allow on-allow :on-deny on-deny :jumeaux jum} gone-fn)
+                               {:bridge-on? bridge-on :on-allow on-allow :on-deny on-deny :jumeaux jum
+                                :twin (:agent (world/twin-walker @!world))} gone-fn)
             (swap! !talk-ui assoc :listed (:entries t') :listed-n (:n t') :listed-bridge bridge-on)))
         (swap! !talk-ui assoc :listed nil :listed-n nil :listed-bridge nil)))
     (let [asked (set (map keyword (keys (:asks-player @!world))))
           twin  (world/twin-walker @!world)
-          rows  (-> (talk/crew-roster (:crew @!world) now (bridge-on?) (:crew-log @!world) (:expanded @!talk-ui) asked)
-                    (talk/with-questions (:asks-player @!world))
-                    (talk/with-twin twin (bridge-on?) (twin-thinking? @!world now)))]
-      (when (not= rows (:roster @!talk-ui))
-        (ui/render-roster! rows on-say on-expand offset-of jum)
-        (swap! !talk-ui assoc :roster rows)))
+          w     @!world
+          ;; the creatures are contacts too: their lines and chores make their thread
+          pets  (vec (for [[id m] (sort-by key (:mirrors w)) :when (= :creature (:kind m))]
+                       {:member id :who (or (:name m) (name id)) :kind :creature :status :idle :say? false
+                        :question (when (plan/needs-you? w id now) (talk/say-text w id now))}))
+          rows  (-> (talk/crew-roster (:crew w) now (bridge-on?) (:crew-log w) (:expanded @!talk-ui) asked)
+                    (talk/with-questions (:asks-player w))
+                    (talk/with-twin twin (bridge-on?) (twin-thinking? w now))
+                    (into pets))
+          ;; each contact's last line, for the contacts list
+          previews (reduce (fn [acc e] (if-let [c (ui/entry-contact e (:agent twin))] (assoc acc c (:text e)) acc))
+                           {} (:entries t'))
+          key   [rows previews (ui/thread)]]
+      (when (not= key (:roster @!talk-ui))
+        (ui/render-roster! rows on-say on-expand offset-of jum previews)
+        (swap! !talk-ui assoc :roster key)))
     (let [sw (talk/hold-switch (:hold @!world) (bridge-on?) @!hold-ui jum)]
       (when (not= sw (:hold-sw @!talk-ui))
         (ui/render-hold-switch! sw)

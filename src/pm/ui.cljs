@@ -794,9 +794,48 @@
         (set! (.-textContent hint) (:hint controls))
         (.appendChild li hint)))))
 
+;; -- The phone (GDD §2.1; Michael: "keep the interface familiar, like their phones") --
+;; The 💭 panel is a phone: a contacts list, and one thread per contact with the
+;; composer at the bottom. :thread is nil (contacts), :all (everything, the old
+;; list), or a contact: a crew member's :agent, the twin's, or a mirror id.
+
+(defonce !phone (atom {:thread nil}))
+(defonce ^:private !phone-changed (atom nil))
+
+(defn on-phone-change!
+  "Registers the one callback run after the thread changes (core drops its
+   render caches so the list and the roster redraw on the next tick)."
+  [f] (reset! !phone-changed f))
+
+(defn thread [] (:thread @!phone))
+
+(defn set-thread! [t]
+  (swap! !phone assoc :thread t)
+  (when-let [f @!phone-changed] (f)))
+
+(defn entry-contact
+  "Which thread an entry belongs to: a crew line to its :member, the twin's
+   lines (:kind :hal) to `twin` (his :agent), a creature's lines and chores
+   to its :mirror; nil for the rest (they show only under :all)."
+  [e twin]
+  (cond
+    (contains? talk/crew-kinds (:kind e)) (:member e)
+    (= :hal (:kind e))                     twin
+    (keyword? (:mirror e))                 (:mirror e)
+    :else nil))
+
+(defn- mine?
+  "A line the player wrote (right-hand bubble)."
+  [e]
+  (or (= :crew-say (:kind e)) (= talk/you (:who e)) (= :player (:by e))))
+
 (defn render-panel! [entries offset-of label-of on-pick on-check keep-scroll? crew gone?]
   (when-let [^js list-el (el "talk-list")]
     (let [^js panel      (el "talk-panel")
+          t              (thread)
+          entries        (cond (nil? t) []
+                               (= :all t) entries
+                               :else (filterv #(= t (entry-contact % (:twin crew))) entries))
           focused-n      (focused-checkbox-n)
           focused-value  (let [^js active (.-activeElement js/document)]
                            (when (and active (= "INPUT" (.-tagName active)) (= "text" (.-type active)))
@@ -812,7 +851,9 @@
             :else (render-say-row! li entry offset-of on-pick))
           (when (and (fn? gone?) (gone? entry))
             (.add (.-classList li) "gone"))
+          (.add (.-classList li) (if (mine? entry) "mine" "theirs"))
           (.appendChild list-el li)))
+      (set! (.-hidden list-el) (nil? t))
       (when focused-n
         (when-let [^js refocus (.querySelector list-el (str "input[data-n=\"" focused-n "\"]"))]
           (when (and focused-value (= "text" (.-type refocus)))
@@ -823,61 +864,92 @@
           (set! (.-scrollTop list-el) prev-scroll)
           (set! (.-scrollTop list-el) (.-scrollHeight list-el)))))))
 
+(defn- contact-row!
+  "One contact in the phone's list: dot or !, name, a one-line preview (the
+   question if one's pending, else the last line in the thread), a › arrow.
+   Tapping opens the thread."
+  [^js root row preview]
+  (let [^js r     (js/document.createElement "div")
+        ^js glyph (js/document.createElement "span")
+        ^js who   (js/document.createElement "span")
+        ^js sub   (js/document.createElement "span")
+        ^js arrow (js/document.createElement "span")]
+    (set! (.-className r) "row contact")
+    (set! (.-textContent glyph) (cond (:question row) "!" (= :unknown (:status row)) "○" :else "●"))
+    (when (:question row) (set! (.. glyph -style -color) "#f5a623"))
+    (set! (.-className who) "who")
+    (set! (.-textContent who) (:who row))
+    (set! (.-className sub) "preview")
+    (set! (.-textContent sub) (or (:question row) preview ""))
+    (set! (.-className arrow) "arrow")
+    (set! (.-textContent arrow) "›")
+    (.addEventListener r "click" (fn [_] (set-thread! (:member row))))
+    (.appendChild r glyph)
+    (.appendChild r who)
+    (.appendChild r sub)
+    (.appendChild r arrow)
+    (.appendChild root r)))
+
 (defn render-roster!
-  "Fills #crew-roster with one row per member: its dot, the title, and a
-   say… input enabled only when :say?. Enter calls (on-say member who
-   value). Tapping the name calls (on-expand member); an expanded row lists
-   its recent log entries underneath. A re-render keeps a typed value too."
-  [rows on-say on-expand offset-of jum]
+  "The phone's bottom part. With no thread open it's the contacts list: one
+   row per `rows` entry (crew members, the twin, the creatures), plus
+   Everything; `previews` is contact -> last line text. With a thread open
+   it's that contact's header (‹ back, name, their pending question) and the
+   composer: the say… input (enabled when the row is :say?), Enter calls
+   (on-say member who value); a creature's thread has no composer (its
+   chores are the checkboxes in the thread). A re-render keeps a typed value."
+  [rows on-say _on-expand _offset-of _jum previews]
   (when-let [^js root (el "crew-roster")]
     (let [^js active    (.-activeElement js/document)
-          focused-m     (when (and active (= "INPUT" (.-tagName active)))
-                          (not-empty (.getAttribute active "data-member")))
           focused-value (when (and active (= "INPUT" (.-tagName active)) (= "text" (.-type active)))
-                          (not-empty (.-value active)))]
+                          (not-empty (.-value active)))
+          t             (thread)]
       (set! (.-innerHTML root) "")
-      (doseq [row rows]
-        (let [^js r     (js/document.createElement "div")
-              ^js glyph (js/document.createElement "span")
-              ^js who   (js/document.createElement "span")
-              ^js inp   (js/document.createElement "input")]
-          (set! (.-className r) "row")
-          (set! (.-textContent glyph) (cond (:question row) "!" (= :unknown (:status row)) "○" :else "●"))
-          (when (:question row) (set! (.. glyph -style -color) "#f5a623"))
-          (set! (.-className who) "who")
-          (set! (.-textContent who) (:who row))
-          (set! (.. who -style -cursor) "pointer")
-          (.addEventListener who "click" (fn [_] (on-expand (:member row))))
-          (set! (.-type inp) "text")
-          (.setAttribute inp "placeholder" (if (:question row) "answer…" "say…"))
-          (.setAttribute inp "data-member" (name (:member row)))
-          (set! (.-disabled inp) (not (:say? row)))
-          (.addEventListener inp "keydown"
-            (fn [^js e] (when (= "Enter" (.-key e))
-                          (on-say (:member row) (:who row) (.. e -target -value))
-                          (set! (.-value (.-target e)) ""))))
-          (.appendChild r glyph)
-          (.appendChild r who)
-          (.appendChild r inp)
-          (.appendChild root r)
+      (if (nil? t)
+        (do
+          (doseq [row rows] (contact-row! root row (get previews (:member row))))
+          (contact-row! root {:member :all :who "Everything" :status :idle} "the whole day, in order"))
+        (let [row     (first (filter #(= t (:member %)) rows))
+              ^js hd  (js/document.createElement "div")
+              ^js bk  (js/document.createElement "button")
+              ^js nm  (js/document.createElement "span")]
+          (set! (.-className hd) "thread-head")
+          (set! (.-className bk) "pm-btn back")
+          (set! (.-textContent bk) "‹ Contacts")
+          (.addEventListener bk "click" (fn [_] (set-thread! nil)))
+          (set! (.-className nm) "who")
+          (set! (.-textContent nm) (if (= :all t) "Everything" (or (:who row) (name t))))
+          (.appendChild hd bk)
+          (.appendChild hd nm)
+          (.appendChild root hd)
           (when-let [q (:question row)]
             (let [^js qd (js/document.createElement "div")]
               (set! (.-className qd) "roster-log")
               (set! (.. qd -style -opacity) "1")
-              (set! (.-textContent qd) q)
+              (set! (.-textContent qd) (str "! " q))
               (.appendChild root qd)))
-          (when (:expanded? row)
-            (let [^js sub (js/document.createElement "div")]
-              (set! (.-className sub) "roster-log")
-              (doseq [x (:log row)]
-                (let [^js p (js/document.createElement "div")]
-                  (set! (.-textContent p) (talk/log-label x (offset-of (:at x)) jum))
-                  (.appendChild sub p)))
-              (.appendChild root sub)))))
-      (when focused-m
-        (when-let [^js refocus (.querySelector root (str "input[data-member=\"" focused-m "\"]"))]
-          (when focused-value (set! (.-value refocus) focused-value))
-          (.focus refocus))))))
+          (when (and row (not= :creature (:kind row)))
+            (let [^js r   (js/document.createElement "div")
+                  ^js inp (js/document.createElement "input")]
+              (set! (.-className r) "row composer")
+              (set! (.-type inp) "text")
+              (.setAttribute inp "placeholder" (if (:question row) "answer…" (str "Text " (:who row) "…")))
+              (.setAttribute inp "data-member" (name (:member row)))
+              (set! (.-disabled inp) (not (:say? row)))
+              (when focused-value (set! (.-value inp) focused-value))
+              (.addEventListener inp "keydown"
+                (fn [^js e] (when (= "Enter" (.-key e))
+                              (on-say (:member row) (:who row) (.. e -target -value))
+                              (set! (.-value (.-target e)) ""))))
+              (.appendChild r inp)
+              (.appendChild root r)
+              (when (and active (= "INPUT" (.-tagName active)) (= "text" (.-type active)))
+                (.focus inp))))
+          (when (= :creature (:kind row))
+            (let [^js p (js/document.createElement "div")]
+              (set! (.-className p) "roster-log")
+              (set! (.-textContent p) "Tick a chore above to do it; untick to undo.")
+              (.appendChild root p))))))))
 
 (defn render-hold-switch!
   "Draws the 'I'll answer' switch from (talk/hold-switch ...)'s result."
