@@ -801,7 +801,8 @@
           focused-value  (let [^js active (.-activeElement js/document)]
                            (when (and active (= "INPUT" (.-tagName active)) (= "text" (.-type active)))
                              (not-empty (.-value active))))
-          prev-scroll    (when panel (.-scrollTop panel))]
+          ;; the history is its own scroll box now (the roster stays pinned below it)
+          prev-scroll    (.-scrollTop list-el)]
       (set! (.-innerHTML list-el) "")
       (doseq [entry entries]
         (let [^js li (js/document.createElement "li")]
@@ -819,8 +820,8 @@
           (.focus refocus)))
       (when panel
         (if keep-scroll?
-          (set! (.-scrollTop panel) prev-scroll)
-          (set! (.-scrollTop panel) (.-scrollHeight panel)))))))
+          (set! (.-scrollTop list-el) prev-scroll)
+          (set! (.-scrollTop list-el) (.-scrollHeight list-el)))))))
 
 (defn render-roster!
   "Fills #crew-roster with one row per member: its dot, the title, and a
