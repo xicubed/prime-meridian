@@ -260,9 +260,13 @@
     (is (near? 2 (:pause w')))))
 
 (deftest t34-follow-idle-arrival
-  (let [w' (m/follow Fm [1 1] true 0.1)]
-    (is (near? 2 (:pause w')))
-    (is (vnear? [1 1] (:pos w')))))
+  ;; the driver's idle counts as arrival only once the leg is older than
+  ;; idle-arrive-s: a leg set this frame finds the character idle from the last
+  (let [fresh (m/follow Fm [1 1] true 0.1)
+        aged  (m/follow (assoc Fm :leg-t 2) [1 1] true 0.1)]
+    (is (zero? (:pause fresh)) "a fresh leg: idle isn't arrival yet")
+    (is (near? 2 (:pause aged)))
+    (is (vnear? [1 1] (:pos aged)))))
 
 (deftest t35-follow-pausing-ignores-idle
   (let [w' (m/follow F [0.1 0] false 0.5)]

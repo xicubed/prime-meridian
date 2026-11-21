@@ -346,9 +346,15 @@
   (if-not (events/valid-agent-event? event)
     (log-event world event :ignored :reason :invalid)
     (case (:kind event)
-      :question (-> world
-                    (assoc-in [:asks-player (:agent event)] {:text (:text event) :since now})
-                    (log-event event :asked))
+      :question (let [tw (some-> (twin-walker world) :agent name)]
+                  (-> world
+                      (assoc-in [:asks-player (:agent event)] {:text (:text event) :since now})
+                      ;; and the asker brings the question to the twin (Michael: "have them
+                      ;; walk to you, then you can walk to me if you need to"): an errand
+                      ;; to wherever the twin stands, the question said there
+                      (cond-> (and tw (not= tw (:agent event)))
+                        (assoc-in [:errands (:agent event)] {:where tw :text (:text event) :since now :state :pending}))
+                      (log-event event :asked)))
       ;; an errand: remembered until the scene has sent the walker (pm.core);
       ;; its words become a :say when it gets there
       :errand   (-> world
@@ -368,6 +374,9 @@
   (if (events/valid-answer? event)
     (-> world
         (update :asks-player dissoc (:agent event))
+        ;; answered before the asker even set off: no need to walk it over
+        (cond-> (= :pending (get-in world [:errands (:agent event) :state]))
+          (update :errands dissoc (:agent event)))
         (log-event event :answered))
     (log-event world event :ignored :reason :invalid)))
 

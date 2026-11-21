@@ -219,21 +219,23 @@
       (if (seq (:spots w'))
         (pick w')
         (assoc w' :route route-before :to to-before :dir dir-before :pause 0 :leg (inc (:leg w'))
-                  :aim nil :goal nil :side nil :wait 0 :waited false)))
+                  :aim nil :goal nil :side nil :wait 0 :waited false :leg-t 0)))
 
     (seq (:spots w))
     (if-let [nxt (next-spot w wander-min-m)]
       ;; wandering: a fresh leg from here to the next spot
       (assoc w :route [(:pos w) nxt] :to 1 :dir 1 :pause 0 :leg (inc (:leg w))
-               :aim nil :goal nil :side nil :wait 0 :waited false)
+               :aim nil :goal nil :side nil :wait 0 :waited false :leg-t 0)
       (let [[i' dir'] (next-index (count (:route w)) (:to w) (:dir w) (:loop w))]
         (assoc w :to i' :dir dir' :pause 0 :leg (inc (:leg w))
-                 :aim nil :goal nil :side nil :wait 0 :waited false)))
+                 :aim nil :goal nil :side nil :wait 0 :waited false :leg-t 0)))
 
     :else
     (let [[i' dir'] (next-index (count (:route w)) (:to w) (:dir w) (:loop w))]
       (assoc w :to i' :dir dir' :pause 0 :leg (inc (:leg w))
-               :aim nil :goal nil :side nil :wait 0 :waited false))))
+               :aim nil :goal nil :side nil :wait 0 :waited false :leg-t 0))))
+
+(def idle-arrive-s "Seconds into a leg before a driven character's idle may count as arrival." 1.5)
 
 (def errand-pause-s "How long a walker stands at an errand's spot before carrying on." 6)
 
@@ -250,7 +252,7 @@
              ;; :aim set straight at the spot: a driven character that happens to be
              ;; idle this frame would otherwise count as arrived (see `follow`)
              :route [(:pos w) to] :to 1 :dir 1 :pause 0 :leg (inc (:leg w))
-             :aim to :goal nil :side nil :wait 0 :waited false)))
+             :aim to :goal nil :side nil :wait 0 :waited false :leg-t 0 :stuck 0)))
 
 (defn errand-arrived?
   "True while w stands at its errand's spot (arrived, not yet carried on)."
@@ -261,10 +263,10 @@
   (cond
     (and (:errand w) (not (:arrived? (:errand w))))
     (assoc w :errand (assoc (:errand w) :arrived? true)
-             :pause errand-pause-s :aim nil :goal nil :side nil :wait 0 :waited false)
+             :pause errand-pause-s :aim nil :goal nil :side nil :wait 0 :waited false :leg-t 0)
 
     (> (:pause-s w) 0)
-    (assoc w :pause (:pause-s w) :aim nil :goal nil :side nil :wait 0 :waited false)
+    (assoc w :pause (:pause-s w) :aim nil :goal nil :side nil :wait 0 :waited false :leg-t 0)
 
     :else (pick w)))
 
@@ -366,13 +368,16 @@
             stuck  (if (and (seq (:spots w)) (pos? dt') (< (js/Math.hypot vx vz) stuck-speed))
                      (+ (or (:stuck w) 0) dt')
                      0)
-            w      (assoc w :stuck stuck)]
+            w      (assoc w :stuck stuck :leg-t (+ (or (:leg-t w) 0) dt'))]
         (cond
           ;; wedged on an errand: say it from here rather than wander off with it
           (>= stuck stuck-s) (if (and (:errand w) (not (:arrived? (:errand w))))
                                (arrive (assoc w :stuck 0))
                                (pick (assoc w :stuck 0)))
-          (or (<= dg arrive-m) (and idle? (nil? (:aim w)))) (arrive w)
+          ;; the driver's idle counts as arrived only once this leg is old enough to
+          ;; have been commanded (a leg set this frame finds the character still idle
+          ;; from the last one, and the planner clears :aim as soon as the path is clear)
+          (or (<= dg arrive-m) (and idle? (nil? (:aim w)) (> (:leg-t w) idle-arrive-s))) (arrive w)
           (and (:aim w) (<= (pt-dist (:aim w) (:pos w)) arrive-m)) (assoc w :aim nil)
           :else w)))))
 

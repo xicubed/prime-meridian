@@ -388,3 +388,17 @@
     (is (nil? (w/errand-target W "mailbox" spots nil 1.2)))
     (let [W2 (w/apply-event W {:type :agent-event :agent "hal" :kind :errand :where "mailbox" :text "Two letters." :source SRC} T0)]
       (is (= {:where "mailbox" :text "Two letters." :since T0 :state :pending} (get-in W2 [:errands "hal"]))))))
+
+(deftest t39b-the-asker-brings-the-question-to-the-twin
+  (let [tw (name (:agent (w/twin-walker W)))
+        W2 (w/apply-event W ask-q T0)]
+    (is (= {:where tw :text "Rocks: round or jagged?" :since T0 :state :pending}
+           (get-in W2 [:errands "le-critique"]))
+        "an errand to wherever the twin stands, the question said there")
+    (is (nil? (get-in (w/apply-event W2 ask-a (+ T0 1000)) [:errands "le-critique"]))
+        "answered before setting off: the walk is off")
+    (is (= :going (get-in (w/apply-event (assoc-in W2 [:errands "le-critique" :state] :going) ask-a (+ T0 1000))
+                          [:errands "le-critique" :state]))
+        "already on the way: finishes the walk")
+    (is (nil? (get-in (w/apply-event W (assoc ask-q :agent tw) T0) [:errands tw]))
+        "the twin's own question doesn't walk to himself")))

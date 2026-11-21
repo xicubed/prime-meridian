@@ -68,7 +68,7 @@
         (let [pct (str (js/Math.round (* 100 p)) "%")
               r   (refill-text (:refill-at login))]
           ;; "used 83% of its window" (Michael: "is that done or full? make it clear")
-          (str (:name login) "'s used " pct " of its window" (when r (str ", refills at " r)) "."))))))
+          (str (:name login) "'s used " pct (when r (str " till " r)) "."))))))
 
 (defn- over-ids
   "Ids of every login at or over `warn-at` right now."
