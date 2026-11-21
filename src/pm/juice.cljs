@@ -17,6 +17,7 @@
    counts; until then this is sample data, same as every other
    connection in demo mode (GDD §4.6)."
   (:require [clojure.string :as str]
+            [cljs.reader :as reader]
             [pm.content :as c]))
 
 (def warn-at
@@ -76,11 +77,74 @@
   (set (keep (fn [[id login]] (when (and (usable? login) (>= (pct-of login) warn-at)) id))
              logins)))
 
+(defn- local-minute [now offset-min]
+  (let [m (mod (+ (js/Math.floor (/ now 60000)) offset-min) 1440)]
+    (if (neg? m) (+ m 1440) m)))
+
+(defn- minute-of [hhmm]
+  (when (and (string? hhmm) (re-matches hhmm-re hhmm))
+    (let [[h m] (mapv #(js/parseInt % 10) (str/split hhmm #":"))] (+ (* 60 h) m))))
+
+(defn- hhmm-of [minute]
+  (let [m (mod minute 1440) h (quot m 60) mm (rem m 60)]
+    (str (when (< h 10) "0") h ":" (when (< mm 10) "0") mm)))
+
+(defn sample-login
+  "A SAMPLE login that follows the clock instead of sitting at one number
+   (Michael: 'why's Claude been stuck at 83% till 2, now it's 2'). `:sample`
+   {:window-h :anchor \"HH:MM\" :peak} describes the plan's usage windows:
+   every window-h hours from the anchor the meter resets, and usage climbs
+   from 0 to peak across the window. Returns the login with :tokens-used
+   :cap :refill-at filled in for `now` (epoch ms, local offset in minutes);
+   a login without :sample is returned as is."
+  [login now offset-min]
+  (let [{:keys [window-h anchor peak]} (:sample login)
+        a (minute-of anchor)]
+    (if-not (and (number? window-h) (pos? window-h) a (number? peak) (number? now))
+      login
+      (let [win   (* 60 window-h)
+            m     (local-minute now offset-min)
+            since (mod (- m a) win)                    ; minutes into this window
+            since (if (neg? since) (+ since win) since)
+            next  (+ m (- win since))]
+        (assoc login :tokens-used (js/Math.round (* 1000 peak (/ since win))) :cap 1000
+                     :refill-at (hhmm-of next))))))
+
+(defn live-logins
+  "`logins` with every SAMPLE login (one with :sample) read off the clock."
+  [logins now offset-min]
+  (when (map? logins)
+    (into {} (map (fn [[id l]] [id (sample-login l now offset-min)])) logins)))
+
+(def real-fresh-ms 900000)   ; a /usage reading older than 15 min falls back to the sample
+
+(defn parse-file
+  "state/juice.edn as written by `bb juice` ({:as-of <ms> :via <member> :logins
+   {id login}}); nil for anything else."
+  [text]
+  (when (string? text)
+    (let [v (try (reader/read-string text) (catch :default _ nil))]
+      (when (and (map? v) (number? (:as-of v)) (map? (:logins v))) v))))
+
+(defn real?
+  "True when `file` (parse-file's result) is fresh at `now`."
+  [file now]
+  (and (map? file) (number? now) (< (- now (:as-of file)) real-fresh-ms)))
+
+(defn logins-now
+  "What the meter shows at `now`: the REAL readings from `file` while fresh
+   (each login marked :real? true, :via the member that read it), else the
+   estate's logins with every SAMPLE one read off the clock."
+  [world file now offset-min]
+  (if (real? file now)
+    (into {} (map (fn [[id l]] [id (assoc l :real? true :via (:via file))])) (:logins file))
+    (live-logins (:logins world) now offset-min)))
+
 (defn hud-segment
   "One HUD line per usable login: its estimated share of its usage
    window left and its refill time (GDD §2.1, §4.4, done-when), e.g.
-   \"Claude 17% left, refills 2:00 PM\". nil when `logins` has nothing
-   usable to show."
+   \"Claude 17% left, refills 2:00 PM (real, via le-coureur)\" or \"(sample)\".
+   nil when `logins` has nothing usable to show."
   [logins]
   (when (map? logins)
     (let [parts (keep (fn [[_ login]]
@@ -88,26 +152,30 @@
                            (let [left (- 100 (js/Math.round (* 100 (pct-of login))))
                                  r    (refill-text (:refill-at login))]
                              (str (:name login) " " left "% left"
-                                  (when r (str ", refills " r))))))
+                                  (when r (str ", refills " r))
+                                  (if (:real? login)
+                                    (str " (real" (when (:via login) (str ", via " (:via login))) ")")
+                                    " (sample)")))))
                        logins)]
       (when (seq parts) (str "juice: " (str/join "; " parts))))))
 
 (defn tick
-  "Advances the juice warning's own state in `world`: the first login (by
+  "Advances the juice warning's own state in `world` (SAMPLE logins read off
+   the clock first, see `live-logins`): the first login (by
    id, for a stable pick when more than one crosses on the same tick)
    that's newly at or over `warn-at` since the last tick gets the twin's
    one-line warning -- once per crossing. It fires again for that same
    login only after it drops back below `warn-at` (a refill) and crosses
    again. A no-op when `world` has no `:logins` map or `now` isn't a
    number."
-  [world now]
-  (if-not (and (map? (:logins world)) (number? now))
+  ([world now] (tick world now (:logins world)))
+  ([world now logins]
+  (if-not (and (map? logins) (number? now))
     world
-    (let [logins (:logins world)
-          warned (set (:warned (:juice world)))
+    (let [warned (set (:warned (:juice world)))
           over   (over-ids logins)
           fresh  (first (sort-by name (remove warned over)))
           world' (assoc world :juice {:warned over})]
       (if-let [text (and fresh (juice-warning (get logins fresh)))]
         (assoc world' :hal {:event :juice-warning :text text :until (+ now c/hal-ms)})
-        world'))))
+        world')))))

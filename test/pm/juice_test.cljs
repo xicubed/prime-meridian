@@ -75,10 +75,36 @@
     (is (= #{:alpha :zeta} (:warned (:juice w1))))
     (is (re-find #"^Alpha" (:text (:hal w1))))))
 
-(deftest t11-real-estate-has-a-sample-login-over-the-threshold
-  (let [est (w/load-estate w/estate-edn)]
+(deftest t11-real-estate-sample-login-follows-the-clock
+  ;; the estate's login is a SAMPLE read off the clock: 5-hour windows from 14:00,
+  ;; climbing to 83%; so it's over the threshold near the end of a window, under
+  ;; it just after one, and its refill time is the next window boundary
+  (let [est  (w/load-estate w/estate-edn)
+        day  (* 86400000 20000)                       ; a UTC midnight; offset 0 keeps it simple
+        at   (fn [hhmm] (let [[h m] (map js/parseInt (clojure.string/split hhmm #":"))] (+ day (* 60000 (+ (* 60 h) m)))))
+        live (fn [hhmm] (:claude (juice/live-logins (:logins est) (at hhmm) 0)))]
     (is (map? (:logins est)))
-    (is (some? (some (fn [[_ l]] (juice/juice-warning l)) (:logins est))))))
+    (is (= "19:00" (:refill-at (live "18:50"))))
+    (is (some? (juice/juice-warning (live "18:50"))) "late in a window: over 80%")
+    (is (= "14:00" (:refill-at (live "13:00"))))
+    (is (nil? (juice/juice-warning (live "14:10"))) "just after a refill: nowhere near")
+    (is (< (:tokens-used (live "14:10")) (:tokens-used (live "16:00")) (:tokens-used (live "18:50"))))
+    (is (= "19:00" (:refill-at (live "14:10"))))
+    (is (= {:x {:name "X" :tokens-used 5 :cap 10}} (juice/live-logins {:x {:name "X" :tokens-used 5 :cap 10}} (at "12:00") 0))
+        "a plain login is untouched")))
+
+(deftest t11b-the-real-reading-wins-while-fresh
+  (let [file (juice/parse-file "{:as-of 1000 :via \"le-coureur\" :logins {:claude {:name \"Claude\" :tokens-used 23 :cap 100 :refill-at \"19:00\"}}}")
+        est  (w/load-estate w/estate-edn)]
+    (is (some? file))
+    (is (true? (juice/real? file 2000)))
+    (is (false? (juice/real? file (+ 1000 juice/real-fresh-ms))))
+    (is (= {:name "Claude" :tokens-used 23 :cap 100 :refill-at "19:00" :real? true :via "le-coureur"}
+           (:claude (juice/logins-now est file 2000 0))))
+    (is (nil? (:real? (:claude (juice/logins-now est file (+ 1000 juice/real-fresh-ms) 0)))) "stale: back to the sample")
+    (is (re-find #"\(real, via le-coureur\)$" (juice/hud-segment (juice/logins-now est file 2000 0))))
+    (is (nil? (juice/parse-file "not edn {")))
+    (is (nil? (juice/parse-file "{:logins {}}")) "no :as-of, no reading")))
 
 (deftest t12-estimate-juice
   (is (= 0.5 (juice/estimate-juice 50 100)))
@@ -96,9 +122,9 @@
   (is (nil? (juice/hud-segment nil)))
   (is (nil? (juice/hud-segment {})))
   (is (nil? (juice/hud-segment {:claude {:name "" :tokens-used 1 :cap 10}})))
-  (is (= "juice: Claude 17% left, refills 2:00 PM"
+  (is (= "juice: Claude 17% left, refills 2:00 PM (sample)"
          (juice/hud-segment {:claude {:name "Claude" :tokens-used 83000 :cap 100000 :refill-at "14:00"}})))
-  (is (= "juice: Claude 10% left"
+  (is (= "juice: Claude 10% left (sample)"
          (juice/hud-segment {:claude {:name "Claude" :tokens-used 90 :cap 100}})))
   (let [s (juice/hud-segment {:zeta  {:name "Zeta"  :tokens-used 10 :cap 100 :refill-at "09:00"}
                                :alpha {:name "Alpha" :tokens-used 20 :cap 100 :refill-at "09:00"}})]

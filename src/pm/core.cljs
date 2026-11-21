@@ -247,6 +247,30 @@
     (fetch-crew-log!)
     (swap! !crew-log-poll assoc :timer (js/setInterval fetch-crew-log! crew-talk-poll-ms))))
 
+(def juice-file-url "/state/juice.edn")
+(def juice-poll-ms 60000)
+(defonce ^:private !juice-poll (atom {:timer nil :busy? false}))
+
+(defn- fetch-juice!
+  "The real usage meter (GDD §4.4): `bb juice` asks an idle Claude member for
+   /usage and writes state/juice.edn; the game shows it as REAL while fresh."
+  []
+  (when-not (:busy? @!juice-poll)
+    (swap! !juice-poll assoc :busy? true)
+    (-> (js/fetch (str juice-file-url "?t=" (js/Date.now)) #js {:cache "no-store"})
+        (.then (fn [^js resp] (if (.-ok resp) (.text resp) nil)))
+        (.then (fn [text]
+                 (let [f (juice/parse-file text)]
+                   (when (not= f (:juice-file @!world))
+                     (swap! !world assoc :juice-file f)))))
+        (.catch (fn [_]))
+        (.finally (fn [] (swap! !juice-poll assoc :busy? false))))))
+
+(defn- start-juice-poll! []
+  (when (nil? (:timer @!juice-poll))
+    (fetch-juice!)
+    (swap! !juice-poll assoc :timer (js/setInterval fetch-juice! juice-poll-ms))))
+
 (defonce ^:private !hold-poll (atom {:timer nil :busy? false}))
 
 (defn- fetch-hold! []
@@ -515,6 +539,8 @@
   (let [{:keys [status sent received]} @!ws]
     (str "ws " (name status) " " received "/" sent)))
 
+(declare tz-offset-min)
+
 (defn- hud-mirrors-suffix []
   (let [w   @!world
         now (js/Date.now)]
@@ -532,7 +558,7 @@
       (when-let [s (events/hud-segment sample-events)] (str " · " s))
       ;; The juice meter (GDD §2.1, §4.4, §4.8): each AI login's estimated
       ;; share of its usage window left and its refill time.
-      (when-let [s (juice/hud-segment (:logins w))] (str " · " s))
+      (when-let [s (juice/hud-segment (juice/logins-now w (:juice-file w) now (tz-offset-min)))] (str " · " s))
       (str " · " (ws-hud-segment))
       (when-let [s (world/jack-out-text w)] (str " · jacked out: " s))
       ;; Demo mode (GDD §4.6, §4.8, §2.8): zero accounts means every
@@ -892,7 +918,8 @@
     ;; The juice meter's warning (GDD §2.1, §4.4, §4.8): the twin says a
     ;; one-line warning the first time a login's usage estimate crosses
     ;; 80%, same :hal banner path as closing time and jack-in.
-    (swap! !world juice/tick (js/Date.now))
+    (let [now (js/Date.now) w @!world]
+      (swap! !world juice/tick now (juice/logins-now w (:juice-file w) now (tz-offset-min))))
     (talk-tick! (js/Date.now))
     (when (zero? (mod (swap! !frames inc) 30))
       (hud! (str "Prime Meridian · " @!mode " · " @!backend " · frame " @!frames
@@ -1400,7 +1427,8 @@
         (start-crew-poll!)
         (start-bridge-poll!)
         (start-crew-log-poll!)
-        (start-hold-poll!)))
+        (start-hold-poll!)
+        (start-juice-poll!)))
   (kit/load! start-kit! start-scaffold!))
 
 (defn reload!

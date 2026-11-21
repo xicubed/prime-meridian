@@ -103,7 +103,10 @@
  ;; estimate crosses 80%. Sample data, like every connection with no real
  ;; version yet (:connections below) -- the bridge fills this for real
  ;; once it reports token counts.
- :logins {:claude {:name "Claude" :tokens-used 83000 :cap 100000 :refill-at "14:00"}}
+ ;; SAMPLE: read off the clock (pm.juice/sample-login): 5-hour windows anchored at 14:00,
+ ;; usage climbing to 83% by the end of each; `bb juice` writes the REAL one (state/juice.edn)
+ ;; by asking an idle Claude member for /usage, and the game shows that while it's fresh.
+ :logins {:claude {:name "Claude" :sample {:window-h 5 :anchor "14:00" :peak 0.83}}}
  :connections [:mail :phone :chores :payments]   ; connections with no real version yet (GDD §4.6): demo mode badges each SAMPLE
  :creature-spike {:flag "pony" :kind :horse :seed 1     ; ?pony[=<kind>][&seed=n]: MuJoCo creature spike (pony-spike-v0)
                   :at [4.5 1.79 -8.0] :yaw 0 :drop-m 0.4} ; east bank, terrain 1.79 m (Hal probed); yaw in degrees
