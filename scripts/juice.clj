@@ -34,8 +34,8 @@
                    (agents))]
     (or (first (filter #(= want (:name %)) as)) (first as))))
 
-(defn- screen [member]
-  (or (herdr "agent" "read" member "--source" "visible") ""))
+(defn- screen [pane-id]
+  (or (herdr "pane" "read" pane-id "--source" "visible") ""))
 
 (defn- to-hhmm
   "\"7pm\" / \"7:30pm\" / \"11am\" -> \"19:00\" / \"19:30\" / \"11:00\"."
@@ -44,18 +44,34 @@
     (let [h (Integer/parseInt h) h (mod h 12) h (if (= "pm" (str/lower-case ap)) (+ h 12) h)]
       (format "%02d:%s" h (or m "00")))))
 
+(defn- section
+  "The panel text from `start` up to the next heading in `stops`."
+  [t start stops]
+  (when-let [i (str/index-of t start)]
+    (let [rest (subs t (+ i (count start)))
+          j    (reduce (fn [m s] (if-let [k (str/index-of rest s)] (min m k) m)) (count rest) stops)]
+      (subs rest 0 j))))
+
+(defn- used+resets [sec]
+  (when sec
+    (let [[_ used]   (re-find #"(\d+)% used" sec)
+          [_ resets] (re-find #"Resets ([^(]+?)\s*\(" sec)]
+      (when used {:used (Integer/parseInt used) :resets (some-> resets str/trim)}))))
+
 (defn parse-usage
-  "The numbers out of Claude Code's /usage panel text; nil when it isn't one."
+  "The numbers out of Claude Code's /usage panel text; nil when it isn't one.
+   The panel lays out differently with the pane's width (narrow: 'Current
+   session · Resets 7pm' then the bar and '22% used'; wide: 'Current session',
+   the bar with '37% used', then 'Resets 6:59pm'), so each section is read
+   for its '% used' and 'Resets' wherever they fall."
   [text]
-  (let [t (str/replace text #"\s+" " ")]
-    (when-let [[_ resets] (re-find #"Current session · Resets ([^(]+?) \(" t)]
-      (let [[_ used] (re-find #"Current session · Resets [^(]+?\([^)]*\) [█▏▎▍▌▋▊▉ ]* (\d+)% used" t)
-            [_ wresets] (re-find #"Current week \(all models\) · Resets ([^(]+?) \(" t)
-            [_ wused] (re-find #"Current week \(all models\) · Resets [^(]+?\([^)]*\) [█▏▎▍▌▋▊▉ ]* (\d+)% used" t)]
-        (when used
-          {:name "Claude" :tokens-used (Integer/parseInt used) :cap 100 :refill-at (to-hhmm resets)
-           :resets (str/trim resets)
-           :week (when wused {:used (Integer/parseInt wused) :resets (some-> wresets str/trim)})})))))
+  (let [t    (str/replace text #"\s+" " ")
+        s    (used+resets (section t "Current session" ["Current week" "What's contributing" "Usage credits"]))
+        w    (used+resets (section t "Current week (all models)" ["Current week (" "What's contributing" "Usage credits"]))]
+    (when (and s (:resets s))
+      {:name "Claude" :tokens-used (:used s) :cap 100 :refill-at (to-hhmm (:resets s))
+       :resets (:resets s)
+       :week w})))
 
 (defn probe!
   "One reading through `want` (or any idle Claude member). Returns the login map or nil."
@@ -65,8 +81,11 @@
       (herdr "pane" "send-text" pane_id "/usage")
       (Thread/sleep 400)
       (herdr "pane" "send-keys" pane_id "enter")
-      (Thread/sleep 5000)
-      (let [u (parse-usage (screen name))]
+      ;; the panel can take a few seconds to fetch; poll for it up to 12 s
+      (let [u (loop [n 0]
+                (Thread/sleep 1500)
+                (or (parse-usage (screen pane_id))
+                    (when (< n 8) (recur (inc n)))))]
         (herdr "pane" "send-keys" pane_id "escape")
         (if u
           (do (io/make-parents out-file)
