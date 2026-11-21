@@ -27,14 +27,21 @@
     #cozy-audit { display: none; }
     /* the game's layer */
     /* Status ("admin") bubble: a small ⓘ next to 💭; click to open the status, which scrolls if long. */
-    #admin { position: fixed; left: 64px; bottom: 170px; z-index: 200; font: 14px/1.4 system-ui, sans-serif; }
-    #admin > summary { list-style: none; cursor: pointer; font: 20px system-ui; background: rgba(0,0,0,.35); color: #f3efe2; border-radius: 8px; padding: 4px 10px; user-select: none;
-                       display: inline-block; position: relative; z-index: 230; } /* above #hud (220): open, the HUD box covered the ⓘ and it couldn't be closed */
+    /* The three round-cornered buttons in the bottom-left row (💭 ⓘ 🎬): one size, one look,
+       8px apart, 44px wide each: 14 | 66 | 118. The badge on 💭 floats over its corner so the
+       button never grows and pushes into ⓘ. */
+    #talk-toggle, #admin > summary, #views-label {
+      box-sizing: border-box; width: 44px; height: 40px; padding: 0; margin: 0; border: 1px solid rgba(255,255,255,.14);
+      border-radius: 10px; background: rgba(20,24,32,.55); color: #f3efe2; font: 20px/1 system-ui, sans-serif;
+      display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none;
+      backdrop-filter: blur(4px); transition: background .15s, border-color .15s; }
+    #talk-toggle:hover, #admin > summary:hover, #views-label:hover { background: rgba(20,24,32,.8); border-color: rgba(255,255,255,.3); }
+    #admin { position: fixed; left: 66px; bottom: 170px; z-index: 200; font: 14px/1.4 system-ui, sans-serif; }
+    #admin > summary { list-style: none; position: relative; z-index: 230; } /* above #hud (220): open, the HUD box covered the ⓘ and it couldn't be closed */
     #admin > summary::-webkit-details-marker { display: none; }
-    #admin[open] > summary { background: rgba(20,24,32,.88); }
+    #admin[open] > summary, #views-toggle:checked + #views-label { background: rgba(243,239,226,.92); color: #141820; border-color: transparent; }
     /* Scene menu (the kit's bottom bar of camera views): folded away until 🎬 opens it. */
-    #views-label { position: fixed; left: 114px; bottom: 170px; z-index: 200; cursor: pointer; font: 20px system-ui; background: rgba(0,0,0,.35); color: #f3efe2; border-radius: 8px; padding: 4px 10px; user-select: none; }
-    #views-toggle:checked + #views-label { background: rgba(20,24,32,.88); }
+    #views-label { position: fixed; left: 118px; bottom: 170px; z-index: 200; }
     body:not(:has(#views-toggle:checked)) .cozy-bottom-bar { display: none !important; }
     /* With the scene menu folded, our controls drop back to the bottom edge. */
     body:not(:has(#views-toggle:checked)) #brook { bottom: 14px; }
@@ -59,8 +66,10 @@
     #brook button { font: inherit; padding: 4px 10px; border-radius: 6px; border: 1px solid #777; background: #2b3040; color: #e8e4d8; cursor: pointer; }
     #caption { position: fixed; left: 50%; bottom: 140px; transform: translateX(-50%); max-width: min(760px, calc(100vw - 32px)); z-index: 210; padding: 12px 20px; border-radius: 12px; background: rgba(20,24,32,.80); color: #f3efe2; font: 22px/1.35 system-ui, sans-serif; text-align: center; opacity: 0; transition: opacity .5s; pointer-events: none; }
     #caption.show { opacity: 1; }
-    #talk-toggle { position: fixed; left: 14px; bottom: 170px; z-index: 200; font: 22px system-ui; background: rgba(0,0,0,.35); border: 0; border-radius: 8px; padding: 4px 10px; cursor: pointer; }
-    #talk-badge { font: 600 12px system-ui; color: #f3efe2; margin-left: 4px; }
+    #talk-toggle { position: fixed; left: 14px; bottom: 170px; z-index: 200; }
+    #talk-badge { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box;
+                  border-radius: 9px; background: rgba(243,239,226,.92); color: #141820; font: 700 11px/18px system-ui; text-align: center; }
+    #talk-badge:empty { display: none; }
     #talk-panel { position: fixed; left: 14px; bottom: 222px; width: min(380px, calc(100vw - 28px)); max-height: 50vh; overflow-y: auto; z-index: 220; background: rgba(20,24,32,.88); color: #f3efe2; border-radius: 10px; font: 16px/1.4 system-ui, sans-serif; }
     #talk-list { list-style: none; margin: 0; padding: 8px 12px; }
     #talk-list li { padding: 4px 0; cursor: pointer; }
@@ -71,7 +80,7 @@
     #talk-list li.chore input { margin: 0 6px 0 0; vertical-align: middle; }
     #talk-list li.chore.undone .text { text-decoration: line-through; opacity: .6; }
     #talk-list li.request .text { font-weight: 500; }
-    #talk-toggle.alert #talk-badge { background: #e5484d; color: #fff; border-radius: 9px; padding: 0 5px; }
+    #talk-toggle.alert #talk-badge { background: #e5484d; color: #fff; }
     #crew-roster { list-style: none; margin: 0; padding: 8px 12px 0; display: flex; flex-direction: column; gap: 4px;
       border-bottom: 1px solid rgba(255,255,255,.15); }
     #crew-roster .row { display: flex; align-items: center; gap: 6px; font-size: 14px; }

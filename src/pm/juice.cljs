@@ -59,14 +59,16 @@
 (defn juice-warning
   "The twin's one-line warning for one login's usage estimate
    (`{:name :tokens-used :cap :refill-at}`) -- nil below `warn-at`, or
-   with unusable data (GDD §2.1: \"Claude's at 80%, refills at 2\")."
+   with unusable data (GDD §2.1: \"Claude's at 80%, refills at 2\", said
+   as \"used 80% of its window\" so a glance can't read it as 80% left)."
   [login]
   (when (usable? login)
     (let [p (pct-of login)]
       (when (>= p warn-at)
         (let [pct (str (js/Math.round (* 100 p)) "%")
               r   (refill-text (:refill-at login))]
-          (str (:name login) "'s at " pct (when r (str ", refills at " r)) "."))))))
+          ;; "used 83% of its window" (Michael: "is that done or full? make it clear")
+          (str (:name login) "'s used " pct " of its window" (when r (str ", refills at " r)) "."))))))
 
 (defn- over-ids
   "Ids of every login at or over `warn-at` right now."

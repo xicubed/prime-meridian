@@ -10,15 +10,15 @@
   (is (nil? (juice/juice-warning {:name "Claude" :tokens-used 0 :cap 100000 :refill-at "14:00"}))))
 
 (deftest t02-juice-warning-at-and-above-threshold
-  (is (= "Claude's at 80%, refills at 2:00 PM."
+  (is (= "Claude's used 80% of its window, refills at 2:00 PM."
          (juice/juice-warning {:name "Claude" :tokens-used 80000 :cap 100000 :refill-at "14:00"})))
-  (is (= "Claude's at 83%, refills at 9:05 AM."
+  (is (= "Claude's used 83% of its window, refills at 9:05 AM."
          (juice/juice-warning {:name "Claude" :tokens-used 834 :cap 1000 :refill-at "09:05"}))))
 
 (deftest t03-juice-warning-no-refill-time
-  (is (= "Claude's at 90%." (juice/juice-warning {:name "Claude" :tokens-used 90000 :cap 100000})))
-  (is (= "Claude's at 90%." (juice/juice-warning {:name "Claude" :tokens-used 90000 :cap 100000 :refill-at "junk"})))
-  (is (= "Claude's at 90%." (juice/juice-warning {:name "Claude" :tokens-used 90000 :cap 100000 :refill-at 1400}))))
+  (is (= "Claude's used 90% of its window." (juice/juice-warning {:name "Claude" :tokens-used 90000 :cap 100000})))
+  (is (= "Claude's used 90% of its window." (juice/juice-warning {:name "Claude" :tokens-used 90000 :cap 100000 :refill-at "junk"})))
+  (is (= "Claude's used 90% of its window." (juice/juice-warning {:name "Claude" :tokens-used 90000 :cap 100000 :refill-at 1400}))))
 
 (deftest t04-juice-warning-unusable-data
   (is (nil? (juice/juice-warning nil)))
@@ -42,7 +42,7 @@
         w1 (juice/tick w T0)]
     (is (= #{:claude} (:warned (:juice w1))))
     (is (= {:event :juice-warning
-            :text  "Claude's at 83%, refills at 2:00 PM."
+            :text  "Claude's used 83% of its window, refills at 2:00 PM."
             :until (+ T0 6000)}
            (:hal w1)))
     ;; still over -> no second warning (the :hal banner from w1 is left as is)
