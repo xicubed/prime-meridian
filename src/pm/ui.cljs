@@ -679,7 +679,9 @@
                        "<span></span>"))
             (set! (.-textContent (aget (.-children r) 2)) name)
             (.addEventListener r "click" (fn [^js e] (.preventDefault e) (.stopPropagation e) (on-pick id)))
-            (when (= :creature kind)
+            ;; the SAMPLE/REAL box: on creatures, and on crew members with a shipped
+            ;; sample question (REAL for them is nothing until a real agent asks)
+            (when (or (= :creature kind) can-real?)
               (let [^js lab (js/document.createElement "label")
                     ^js cb  (js/document.createElement "input")]
                 (set! (.-type cb) "checkbox")

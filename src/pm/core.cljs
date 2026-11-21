@@ -64,6 +64,41 @@
             #{})))
 (defonce ^:private !twin-has (atom #{}))   ; mirrors the twin's file has real state for
 
+;; SAMPLE/REAL for the crew (Michael: Le Critique "keeps asking round or jagged").
+;; A crew member's SAMPLE side is its shipped sample question; REAL is nothing
+;; until a real agent asks. {agent {:real? bool :answered? bool}}: answered
+;; stays answered (the sample question never comes back) until the switch is
+;; flipped, which resets it. Persisted in this browser.
+(def crew-sample-key "pm.crew-sample.v1")
+(defonce ^:private !crew-sample
+  (atom (or (try (let [v (cljs.reader/read-string (or (.getItem js/localStorage crew-sample-key) "{}"))]
+                   (when (map? v) v))
+                 (catch :default _ nil))
+            {})))
+
+(defn- save-crew-sample! []
+  (try (.setItem js/localStorage crew-sample-key (pr-str @!crew-sample)) (catch :default _ nil)))
+
+(defn- sample-questions-for
+  "The shipped sample questions (resources/content/sample-events.edn) an
+   agent raises, by agent name string."
+  [agent]
+  (filterv #(and (= :agent-event (:type %)) (= :question (:kind %)) (= agent (:agent %)) (:source %))
+           sample-events))
+
+(defn- sample-question?
+  "True when `ev` is one of the shipped sample questions, as the bridge
+   replays them verbatim on every connect."
+  [ev]
+  (boolean (some #(= % ev) (sample-questions-for (:agent ev)))))
+
+(defn- crew-sample-muted?
+  "Sample questions from `agent` are dropped while it's switched to REAL or
+   its sample question has been answered."
+  [agent]
+  (let [{:keys [real? answered?]} (get @!crew-sample (keyword agent))]
+    (boolean (or real? answered?))))
+
 (defn- fetch-state! []
   (when-not (:busy? @!state-poll)
     (swap! !state-poll assoc :busy? true)
@@ -146,7 +181,8 @@
 (defn- ws-on-message [^js e]
   (when-let [m (try (js->clj (js/JSON.parse (.-data e))) (catch :default _ nil))]
     (when-let [ev (events/json->event m)]
-      (when (events/valid-event? ev)
+      (when (and (events/valid-event? ev)
+                 (not (and (sample-question? ev) (crew-sample-muted? (:agent ev)))))
         (swap! !ws update :received inc)
         ;; world/apply-event lands all four shapes: a chore-done/jack-out
         ;; changes the estate directly; an agent-event raises the asking
@@ -271,20 +307,39 @@
           (reset! !cache-text text)
           (write-cache! text))))))
 
+(defn- toggle-crew-sample!
+  "Flip crew member `agent` between SAMPLE and REAL. Either way the answered
+   mark resets; to SAMPLE its sample question is asked again right now; to
+   REAL any standing sample question (and its walk) is withdrawn."
+  [agent]
+  (let [real? (not (get-in @!crew-sample [agent :real?]))
+        now   (js/Date.now)]
+    (swap! !crew-sample assoc agent {:real? real? :answered? false})
+    (save-crew-sample!)
+    (if real?
+      (swap! !world #(-> % (update :asks-player dissoc (name agent)) (update :errands dissoc (name agent))))
+      (doseq [q (sample-questions-for (name agent))]
+        (swap! !world world/apply-event q now)))))
+
 (defn- toggle-source!
   "Flip mirror `id` between SAMPLE and REAL (GDD §4.6). To SAMPLE: back on
    its sample state (plus anything played in this browser). To REAL: the
-   twin's file again, re-read now."
+   twin's file again, re-read now. A crew member's id goes to
+   toggle-crew-sample! instead."
   [id]
-  (if (contains? @!sample-only id)
-    (when-not DEMO   ; the demo has no real side to switch to
-      (swap! !sample-only disj id)
-      (swap! !world dissoc :state-as-of)
-      (fetch-state!))
-    (do (swap! !sample-only conj id)
-        (swap! !world #(-> % (overlay/to-sample sample-estate id)
-                           (overlay/apply-play (overlay/parse-file @!play-text))))))
-  (try (.setItem js/localStorage sources-key (pr-str @!sample-only)) (catch :default _ nil)))
+  (if-not (contains? (:mirrors @!world) id)
+    (when-let [agent (some #(when (= id (:id %)) (:agent %)) (:walkers @!world))]
+      (toggle-crew-sample! agent))
+    (do
+      (if (contains? @!sample-only id)
+        (when-not DEMO   ; the demo has no real side to switch to
+          (swap! !sample-only disj id)
+          (swap! !world dissoc :state-as-of)
+          (fetch-state!))
+        (do (swap! !sample-only conj id)
+            (swap! !world #(-> % (overlay/to-sample sample-estate id)
+                               (overlay/apply-play (overlay/parse-file @!play-text))))))
+      (try (.setItem js/localStorage sources-key (pr-str @!sample-only)) (catch :default _ nil)))))
 
 (defonce ^:private !source-rows (atom nil))
 
@@ -604,7 +659,12 @@
    \"!\"."
   [agent text]
   (let [ev {:type :answer :agent agent :text text
-            :source {:agent "player" :session "ui" :machine "browser"}}]
+            :source {:agent "player" :session "ui" :machine "browser"}}
+        asked (get-in @!world [:asks-player agent :text])]
+    ;; a sample question answered stays answered (until the SAMPLE/REAL switch flips)
+    (when (some #(= asked (:text %)) (sample-questions-for agent))
+      (swap! !crew-sample assoc-in [(keyword agent) :answered?] true)
+      (save-crew-sample!))
     (ws-send! ev)
     (swap! !world world/apply-event ev (js/Date.now))))
 
@@ -940,6 +1000,9 @@
                        ;; the same dot as over their head, so the key shows who needs you
                        (merge {:id (:id entry) :agent agent :name (:name entry)
                                :dot (:color d) :glyph (:glyph d)
+                               ;; SAMPLE/REAL for the crew: only members with a shipped sample question get the box
+                               :can-real? (boolean (seq (sample-questions-for (name agent))))
+                               :real? (boolean (get-in @!crew-sample [agent :real?]))
                                :needs-you? (or asked? (and (crew/fresh? (:crew w) now)
                                                    (= :blocked (crew/effective-status (get-in w [:crew :agents agent]) now))))}
                               (walker-colours entry))))
