@@ -300,6 +300,29 @@
                    (when (and (number? since) (< (- now since) say-ms)) [agent text])))
         (:says world)))
 
+(defn twin-says
+  "A :say event for the twin spoken by the game itself (no bridge behind it:
+   the demo, or a dev build with the bridge off), ready for `apply-event`.
+   nil without a twin walker or a blank text."
+  [world text]
+  (when-let [tw (twin-walker world)]
+    (when (and (string? text) (not (str/blank? text)))
+      {:type :agent-event :agent (name (:agent tw)) :kind :say :text text
+       :source {:agent "game" :session "sample" :machine "local"}})))
+
+(defn no-bridge-line
+  "What the twin answers to a say when no bridge can carry it (:twin-talk)."
+  [world]
+  (get-in world [:twin-talk :no-bridge]))
+
+(defn sample-say
+  "The n-th SAMPLE line of the twin's (:twin-talk :sample-says), rotating;
+   nil when the estate declares none."
+  [world n]
+  (let [v (get-in world [:twin-talk :sample-says])]
+    (when (and (sequential? v) (seq v) (integer? n))
+      (nth v (mod n (count v))))))
+
 (defmethod apply-event :agent-event
   [world event now]
   (if-not (events/valid-agent-event? event)

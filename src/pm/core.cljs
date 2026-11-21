@@ -612,11 +612,36 @@
     (if (world/needs-you? @!world agent)
       (when-let [t (not-empty (clojure.string/trim (or text "")))]
         (send-answer! agent t))
-      (let [before-n (:n (:talk @!world))]
-        (swap! !world update :talk talk/crew-say member who text (js/Date.now))
+      (let [before-n (:n (:talk @!world))
+            now      (js/Date.now)]
+        (swap! !world update :talk talk/crew-say member who text now)
         (let [t (:talk @!world) n (:n t)]
           (when (> n before-n)
-            (post-crew! member :say nil (:text (talk/entry t n)) n)))))))
+            (post-crew! member :say nil (:text (talk/entry t n)) n)
+            ;; the twin with no bridge to carry the words (the demo): he says so
+            ;; himself, on the estate, instead of a silent failed line
+            (when (and (not (bridge-on?)) (= member (:agent (world/twin-walker @!world))))
+              (when-let [ev (world/twin-says @!world (world/no-bridge-line @!world))]
+                (swap! !world world/apply-event ev (+ now 1))))))))))
+
+(defonce ^:private !sample-say (atom {:timer nil :n 0}))
+
+(defn- sample-say-tick!
+  "The demo build's twin (TASKS T-4): one SAMPLE line every :sample-every-s,
+   only once the Construct is behind the player and the estate isn't frozen,
+   and never over a line he's already showing."
+  []
+  (let [w @!world now (js/Date.now)]
+    (when (and @!construct-seen? (not (world/jacked-out? w))
+               (empty? (world/says-now w now)))
+      (when-let [ev (world/twin-says w (world/sample-say w (:n @!sample-say)))]
+        (swap! !sample-say update :n inc)
+        (swap! !world world/apply-event ev now)))))
+
+(defn- start-sample-says! []
+  (when (nil? (:timer @!sample-say))
+    (let [every (* 1000 (max 15 (or (get-in @!world [:twin-talk :sample-every-s]) 45)))]
+      (swap! !sample-say assoc :timer (js/setInterval sample-say-tick! every)))))
 
 (defn- on-expand [member]
   (swap! !talk-ui update :expanded
@@ -1231,12 +1256,13 @@
   (restore-cache!)
   (add-watch !world ::state-cache on-world-change!)
   (add-watch !world ::play-cache on-play-change!)
-  (when-not DEMO
-    (start-state-poll!)
-    (start-crew-poll!)
-    (start-bridge-poll!)
-    (start-crew-log-poll!)
-    (start-hold-poll!))
+  (if DEMO
+    (start-sample-says!)   ; the demo's twin has a voice with nothing real behind it
+    (do (start-state-poll!)
+        (start-crew-poll!)
+        (start-bridge-poll!)
+        (start-crew-log-poll!)
+        (start-hold-poll!)))
   (kit/load! start-kit! start-scaffold!))
 
 (defn reload!

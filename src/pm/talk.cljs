@@ -634,15 +634,16 @@
   "Adds the twin's row to the roster (GDD §2.1): the twin lives in a Hermes chat,
    not a Herdr pane, so Herdr never lists him. `twin` is the estate walker
    named as the twin (pm.world/twin-walker, {:agent :name}); nil leaves the
-   roster alone. Its say… box is open whenever the bridge is: the bridge
-   passes the words on. `thinking?` shows him :working from a say until he
-   answers."
+   roster alone. Its say… box is always open: with the bridge on, the bridge
+   passes the words on; without one he answers himself that he can't hear
+   from here (pm.world/no-bridge-line). `thinking?` shows him :working
+   from a say until he answers."
   ([rows twin bridge-on?] (with-twin rows twin bridge-on? false))
-  ([rows twin bridge-on? thinking?]
+  ([rows twin _bridge-on? thinking?]
    (if (and (map? twin) (keyword? (:agent twin))
             (not-any? #(= (:agent twin) (:member %)) rows))
      (conj (vec rows) {:member (:agent twin) :who (:name twin) :status (if thinking? :working :idle)
-                       :say? (boolean bridge-on?) :expanded? false :log []})
+                       :say? true :expanded? false :log []})
      (vec rows))))
 
 (defn gone?

@@ -11,8 +11,15 @@
     (is (= 2 (count rows)))
     (is (= [(:agent twin) (:name twin) true] [(:member hal) (:who hal) (:say? hal)]))))
 
-(deftest no-bridge-no-saying
-  (is (false? (:say? (last (talk/with-twin [] twin false))))))
+(deftest no-bridge-he-still-listens-and-answers-that-he-cannot-hear
+  (is (true? (:say? (last (talk/with-twin [] twin false)))))
+  (let [W  (w/load-estate w/estate-edn)
+        ev (w/twin-says W (w/no-bridge-line W))]
+    (is (string? (w/no-bridge-line W)))
+    (is (= [(name (:agent twin)) :say] [(:agent ev) (:kind ev)]))
+    (is (= (w/no-bridge-line W) (get (w/says-now (w/apply-event W ev 1800000000000) 1800000000000) (name (:agent twin)))))
+    (is (nil? (w/twin-says W "   ")))
+    (is (= (first (get-in W [:twin-talk :sample-says])) (w/sample-say W 0) (w/sample-say W (count (get-in W [:twin-talk :sample-says])))))))
 
 (deftest only-once-and-only-with-a-twin
   (let [rows (talk/with-twin [] twin true)]

@@ -3,6 +3,17 @@
            :twin   {:name "Hal"}}              ; the twin's word follows the player's :sex (:m jumeau, :f jumelle)
  :crew-talk {:surface-after-s 60   ; a prompt the twin hasn't answered after this long goes to the player
              :answer-after-s 5}    ; bb crew-fielder waits this long, then answers a routine prompt
+ ;; The twin without a bridge (GDD §2.1, §4.6; the demo build, or a dev build with
+ ;; bb crew-bridge off): his say… box stays open, and he answers that he can't hear
+ ;; from here. In the demo he also speaks a SAMPLE line now and then (bb hal-say is
+ ;; what says his real ones), so the estate has a voice with nothing real behind it.
+ :twin-talk {:no-bridge "Out here I only hear you through the hardline. In your own game this box reaches me where I live: your agent's chat."
+             :sample-every-s 45
+             :sample-says ["Mail's quiet. Two newsletters, nothing for you."
+                           "The worker finished the rock. I checked it: round enough."
+                           "Flora's fed. Worm count's holding."
+                           "Nothing's on fire. Walk the creek if you like."
+                           "Calendar's clear until tonight."]}
  ;; Closing time (GDD §2.3, §4.8): a rule the player sets, not a lock the
  ;; software imposes ("you asked me to send you home"). Last call shows 15
  ;; minutes earlier; at bedtime the estate goes to night and the twin says
