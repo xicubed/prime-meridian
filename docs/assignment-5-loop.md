@@ -1,5 +1,40 @@
 # Assignment 5: the scored content loop
 
+*Prime Meridian — [xicubed/prime-meridian](https://github.com/xicubed/prime-meridian). Written by
+Le Docteur (a crew agent) for the grader, edited by Hal (the crew's manager, a bot) for Michael
+Lopez. This one page is the submission; everything it claims links to the file that proves it.*
+
+## Abstract
+
+Prime Meridian is a cozy estate game in which the player's AI agents are the crew and the player's
+digital twin, Hal, speaks to them in short bubbles. This assignment builds the automated,
+self-correcting loop that writes those lines: a **Generator** drafts them, an **Evaluator** scores
+the draft 0–10 *with a reason* on each family of the game's style guide — rules lifted verbatim
+from the existing GDD, never invented — plus a specificity criterion ("could a stranger tell this is
+Prime Meridian?"), and a **Refiner** rewrites only what scored low, up to four drafts, with nobody
+intervening. A weighted threshold (8.0 overall, no criterion under 6) decides; the model never
+returns pass/fail. Two real runs are committed as evidence. The first (6.9 → 7.9 → 7.7 → 7.9) did
+not clear the bar and exposed two real limits: a Refiner that reworded instead of fixing, and a
+draft where it edited past its brief. One targeted change to the Refiner (model and prompt, no rule
+or threshold touched) and the second run cleared the bar on draft 3 (6.8 → 7.5 → 8.3) and installed
+the lines the game now speaks.
+
+**What's where (all in this repo):**
+
+| | |
+|---|---|
+| The loop | [`content/pipeline.clj`](../content/pipeline.clj) — [`parse-scores`](../content/pipeline.clj#L268), [`overall`](../content/pipeline.clj#L283), [`passes?`](../content/pipeline.clj#L290), the three prompts ([Generator](../content/pipeline.clj#L338), [Evaluator](../content/pipeline.clj#L347), [Refiner](../content/pipeline.clj#L371)), [`run-request`](../content/pipeline.clj#L410) |
+| The style guide | [`content/STYLE.md`](../content/STYLE.md) — 19 rules, each citing its GDD section; [`docs/GDD.md`](GDD.md) is the source |
+| The tests | [`content/pipeline_test.clj`](../content/pipeline_test.clj) — 14 deterministic cases on the scoring, threshold, parsing and prompts, run by the repo's gate |
+| Run 1 (failed, 4 drafts) | [`content/runs/hal-lines-20261121-1949/`](../content/runs/hal-lines-20261121-1949/) — [`log.md`](../content/runs/hal-lines-20261121-1949/log.md), [`scores.edn`](../content/runs/hal-lines-20261121-1949/scores.edn), every prompt and draft |
+| Run 2 (passed, 3 drafts) | [`content/runs/hal-lines-20261121-2011/`](../content/runs/hal-lines-20261121-2011/) — [`log.md`](../content/runs/hal-lines-20261121-2011/log.md), [`scores.edn`](../content/runs/hal-lines-20261121-2011/scores.edn) |
+| The output the game loads | [`resources/content/hal-lines.edn`](../resources/content/hal-lines.edn) |
+| The request | [`content/requests/hal-lines.edn`](../content/requests/hal-lines.edn) — the brief, the events, the GDD sections |
+| How the work was done | [`crew/runs/scored-loop-20261121-1950/`](../crew/runs/scored-loop-20261121-1950/) — the agent crew's record: [spec](../crew/runs/scored-loop-20261121-1950/spec.md), [gate note](../crew/runs/scored-loop-20261121-1950/gate-note.md), run notes ([1](../crew/runs/scored-loop-20261121-1950/run-note-1.md), [2](../crew/runs/scored-loop-20261121-1950/run-note.md)), and Le Critique's reviews of this write-up ([first](../crew/runs/scored-loop-20261121-1950/review-1.md), [final](../crew/runs/scored-loop-20261121-1950/review.md)) |
+| The brief we worked from | [`.crew/quests/scored-loop.md`](../.crew/quests/scored-loop.md) |
+
+## Background
+
 Prime Meridian already had a Generator → Evaluator → Refiner loop (`content/pipeline.clj`,
 Assignment 4) that drafted, validated and critiqued voice lines. This assignment made the
 Evaluator a **scorer** (a number and a reason per rule family, never a verdict) and split the
@@ -12,9 +47,9 @@ first exposed a real weakness in the Refiner, the second shows the loop passing 
 
 | Role | Model | Prompt | Writes |
 |---|---|---|---|
-| **Generator** | `WRITER_MODEL` (`claude-sonnet-5`) | [`writer-prompt`](../content/pipeline.clj#L332) | draft 1 |
-| **Evaluator** | `CRITIC_MODEL` (`claude-opus-5-5`) | [`scorer-prompt`](../content/pipeline.clj#L341) | a score + reason per criterion, every draft |
-| **Refiner** | `REFINER_MODEL`, default = `CRITIC_MODEL` | [`refiner-prompt`](../content/pipeline.clj#L365) | drafts 2.. |
+| **Generator** | `WRITER_MODEL` (`claude-sonnet-5`) | [`writer-prompt`](../content/pipeline.clj#L338) | draft 1 |
+| **Evaluator** | `CRITIC_MODEL` (`claude-opus-5-5`) | [`scorer-prompt`](../content/pipeline.clj#L347) | a score + reason per criterion, every draft |
+| **Refiner** | `REFINER_MODEL`, default = `CRITIC_MODEL` | [`refiner-prompt`](../content/pipeline.clj#L371) | drafts 2.. |
 
 All three prompts carry [`content/STYLE.md`](../content/STYLE.md) verbatim plus the GDD sections
 the request names (`writer-system`/`scorer-system`/`refiner-system`, just above each `-prompt` fn,
@@ -167,3 +202,28 @@ says it has none. The loop isn't grading prettiness; it's grading whether a stra
 line, on its own, would know it came from Prime Meridian and not a reskin — and the two runs above
 show that grading catching real misses, in both the Generator's drafts and, in the first run, in
 the Refiner's own fixes.
+
+## Conclusion
+
+The loop does what the assignment asks, and the evidence is the two run directories rather than
+this page. The style guide is the GDD's own rules with their section numbers attached; the
+Evaluator never says pass or fail, only a score and a reason per criterion, and the threshold is
+code; and between draft 1 and the installed result nobody edits a line — the only human-directed
+change in the whole exercise sits *between* the two runs, in a commit that touched the Refiner and
+nothing else.
+
+Three things we learned are worth more than the passing score. First, **a Refiner that is told
+"this is the same line reworded" will reword it again** unless the prompt says what a fix is; the
+first run spent four drafts proving that. Second, **"change only what scored down" is a constraint
+models drift from** — the first run's draft 3 lost two points on a criterion that had no violations
+to fix, and the Evaluator itself re-judged an unchanged line. Scores with reasons made both failures
+legible in the log; a pass/fail critic would have hidden them. Third, **the honest outcome of a
+scored loop is sometimes a non-pass**: `bb content` exits non-zero when the final draft is under the
+bar, the run directory is kept either way, and that failed run turned out to be the more instructive
+half of this submission.
+
+What's next is already visible in the second run's own scores: specificity (S) plateaued at 8 while
+the Evaluator kept flagging "cozy-game filler" lines with no estate fact in them. The next
+iteration of STYLE.md will say what an estate fact *is* (a place, a crew member, a creature's real
+chore, SAMPLE/REAL) so the Refiner has something to reach for, and the same loop will run on the
+game's other two requests, the mirror lines and the sample inbox.
