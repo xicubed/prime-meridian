@@ -206,6 +206,11 @@ it's genuinely the biggest saving.
 - [x] Host: pm.perstitio.us, PIN-locked, `bb demo-deploy` (Nov 21).
 - [ ] Time the 2-minute rule on a cold cache; trim the demo build if it's close.
 - [ ] README top block: trailer, link, PIN note, 3-line how-to.
+- [ ] Game page (no itch.io, Michael: "we'll make our own versions"): a lotect.com *page* at
+      `/prime-meridian` — poster header, embedded trailer, ~120-word blurb from the GDD's exec
+      summary, 3 screenshots, a Play button → pm.perstitio.us ("ask for the PIN" until public).
+      Same block in the README. Assets: poster (header + square), trailer (mp4 + unlisted YouTube),
+      3 screenshots, blurb.
 - [ ] Promo video (45–60 s) — see "Two videos".
 - [ ] Title screen / key art (the instructor: "a movie-poster graphic"): a staged dusk shot of the
       estate rendered headless at 2–4K (Hal foreground, Flora's jar lit, a "!" up, night-crew lamps),
