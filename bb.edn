@@ -21,6 +21,8 @@
                       (shell "bb" "-cp" "tools/goal-agent/src:tools/goal-agent/test" "-e"
                              "(require 'clojure.test 'goal.core-test) (let [r (clojure.test/run-tests 'goal.core-test)] (System/exit (if (zero? (+ (:fail r) (:error r))) 0 1)))")
                       (apply shell "bb" "-cp" "tools/goal-agent/src" "tools/goal-agent/goal_agent.clj" *command-line-args*))}
+  demo-deploy {:doc  "Build the demo and rsync it to the PIN-locked site https://pm.perstitio.us: bb demo-deploy [--no-build]"
+               :task (apply shell "bash" "scripts/demo_deploy.sh" *command-line-args*)}
   demo-build {:doc  "The demo for class: a release build with pretend data only, in dist/demo/ (static files; host at a site root)"
               :task (shell "bash" "scripts/demo_build.sh")}
   creature-mjcf {:doc  "Print a species' MuJoCo body (MJCF XML): bb creature-mjcf <kind>"
