@@ -644,6 +644,59 @@
                 "<rect x='4' y='10' width='10' height='13' rx='4' fill='" (hex-css (or body 0xf3efe2)) "' stroke='" (hex-css (or joints 0x333333)) "' stroke-width='1.5'/>"))
          "</svg>")))
 
+(def crew-key-store "pm.crew-key.v1")
+
+(defn- place-crew-key!
+  "Slide the drawer: open sits flush with the right edge; closed is pushed off
+   the edge by the panel's width, leaving only the CREW tab showing."
+  [^js box]
+  (let [open? (not= "closed" (.. box -dataset -state))
+        ^js panel (.querySelector box ".panel")
+        w (if open? 0 (.-offsetWidth panel))]
+    (set! (.. box -style -transform) (str "translate(" w "px,-50%)"))
+    (set! (.. box -style -opacity) "1")))
+
+(defn- make-crew-key-drawer!
+  "The crew key's drawer (Michael: 'have it fly out from the side when it's
+   closed/opened so it's not cluttering up the UI, with C R E W vertically
+   along the tab'): a vertical CREW tab on the right edge of the screen and
+   the panel beside it; clicking the tab slides the panel in and out. The
+   state is remembered per browser."
+  []
+  (let [^js b (js/document.createElement "div")
+        ^js tab (js/document.createElement "div")
+        ^js panel (js/document.createElement "div")
+        saved (try (.getItem js/localStorage crew-key-store) (catch :default _ nil))]
+    (set! (.-id b) "crew-key")
+    (set! (.. b -dataset -state) (if (= "closed" saved) "closed" "open"))
+    (set! (.. b -style -cssText)
+          (str "position:fixed;right:0;top:50%;transform:translate(0,-50%);z-index:60;"
+               "display:flex;align-items:center;color:#f3efe2;font:13px system-ui,sans-serif;"
+               "transition:transform .35s cubic-bezier(.4,0,.2,1);opacity:0"))
+    (set! (.-className tab) "tab")
+    (set! (.-title tab) "Who's on the estate (click to open or close)")
+    (set! (.. tab -style -cssText)
+          (str "writing-mode:vertical-rl;text-orientation:upright;letter-spacing:.3em;font-size:11px;"
+               "font-weight:700;padding:14px 6px;cursor:pointer;user-select:none;display:flex;align-items:center;"
+               "background:rgba(20,24,32,.72);backdrop-filter:blur(4px);border-radius:12px 0 0 12px;"
+               "box-shadow:-1px 0 0 rgba(255,255,255,.08) inset"))
+    (set! (.-textContent tab) "CREW")
+    (.addEventListener tab "click"
+                       (fn [^js e]
+                         (.stopPropagation e)
+                         (let [now (if (= "closed" (.. b -dataset -state)) "open" "closed")]
+                           (set! (.. b -dataset -state) now)
+                           (try (.setItem js/localStorage crew-key-store now) (catch :default _ nil))
+                           (place-crew-key! b))))
+    (set! (.-className panel) "panel")
+    (set! (.. panel -style -cssText)
+          (str "background:rgba(20,24,32,.72);backdrop-filter:blur(4px);padding:8px 10px;min-width:150px;"
+               "border-radius:0 0 0 12px"))
+    (.appendChild b tab)
+    (.appendChild b panel)
+    (.appendChild js/document.body b)
+    b))
+
 (defn render-crew-key!
   "The crew key (who's on the estate): one row per walker -- a little figure
    in its own colours, its status dot and its name. Click a row to fly the
@@ -654,26 +707,18 @@
    REAL, her numbers from the twin's record; greyed when there's no real
    data), and `on-toggle` gets its id."
   [title rows on-toggle on-pick]
-  (let [^js box (or (el "crew-key")
-                    (let [^js b (js/document.createElement "details")]
-                      (set! (.-id b) "crew-key")
-                      (set! (.-open b) true)
-                      (set! (.. b -style -cssText)
-                            (str "position:fixed;right:12px;top:50%;transform:translateY(-50%);z-index:60;"
-                                 "background:rgba(20,24,32,.72);color:#f3efe2;border-radius:12px;"
-                                 "padding:8px 10px;font:13px system-ui,sans-serif;min-width:150px;"
-                                 "backdrop-filter:blur(4px)"))
-                      (.appendChild js/document.body b)
-                      b))
+  (let [^js box (or (el "crew-key") (make-crew-key-drawer!))
+        ^js panel (.querySelector box ".panel")
         key (pr-str [title rows])]
     (when (not= key (.. box -dataset -key))
       (set! (.. box -dataset -key) key)
-      (let [open? (.-open box)]
-        (set! (.-innerHTML box) "")
-        (let [^js s (js/document.createElement "summary")]
-          (set! (.. s -style -cssText) "cursor:pointer;font-size:11px;letter-spacing:.12em;text-transform:uppercase;opacity:.8;margin-bottom:4px")
+      (let [tab-alert? (some #(= "!" (:glyph %)) rows)]
+        (set! (.. (.querySelector box ".tab") -style -color) (if tab-alert? "#ffb347" "#f3efe2"))
+        (set! (.-innerHTML panel) "")
+        (let [^js s (js/document.createElement "div")]
+          (set! (.. s -style -cssText) "font-size:11px;letter-spacing:.12em;text-transform:uppercase;opacity:.8;margin-bottom:4px")
           (set! (.-textContent s) title)
-          (.appendChild box s))
+          (.appendChild panel s))
         (doseq [{:keys [id name body joints dot glyph kind color real? can-real?]} rows]
           (let [^js r (js/document.createElement "div")]
             (set! (.. r -style -cssText) "display:flex;align-items:center;gap:8px;padding:4px 4px;border-radius:8px;cursor:pointer")
@@ -704,8 +749,8 @@
                 (.addEventListener lab "click" (fn [^js e] (.stopPropagation e)))
                 (.addEventListener cb "change" (fn [^js e] (.stopPropagation e) (on-toggle id)))
                 (.appendChild r lab)))
-            (.appendChild box r)))
-        (set! (.-open box) open?)))))
+            (.appendChild panel r)))
+        (place-crew-key! box)))))
 
 (defn set-badge! [text alert?]
   (when-let [^js b (el "talk-badge")]
