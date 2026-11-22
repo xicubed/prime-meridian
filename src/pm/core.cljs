@@ -873,7 +873,7 @@
         (when (and (keyword? th) (:open? t') (not= (:n t') (get-in t' [:seen-by th])))
           (swap! !world update :talk talk/mark-seen th)))
       (when (not= key (:roster @!talk-ui))
-        (ui/render-roster! rows on-say on-expand offset-of jum (assoc previews ::unread unread))
+        (ui/render-roster! rows on-say on-expand offset-of jum (assoc previews :pm.ui/unread unread))
         (ui/show-hold-row! (and (some? twin) (= (ui/thread) (:agent twin))))
         (swap! !talk-ui assoc :roster key)))
     (let [sw (talk/hold-switch (:hold @!world) (bridge-on?) @!hold-ui jum)]
