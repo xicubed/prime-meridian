@@ -116,7 +116,7 @@
  ;; kit's world metres: along the creek's centerline at its water surface,
  ;; loudest at the three cascades, a quiet one over the still pool.
  :sounds
- [{:id :creek :loop "/assets/audio/brook.mp3" :ref-distance 2.5 :rolloff 1.6
+ [{:id :creek :loop "/assets/audio/brook.mp3" :ref-distance 6 :rolloff 1.2
    :points [[ 1.92 2.40 -36.2 0.7]    ; inlet
             [ 1.92 2.40 -35.0 0.7]    ; upstream, under the stone vault
             [ 0.42 2.40 -30.0 0.6]
