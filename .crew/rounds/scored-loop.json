@@ -1,0 +1,51 @@
+{
+  "round": "scored-loop",
+  "quest": ".crew/quests/scored-loop.md",
+  "runDir": "crew/runs",
+  "gate": "bash .crew/gate.sh",
+  "fix": { "who": "un-automate-monde", "max": 2 },
+  "timeoutMinutes": 50,
+  "onBlocked": "wait",
+  "steps": [
+    {
+      "id": "spec",
+      "who": ["un-architecte"],
+      "prompt": "New quest: read {quest}, content/STYLE.md, content/README.md, content/pipeline.clj (all of it; it's ~350 lines), one run under content/runs/ (log.md and critic-3.edn), and GDD §3.1 and §4.2. Write the spec to {run}/spec.md following your role card: the scorer's exact reply shape and prompt outline, the Refiner's prompt outline, the overall-score and threshold functions with hand-worked numbers, the trajectory line format, scores.edn's shape, where each change lands in pipeline.clj (name the defns to change and add; the validator and the context step are untouched), the bb test file and its numbered cases with expected values, and a who-touches-what table (builder: pipeline.clj; tester: the test file; nobody else edits code). Reply when it's written.",
+      "expect": ["{run}/spec.md"]
+    },
+    {
+      "id": "build",
+      "who": ["un-automate-monde", "le-testeur"],
+      "prompt": {
+        "un-automate-monde": "Spec: {run}/spec.md (quest: {quest}). Implement it in content/pipeline.clj and nothing else: scorer prompt and reply parsing, overall score, threshold, Refiner step with its own prompt, trajectory in log.md and printed, scores.edn. Pure functions for everything the tester's cases name. Don't run `bb content` (it costs tokens; Le Coureur runs it once later); `bb content <req> --dry-run` is fine. Run .crew/gate.sh before replying.",
+        "le-testeur": "Spec: {run}/spec.md (quest: {quest}). Write its test cases in the bb test file the spec names, and nothing else; wire it into .crew/gate.sh only if the spec says the gate doesn't already run bb tests (read gate.sh first). The builder is coding in parallel; require the functions by the names in the spec."
+      },
+      "expect": []
+    },
+    {
+      "id": "gate",
+      "who": ["le-coureur"],
+      "verify": true,
+      "prompt": "Run the gate (.crew/gate.sh) and write the gate note to {run}/gate-note.md as your role card says.",
+      "expect": ["{run}/gate-note.md"]
+    },
+    {
+      "id": "run",
+      "who": ["le-coureur"],
+      "prompt": "Run the loop once for real, hands off: `bb content hal-lines` (PATH needs /opt/homebrew/bin; it calls claude -p and may take 10 minutes). Do not edit anything while it runs or after. When it finishes, copy the printed trajectory and the run directory's path into {run}/run-note.md, with the final overall score and whether it passed the threshold. If it errors, paste the error there instead and stop.",
+      "expect": ["{run}/run-note.md"]
+    },
+    {
+      "id": "write-up",
+      "who": ["le-docteur"],
+      "prompt": "Read {quest} (Done when), {run}/spec.md, {run}/run-note.md, the run directory it names (log.md, scores.edn, the scorer and refiner prompts, draft-1 vs the final draft), content/STYLE.md. Write docs/assignment-5-loop.md for a grader (~1 page, your role card's voice, no marketing): the three roles (Generator, Evaluator=scorer, Refiner) and where their prompts live (relative links), the style guide's provenance (STYLE.md rules → GDD sections, with 3 examples), the scoring (table: criterion, weight, threshold), the real run's trajectory with two quoted reasons and the lines they changed (quote draft-1 vs final), and a short 'why this is Prime Meridian and not a generic game' paragraph grounded in the quoted lines. Also add a row to TASKS.md's done list if it has one. Reply when written.",
+      "expect": ["docs/assignment-5-loop.md"]
+    },
+    {
+      "id": "review",
+      "who": ["le-critique"],
+      "prompt": "Review docs/assignment-5-loop.md and the run directory named in {run}/run-note.md against the assignment rubric in {quest} (first paragraph): (1) style guide pulled from the existing GDD, not invented; (2) specificity: could a stranger tell which game; (3) the Evaluator outputs a score and a reason per criterion, never binary; (4) the loop fixed violations with nobody intervening (check log.md's timeline). Score each 0–10 with a reason, name anything the write-up claims that the run directory doesn't show, and write it to {run}/review.md (at most 5 ranked findings).",
+      "expect": ["{run}/review.md"]
+    }
+  ]
+}
