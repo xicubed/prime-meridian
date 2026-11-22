@@ -31,6 +31,8 @@ Events:
 - :last-call          15 minutes before the player's bedtime ({bedtime}), last call
 - :closing-time       the player's bedtime ({bedtime}): the estate goes to night, Hal says goodnight
 - :stay-late          the player chose to stay past closing; Hal asked once and accepts it
+- :close-up           the player answered the bedtime ask with Close up: Hal says goodnight and
+                      the estate jacks out for the night; everything keeps till morning
 - :memorial-moved     the player moved a pet who died to memorial ({name})
 - :weekly-card        the weekly card: time jacked in this week ({hours}), a trend, never a score"
  :shape "An EDN map from each event keyword to a vector of 3-5 strings, e.g.
@@ -54,6 +56,7 @@ Placeholders are written {like-this} and may appear only in the events that list
                    :jack-out-creature #{:name} :jack-out-appointment #{:leave-at :event}
                    :chore-done #{:name :chore}
                    :chore-not-due #{:name :chore :last-at :next-at} :chore-undone #{:name :chore}
+                   :close-up #{}
                    :program-loaded #{:program :building}
                    :program-needed #{:program} :next-small-step #{} :coach-habit #{:habit :goal}
                    :morning-brief #{:count} :blueprint-ready #{:count} :agent-stalled #{:agent}

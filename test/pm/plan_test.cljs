@@ -493,7 +493,9 @@
 
 (deftest t40-phone-booth-rings-with-the-reason
   (let [W2 (w/apply-event W jo T0)]
-    (is (= "Someone needs you: \"Dinner!\"" (:text (p/phone-booth-item W2))))))
+    ;; one of Hal's :jack-out-household lines, filled; the lines are generated content
+    (is (some #(= (c/fill % {:text "Dinner!"}) (:text (p/phone-booth-item W2)))
+              (:jack-out-household c/hal-lines)))))
 
 (deftest glow-survives-look-parts
   (let [[a b] (p/look-parts {:parts [{:shape :box :size [1 1 1] :glow true}

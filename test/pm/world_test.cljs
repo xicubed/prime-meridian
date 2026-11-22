@@ -264,9 +264,10 @@
 (deftest t31-jack-out-freezes-with-its-reason-shown
   (let [W2 (w/apply-event W jo-household T0)]
     (is (= true (w/jacked-out? W2)))
-    (is (= "Someone needs you: \"Dinner!\"" (w/jack-out-text W2)))
+    ;; one of Hal's :jack-out-household lines, filled; the lines are generated content
+    (is (some #(= (c/fill % {:text "Dinner!"}) (w/jack-out-text W2)) (:jack-out-household c/hal-lines)))
     (is (= {:out? true :reason :household :who :household
-            :line "Someone needs you: \"Dinner!\"" :at T0 :log-n 1}
+            :line (w/jack-out-text W2) :at T0 :log-n 1}
            (:jack W2)))
     (is (= (assoc jo-household :result :jacked-out) (last (:log W2))))))
 
@@ -282,7 +283,8 @@
         W3 (w/jack-in W2 (+ T0 1000))]
     (is (= false (w/jacked-out? W3)))
     (is (= {:out? false :at (+ T0 1000)} (:jack W3)))
-    (is (= {:event :jack-in :text "You're in. Let's see what the night left you."
+    (is (some #(= % (get-in W3 [:hal :text])) (:jack-in c/hal-lines)) "one of Hal's :jack-in lines")
+    (is (= {:event :jack-in :text (get-in W3 [:hal :text])
             :until (+ T0 1000 c/hal-ms)}
            (:hal W3)))))
 

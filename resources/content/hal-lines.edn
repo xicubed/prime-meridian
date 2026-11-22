@@ -46,6 +46,12 @@
   "The hardline's ringing: {name} needs you out there."
   "{name} comes first. This waits."
   "Go see to {name}. Text me when it's done; it counts from anywhere."],
+ ;; :close-up was added to the request after this run (the game's Close up answer to the
+ ;; bedtime ask, src/pm/closing.cljs); these two lines carry over from the Nov 6 run until
+ ;; the next `bb content hal-lines` regenerates the whole table.
+ :close-up
+ ["Closing up. Goodnight — I'll keep an eye on things."
+  "Goodnight. Everything keeps till morning."]
  :stay-late
  ["Staying late. I asked, you said yes — that's that."
   "You're staying. Night stays on the estate, and so do I."
