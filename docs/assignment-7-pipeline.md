@@ -36,18 +36,28 @@ README". We write the one page, and this file is the long form it links to.)
 twin file, no crew bridge). 441 MB, of which ~196 MB is the island kit (`public/kit/`, gitignored,
 licensed).
 
-**Decisions needed:**
+**Decided (Nov 21): the demo goes up behind a PIN**, so the kit question is deferred to a public
+release; a grader with the PIN in the submission still plays within two minutes. Ways to do it:
+
+- **itch.io "Restricted" visibility + password** (free, built in): the page asks for the password,
+  then "Run game" in the browser. Cleanest fit — a grader sees a game page, and the password is the
+  PIN. Upload limit 1 GB (ours is 441 MB).
+- **Cloudflare Pages/Netlify + a client-side PIN screen** in the demo build (a small overlay before
+  the kit loads; the PIN check is in JS, so it's a courtesy lock, not security — fine for this).
+  Netlify's real password protection is a paid tier.
+- Lean: itch.io restricted. Fallback: Netlify + PIN overlay (we control it fully).
+
+**Remaining decisions:**
 
 1. **Host.** Options: Netlify (drag-and-drop or CLI; free tier 100 GB/mo bandwidth, 441 MB site is
    fine), Vercel (static; similar), Cloudflare Pages (25 MB per-file limit — check the biggest kit
    GLB), itch.io (HTML5 upload, 1 GB limit; "play in browser" is the format graders expect).
    lotect.com is WordPress.com and can't serve this. **Lean: Netlify or itch.io; itch.io reads as
    "a game" to a grader.**
-2. **Kit license.** Hiroshi's Island (3ditions) is a purchased asset pack. Shipping the compiled
-   game with its GLBs served to browsers is normal use of a game asset license ("use in your
-   published projects"); redistributing the source pack is not. **Check the license text in
-   `assets/private/3ditions-hiroshis-island-prompt.txt` / the zip before publishing; do not push
-   the kit to the repo either way.**
+2. **Kit license — deferred.** Hiroshi's Island (3ditions) is a purchased asset pack. Behind a PIN
+   for a grader it's private use; before any public release, read the license in
+   `assets/private/` (serving GLBs in a published game is usually fine, redistributing the pack is
+   not). The kit never goes in the repo either way.
 3. **Two-minute test.** A stranger opens the URL: does the kit's loading screen + the Construct's
    first beat get them playing in under 2 minutes with no instructions? We'll time it on a cold
    cache and a normal connection. Instructions block goes at the **top of `README.md`** (rubric
@@ -173,8 +183,9 @@ it's genuinely the biggest saving.
 
 ## What we know we need to know (the to-do list)
 
-- [ ] Kit license: confirm the compiled game may be served publicly (text in `assets/private/`).
-- [ ] Pick the host (itch.io vs Netlify) and publish `dist/demo/`; test the 2-minute rule cold.
+- [ ] Publish `dist/demo/` behind a PIN (itch.io restricted + password, else Netlify + PIN overlay);
+      test the 2-minute rule cold with the PIN in hand.
+- [ ] (Later, before a public release) kit license check.
 - [ ] README: playable link + 3-line instructions at the very top; the ~1-page audit under it.
 - [ ] Pipeline: log `total_cost_usd` + tokens per draft; totals in `log.md` and `scores.edn`.
 - [ ] One instrumented real run on screen → the video and the cost figure (`mirror-lines` is a good
