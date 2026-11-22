@@ -58,3 +58,11 @@
   (let [a  (assoc (first (m/walkers world)) :pos [0 0] :route [[0 0] [6 0]] :to 1 :pause 0 :leg 3)
         w  (reduce (fn [w i] (m/follow w [(* 0.05 i) 0] false 0.1)) a (range 1 100))]
     (is (= 0 (:stuck w)))))
+
+;; Two wanderers never pick the same spot (Michael: "Le Critique is standing inside Un Automate").
+(deftest a-taken-spot-is-not-picked
+  (let [spots [[0 0] [5 0] [0 5] [5 5]]
+        w     {:id :a :pos [0 0] :leg 1 :spots spots}]
+    (is (= [5 5] (m/next-spot (assoc w :taken [[5 0] [0 5]]) 2.5)) "the free one")
+    (is (some #{(m/next-spot (assoc w :taken [[5 0] [0 5] [5 5]]) 2.5)} spots) "all taken: still goes somewhere")
+    (is (not= [5 0] (m/next-spot (assoc w :taken [[5.5 0.4]]) 2.5)) "near enough counts as taken")))

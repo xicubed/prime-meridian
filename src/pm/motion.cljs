@@ -196,15 +196,22 @@
 
 ;; -- step / follow ---------------------------------------------------------
 
+(def taken-m "A spot this close to where someone else stands or is heading is taken." 1.6)
+
 (defn next-spot
   "A wandering walker's next spot: one of its :spots at least `min-m` from
-   where it stands, chosen by its id and leg number -- varied, but the same
-   every run, so it's testable. nil when there's nowhere to go."
+   where it stands and not :taken (where another walker stands or is heading,
+   set by plan-all: two wanderers picking the same spot ended up standing
+   inside each other), chosen by its id and leg number -- varied, but the
+   same every run, so it's testable. Falls back to taken spots when nothing
+   else is far enough; nil when there's nowhere to go."
   [w min-m]
-  (let [here (:pos w)
-        far  (filterv #(>= (pt-dist % here) min-m) (:spots w))]
-    (when (seq far)
-      (nth far (mod (js/Math.abs (hash [(:id w) (:leg w)])) (count far))))))
+  (let [here  (:pos w)
+        far   (filterv #(>= (pt-dist % here) min-m) (:spots w))
+        free  (filterv (fn [s] (not-any? #(< (pt-dist s %) taken-m) (:taken w))) far)
+        pool  (if (seq free) free far)]
+    (when (seq pool)
+      (nth pool (mod (js/Math.abs (hash [(:id w) (:leg w)])) (count pool))))))
 
 (def ^:private wander-min-m 2.5)
 (def stuck-s "Seconds a wanderer can stand still mid-leg before it picks another spot." 8)
@@ -580,9 +587,18 @@
   (and (number? g) (<= (js/Math.abs (- g base)) step-max)))
 
 (defn plan [w others statics cfg]
-  (let [route (:route w)]
-    (if (or (< (count route) 2) (> (:pause w) 0))
+  (let [route (:route w)
+        P     (:pos w)
+        ;; standing inside someone (two wanderers at one spot): the one whose
+        ;; name sorts later gives up its pause and picks another spot
+        crowded? (and (> (:pause w) 0) (seq (:spots w))
+                      (some (fn [o] (and (< (pt-dist (:pos o) P) (+ (:radius w) (or (:radius o) (:radius w))))
+                                         (pos? (compare (str (:id w)) (str (:id o))))))
+                            others))]
+    (if (or (< (count route) 2) (and (> (:pause w) 0) (not crowded?)))
       (assoc w :aim nil)
+      (if crowded?
+        (assoc w :pause 0.01 :aim nil)   ; next step ends the pause and picks a free spot
       (let [G (target w)
             P (:pos w)
             r (:radius w)
@@ -622,7 +638,7 @@
                   (cond
                     (:waited w)      (arrive w1)
                     (> (:wait w) 0)  (assoc w1 :aim nil)
-                    :else            (assoc w1 :aim nil :side nil :wait wait-s)))))))))))
+                    :else            (assoc w1 :aim nil :side nil :wait wait-s))))))))))))
 
 (defn plan-all
   ([ws statics cfg] (plan-all ws statics cfg nil))
@@ -631,8 +647,12 @@
          ex (extra-others extras)]
      (vec (map-indexed
             (fn [i w]
-              (let [others (into (into (subvec ws 0 i) (subvec ws (inc i) n)) ex)]
-                (plan w (noticed w others) statics cfg)))
+              (let [others (into (into (subvec ws 0 i) (subvec ws (inc i) n)) ex)
+                    ;; where everyone else stands or is heading, for next-spot
+                    taken  (into [] (comp (mapcat (fn [o] [(:pos o) (when (seq (:route o)) (target o))]))
+                                          (filter valid-point?))
+                                 others)]
+                (plan (assoc w :taken taken) (noticed w others) statics cfg)))
             ws)))))
 
 (defn replan
