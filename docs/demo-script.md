@@ -9,6 +9,25 @@ Capture: `screencapture -v -A` (system audio), 1440×900 points; cut with ffmpeg
 
 ## The two cuts (Nov 29)
 
+**Structure (Michael, Nov 22):** show how Hermes and Herdr do the work today, then the *same
+action* in the game, as match cuts, so the advantage of the gamification is visible without
+saying it: one place, the world tells you who's waiting, you talk the way you talk on your phone,
+and you can leave. Every pair below is a shot in Hermes/Herdr followed by its twin on the estate.
+
+| # | Today (Hermes / Herdr / terminal) | In the game | What it shows |
+|---|---|---|---|
+| M1 | You type to Hal in the Hermes chat | Click Hal, say it in 💭; he answers on his plate, in his voice, or walks over | the twin is a person in a place, not a prompt box |
+| M2 | A Claude member stops on a permission prompt in a Herdr pane; you find the pane, read, answer | A "!" over that walker; click it: before → proposed ghost; Approve | you see *what* you're approving, and *who's* waiting, from anywhere |
+| M3 | `herdr pane list`, five panes, busy/idle by reading them | The crew key: dots, names, "!"s; click a row and the camera follows | status is ambient, not polled |
+| M4 | `/usage` typed into a pane; read the panel | Hal: "Claude's used 83% till 2 PM"; the juice meter | limits are part of the world, spoken |
+| M5 | Flora's 09:00 text from the bot's number; you reply FED | Flora's jar, her worm count, her "!"; tick the chore in her thread | real life mirrored, same loop |
+| M6 | A member needs a word while you're away from the laptop: it waits | 📞 on a contact; the call reaches your real phone (T-11/T-12) | the agent can reach you where you are |
+| M7 | `bb content mirror-lines` scrolls in a terminal (take 1) | Flora says the new line | content lands in the engine with no hands |
+| M8 | Closing the laptop, the crew still running | The hardline rings; jack out; the work waits | the game sends you back to life |
+
+Promo = M1–M8 as fast match cuts (~5 s a pair) framed by S1/S11; the pipeline video = the same
+pairs with room, plus S4–S8 in order as the one chain: ask → crew → gate → `main` → live.
+
 **Promo** (45–60 s, the README header and the lotect.com game page): the feeling. **Pipeline**
 (3–4 min, A7 deliverable 2): the same shoot, with the you → twin → crew → gate → `main` → live
 chain given room, the content loop as one fast-forwarded section with a cost card. One piece can
