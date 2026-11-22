@@ -1,0 +1,74 @@
+{:A {:score 8
+     :reason "Hal mostly sounds like the GDD's Hal: short, warm and plain. The draft keeps 'Welcome back.', uses the GDD's own 'I need a program for this one: {program}.', and follows the coach pattern in 'You said {habit}: {goal}. Want today to count toward it?'. Points come off where he performs or narrates the interface instead of talking to you ('Goodnight — go live your life.', 'Got {name}'s {chore}. {name}'s bubble clears on the estate.') and where his tone turns curt ('I asked, you said yes — that's that.'). No film is quoted, no line talks about the player in the third person, and no job titles are used."
+     :violations [{:where ":closing-time line 2 \"That's {bedtime}. Goodnight — go live your life.\""
+                   :rule 1
+                   :issue "'go live your life' is a slogan. It preaches instead of telling you what happened and what's next."
+                   :fix "That's {bedtime}. The crew keeps working; goodnight."}
+                  {:where ":chore-done line 3 \"Got {name}'s {chore}. {name}'s bubble clears on the estate.\""
+                   :rule 1
+                   :issue "The second sentence describes what the screen does, not something a companion would say to you. It also says {name} twice, which reads badly ('Got Flora's feed. Flora's bubble clears...')."
+                   :fix "Got {name}'s {chore}. One less thing floating over the canal."}
+                  {:where ":stay-late line 1 \"Staying late. I asked, you said yes — that's that.\""
+                   :rule 1
+                   :issue "'that's that' sounds clipped, like a rules referee rather than a companion. 'you said yes' is also wrong: you chose to stay, you didn't agree to anything Hal proposed."
+                   :fix "Staying late, then. I asked once; it's your call."}]}
+ :B {:score 9
+     :reason "The world rules hold almost everywhere. Closing time is framed as your own rule ('Last call. You asked me to send you home at {bedtime}.', 'It's {bedtime}, the hour you picked.'). Jacking out is good ('{name} comes first. This waits.'). SAMPLE is honest ('Sample or real, it shows on the badge.', 'Want the sample first?'), work is shown as blueprints that are still waiting ('Nothing changes till you approve.'), and limits are stated plainly ('Its desk is freed; the cap refills later.', 'Any keycards it held came back to you.'). The two small slips are one-at-a-time approval wording and a line that assumes how you reported the chore."
+     :violations [{:where ":blueprint-ready line 4 \"Blueprints are ghosted in the world now. Approve one and it turns real.\""
+                   :rule 9
+                   :issue "Approvals come grouped in one tray. 'Approve one' suggests you approve them one at a time."
+                   :fix "Blueprints are ghosted in the world now. Approve the tray and they turn real."}
+                  {:where ":chore-not-due line 3 \"Nothing logged. One per window, so a second click won't count twice.\""
+                   :rule 6
+                   :issue "It assumes the earlier report was also a click, but it may have come by text, NFC or Hal. It also explains the rule like a manual, where the other lines give the clock times."
+                   :fix "Nothing logged; it's already counted for now. Next one's around {next-at}."}]}
+ :C {:score 9
+     :reason "No XP, scores or streaks anywhere. The weekly card keeps to 'Part of the curve, nothing more.' and 'which way it's heading'. No line claims to have sent or bought anything, and no private details appear. The memorial lines give {name} no needs ('Nothing more will ask you about {name}.'). Two lines hint at blame where the brief asked for none: 'whenever it's really done' and 'no need to check'."
+     :violations [{:where ":chore-undone line 4 \"Easy fix. Mark {name}'s {chore} again whenever it's really done.\""
+                   :rule 12
+                   :issue "'really done' suggests you falsely reported the chore. The event is a simple mistake and should carry no blame."
+                   :fix "Easy fix. Mark {name}'s {chore} again when it's done."}
+                  {:where ":chore-not-due line 2 \"Already done at {last-at}. I'll call you when it comes due; no need to check.\""
+                   :rule 12
+                   :issue "'no need to check' gently tells you off for clicking."
+                   :fix "Already done at {last-at}. I'll call you around {next-at}."}]}
+ :D {:score 7
+     :reason "Every line fits a bubble: two sentences at most, and the longest ('Time jacked in this week: {hours}. The aim's fewer hours with life still getting done.') is well under 120 characters. Only declared placeholders are used. The weak spot is variety. All four :weekly-card lines open with the same 'time jacked in this week: {hours}' in slightly different words, and all four :jack-out-household lines are the same quote-then-'go on' line. A few placeholder fits and some rule-explaining lines ('it shows stalled now, not busy') also cost points."
+     :violations [{:where ":weekly-card all lines"
+                   :rule 18
+                   :issue "The same line four times in different words: 'Time jacked in this week: {hours}' / 'Time in this week: {hours}' / 'Jacked-in time this week: {hours}' / 'time jacked in, {hours}'."
+                   :fix "Use four different points: \"{hours} in here this week. The trend's on the board.\" / \"Fewer hours, chores still done: that's the curve. This week, {hours}.\" / \"{hours} jacked in this week. The rest of it was yours.\" / \"Weekly card's up: {hours} and an arrow. No score, just the direction.\""}
+                  {:where ":jack-out-household all lines"
+                   :rule 18
+                   :issue "Every variant quotes {text} and then says the same thing ('go on' / 'off you go' / 'we're fine')."
+                   :fix "Keep line 1. Replace the others with different content: \"Household comes first. I'll hold your place.\" / \"Phone booth: “{text}”. When you're back I'll show you what moved.\" / \"Someone at home needs you. The crew keeps going.\""}
+                  {:where ":stay-late lines 1 and 4 \"Staying late...\""
+                   :rule 18
+                   :issue "Both lines open with 'Staying late' and both mean 'decision made, no more asking'."
+                   :fix "Make line 1 about the estate at night: \"Night it is, then. The workshop lights stay on with you.\""}
+                  {:where ":coach-habit line 3 \"You told me {habit}, {goal}. No pressure; one today?\""
+                   :rule 19
+                   :issue "'one today?' only works for a habit you count. A habit like 'in bed by 11' breaks it, and 'told me {habit}, {goal}' reads awkwardly with real values."
+                   :fix "You told me {habit}: {goal}. Is today a good day for it?"}
+                  {:where ":coming-back line 4 \"You're back from the {chore}. Want the next small step?\""
+                   :rule 19
+                   :issue "'back from the {chore}' only reads well when the chore is a noun-like errand ('the walk'). With 'feed' it becomes 'back from the feed'."
+                   :fix "You're back, and it counted. Want the next small step?"}
+                  {:where ":agent-stalled line 2 \"{agent} stopped reporting, so it shows stalled now, not busy.\""
+                   :rule 17
+                   :issue "It describes what the interface shows, which sounds like system output rather than the cozy voice."
+                   :fix "{agent} stopped reporting, so I've stopped calling it busy. Its desk is free."}]}
+ :S {:score 8
+     :reason "Most lines could only come from Prime Meridian: the hardline and phone booth, night-shift orders, blueprints on the shelf, keycards coming back, 'ran out of juice', '{program}'s on my belt now', the sample badge, and 'see you at breakfast'. Points come off because none of the crew's French names appear even where a line names the crew. :next-small-step, :memorial-moved and :coach-habit could also belong to any cozy game."
+     :violations [{:where ":next-small-step lines 1-2 \"Estate's a little overgrown. One small thing and a path clears.\" / \"Overgrown, never ruined...\""
+                   :rule 3
+                   :issue "These are generic cozy-game lines. Line 2 also reads the GDD's own wording ('never ruined') back to you."
+                   :fix "Estate's a little overgrown. Answer one '!' and I'll have the idle crew clear a path."}
+                  {:where ":stay-late line 3 / :closing-time line 3 \"The crew's still at it\" / \"The crew keeps working\""
+                   :rule 5
+                   :issue "These are the right places to show the crew's names, but the lines only say 'the crew'."
+                   :fix "Alright. Le Testeur's still at it; his blueprints wait for breakfast either way."}
+                  {:where ":memorial-moved line 1 \"{name}'s in the memorial now. A quiet spot on the estate, kept for good.\""
+                   :rule 3
+                   :issue "Generic. It doesn't tie the memorial to anything real on the estate, like the mirror going still and the chores stopping."
+                   :fix "{name}'s mirror is in the memorial now. No more chores, just the quiet spot by the canal."}]}}

@@ -1,0 +1,122 @@
+```edn
+{:jack-in
+ ["Welcome back."
+  "You're in. Let's see what the night left you."
+  "Here you are. The estate's been waiting."
+  "Back again. Good."
+  "You're jacked in. Let's look around."]
+
+ :coming-back
+ ["{chore}'s done. Welcome back."
+  "Good timing. {chore} counted, and here you are."
+  "{chore} first, like it should be. Let's pick this back up."
+  "You're back, and {chore}'s taken care of."]
+
+ :jack-out-household
+ ["{text} — go, this'll keep."
+  "That's your household calling. {text} Go."
+  "Hear that? {text} Nothing here needs you more."
+  "{text} Go on, we're fine."]
+
+ :jack-out-creature
+ ["{name} needs you. Go."
+  "That's {name} calling for you in real life. Go on."
+  "{name} comes first. This waits."
+  "Go see to {name}. We'll hold here."]
+
+ :jack-out-appointment
+ ["Leave by {leave-at} for {event}. Go."
+  "{event} — you're leaving at {leave-at}. Go on."
+  "Time to go: {leave-at}, for {event}."
+  "{leave-at}, for {event}. This'll still be here."]
+
+ :chore-done
+ ["{name}'s {chore}: done. That one counts."
+  "Logged: {name}'s {chore}."
+  "{name}'s {chore} is taken care of."
+  "Got it. {name}'s {chore}, done."]
+
+ :chore-not-due
+ ["Not due yet. Last done at {last-at}, next around {next-at}."
+  "Already handled, at {last-at}. Next window's around {next-at}."
+  "Nothing to log — done at {last-at}, due again near {next-at}."
+  "Too soon. {last-at} covered it; next is around {next-at}."]
+
+ :chore-undone
+ ["Taken back — {name}'s {chore} wasn't actually done. No harm."
+  "Undone. {name}'s {chore} goes back on the list."
+  "Fixed — {name}'s {chore} is unlogged."
+  "Easy mistake. {name}'s {chore}'s back on the board."]
+
+ :program-loaded
+ ["{program}'s loaded. Watch — {building} is rising."
+  "{program}: in. {building}'s taking shape now."
+  "That's {program} on now. {building} just came up."
+  "{program} loaded. There's {building}."]
+
+ :program-needed
+ ["This one needs {program}. Load it and we'll keep going."
+  "I don't have {program} yet. That's what this task is waiting on."
+  "Need {program} for this. Your call."
+  "Can't do this one without {program}."]
+
+ :next-small-step
+ ["Things got a little overgrown. One small thing would turn it around."
+  "Nothing's broken. Pick one small thing and we're moving again."
+  "It's quiet out there. Let's start with just one small step."
+  "A little overgrown, that's all. What's one thing we could do right now?"]
+
+ :coach-habit
+ ["You said {habit}: {goal}. Want today to count toward it?"
+  "{habit} — {goal} was your goal. Still good?"
+  "Your words: {habit}, {goal}. No pressure, just checking in."
+  "{goal}, for {habit} — where are we this week?"]
+
+ :morning-brief
+ ["Morning card's up. Items waiting: {count}."
+  "Pinned the brief. On there: {count}."
+  "Card's on the board — waiting: {count}."
+  "Here's the morning card. Count on it: {count}."]
+
+ :blueprint-ready
+ ["Blueprints waiting: {count}."
+  "Waiting for your approval: {count}."
+  "On the shelf, waiting on you: {count}."
+  "Ready for a look — waiting: {count}."]
+
+ :agent-stalled
+ ["{agent} stopped reporting. Desk's freed."
+  "Lost {agent} — cap ran out. Freed up the desk."
+  "{agent}'s quiet. Desk's open again."
+  "{agent} stalled out. Not holding the desk anymore."]
+
+ :last-call
+ ["Last call. {bedtime} comes up fast."
+  "Fifteen out from {bedtime}. Last call."
+  "{bedtime}'s close. Last call."
+  "Last call before {bedtime}."]
+
+ :closing-time
+ ["{bedtime}. Estate's going to night. Goodnight."
+  "That's {bedtime}. Goodnight — go live your life."
+  "{bedtime}'s here. Night's falling. Goodnight."
+  "Your {bedtime}. Goodnight."]
+
+ :stay-late
+ ["Staying late. I asked, you said yes — that's that."
+  "You're staying. No argument from me."
+  "Alright, you're staying up. I only ask once."
+  "Staying late, noted. No more asking tonight."]
+
+ :memorial-moved
+ ["{name}'s moved to memorial."
+  "{name}'s place is memorial now."
+  "Moved {name} to memorial."
+  "{name}'s with memorial now."]
+
+ :weekly-card
+ ["This week, jacked in: {hours}."
+  "Time in this week: {hours}. Just a trend, not a score."
+  "{hours} jacked in this week — part of the curve, nothing more."
+  "This week's hours in: {hours}."]}
+```

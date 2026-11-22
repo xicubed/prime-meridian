@@ -1,0 +1,101 @@
+{:last-call
+ ["Last call. You asked me to send you home at {bedtime}."
+  "Fifteen minutes to {bedtime}. Last call."
+  "Last call. Any night-shift orders before {bedtime}?"
+  "{bedtime} comes up fast, like you wanted. Anything else first?"],
+ :chore-done
+ ["{name}'s done: {chore}. That one counts."
+  "Logged — {name}'s all set for now."
+  "{name}'s {chore} is logged. Back to the estate?"
+  "That's {chore} sorted for {name}. The estate will show it right there."],
+ :morning-brief
+ ["Morning card pinned — items: {count}. Want the first one now?"
+  "Card's on the board. Want me to read it while you walk?"
+  "Today's card is up. The first thing on it can wait for coffee."
+  "Morning card's pinned — items: {count}, whenever you're ready."],
+ :blueprint-ready
+ ["Last night's tray is on the shelf — blueprints: {count}, whenever you're ready."
+  "Before and after are ready on the shelf — want a look?"
+  "Want to walk over to the shelf? It's all grouped, {count} of them."
+  "On the shelf this morning — blueprints: {count}, before and after."],
+ :next-small-step
+ ["One small thing: let's clear last night's tray."
+  "How about just one \"!\" to start?"
+  "Nothing big — one answer gets us moving again."
+  "Smallest step: one blueprint off the shelf. I'll take it from there."],
+ :jack-out-appointment
+ ["{event} today. Leave by {leave-at} and you'll make it easy."
+  "The hardline's ringing: {event}, out by {leave-at}."
+  "{event}: leave by {leave-at} — travel time's already counted."
+  "{leave-at} for {event}. Go, I've got the desks."],
+ :program-loaded
+ ["{program}'s in. Watch the {building} go up."
+  "Loaded {program} — there's the {building}."
+  "{program}'s loaded, sample for now. The {building}'s rising."
+  "That's {program} loaded. The {building} just landed."],
+ :coming-back
+ ["That's {chore} done. It counts."
+  "{chore}: done, and it counts. The estate waited for you."
+  "Handled: {chore}. Let's pick back up."
+  "That's {chore} off your plate. Welcome back in."],
+ :jack-out-creature
+ ["{name} needs you. Go on, I've got the desks."
+  "{name}'s calling for you. I'll hold the desks till you're back."
+  "Go see {name}. The desks keep working while you're out."
+  "{name} needs you out there. Go on, the estate will keep."],
+ :stay-late
+ ["Staying up, then. I asked once; the rest is yours."
+  "Your call. The estate stays at night; I won't ask again."
+  "Okay. Just didn't want you to lose track of time."
+  "Staying, then. No more asking tonight."],
+ :jack-in
+ ["Welcome back."
+  "You're in. Here's what changed while you were out."
+  "Here we are. Let's see what the night crew left on the shelf."
+  "You're in. Coffee first; the shelf will keep."
+  "You're in — I'll catch you up as we go."],
+ :program-needed
+ ["I need {program} for this one."
+  "This needs {program}. Load it and I'll carry on."
+  "Can't do this without {program} yet."
+  "{program} would get this done. Want to load it?"],
+ :weekly-card
+ ["This week, jacked in: {hours}. Trend's on the board."
+  "{hours} in the estate this week. The trend card's pinned by the coffee."
+  "{hours} this week. The rest of the time was yours."
+  "Weekly card's up: {hours}. Want to see which way it's heading?"],
+ :chore-not-due
+ ["Already done — last at {last-at}, next around {next-at}."
+  "Not due yet. Last was {last-at}, next around {next-at}."
+  "That one's set till around {next-at}. Nothing to log."
+  "Last at {last-at}, next due around {next-at}. All set."],
+ :closing-time
+ ["{bedtime}, like you asked. I'll walk you to the door."
+  "That's {bedtime}. Estate's going to night — goodnight."
+  "{bedtime}. Estate's going dark. Night crew's on; blueprints by breakfast."
+  "{bedtime}'s here, like you asked. Goodnight for now."],
+ :jack-out-household
+ ["The hardline: \"{text}\". Go, the estate will wait."
+  "The hardline's ringing — \"{text}\". I've got the desks."
+  "\"{text}\" — the hardline's calling. Go, I'll hold things down here."
+  "Someone's on the hardline: \"{text}\". Go on."],
+ :coach-habit
+ ["You said {goal} for {habit}. One today?"
+  "{habit} fits before lunch, if you want it. Your goal: {goal}."
+  "No pressure: {habit}'s still on your list, {goal}."
+  "{habit}, {goal} — your words. Still stands if you want it today."],
+ :agent-stalled
+ ["{agent} stopped reporting. Desk's freed."
+  "{agent} hit its cap. Desk's free; the job waits."
+  "{agent}'s out of juice till it refills. Want the night crew on it?"
+  "Cap ran out on {agent} — its keycards are back, desk's open."],
+ :memorial-moved
+ ["{name} has a quiet place on the estate now."
+  "{name}'s in the memorial now. I'll keep the spot tidy."
+  "{name}'s there, in memorial. Always will be."
+  "{name} stays with us, in memorial now."],
+ :chore-undone
+ ["Undone — {name}'s {chore} goes back on the list."
+  "Got it. {chore} for {name} wasn't done — taking it back."
+  "No worries — {name}'s {chore} is open again."
+  "Taken back. {name}'s {chore} shows as due again on the estate."]}

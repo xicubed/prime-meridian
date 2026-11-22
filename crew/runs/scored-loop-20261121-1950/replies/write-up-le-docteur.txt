@@ -1,0 +1,161 @@
+
+ ▐▛███▛█   Claude Code v2.1.330
+▝▜██████▀  Sonnet 5 · Claude Max
+ ▝▝   ▝▝   ~/src/prime-meridian
+
+
+❯ Say hi in ONE line: your name, your job, and the model
+  you're running on. Don't use any tools.
+
+⏺ Hi, I'm Le Docteur — the crew's writer and chronicler —
+  running on Claude Sonnet 5.
+
+✻ Churned for 2s · done 7:17 PM
+
+❯ Read .crew/quests/scored-loop.md (Done when),
+  crew/runs/scored-loop-20261121-1950/spec.md,
+  crew/runs/scored-loop-20261121-1950/run-note.md, the
+  run directory it names (log.md, scores.edn, the scorer
+  and refiner prompts, draft-1 vs the final draft),
+  content/STYLE.md. Write docs/assignment-5-loop.md for
+  a grader (~1 page, your role card's voice, no
+  marketing): the three roles (Generator,
+  Evaluator=scorer, Refiner) and where their prompts
+  live (relative links), the style guide's provenance
+  (STYLE.md rules → GDD sections, with 3 examples), the
+  scoring (table: criterion, weight, threshold), the
+  real run's trajectory with two quoted reasons and the
+  lines they changed (quote draft-1 vs final), and a
+  short 'why this is Prime Meridian and not a generic
+  game' paragraph grounded in the quoted lines. Also add
+  a row to TASKS.md's done list if it has one. Reply
+  when written.
+
+  When you have completely finished, end your reply with
+  a line containing only this: done-5540
+
+  Read 5 files, listed 2 directories
+
+⏺ The real run is content/runs/hal-lines-20261121-1949.
+  Let me look at that directory in full.
+
+  Read 2 files, listed 1 directory, ran 5 shell commands
+
+⏺ Now I have everything I need. Let me write the doc.
+
+⏺ Write(docs/assignment-5-loop.md)
+  ⎿  Wrote 110 lines to docs/assignment-5-loop.md
+      1 # Assignment 5: the scored content loop
+      2
+      3 Prime Meridian already had a Generator → E
+        valuator → Refiner loop (`content/pipeline
+        .clj`,
+      4 Assignment 4) that drafted, validated and
+        critiqued voice lines. This assignment mad
+        e the
+      5 Evaluator a **scorer** (a number and a rea
+        son per rule family, never a verdict) and
+     … +106 lines (~6 KB)
+
+⏺ Now let me add the TASKS.md row.
+
+⏺ Update(TASKS.md)
+  ⎿  Added 1 line
+      31  - [x] 2026-11-07 C-8 Tried NVIDIA Motion
+          Bricks (round `motion-bricks-v0`: two SO
+          MA mannequins on the creek bank with `?b
+          ricks`, one shared model, ~60 fps). Befo
+          re shipping: host the model pack ourselv
+          es (gitignored). Was: Idea: try NVIDIA M
+          otionBricks (`three-motionbricks`, Apach
+          e-2.0; weights under NVIDIA's Open Model
+           Agreement) as the reference motion for
+          one KayKit agent behind the motion-contr
+          oller interface, after the MVP. Humanoid
+           only (nothing for Flora). 190-760 MB mo
+          del download.
+      32  - [ ] C-5 Submit Assignment 3: repo link
+           to `crew/README.md` + crew-up link.
+      33  - [x] 2026-11-14 A-5 Assignment 5, goal-
+          oriented coding agent (`tools/goal-agent
+          /`, `bb goal-agent`): reads the GDD into
+           44 requirements, scans, scores, writes
+          with Claude Code, gates, loops; built `p
+          m.events` (the four bridge events) and d
+          emo mode's SAMPLE badges. Submit the REA
+          DME link by Nov 15, 8:59 PM PT.
+      34 +- [x] 2026-11-21 A-6 Assignment 5 (score
+         +d content loop, quest `scored-loop`): th
+         +e content pipeline's critic becomes a sc
+         +orer (score + reason per STYLE.md rule f
+         +amily, no verdict) and the Refiner is it
+         +s own step; one real run on `hal-lines`
+         +(4 drafts, trajectory 6.9 → 7.9 → 7.7 →
+         +7.9, did not clear the 8.0 bar); write-u
+         +p `docs/assignment-5-loop.md`.
+      35
+      36  ## Week 2 — World v0 (estate + mock agen
+          ts)
+      37  > Rewrite these from the re-cut MVP (GDD
+           §4.8) before starting: no XP or tank; a
+          dd the static "!", the motion-controller
+           interface with kinematic paths, and the
+           four bridge events as mock data.
+
+⏺ Done. Wrote docs/assignment-5-loop.md — the three roles
+  and their prompts (with line-anchored links into
+  content/pipeline.clj plus the real run's saved prompt
+  files), STYLE.md's provenance with three
+  rule→GDD-section examples, the scoring table
+  (criterion/weight/threshold), the hal-lines run's
+  trajectory table with two quoted Evaluator reasons and
+  the draft-1-vs-final lines they moved (:memorial-moved
+  and :morning-brief), and a closing paragraph on why
+  it's specific to this game, grounded in those same
+  quoted lines. Added row A-6 to TASKS.md's done list.
+
+  One honest note for the grader-facing framing: the real
+  run did not pass the threshold (plateaued at 7.9 after
+  4 drafts) — I kept that as the reported result per the
+  spec ("lower the bar is not the answer"), not smoothed
+  over.
+
+  done-5540
+
+✻ Churned for 1m 51s · done 8:04 PM
+
+❯ Read .crew/quests/scored-loop.md (Done when),
+  crew/runs/scored-loop-20261121-1950/spec.md,
+  crew/runs/scored-loop-20261121-1950/run-note.md, the
+  run directory it names (log.md, scores.edn, the scorer
+  and refiner prompts, draft-1 vs the final draft),
+  content/STYLE.md. Write docs/assignment-5-loop.md for
+  a grader (~1 page, your role card's voice, no
+  marketing): the three roles (Generator,
+  Evaluator=scorer, Refiner) and where their prompts
+  live (relative links), the style guide's provenance
+  (STYLE.md rules → GDD sections, with 3 examples), the
+  scoring (table: criterion, weight, threshold), the
+  real run's trajectory with two quoted reasons and the
+  lines they changed (quote draft-1 vs final), and a
+  short 'why this is Prime Meridian and not a generic
+  game' paragraph grounded in the quoted lines. Also add
+  a row to TASKS.md's done list if it has one. Reply
+  when written.
+
+  When you have completely finished, end your reply with
+  a line containing only this: done-4660
+
+⏺ This is the same task I just finished —
+  docs/assignment-5-loop.md is already written and the
+  TASKS.md row (A-6) is already added. Nothing further to
+  do; same content as reported above.
+
+  done-4660
+
+✻ Crunched for 3s · done 8:20 PM
+
+─────────────────────────────────────────────────────────
+❯
+─────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

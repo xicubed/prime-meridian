@@ -1,0 +1,71 @@
+{:A {:score 8
+     :reason "Hal mostly sounds like the GDD's companion: \"{bedtime}, like you asked. I'll walk you to the door.\" and \"I need {program} for this one.\" echo his canon lines, and every line speaks to you without quoting the films. Points come off for three clipped lines that read as orders or as sulking rather than warm and wry, such as \"{name} needs you out there. Go.\" and \"Staying up, alright. I asked — that's enough.\""
+     :violations [{:where ":jack-out-creature line 4 \"{name} needs you out there. Go.\""
+                   :rule 1
+                   :issue "The bare imperative \"Go.\" reads as a drill sergeant. There is no warmth and no hand-off of what Hal holds while you're out."
+                   :fix "\"{name} needs you out there. Go on, the estate will keep.\""}
+                  {:where ":stay-late line 1 \"Staying up, alright. I asked — that's enough.\""
+                   :rule 1
+                   :issue "\"that's enough\" sounds tetchy, as if Hal is keeping score of the ask. A companion accepts it plainly."
+                   :fix "\"Staying up, then. I asked once; the rest is yours.\""}
+                  {:where ":jack-out-appointment line 1 \"Leave by {leave-at} for {event}.\""
+                   :rule 1
+                   :issue "This is a flat calendar notification, not the twin's voice. It has no wry or warm beat and no sense that Hal is with you."
+                   :fix "\"{event} today. Leave by {leave-at} and you'll make it easy.\""}]}
+ :B {:score 7
+     :reason "The world rules mostly hold. Bedtime is framed as yours (\"Last call. You asked me to send you home at {bedtime}.\"), blueprints wait (\"Night crew's on; blueprints by breakfast.\"), and stalls are plain facts (\"Cap ran out on {agent} — its keycards are back, desk's open.\"). Points come off for three lines. One claims reality that may be a sample, one makes closing Hal's call, and one puts the blueprint tray at night."
+     :violations [{:where ":jack-out-creature line 2 \"{name}'s calling for you. This one's real.\""
+                   :rule 8
+                   :issue "In demo mode the creature and the twin are SAMPLE connections, so \"This one's real\" would pass a pretend chore off as real. Rule 8 forbids sample content pretending to be real."
+                   :fix "\"{name}'s calling for you. I'll hold the desks till you're back.\""}
+                  {:where ":last-call line 4 \"{bedtime} comes up fast. Anything else before I call it?\""
+                   :rule 6
+                   :issue "\"before I call it\" makes closing time Hal's decision. Closing time is a rule the player set, not a lock Hal imposes."
+                   :fix "\"{bedtime} comes up fast, like you wanted. Anything else first?\""}
+                  {:where ":blueprint-ready line 4 \"On the shelf tonight: {count} blueprints, before and after.\""
+                   :rule 9
+                   :issue "The grouped tray of last night's blueprints waits at breakfast. \"tonight\" also contradicts line 1's \"Last night's tray\"."
+                   :fix "\"On the shelf this morning: {count} blueprints, before and after.\""}]}
+ :C {:score 10
+     :reason "Nothing forbidden is said. There are no points, levels or streaks, and \"That one counts.\" stays street-cred language. No line claims a purchase or a sent message (\"I'll hold things down here.\"), the undo is blameless (\"No worries — {name}'s {chore} is open again.\"), and memorial lines give the pet no needs (\"{name}'s in the memorial now. I'll keep the spot tidy.\"). The weekly card shows hours and a trend, never a score, and no private details appear."
+     :violations []}
+ :D {:score 6
+     :reason "Every line fits a bubble, the tone stays cozy, and no line sounds corporate. Variety is the weak spot: :weekly-card is one line said four ways (\"Hours jacked in: {hours}. The trend's on the board.\" / \"Hours this week: {hours}. Check the trend on the board.\"). :jack-out-appointment and :coach-habit are reworded the same way, and a few placeholders read awkwardly with real values."
+     :violations [{:where ":weekly-card, all 4 lines"
+                   :rule 18
+                   :issue "All four variants say hours plus 'trend on the board' in different word order. This is the same line reworded, not real variety."
+                   :fix "Keep line 1 and vary the content: \"{hours} in the estate this week. The trend card's pinned by the coffee.\" / \"{hours} this week. The rest of the time was yours.\" / \"Weekly card's up: {hours}. Want to see which way it's heading?\""}
+                  {:where ":jack-out-appointment, lines 1-3"
+                   :rule 18
+                   :issue "\"Leave by {leave-at} for {event}.\", \"{event} — out the door by {leave-at}.\" and \"Time to go: {leave-at}, for {event}.\" carry identical content."
+                   :fix "Give each line a different beat: travel (\"{event}: leave by {leave-at}, travel time's counted.\"), hand-off (\"{leave-at} for {event}. Go, I've got the desks.\"), or the phone booth (\"The hardline's ringing: {event}, out by {leave-at}.\")."}
+                  {:where ":coach-habit, all 4 lines"
+                   :rule 18
+                   :issue "All four variants restate habit + goal + 'today?' in a different order."
+                   :fix "Vary the angle while keeping the player's words: \"You said {goal} for {habit}. One today?\" / \"{habit} fits before lunch, if you want it. Your goal: {goal}.\" / \"No pressure: {habit}'s still on your list, {goal}.\""}
+                  {:where ":jack-in lines 3 and 4"
+                   :rule 18
+                   :issue "\"Here we are. Let's see what the night crew left on the shelf.\" and \"You're in — the night crew left a few things on the shelf.\" are the same line."
+                   :fix "Replace line 4 with a different beat: \"You're in. Coffee first; the shelf will keep.\""}
+                  {:where ":coach-habit line 1 \"You said {habit}: {goal}. Count it today?\"; :chore-done lines 1 and 4 \"Done: {chore} for {name}.\""
+                   :rule 19
+                   :issue "With declared values these read badly: \"You said workout: 3/wk.\" and \"Done: feed for Flora.\" The lines don't read correctly with any value."
+                   :fix "\"You said {goal} for {habit}. One today?\" and \"{name}'s done: {chore}. That one counts.\""}]}
+ :S {:score 7
+     :reason "Many lines are unmistakably Prime Meridian: \"Last night's tray is on the shelf\", \"{agent}'s out of juice till it refills\", \"{program}'s loaded, sample for now. The {building}'s rising.\" and \"Any night-shift orders before {bedtime}?\" Others could come from any cozy game, such as \"That's handled. Back to what you were doing?\", \"Good — {chore}'s taken care of.\" and \"Go see {name} — I'll keep an eye on things.\" The phone booth and hardline never appear in the jack-out lines."
+     :violations [{:where ":chore-done line 3 \"That's handled. Back to what you were doing?\""
+                   :rule 3
+                   :issue "This line is generic and drops both the creature and the chore. It doesn't come from a real pet's state."
+                   :fix "\"{name}'s {chore} is logged. Back to the estate?\""}
+                  {:where ":coming-back line 2 \"Good — {chore}'s taken care of.\""
+                   :rule 7
+                   :issue "This line is generic. It misses the GDD's return beat: the chore counted, the estate waited, and here is the next small step."
+                   :fix "\"{chore}: done, and it counts. The estate waited for you.\""}
+                  {:where ":jack-out-household, all 4 lines"
+                   :rule 7
+                   :issue "None of the lines places the call at the phone booth (the hardline), the estate's signature jack-out."
+                   :fix "\"The hardline: \\\"{text}\\\". Go, the estate will wait.\""}
+                  {:where ":jack-out-creature line 3 \"Go see {name} — I'll keep an eye on things.\""
+                   :rule 3
+                   :issue "\"keep an eye on things\" is generic. Name what Hal actually holds."
+                   :fix "\"Go see {name}. The desks keep working while you're out.\""}]}}

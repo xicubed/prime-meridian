@@ -1,0 +1,114 @@
+{:A {:score 7
+     :reason "The voice is mostly plain and addresses you directly, and some lines land as the GDD's Hal: \"You said {habit}: {goal}. Want today to count toward it?\", \"Go see to {name}. We'll hold here.\" and \"Alright, you're staying up. I only ask once.\" But the jack-out lines that end on a bare \"Go.\" sound like a drill sergeant, the count lines (\"Waiting for your approval: {count}.\") read like a butler's status readout, and the memorial lines are cold for a pet who died."
+     :violations [{:where ":jack-out-creature line 1 \"{name} needs you. Go.\""
+                   :rule 1
+                   :issue "A curt order that ends on a one-word command. That is a drill sergeant, not a warm companion."
+                   :fix "\"{name}'s calling for you. Go on, I've got the estate.\""}
+                  {:where ":jack-out-appointment line 1 \"Leave by {leave-at} for {event}. Go.\""
+                   :rule 1
+                   :issue "Same bark pattern. The \"Go.\" ending also repeats across the jack-out keys."
+                   :fix "\"{event} today. Leave by {leave-at} and you're right on time.\""}
+                  {:where ":jack-out-household line 2 \"That's your household calling. {text} Go.\""
+                   :rule 1
+                   :issue "\"Your household\" is stiff, institutional wording, and the line ends on another bare \"Go.\""
+                   :fix "\"Someone at home: {text} Off you go, this keeps.\""}
+                  {:where ":memorial-moved all four lines (\"Moved {name} to memorial.\", \"{name}'s with memorial now.\")"
+                   :rule 1
+                   :issue "Clinical status confirmations for a pet who died. There's no warmth, which a companion would bring here."
+                   :fix "Keep it gentle without speaking as if the pet were alive: \"{name}'s in the memorial now. A quiet spot on the estate, kept for good.\""}
+                  {:where ":blueprint-ready line 2 \"Waiting for your approval: {count}.\" and :morning-brief line 1 \"Morning card's up. Items waiting: {count}.\""
+                   :rule 1
+                   :issue "A butler's readout. Rule 1 says the twin tells you what happened and what's next, not a labeled field."
+                   :fix "\"{count} on the shelf from last night, all in one tray. Have a look when you're ready.\""}
+                  {:where ":jack-in line 4 \"Back again. Good.\""
+                   :rule 1
+                   :issue "Curt, and \"Good.\" grades you instead of saying what happened or what's next."
+                   :fix "\"Back again. Let's see who needs you first.\""}]}
+ :B {:score 8
+     :reason "Jacking out is framed well (\"{leave-at}, for {event}. This'll still be here.\", \"{name} comes first. This waits.\"). :chore-not-due says plainly \"Nothing to log\", and :stay-late asks once and lets it go (\"No more asking tonight.\"). But only \"Your {bedtime}.\" hints that bedtime is a rule you set, \"Last call. {bedtime} comes up fast.\" leans on pressure, no :program-loaded line admits programs start as SAMPLE, and \"Lost {agent}\" frames a usage cap as a loss."
+     :violations [{:where ":last-call line 1 \"Last call. {bedtime} comes up fast.\" (and the :last-call / :closing-time set overall)"
+                   :rule 6
+                   :issue "Closing time sounds like something happening to you. Nothing says it's the rule you set (GDD: \"you asked me to send you home\"), and \"comes up fast\" adds pressure."
+                   :fix "\"Last call. You asked me to send you home at {bedtime}.\""}
+                  {:where ":program-loaded (all four lines)"
+                   :rule 8
+                   :issue "Every program loads first as a pretend version (§4.6), and the Construct is when that matters most. No variant says so."
+                   :fix "Make one variant \"{program}'s in, the sample version for now. {building}'s rising.\""}
+                  {:where ":agent-stalled line 2 \"Lost {agent} — cap ran out. Freed up the desk.\""
+                   :rule 10
+                   :issue "\"Lost\" makes a normal usage cap sound like a failure. Rule 10 says limits are stated plainly, as part of the world."
+                   :fix "\"{agent} hit the cap and went quiet. Desk's freed till it refills.\""}
+                  {:where ":jack-in line 3 \"Here you are. The estate's been waiting.\""
+                   :rule 7
+                   :issue "It implies the estate sat idle without you, but agents work the same with the game closed, and line 2 (\"what the night left you\") says the opposite."
+                   :fix "\"Here you are. The crew kept busy; let's see what they made.\""}]}
+ :C {:score 8
+     :reason "Nothing claims a send or a purchase, nothing uses XP or streaks (\"Just a trend, not a score.\" heads off the score idea), no line leaks private details, and the memorial lines never give the pet needs. Two lines carry a trace of judgment the rules forbid: \"wasn't actually done\" hints you claimed something false, and \"like it should be\" grades your priorities."
+     :violations [{:where ":chore-undone line 1 \"Taken back — {name}'s {chore} wasn't actually done. No harm.\""
+                   :rule 12
+                   :issue "\"Wasn't actually done\" suggests the player claimed something false. The brief asked for light and no blame."
+                   :fix "\"Taken back. {name}'s {chore} is open again. No harm done.\""}
+                  {:where ":coming-back line 3 \"{chore} first, like it should be. Let's pick this back up.\""
+                   :rule 12
+                   :issue "\"Like it should be\" is a moral verdict on your choices. Rule 12 says the twin never judges, even with praise."
+                   :fix "\"{chore} counted. Let's pick this back up where you left it.\""}]}
+ :D {:score 4
+     :reason "Every line fits a bubble, but several keys give four rewordings of one sentence: :last-call (\"Last call before {bedtime}.\" / \"{bedtime}'s close. Last call.\"), :blueprint-ready, :morning-brief, :memorial-moved, :agent-stalled and :chore-done. The \"Label: {count}\" pattern, which dodges plurals, reads like a system readout, not the cozy diorama voice. A few placeholders read badly with real values (\"Your {bedtime}.\" becomes \"Your 22:30.\")."
+     :violations [{:where ":last-call (all four)"
+                   :rule 18
+                   :issue "Four rewordings of \"last call, bedtime soon\". No variant says anything different."
+                   :fix "\"Last call. Anything for the night shift before {bedtime}?\" / \"Fifteen minutes to {bedtime}. Good time to put in night orders.\" / \"Nearly {bedtime}. What's open keeps till breakfast.\" / \"Last call. You asked me to send you home at {bedtime}.\""}
+                  {:where ":blueprint-ready (all four)"
+                   :rule 18
+                   :issue "Each line is \"waiting: {count}\" with a different word in front."
+                   :fix "Give each variant a different job: \"{count} on the shelf, all in one tray.\" / \"Last night's work came in as blueprints: {count}. Before and after side by side.\" / \"The shelf's got {count} for you. Nothing's real till you say so.\""}
+                  {:where ":morning-brief (all four), especially line 4 \"Here's the morning card. Count on it: {count}.\" and line 2 \"Pinned the brief. On there: {count}.\""
+                   :rule 18
+                   :issue "Four rewordings of \"card's up, {count}\". Rule 17 also applies: the \"Count on it\" pun and \"On there:\" read awkwardly."
+                   :fix "Vary what the card is for: \"Card's on the board. {count} on it, and the first one's quick.\" / \"Pinned the brief. Your calendar's on top today.\" / \"Morning. The day's on one card, {count} lines.\""}
+                  {:where ":memorial-moved (all four)"
+                   :rule 18
+                   :issue "\"{name}'s moved to memorial\" said four ways. Line 4 \"{name}'s with memorial now\" is also ungrammatical."
+                   :fix "Say different things: one about the spot on the estate, one saying nothing will be asked of you for {name} anymore, one plain acknowledgment."}
+                  {:where ":agent-stalled (all four)"
+                   :rule 18
+                   :issue "Each line is \"{agent} stopped, desk freed\" reworded."
+                   :fix "Vary it: one on the cap refilling, one on the work waiting safely, one on the keycards coming back."}
+                  {:where ":chore-done (all four)"
+                   :rule 18
+                   :issue "\"Done / logged / taken care of\" for the same fact."
+                   :fix "Let one variant say it counts, one say when it's next due, and one add a cozy beat about {name}."}
+                  {:where ":weekly-card lines 1 and 4 (\"This week, jacked in: {hours}.\" / \"This week's hours in: {hours}.\")"
+                   :rule 18
+                   :issue "The same line twice."
+                   :fix "Replace one with a line about the direction: \"{hours} in this week. The goal's fewer, with life still getting done.\""}
+                  {:where "\"Label: {count}\" lines: :morning-brief line 1 \"Items waiting: {count}.\", :blueprint-ready line 2 \"Waiting for your approval: {count}.\", :chore-done line 2 \"Logged: {name}'s {chore}.\""
+                   :rule 17
+                   :issue "Field-and-value phrasing is a system readout. It's corporate, not the warm, soft diorama voice."
+                   :fix "Use \"{count}\" in a natural sentence whose noun works at any value: \"{count} on the shelf\", \"{count} on the card\"."}
+                  {:where ":closing-time line 4 \"Your {bedtime}. Goodnight.\""
+                   :rule 19
+                   :issue "With a real value it reads \"Your 22:30. Goodnight.\", which is ungrammatical."
+                   :fix "\"It's {bedtime}, the hour you picked. Goodnight.\""}
+                  {:where ":coming-back line 1 \"{chore}'s done. Welcome back.\" and line 2 \"{chore} counted\""
+                   :rule 19
+                   :issue "With a chore id like feed, these read \"feed's done\" and \"feed counted\": lowercase at the start of a sentence, and awkward with verb-like ids."
+                   :fix "\"Welcome back. The {chore} counted.\""}]}
+ :S {:score 6
+     :reason "Some vocabulary is clearly Prime Meridian (\"You're jacked in\", \"On the shelf, waiting on you\", \"Morning card's up\", \"{program} loaded. There's {building}.\", \"cap ran out\"). But many lines could belong to any cozy app: \"Last call before {bedtime}.\", \"Logged: {name}'s {chore}.\", \"It's quiet out there. Let's start with just one small step.\" No line names the phone booth or hardline, mentions SAMPLE, or says closing time is your own rule."
+     :violations [{:where ":jack-out-household / :jack-out-creature / :jack-out-appointment"
+                   :rule 7
+                   :issue "No variant uses the phone booth or hardline, which is the game's signature for real life calling you out."
+                   :fix "Make one variant per key \"Phone booth's ringing: {text} Go on, this keeps.\""}
+                  {:where ":next-small-step (all four), e.g. \"It's quiet out there. Let's start with just one small step.\""
+                   :rule 17
+                   :issue "Generic encouragement with no estate detail. A stranger couldn't tell which game this is."
+                   :fix "Tie it to the estate: \"Estate's a little overgrown. One answer on the board clears a path.\""}
+                  {:where ":weekly-card (all four)"
+                   :rule 6
+                   :issue "No line names the trend toward needing the game less. That trend is what makes the card belong to Prime Meridian and not a screen-time app."
+                   :fix "\"{hours} in this week. Fewer hours, same life getting done: that's the curve we want.\""}
+                  {:where ":closing-time / :last-call"
+                   :rule 6
+                   :issue "Hal's signature beat at closing (\"you asked me to send you home\") is missing, so the goodnight lines are interchangeable with any bedtime reminder."
+                   :fix "\"{bedtime}, like you asked. Estate's going to night. Goodnight.\""}]}}

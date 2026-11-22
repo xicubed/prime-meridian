@@ -1,0 +1,41 @@
+=== prompt 1 (18:18:58)
+  add; the validator and the context step are untouched), the bb test file and its numbered cases with expected
+  values, and a who-touches-what table (builder: pipeline.clj; tester: the test file; nobody else edits code). Reply
+  when it's written.
+
+  When you have completely finished, end your reply with a line containing only this: done-3137
+
+  Searched for 1 pattern, read 3 files, listed 3 directories
+
+⏺ Status: I've read the quest, STYLE.md, the README, pipeline.clj, a past run and GDD §3.1/§4.2. Now I'm writing the
+  spec.
+
+⏺ Verifying hand-worked weighted scores with Babashka
+  ⎿  $ export PATH=/opt/homebrew/bin:$PATH; bb -e '
+     (def w {:A 1.5 :B 1.0 :C 2.0 :D 1.0 :S 1.5})
+     (defn ov [[a b c d s]] (let [m (/ (+ (* 1.5 a) (* 1.0 b) (* 2.0 c) (* 1.0 d) (* 1.5 s)) 7.0)] [m (/ (Math/round (*
+     10.0 m)) 10.0)]))
+     (doseq [x [[7 8 5 8 7] [10 10 10 10 10] [0 0 0 0 0] [8 8 8 8 8] [10 6 10 6…
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose "switch to auto mode" below
+ Verify hand-worked weighted scores with Babashka
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ export PATH=/opt/homebrew/bin:$PATH; bb -e '
+ │ (def w {:A 1.5 :B 1.0 :C 2.0 :D 1.0 :S 1.5})
+ │ (defn ov [[a b c d s]] (let [m (/ (+ (* 1.5 a) (* 1.0 b) (* 2.0 c) (* 1.0 d) (* 1.5 s)) 7.0)] [m (/ (Math/round (*
+ │ 10.0 m)) 10.0)]))
+ │ (doseq [x [[7 8 5 8 7] [10 10 10 10 10] [0 0 0 0 0] [8 8 8 8 8] [10 6 10 6 8] [8 8 4 10 10] [7 7 7 7 8] [10 10 6 10
+ │ 10] [10 10 10 6 10] [9 9 9 9 5] [8 8 8 7 8] [10 5 10 10 10] [9 8 9 8 0] [10 0 8 6 0] [9 8 9 8 8] [8 9 8 8 8]]]
+ │ (prn x (ov x) (str (second (ov x)))))
+ │ (prn (Math/round 7.5) (Math/round 6.4) (Math/round 6.5))'
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ A variable in this command can't be checked before it runs
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend

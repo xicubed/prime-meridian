@@ -1,0 +1,48 @@
+
+ ▐▛███▛█   Claude Code v2.1.330
+▝▜██████▀  Haiku 4.5 · Claude Max
+ ▝▝   ▝▝   ~/src/prime-meridian
+
+
+❯ Say hi in ONE line: your name, your job, and the model
+  you're running on. Don't use any tools.
+
+⏺ Le Coureur here, the runner on Prime Meridian's crew—I
+  run the QA gate on Haiku 4.5.
+
+✻ Baked for 2s · done 7:17 PM
+
+❯ Run the gate (.crew/gate.sh) and write the gate note
+  to crew/runs/scored-loop-20261121-1950/gate-note.md as
+  your role card says.
+
+  When you have completely finished, end your reply with
+  a line containing only this: done-4349
+
+  Ran 1 shell command
+
+⏺ Write(crew/runs/scored-loop-20261121-1950/gate-note.md)
+  ⎿  Wrote 7 lines to crew/runs/scored-loop-20261121
+     -1950/gate-note.md
+      1 PASS
+      2
+      3 Compile summary:
+      4 - [:app] Build completed. (93 files, 0 com
+        piled, 0 warnings, 2.04s)
+      5 - [:test] Build completed. (130 files, 1 c
+        ompiled, 0 warnings, 2.33s)
+      6
+      7 Test summary: Ran 1010 tests containing 70
+        84 assertions. 0 failures, 0 errors. Ran 5
+     … +1 line
+
+⏺ PASS
+
+  done-4349
+
+✻ Cooked for 40s · done 7:48 PM
+
+─────────────────────────────────────────────────────────
+❯
+─────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

@@ -1,0 +1,50 @@
+diff --git a/src/pm/core.cljs b/src/pm/core.cljs
+index ea77395..6d9415c 100644
+--- a/src/pm/core.cljs
++++ b/src/pm/core.cljs
+@@ -873,7 +873,7 @@
+         (when (and (keyword? th) (:open? t') (not= (:n t') (get-in t' [:seen-by th])))
+           (swap! !world update :talk talk/mark-seen th)))
+       (when (not= key (:roster @!talk-ui))
+-        (ui/render-roster! rows on-say on-expand offset-of jum (assoc previews ::unread unread))
++        (ui/render-roster! rows on-say on-expand offset-of jum (assoc previews :pm.ui/unread unread))
+         (ui/show-hold-row! (and (some? twin) (= (ui/thread) (:agent twin))))
+         (swap! !talk-ui assoc :roster key)))
+     (let [sw (talk/hold-switch (:hold @!world) (bridge-on?) @!hold-ui jum)]
+diff --git a/src/pm/talk.cljs b/src/pm/talk.cljs
+index 5ab1ba8..42453a8 100644
+--- a/src/pm/talk.cljs
++++ b/src/pm/talk.cljs
+@@ -252,11 +252,21 @@
+           (set-done talk (:n e) true r)
+           (add-chore talk log-entry who now))))))
+ 
++(def quiet-kinds
++  "Entries that aren't messages to the player (status flips, the crew log,
++   the player's own lines): they never count as unread."
++  #{:crew-log :crew-status :crew-say})
++
++(defn counts?
++  "Does this entry count as a message the player hasn't read?"
++  [e]
++  (and (not (contains? quiet-kinds (:kind e))) (not= you (:who e))))
++
+ (defn unread [talk]
+   (let [talk (or talk empty-talk)]
+     (if (:open? talk)
+       0
+-      (count (filter #(and (> (:n %) (:seen talk)) (not= :crew-log (:kind %))) (:entries talk))))))
++      (count (filter #(and (> (:n %) (:seen talk)) (counts? %)) (:entries talk))))))
+ 
+ (defn unread-by
+   "Unread lines per contact (the phone's contacts list): contact -> count of
+@@ -267,8 +277,7 @@
+   (let [talk (or talk empty-talk)
+         seen (or (:seen-by talk) {})]
+     (reduce (fn [acc e]
+-              (if-let [c (and (not= :crew-log (:kind e)) (not= :crew-say (:kind e)) (not= you (:who e))
+-                              (contact-of e))]
++              (if-let [c (and (counts? e) (contact-of e))]
+                 (if (> (:n e) (get seen c 0)) (update acc c (fnil inc 0)) acc)
+                 acc))
+             {} (:entries talk))))

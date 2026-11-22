@@ -1,0 +1,111 @@
+# Content run: Hal's voice lines, keyed by event
+
+- request: `content/requests/hal-lines.edn`
+- generator: `claude-sonnet-5`, evaluator: `claude-opus-5-5`, refiner: `claude-opus-5-5`
+- GDD sections: §1., §2.1, §2.3, §2.6, §2.7, §3.; style guide: `content/STYLE.md`
+- threshold: overall ≥ 8.0, no criterion under 6 (weights A×1.5 B×1.0 C×2.0 D×1.0 S×1.5)
+
+
+## Draft 1 — Generator
+
+- generator: 7140 tokens out; validator: PASS
+- evaluator: draft 1: 6.8 (A 7 B 8 C 8 D 4 S 6) — under the bar (under 6: D)
+  - A 7: The voice is mostly plain and addresses you directly, and some lines land as the GDD's Hal: "You said {habit}: {goal}. Want today to count toward it?", "Go see to {name}. We'll hold here." and "Alright, you're staying up. I only ask once." But the jack-out lines that end on a bare "Go." sound like a drill sergeant, the count lines ("Waiting for your approval: {count}.") read like a butler's status readout, and the memorial lines are cold for a pet who died.
+  - B 8: Jacking out is framed well ("{leave-at}, for {event}. This'll still be here.", "{name} comes first. This waits."). :chore-not-due says plainly "Nothing to log", and :stay-late asks once and lets it go ("No more asking tonight."). But only "Your {bedtime}." hints that bedtime is a rule you set, "Last call. {bedtime} comes up fast." leans on pressure, no :program-loaded line admits programs start as SAMPLE, and "Lost {agent}" frames a usage cap as a loss.
+  - C 8: Nothing claims a send or a purchase, nothing uses XP or streaks ("Just a trend, not a score." heads off the score idea), no line leaks private details, and the memorial lines never give the pet needs. Two lines carry a trace of judgment the rules forbid: "wasn't actually done" hints you claimed something false, and "like it should be" grades your priorities.
+  - D 4: Every line fits a bubble, but several keys give four rewordings of one sentence: :last-call ("Last call before {bedtime}." / "{bedtime}'s close. Last call."), :blueprint-ready, :morning-brief, :memorial-moved, :agent-stalled and :chore-done. The "Label: {count}" pattern, which dodges plurals, reads like a system readout, not the cozy diorama voice. A few placeholders read badly with real values ("Your {bedtime}." becomes "Your 22:30.").
+  - S 6: Some vocabulary is clearly Prime Meridian ("You're jacked in", "On the shelf, waiting on you", "Morning card's up", "{program} loaded. There's {building}.", "cap ran out"). But many lines could belong to any cozy app: "Last call before {bedtime}.", "Logged: {name}'s {chore}.", "It's quiet out there. Let's start with just one small step." No line names the phone booth or hardline, mentions SAMPLE, or says closing time is your own rule.
+  - violation [A rule 1] :jack-out-creature line 1 "{name} needs you. Go.": A curt order that ends on a one-word command. That is a drill sergeant, not a warm companion.
+  - violation [A rule 1] :jack-out-appointment line 1 "Leave by {leave-at} for {event}. Go.": Same bark pattern. The "Go." ending also repeats across the jack-out keys.
+  - violation [A rule 1] :jack-out-household line 2 "That's your household calling. {text} Go.": "Your household" is stiff, institutional wording, and the line ends on another bare "Go."
+  - violation [A rule 1] :memorial-moved all four lines ("Moved {name} to memorial.", "{name}'s with memorial now."): Clinical status confirmations for a pet who died. There's no warmth, which a companion would bring here.
+  - violation [A rule 1] :blueprint-ready line 2 "Waiting for your approval: {count}." and :morning-brief line 1 "Morning card's up. Items waiting: {count}.": A butler's readout. Rule 1 says the twin tells you what happened and what's next, not a labeled field.
+  - violation [A rule 1] :jack-in line 4 "Back again. Good.": Curt, and "Good." grades you instead of saying what happened or what's next.
+  - violation [B rule 6] :last-call line 1 "Last call. {bedtime} comes up fast." (and the :last-call / :closing-time set overall): Closing time sounds like something happening to you. Nothing says it's the rule you set (GDD: "you asked me to send you home"), and "comes up fast" adds pressure.
+  - violation [B rule 8] :program-loaded (all four lines): Every program loads first as a pretend version (§4.6), and the Construct is when that matters most. No variant says so.
+  - violation [B rule 10] :agent-stalled line 2 "Lost {agent} — cap ran out. Freed up the desk.": "Lost" makes a normal usage cap sound like a failure. Rule 10 says limits are stated plainly, as part of the world.
+  - violation [B rule 7] :jack-in line 3 "Here you are. The estate's been waiting.": It implies the estate sat idle without you, but agents work the same with the game closed, and line 2 ("what the night left you") says the opposite.
+  - violation [C rule 12] :chore-undone line 1 "Taken back — {name}'s {chore} wasn't actually done. No harm.": "Wasn't actually done" suggests the player claimed something false. The brief asked for light and no blame.
+  - violation [C rule 12] :coming-back line 3 "{chore} first, like it should be. Let's pick this back up.": "Like it should be" is a moral verdict on your choices. Rule 12 says the twin never judges, even with praise.
+  - violation [D rule 18] :last-call (all four): Four rewordings of "last call, bedtime soon". No variant says anything different.
+  - violation [D rule 18] :blueprint-ready (all four): Each line is "waiting: {count}" with a different word in front.
+  - violation [D rule 18] :morning-brief (all four), especially line 4 "Here's the morning card. Count on it: {count}." and line 2 "Pinned the brief. On there: {count}.": Four rewordings of "card's up, {count}". Rule 17 also applies: the "Count on it" pun and "On there:" read awkwardly.
+  - violation [D rule 18] :memorial-moved (all four): "{name}'s moved to memorial" said four ways. Line 4 "{name}'s with memorial now" is also ungrammatical.
+  - violation [D rule 18] :agent-stalled (all four): Each line is "{agent} stopped, desk freed" reworded.
+  - violation [D rule 18] :chore-done (all four): "Done / logged / taken care of" for the same fact.
+  - violation [D rule 18] :weekly-card lines 1 and 4 ("This week, jacked in: {hours}." / "This week's hours in: {hours}."): The same line twice.
+  - violation [D rule 17] "Label: {count}" lines: :morning-brief line 1 "Items waiting: {count}.", :blueprint-ready line 2 "Waiting for your approval: {count}.", :chore-done line 2 "Logged: {name}'s {chore}.": Field-and-value phrasing is a system readout. It's corporate, not the warm, soft diorama voice.
+  - violation [D rule 19] :closing-time line 4 "Your {bedtime}. Goodnight.": With a real value it reads "Your 22:30. Goodnight.", which is ungrammatical.
+  - violation [D rule 19] :coming-back line 1 "{chore}'s done. Welcome back." and line 2 "{chore} counted": With a chore id like feed, these read "feed's done" and "feed counted": lowercase at the start of a sentence, and awkward with verb-like ids.
+  - violation [S rule 7] :jack-out-household / :jack-out-creature / :jack-out-appointment: No variant uses the phone booth or hardline, which is the game's signature for real life calling you out.
+  - violation [S rule 17] :next-small-step (all four), e.g. "It's quiet out there. Let's start with just one small step.": Generic encouragement with no estate detail. A stranger couldn't tell which game this is.
+  - violation [S rule 6] :weekly-card (all four): No line names the trend toward needing the game less. That trend is what makes the card belong to Prime Meridian and not a screen-time app.
+  - violation [S rule 6] :closing-time / :last-call: Hal's signature beat at closing ("you asked me to send you home") is missing, so the goodnight lines are interchangeable with any bedtime reminder.
+
+## Draft 2 — Refiner
+
+- refiner: 6951 tokens out; validator: PASS
+- evaluator: draft 2: 7.5 (A 7 B 9 C 8 D 5 S 8) — under the bar (under 6: D)
+  - A 7: Hal mostly sounds like the GDD's Hal. 'Welcome back.', 'Last call. You asked me to send you home at {bedtime}.' and 'You said {habit}: {goal}. Want today to count toward it?' are warm and short, they speak to you, and there are no film quotes or job titles. Points come off where Hal explains the system or reads out data instead of talking ('The crew works with the game closed too', 'Your words: {habit}, {goal}.'), for one butler-like 'noted', and for three lines that claim things the event doesn't carry.
+  - B 9: The world rules hold up well. Closing time is your own rule ('It's {bedtime}, the hour you picked.'), jacking out is good ('{name} comes first. This waits.', 'the estate keeps'), blueprints wait unchanged ('Nothing changes till you approve it'), SAMPLE/REAL shows on the badge, and stalls are stated plainly without apology ('Any keycards it held came back to you.'). One stall line blurs what the limit means.
+  - C 8: There are no XP, streaks, purchases, sent messages or private details anywhere. The memorial lines are tender and never give {name} needs ('Nothing more will ask you about {name}.'), and :chore-undone stays free of blame ('No harm done.'). The weekly card slips twice: 'Down is the good way' passes judgement on a week where hours went up, and 'Just a trend, not a score' puts scoring language in the bubble.
+  - D 5: Most lines fit a bubble and feel cozy and specific ('The day fits on one card; I counted {count} on it.'). But two closing lines run to three sentences, several placeholders only read right with some values ({text} dropped in raw, a bare {hours}, 'the {chore}' in some lines and '{chore}'s' in another), and six keys repeat one line reworded instead of saying different things.
+  - S 8: Most keys clearly belong to Prime Meridian: the phone booth and the hardline, the notice board, the shelf of ghosted blueprints in one tray, keycards coming back, night-shift orders, the SAMPLE/REAL badge, and 'You asked me to send you home at {bedtime}.' A few lines could sit in any cozy game ('Go see to {name}. We'll hold here.', '{text} Go on, we're fine.', 'You're staying. No argument from me.'), even where the estate's own words were easy to use.
+  - violation [A rule 1] :jack-in [2] ‘Here you are. The crew works with the game closed too; let's see where things stand.’: Explains a design rule like a tutorial instead of saying what happened. A companion doesn't lecture about how the game works.
+  - violation [A rule 1] :coach-habit [2] ‘Your words: {habit}, {goal}. No pressure, just checking in.’: 'Your words: {habit}, {goal}.' reads like a form being read back ('Your words: workout, 3/wk'), not a companion using your goal the way the GDD's 'You said three workouts a week. One today?' does.
+  - violation [A rule 1] :stay-late [3] ‘Staying late, noted. No more asking tonight.’: 'Noted' is how a butler or clerk talks; the rule asks for a companion.
+  - violation [A rule 3] :weekly-card [0] ‘{hours} in this week. Fewer hours, same life getting done: that's the curve we want.’: 'Fewer hours' claims the trend is going down, but the event carries no trend value. In a week where hours went up, this line is false.
+  - violation [A rule 3] :agent-stalled [1] ‘{agent} stopped reporting, so I marked it stalled. No busy glow pretending.’: Per §3.1 the bridge marks an agent stalled on its own, so Hal saying 'I marked it' misstates what really happened. 'No busy glow pretending' is also garbled.
+  - violation [A rule 3] :chore-undone [3] ‘Easy mistake. {name}'s {chore}'s back on the board.’: A chore lives on the creature's mirror, not the notice board, so 'back on the board' makes up a place. The double possessive ('Flora's feed's') is also clunky.
+  - violation [B rule 10] :agent-stalled [0] ‘{agent} hit the cap and went quiet. Desk's freed till it refills.’: 'Freed till it refills' links the freed desk to the cap refilling. In §3.1 and §2.3 the desk is freed for other work right away and the cap refills separately, so the limit isn't stated clearly.
+  - violation [C rule 12] :weekly-card [3] ‘On the notice board: {hours} jacked in, and which way it's heading. Down is the good way.’: 'Down is the good way' grades the week, so it reads as a quiet scolding whenever hours went up. The weekly card should show the trend, not judge it.
+  - violation [C rule 11] :weekly-card [1] ‘Time in this week: {hours}. Just a trend, not a score.’: Saying 'not a score' still brings the idea of a score into the bubble. §1 says the card is shown 'never as a score', which means not framing it that way at all.
+  - violation [D rule 16] :closing-time [0] ‘{bedtime}, like you asked. Estate's going to night. Goodnight.’: Three sentences, over the one-or-two limit for a bubble.
+  - violation [D rule 16] :closing-time [2] ‘{bedtime}'s here. Night's falling. Goodnight.’: Three sentences, and it rewords [0] ('going to night' / 'Night's falling'), which also breaks rule 18.
+  - violation [D rule 19] :jack-out-household (all four lines): {text} is dropped in raw, so each line reads right only if {text} brings its own end punctuation ('Someone at home: Dad ride Off you go'). 'Hear that? {text} Nothing here needs you more.' is also three sentences.
+  - violation [D rule 19] :coming-back [0]–[3]: The article changes between lines: [0]–[2] say 'the {chore}' and [3] says '{chore}'s', so with chore 'feed' you get both 'The feed counted' and 'feed's taken care of'. [3] is also a reword of [0] (rule 18).
+  - violation [D rule 19] :weekly-card [2] ‘{hours} jacked in this week — part of the curve, nothing more.’: If {hours} is a bare number, this reads '6 jacked in this week'. Only a label-first line reads right whether or not {hours} includes its unit.
+  - violation [D rule 19] :blueprint-ready [2] ‘Nothing changes till you approve it. The blueprints are on the shelf.’: The singular 'it' points back to the plural 'blueprints', so the line doesn't agree with itself.
+  - violation [D rule 18] :program-loaded [2] ‘That's {program} on now. {building} just came up.’ and [3] ‘{program} loaded. There's {building}.’: Both reword [0] ('loaded, building rising') and add nothing new.
+  - violation [D rule 18] :program-needed [2] ‘Need {program} for this. Your call.’ and [3] ‘Can't do this one without {program}.’: Both restate [1] ('I don't have {program} yet'). [3] also drops the ask that §2.6 calls for.
+  - violation [D rule 18] :stay-late [2] ‘Alright, you're staying up. I only ask once.’: Says the same thing as [3] ('No more asking tonight'), so two of the four lines carry one idea.
+  - violation [D rule 18] :chore-undone [1] ‘Undone. {name}'s {chore} goes back on the list.’: [0], [1] and [2] all say 'taken back, open again' in different words.
+  - violation [D rule 18] :chore-not-due [0]–[3]: All four lines give {last-at} then {next-at} in the same pattern, so the variants differ only in wording.
+  - violation [D rule 18] :jack-in [4] ‘You're jacked in. Let's look around.’: Rewords [1] ('You're in. Let's see…'), and three of the five jack-in lines lean on 'Let's see'.
+  - violation [S rule 7] :jack-out-creature [3] ‘Go see to {name}. We'll hold here.’: Generic. Nothing here ties it to the real pet or to how the chore gets marked done in Prime Meridian (§2.1: reply by text, tap the sticker, tell the twin).
+  - violation [S rule 7] :jack-out-household [3] ‘{text} Go on, we're fine.’: Doesn't mention the phone booth or the household priority, so it could come from any game.
+  - violation [S rule 6] :stay-late [1] ‘You're staying. No argument from me.’: Doesn't mention the estate's night or closing time, so a stranger couldn't place it.
+
+## Draft 3 — Refiner
+
+- refiner: 6246 tokens out; validator: PASS
+- evaluator: draft 3: 8.3 (A 8 B 9 C 9 D 7 S 8) — over the bar
+  - A 8: Hal mostly sounds like the GDD's Hal: short, warm and plain. The draft keeps 'Welcome back.', uses the GDD's own 'I need a program for this one: {program}.', and follows the coach pattern in 'You said {habit}: {goal}. Want today to count toward it?'. Points come off where he performs or narrates the interface instead of talking to you ('Goodnight — go live your life.', 'Got {name}'s {chore}. {name}'s bubble clears on the estate.') and where his tone turns curt ('I asked, you said yes — that's that.'). No film is quoted, no line talks about the player in the third person, and no job titles are used.
+  - B 9: The world rules hold almost everywhere. Closing time is framed as your own rule ('Last call. You asked me to send you home at {bedtime}.', 'It's {bedtime}, the hour you picked.'). Jacking out is good ('{name} comes first. This waits.'). SAMPLE is honest ('Sample or real, it shows on the badge.', 'Want the sample first?'), work is shown as blueprints that are still waiting ('Nothing changes till you approve.'), and limits are stated plainly ('Its desk is freed; the cap refills later.', 'Any keycards it held came back to you.'). The two small slips are one-at-a-time approval wording and a line that assumes how you reported the chore.
+  - C 9: No XP, scores or streaks anywhere. The weekly card keeps to 'Part of the curve, nothing more.' and 'which way it's heading'. No line claims to have sent or bought anything, and no private details appear. The memorial lines give {name} no needs ('Nothing more will ask you about {name}.'). Two lines hint at blame where the brief asked for none: 'whenever it's really done' and 'no need to check'.
+  - D 7: Every line fits a bubble: two sentences at most, and the longest ('Time jacked in this week: {hours}. The aim's fewer hours with life still getting done.') is well under 120 characters. Only declared placeholders are used. The weak spot is variety. All four :weekly-card lines open with the same 'time jacked in this week: {hours}' in slightly different words, and all four :jack-out-household lines are the same quote-then-'go on' line. A few placeholder fits and some rule-explaining lines ('it shows stalled now, not busy') also cost points.
+  - S 8: Most lines could only come from Prime Meridian: the hardline and phone booth, night-shift orders, blueprints on the shelf, keycards coming back, 'ran out of juice', '{program}'s on my belt now', the sample badge, and 'see you at breakfast'. Points come off because none of the crew's French names appear even where a line names the crew. :next-small-step, :memorial-moved and :coach-habit could also belong to any cozy game.
+  - violation [A rule 1] :closing-time line 2 "That's {bedtime}. Goodnight — go live your life.": 'go live your life' is a slogan. It preaches instead of telling you what happened and what's next.
+  - violation [A rule 1] :chore-done line 3 "Got {name}'s {chore}. {name}'s bubble clears on the estate.": The second sentence describes what the screen does, not something a companion would say to you. It also says {name} twice, which reads badly ('Got Flora's feed. Flora's bubble clears...').
+  - violation [A rule 1] :stay-late line 1 "Staying late. I asked, you said yes — that's that.": 'that's that' sounds clipped, like a rules referee rather than a companion. 'you said yes' is also wrong: you chose to stay, you didn't agree to anything Hal proposed.
+  - violation [B rule 9] :blueprint-ready line 4 "Blueprints are ghosted in the world now. Approve one and it turns real.": Approvals come grouped in one tray. 'Approve one' suggests you approve them one at a time.
+  - violation [B rule 6] :chore-not-due line 3 "Nothing logged. One per window, so a second click won't count twice.": It assumes the earlier report was also a click, but it may have come by text, NFC or Hal. It also explains the rule like a manual, where the other lines give the clock times.
+  - violation [C rule 12] :chore-undone line 4 "Easy fix. Mark {name}'s {chore} again whenever it's really done.": 'really done' suggests you falsely reported the chore. The event is a simple mistake and should carry no blame.
+  - violation [C rule 12] :chore-not-due line 2 "Already done at {last-at}. I'll call you when it comes due; no need to check.": 'no need to check' gently tells you off for clicking.
+  - violation [D rule 18] :weekly-card all lines: The same line four times in different words: 'Time jacked in this week: {hours}' / 'Time in this week: {hours}' / 'Jacked-in time this week: {hours}' / 'time jacked in, {hours}'.
+  - violation [D rule 18] :jack-out-household all lines: Every variant quotes {text} and then says the same thing ('go on' / 'off you go' / 'we're fine').
+  - violation [D rule 18] :stay-late lines 1 and 4 "Staying late...": Both lines open with 'Staying late' and both mean 'decision made, no more asking'.
+  - violation [D rule 19] :coach-habit line 3 "You told me {habit}, {goal}. No pressure; one today?": 'one today?' only works for a habit you count. A habit like 'in bed by 11' breaks it, and 'told me {habit}, {goal}' reads awkwardly with real values.
+  - violation [D rule 19] :coming-back line 4 "You're back from the {chore}. Want the next small step?": 'back from the {chore}' only reads well when the chore is a noun-like errand ('the walk'). With 'feed' it becomes 'back from the feed'.
+  - violation [D rule 17] :agent-stalled line 2 "{agent} stopped reporting, so it shows stalled now, not busy.": It describes what the interface shows, which sounds like system output rather than the cozy voice.
+  - violation [S rule 3] :next-small-step lines 1-2 "Estate's a little overgrown. One small thing and a path clears." / "Overgrown, never ruined...": These are generic cozy-game lines. Line 2 also reads the GDD's own wording ('never ruined') back to you.
+  - violation [S rule 5] :stay-late line 3 / :closing-time line 3 "The crew's still at it" / "The crew keeps working": These are the right places to show the crew's names, but the lines only say 'the crew'.
+  - violation [S rule 3] :memorial-moved line 1 "{name}'s in the memorial now. A quiet spot on the estate, kept for good.": Generic. It doesn't tie the memorial to anything real on the estate, like the mirror going still and the chores stopping.
+
+**Installed** `resources/content/hal-lines.edn` (draft 3, 8.3).
+
+## Trajectory
+
+- draft 1: 6.8 (A 7 B 8 C 8 D 4 S 6)
+- draft 2: 7.5 (A 7 B 9 C 8 D 5 S 8)
+- draft 3: 8.3 (A 8 B 9 C 9 D 7 S 8)

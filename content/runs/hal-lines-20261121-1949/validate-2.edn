@@ -1,0 +1,4 @@
+[":morning-brief[0]: a count followed by a plural noun reads wrong at 1 (\"1 worms\"): put the count after a label (\"Worms: {stock}\"): \"Pinned this morning's card: {count} items. Want the first one now?\""
+ ":morning-brief[3]: a count followed by a plural noun reads wrong at 1 (\"1 worms\"): put the count after a label (\"Worms: {stock}\"): \"Morning card's pinned — {count} items, whenever you're ready.\""
+ ":blueprint-ready[0]: a count followed by a plural noun reads wrong at 1 (\"1 worms\"): put the count after a label (\"Worms: {stock}\"): \"Last night's tray is on the shelf: {count} blueprints, whenever you're ready.\""
+ ":blueprint-ready[3]: a count followed by a plural noun reads wrong at 1 (\"1 worms\"): put the count after a label (\"Worms: {stock}\"): \"On the shelf tonight: {count} blueprints, before and after.\""]
