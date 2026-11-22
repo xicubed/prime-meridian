@@ -74,6 +74,22 @@ release; a grader with the PIN in the submission still plays within two minutes.
 what the kit loads up front vs on demand; drop unused kit assets from the demo build; Draco/meshopt
 compression of the GLBs if needed (that's a build step, not a redesign).
 
+**Playable link (filled Nov 21):** https://pm.perstitio.us — Apache basic auth on Michael's
+Lightsail box (Debian, stock Apache, certbot). User `guest33`, PIN in the submission. Deployed with
+`bb demo-deploy` (build + rsync, bot's own deploy key). Still to do: time the cold-cache load; the
+README's top block (link, PIN note, three lines of what to do, "click once for sound").
+
+## Two videos (decided Nov 21)
+
+1. **Pipeline run video** (the A7 deliverable): `bb content mirror-lines` with cost logging →
+   trajectory → `git diff resources/content/mirror-lines.edn` → `bb demo-deploy` → open the URL,
+   PIN, click Flora, she says a new line. ~3 min, silent. Evidence for "traceably produced".
+2. **Promo video** (the instructor: a trailer "drives 5× more users"): 45–60 s, music, no
+   terminal. Estate fades up, Hal walks to you, a "!" goes up, the hardline rings and the world
+   freezes, Flora's jar, name + URL. Shot list: `docs/demo-script.md`. Hal shoots the camera
+   moves headless (CDP + screen capture) and cuts with ffmpeg; Michael picks music and records the
+   live click-in. Goes at the top of the README above the playable link.
+
 ## Deliverable 2: pipeline source & engine integration
 
 - **Pipeline repository (filled):** https://github.com/xicubed/prime-meridian — the pipeline is
@@ -187,8 +203,10 @@ it's genuinely the biggest saving.
 
 ## What we know we need to know (the to-do list)
 
-- [ ] Michael: which server, and does it run nginx or Caddy? Then Hal writes the auth block and
-      `bb demo-deploy` (build + rsync). Test the 2-minute rule cold with the PIN in hand.
+- [x] Host: pm.perstitio.us, PIN-locked, `bb demo-deploy` (Nov 21).
+- [ ] Time the 2-minute rule on a cold cache; trim the demo build if it's close.
+- [ ] README top block: trailer, link, PIN note, 3-line how-to.
+- [ ] Promo video (45–60 s) — see "Two videos".
 - [ ] (Later, before a public release) kit license check.
 - [ ] README: playable link + 3-line instructions at the very top; the ~1-page audit under it.
 - [ ] Pipeline: log `total_cost_usd` + tokens per draft; totals in `log.md` and `scores.edn`.

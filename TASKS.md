@@ -108,3 +108,4 @@ Owner: Business Manager (GDD §9b, §10d). Real-world steps that need ID, bank, 
 - XP, levels, hats; estate growth tied to repo stats
 - The river, and the "make the rocks procedural" demo
 - Release build published to lotect.com
+- [ ] A-7 Assignment 7 (complete AI dev pipeline, due Nov 29 8:59 PM PT): `docs/assignment-7-pipeline.md`. Playable link is live (pm.perstitio.us, PIN). Left: cost logging in the pipeline + one instrumented `mirror-lines` run (the pipeline video and the cost figure), before/after token count for context-by-section, README top block (trailer, link, how-to), the ~1-page audit in README, the promo video (45–60 s).
