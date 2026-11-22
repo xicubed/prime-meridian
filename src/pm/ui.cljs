@@ -876,7 +876,7 @@
   "One contact in the phone's list: dot or !, name, a one-line preview (the
    question if one's pending, else the last line in the thread), a › arrow.
    Tapping opens the thread."
-  [^js root row preview]
+  [^js root row preview unread]
   (let [^js r     (js/document.createElement "div")
         ^js glyph (js/document.createElement "span")
         ^js who   (js/document.createElement "span")
@@ -902,6 +902,12 @@
     (.appendChild r glyph)
     (.appendChild r who)
     (.appendChild r sub)
+    ;; unread count, the blue number a phone shows (Michael: "a number by each bot")
+    (when (and (number? unread) (pos? unread))
+      (let [^js b (js/document.createElement "span")]
+        (set! (.-className b) "unread")
+        (set! (.-textContent b) (if (> unread 99) "99+" (str unread)))
+        (.appendChild r b)))
     (.appendChild r arrow)
     (.appendChild root r)))
 
@@ -921,9 +927,9 @@
           t             (thread)]
       (set! (.-innerHTML root) "")
       (if (nil? t)
-        (do
-          (doseq [row rows] (contact-row! root row (get previews (:member row))))
-          (contact-row! root {:member :all :who "Everything" :status :idle} "the whole day, in order"))
+        (let [unread (get previews ::unread {})]
+          (doseq [row rows] (contact-row! root row (get previews (:member row)) (get unread (:member row))))
+          (contact-row! root {:member :all :who "Everything" :status :idle} "the whole day, in order" nil))
         (let [row     (first (filter #(= t (:member %)) rows))
               ^js hd  (js/document.createElement "div")
               ^js bk  (js/document.createElement "button")

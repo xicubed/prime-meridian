@@ -862,12 +862,18 @@
                     (talk/with-twin twin (bridge-on?) (twin-thinking? w now))
                     (->> (mapv dressed))
                     (into pets))
-          ;; each contact's last line, for the contacts list
-          previews (reduce (fn [acc e] (if-let [c (ui/entry-contact e (:agent twin))] (assoc acc c (:text e)) acc))
+          ;; each contact's last line and unread count, for the contacts list
+          contact-of (fn [e] (ui/entry-contact e (:agent twin)))
+          previews (reduce (fn [acc e] (if-let [c (contact-of e)] (assoc acc c (:text e)) acc))
                            {} (:entries t'))
-          key   [rows previews (ui/thread)]]
+          unread   (talk/unread-by t' contact-of)
+          key   [rows previews unread (ui/thread)]]
+      ;; an open thread is read as it fills
+      (when-let [th (ui/thread)]
+        (when (and (keyword? th) (:open? t') (not= (:n t') (get-in t' [:seen-by th])))
+          (swap! !world update :talk talk/mark-seen th)))
       (when (not= key (:roster @!talk-ui))
-        (ui/render-roster! rows on-say on-expand offset-of jum previews)
+        (ui/render-roster! rows on-say on-expand offset-of jum (assoc previews ::unread unread))
         (ui/show-hold-row! (and (some? twin) (= (ui/thread) (:agent twin))))
         (swap! !talk-ui assoc :roster key)))
     (let [sw (talk/hold-switch (:hold @!world) (bridge-on?) @!hold-ui jum)]

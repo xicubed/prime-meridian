@@ -258,6 +258,29 @@
       0
       (count (filter #(and (> (:n %) (:seen talk)) (not= :crew-log (:kind %))) (:entries talk))))))
 
+(defn unread-by
+  "Unread lines per contact (the phone's contacts list): contact -> count of
+   that contact's lines newer than the last time its thread was open
+   (:seen-by), leaving out the quiet crew log and the player's own lines.
+   `contact-of` maps an entry to its contact (pm.ui/entry-contact) or nil."
+  [talk contact-of]
+  (let [talk (or talk empty-talk)
+        seen (or (:seen-by talk) {})]
+    (reduce (fn [acc e]
+              (if-let [c (and (not= :crew-log (:kind e)) (not= :crew-say (:kind e)) (not= you (:who e))
+                              (contact-of e))]
+                (if (> (:n e) (get seen c 0)) (update acc c (fnil inc 0)) acc)
+                acc))
+            {} (:entries talk))))
+
+(defn mark-seen
+  "The player is looking at `contact`'s thread: everything in it so far is read."
+  [talk contact]
+  (let [talk (or talk empty-talk)]
+    (if (keyword? contact)
+      (assoc-in talk [:seen-by contact] (:n talk))
+      talk)))
+
 (defn badge-text [talk]
   (let [u (unread talk)]
     (cond
