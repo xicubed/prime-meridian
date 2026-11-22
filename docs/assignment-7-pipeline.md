@@ -207,6 +207,11 @@ it's genuinely the biggest saving.
 - [ ] Time the 2-minute rule on a cold cache; trim the demo build if it's close.
 - [ ] README top block: trailer, link, PIN note, 3-line how-to.
 - [ ] Promo video (45–60 s) — see "Two videos".
+- [ ] Title screen / key art (the instructor: "a movie-poster graphic"): a staged dusk shot of the
+      estate rendered headless at 2–4K (Hal foreground, Flora's jar lit, a "!" up, night-crew lamps),
+      title + tagline (*"What is even real anymore?"*) + a meridian line. Used as the game's title
+      screen (fades into the live estate), README header, trailer end card. Generated-painting
+      hybrid only if the render falls flat.
 - [ ] (Later, before a public release) kit license check.
 - [ ] README: playable link + 3-line instructions at the very top; the ~1-page audit under it.
 - [ ] Pipeline: log `total_cost_usd` + tokens per draft; totals in `log.md` and `scores.edn`.
