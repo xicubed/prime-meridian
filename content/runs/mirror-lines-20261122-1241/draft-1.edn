@@ -1,0 +1,33 @@
+{:mirrors
+ {:flora
+  {:hungry ["I'm hungry." "Worms, please?" "Feeling peckish." "Jar's looking far away." "Any worms going spare?"]
+   :fed ["Mm, worms." "That hit the spot." "Full and happy." "Worms: delivered." "Better now."]
+   :low ["Worms: {stock} left" "Low stock: {stock}" "Jar getting low: {stock}" "Running low — {stock} left" "Worms: {stock}, getting low"]
+   :stock-sign ["Worms: {stock}" "Worm jar: {stock}" "Jar count: {stock}" "Worms on hand: {stock}" "Stock: {stock}"]}
+  :juniper
+  {:hungry ["Hay, please?" "Manger's empty." "Getting hungry." "Hay time, no?" "Nosing the gate."]
+   :fed ["Mm, hay." "That's better." "Full now." "Good hay." "Settled in."]
+   :low ["Hay: {bales} left" "Bales left: {bales}" "Running low — {bales} left" "Hay stock: {bales}" "Low on hay: {bales}"]
+   :stock-sign ["Hay: {bales}" "Bales: {bales}" "Hay stock: {bales}" "On hand: {bales}" "Bales on hand: {bales}"]}
+  :biscuit
+  {:walk-due ["Walk time?" "Leash is right there." "Ready when you are." "At the door." "Walk, Bisco?"]
+   :walked ["Good walk." "That hit the spot." "Back and happy." "Thanks for that." "Tired, in a good way."]
+   :porch ["Nice day for a nap." "Watching the yard." "Just resting here." "Keeping watch." "All good here."]}}
+ :modes
+ {:memorial
+  {:plaque ["{name}, {years}. A good dog, missed."
+            "{name} — {years}. Slept in every sunny spot."
+            "{name}, {years}. Followed everywhere, loyally."
+            "In memory: {name}, {years}."
+            "{name} — {years}. A steady, gentle friend."]
+   :hal-note ["{name}'s moved to memorial now — nothing's asked of them, just a quiet spot in the sun."
+              "I moved {name} to memorial. They're remembered now, not tended to — and that's right."
+              "{name}'s in memorial. No tasks, no tending — just a place for them in the sun."
+              "I've set {name} up in memorial. Nothing's expected of them anymore, only remembered."
+              "{name} doesn't need anything from us now. Memorial — just a spot to remember them by."]}
+  :virtual
+  {:idle ["{name}'s just here, keeping company."
+          "{name}'s happy right where they are."
+          "{name} doesn't need a thing."
+          "{name}'s around, no fuss."
+          "{name}'s content, watching the water."]}}}

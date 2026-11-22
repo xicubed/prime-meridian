@@ -1,0 +1,30 @@
+{:total-usd 1.301512,
+ :by-role
+ [{:role "evaluator", :calls 2, :in 4, :out 17214, :cost 0.743128}
+  {:role "refiner", :calls 1, :in 2, :out 6986, :cost 0.365896}
+  {:role "generator", :calls 1, :in 2, :out 9728, :cost 0.192488}],
+ :calls
+ [{:draft 1,
+   :role "generator",
+   :model "claude-sonnet-5",
+   :in 2,
+   :out 9728,
+   :cost 0.192488}
+  {:draft 1,
+   :role "evaluator",
+   :model "claude-opus-5-5",
+   :in 2,
+   :out 8395,
+   :cost 0.36726000000000003}
+  {:draft 2,
+   :role "refiner",
+   :model "claude-opus-5-5",
+   :in 2,
+   :out 6986,
+   :cost 0.365896}
+  {:draft 2,
+   :role "evaluator",
+   :model "claude-opus-5-5",
+   :in 2,
+   :out 8819,
+   :cost 0.375868}]}

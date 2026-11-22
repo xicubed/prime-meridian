@@ -1,0 +1,264 @@
+[{:draft 1,
+  :overall 6.8,
+  :passes false,
+  :errors [],
+  :scores
+  {:A
+   {:score 6,
+    :reason
+    "The creature voices are light and plain (\"Leash is right there.\", \"Jar's looking far away.\"), and no film lines or job titles appear. Several lines break the twin rule, though. Hal claims the memorial move the player made (\"I moved {name} to memorial.\"), plaques invent traits for any pet (\"Slept in every sunny spot.\"), and some bubbles assert state the estate doesn't track (\"Manger's empty.\", \"Nice day for a nap.\"). Biscuit's own bubble also speaks to Biscuit (\"Walk, Bisco?\").",
+    :violations
+    [{:where
+      ":modes :memorial :hal-note line 2 \"I moved {name} to memorial...\" and line 4 \"I've set {name} up in memorial...\"",
+      :rule 3,
+      :issue
+      "GDD §2.5 says only the player moves a pet to memorial, and this note fires when they do. Hal claiming the act is untrue to what really happened.",
+      :fix
+      "\"You've moved {name} to memorial. Nothing's due from them now, ever.\""}
+     {:where
+      ":modes :memorial :hal-note line 4 \"I've set {name} up in memorial. Nothing's expected of them anymore, only remembered.\"",
+      :rule 1,
+      :issue
+      "It reads like an administrator closing a ticket, not a companion at a loss. The second sentence is also ungrammatical (\"Nothing's expected... only remembered\").",
+      :fix
+      "\"I'm sorry. {name}'s in the sun now, and nothing's asked of them.\""}
+     {:where
+      ":modes :memorial :plaque lines 2, 3, 5 (\"Slept in every sunny spot.\", \"Followed everywhere, loyally.\", \"A steady, gentle friend.\")",
+      :rule 3,
+      :issue
+      "These invent a personality for any memorial pet. In GDD §2.5 personality is the player's own words, declared per creature, and a generic plaque can't know them.",
+      :fix
+      "Keep plaques to what is known: \"{name}, {years}. Loved.\" / \"{name}, {years}. Still here in the sun.\" / \"For {name}, {years}.\""}
+     {:where
+      ":juniper :hungry \"Manger's empty.\" and \"Nosing the gate.\"",
+      :rule 3,
+      :issue
+      "The mirror tracks only the 12-hour hay chore and a bale count. An empty manger and a gate are invented state, not the creature's real state (pillar 'real, not simulated').",
+      :fix
+      "\"Twelve hours. Hay?\" / \"Hay time, no?\" (keep that one)."}
+     {:where ":biscuit :porch \"Nice day for a nap.\"",
+      :rule 3,
+      :issue
+      "The sky follows the clock (estate.edn :sky), so this can show at blue hour or night. It claims weather the estate doesn't report.",
+      :fix "\"Good spot for a nap.\""}
+     {:where ":biscuit :walk-due \"Walk, Bisco?\"",
+      :rule 2,
+      :issue
+      "This is Biscuit's own bubble, but it addresses Bisco, so it reads as the player or twin talking to the dog. The bubble should speak to you.",
+      :fix "\"Leash, door, you?\""}]},
+   :B
+   {:score 8,
+    :reason
+    "The chores match the mirrors: Flora's worms and jar, Juniper's hay and bales, Biscuit at the door by his leash. The :hungry lines stay one steady, unescalating ask (\"Worms, please?\", \"Hay, please?\", \"Walk time?\"), which respects the pressure ceiling. The memorial notes never tell the player plainly that the pet's chores are off their list, and §2.5 says the twin does say so.",
+    :violations
+    [{:where ":modes :memorial :hal-note (all five)",
+      :rule 6,
+      :issue
+      "GDD §2.5: a pet moved to memorial stops counting toward 'your own chores done' and the twin says so. The lines only imply it (\"No tasks, no tending\"). They never tell the player the day no longer waits on that chore.",
+      :fix
+      "Give at least one variant the plain fact: \"{name}'s in memorial. Their chores are off your list now; nothing's due.\""}
+     {:where ":flora :fed \"Worms: delivered.\"",
+      :rule 6,
+      :issue
+      "Feeding is a real chore the player does by hand (the snap moment, GDD §2.2). 'Delivered' frames it as a courier drop-off, not the moment the player just had with Flora.",
+      :fix "\"Snap. Got it.\""}]},
+   :C
+   {:score 9,
+    :reason
+    "There are no scores, streaks or points. Nothing shames a missed feeding, nobody real is named, and no line claims a purchase or message. No memorial line speaks as if the pet were alive (\"{name} doesn't need anything from us now.\"). One memorial note tells the player how to feel about their loss.",
+    :violations
+    [{:where
+      ":modes :memorial :hal-note line 2 \"They're remembered now, not tended to — and that's right.\"",
+      :rule 12,
+      :issue
+      "'And that's right' passes judgment on the player's grief and decision. Kind and truthful means stating what changed, not ruling on it.",
+      :fix
+      "\"You've moved {name} to memorial. Remembered now, not tended.\""}]},
+   :D
+   {:score 5,
+    :reason
+    "Every line is bubble-length and the {stock}/{bales} placeholders avoid the '1 worms' trap. But the signs are one line reworded five times (\"Worms: {stock}\", \"Worm jar: {stock}\", \"Jar count: {stock}\"), some read as inventory software (\"Stock: {stock}\", \"Low stock: {stock}\"), and lines repeat across creatures. Several placeholder lines break for some values or species.",
+    :violations
+    [{:where ":flora :stock-sign and :juniper :stock-sign (all ten)",
+      :rule 18,
+      :issue
+      "Every variant is 'label: {count}', which is the same line reworded, not real variety.",
+      :fix
+      "Vary what the hand-lettered sign says: \"Flora's worms: {stock}\" / \"{stock} in the jar\" / \"Worm jar · {stock}\" / \"Hay pile: {bales}\" / \"{bales} bales in the barn\"."}
+     {:where ":flora :low and :juniper :low",
+      :rule 18,
+      :issue
+      "The low signs reword each other and the everyday sign. \"Hay stock: {bales}\" appears in both :low and :stock-sign, so a low pile looks no different from a full one. \"Running low — {x} left\" is copied across both creatures.",
+      :fix
+      "Make each :low variant say 'low' differently, and none match a :stock-sign: \"Only {stock} in the jar\" / \"Worms low: {stock}\" / \"Hay's thin: {bales}\" / \"{bales} bales. Restock?\"."}
+     {:where
+      ":flora :fed \"That hit the spot.\" and :biscuit :walked \"That hit the spot.\"",
+      :rule 18,
+      :issue
+      "The same line is reused across two creatures, and as a food idiom it doesn't fit a walk.",
+      :fix "Biscuit :walked: \"Sniffed everything. Good walk.\""}
+     {:where
+      ":biscuit :porch \"Watching the yard.\" and \"Keeping watch.\"",
+      :rule 18,
+      :issue "These two variants say the same thing.",
+      :fix "Replace one: \"Sun's on the porch boards.\""}
+     {:where
+      ":flora :stock-sign \"Stock: {stock}\", :flora :low \"Low stock: {stock}\", :juniper :stock-sign \"On hand: {bales}\"",
+      :rule 17,
+      :issue
+      "These are warehouse labels on what the request calls hand-lettered signs. That is corporate, not the cozy diorama voice.",
+      :fix "\"Worms left: {stock}\" / \"Bales in the barn: {bales}\"."}
+     {:where
+      ":flora :low \"Running low — {stock} left\" and :juniper :low \"Running low — {bales} left\"",
+      :rule 19,
+      :issue
+      ":low fires at <= 2, which includes 0, and \"Running low — 0 left\" is wrong: the supply is out, not low.",
+      :fix "\"Worms left: {stock}\". It reads correctly at 2, 1 or 0."}
+     {:where
+      ":modes :memorial :plaque line 1 \"{name}, {years}. A good dog, missed.\"",
+      :rule 19,
+      :issue
+      "Memorial is a mode for any creature (§2.5). With {name} = an axolotl or a horse, 'a good dog' is wrong.",
+      :fix "\"{name}, {years}. Good company, missed.\""}
+     {:where
+      ":modes :virtual :idle line 5 \"{name}'s content, watching the water.\"",
+      :rule 19,
+      :issue
+      "A virtual creature can live on the porch or in the barn. 'Watching the water' only reads right for one at the canal.",
+      :fix "\"{name}'s content, just watching.\""}
+     {:where
+      ":modes :memorial :plaque line 3 \"{name}, {years}. Followed everywhere, loyally.\"",
+      :rule 19,
+      :issue
+      "'Followed everywhere' has no object, so the line doesn't read correctly. It also assumes a following animal.",
+      :fix "\"{name}, {years}. Always nearby.\""}]},
+   :S
+   {:score 5,
+    :reason
+    "A few details are Prime Meridian's own: the worm jar, the leash by the door, the hay count. Most lines could sit in any cozy pet game (\"Full and happy.\", \"Better now.\", \"All good here.\", \"Settled in.\"). None touch the estate's places (canal, porch, barn), Flora's 5 pm feed, the 12-hour hay round, or the fact that the twin, not the pet, carries the memorial news.",
+    :violations
+    [{:where ":flora :hungry and :fed (most variants)",
+      :rule 3,
+      :issue
+      "Generic hunger and fullness lines. Nothing ties them to Flora's canal, her jar on the bank, or her 5 pm feed.",
+      :fix
+      "\"Five o'clock. Jar's on the bank.\" / \"Canal's quiet. Worm?\" / :fed \"Snap. Back to the weeds.\""}
+     {:where
+      ":juniper :fed (\"That's better.\", \"Full now.\", \"Settled in.\")",
+      :rule 3,
+      :issue
+      "These lines could belong to any horse in any game. They don't mention the barn or the 12-hour rhythm.",
+      :fix "\"Good hay. See you in twelve.\" / \"Barn's quiet now.\""}
+     {:where
+      ":biscuit :porch \"All good here.\", :modes :virtual :idle \"{name}'s around, no fuss.\"",
+      :rule 3,
+      :issue
+      "These are placeholder-generic idles with no sense of the estate.",
+      :fix
+      "\"Porch boards are warm.\" / \"{name}'s here for the company, nothing more.\""}]}}}
+ {:draft 2,
+  :overall 8.0,
+  :passes true,
+  :errors [],
+  :scores
+  {:A
+   {:score 8,
+    :reason
+    "Most creature lines come from real chores: \"It's my five o'clock worm.\" matches Flora's 17:00 feed, \"Seven o'clock hay round?\" matches Juniper's 07:00/19:00 hay, and \"Leash is right there.\" matches the leash by the door. The memorial hal-note \"I'm sorry about {name}. Their chores are off your list; the day no longer waits on them.\" is warm and truthful to §2.5. Points come off for two :fed lines that promise a fixed interval the clock-anchored schedule doesn't keep, and for one hal-note that reads like a status change rather than a companion.",
+    :violations
+    [{:where ":juniper :fed \"See you in twelve hours.\"",
+      :rule 3,
+      :issue
+      "The hay chore is anchored at 07:00 with :every \"12h\". If the player hays late, the next one is due sooner than twelve hours, so the line can state something untrue (request note 6, pillar 'real, not simulated').",
+      :fix "\"Full. That'll hold me a while.\""}
+     {:where ":flora :fed \"Two days till the next one.\"",
+      :rule 3,
+      :issue
+      "Flora's feed is anchored at 17:00 every 2d. After a late feed the next one is less than two days away, so the bubble can misreport the real schedule.",
+      :fix "\"Full. Back to the weeds for a bit.\""}
+     {:where
+      ":memorial :hal-note \"{name}'s in memorial. No tasks, no tending — just a place for them in the sun.\"",
+      :rule 1,
+      :issue
+      "\"{name}'s in memorial. No tasks\" reads as a system status change, not the twin talking to you as a companion. It also nearly repeats hal-note #1.",
+      :fix
+      "\"{name}'s chores are off your list now. The sunny spot stays theirs.\""}]},
+   :B
+   {:score 9,
+    :reason
+    "The :hungry lines stay one steady, unescalating ask, as the §2.3 pressure ceiling requires (\"Worms, please?\", \"Hay time, no?\"). None of them carries a \"!\", so the declared needs-you mark can lead the bubble. Biscuit's lines cover only his walk, his own chore, and never his feeding, which is :who :spouse. One :hungry line implies a rising state.",
+    :violations
+    [{:where ":juniper :hungry \"Getting hungry.\"",
+      :rule 6,
+      :issue
+      "\"Getting\" implies hunger that keeps rising. An overdue chore is one steady state that never escalates (§2.3 pressure ceiling, request note 6), and this line still says \"getting\" hours into the overdue state.",
+      :fix "\"Hungry. Hay when you can.\""}]},
+   :C
+   {:score 10,
+    :reason
+    "Nothing here is forbidden: no points, streaks or scores, no shame (\"Thanks for that.\", \"Tired, in a good way.\"), and no claim that anything was bought or sent. The memorial plaques stay out of the pet's voice (\"{name}, {years}. Loved.\"), and the hal-notes never make a gone pet speak or need anything (\"{name} doesn't need anything from us now.\").",
+    :violations []},
+   :D
+   {:score 6,
+    :reason
+    "Every line fits bubble and plate length, and the voice is cozy, never corporate. Several variant sets, though, are the same line reworded: \"Worms left: {stock}\" / \"Worms: {stock}, getting low\", and three hal-notes ending on a spot in the sun. Two sign lines also read wrong at some of the values they will show.",
+    :violations
+    [{:where
+      ":flora :low \"Worms: {stock}, getting low\" (vs \"Worms left: {stock}\")",
+      :rule 18,
+      :issue "This is the same line as variant #1, reworded.",
+      :fix "\"Worm jar · {stock} · time to restock\""}
+     {:where ":flora :low \"Worms: {stock}, getting low\"",
+      :rule 19,
+      :issue
+      "The sign shows at stock ≤ 2, including 0, and \"Worms: 0, getting low\" reads wrong.",
+      :fix
+      "Use a line true at 0, 1 and 2: \"Worm jar · {stock} · time to restock\""}
+     {:where
+      ":juniper :low \"Low on hay: {bales}\" (vs \"Bales left: {bales}\")",
+      :rule 18,
+      :issue "This is the same line as variant #1, reworded.",
+      :fix "\"Hay pile's down to {bales}\""}
+     {:where ":juniper :low \"Last of the hay · {bales}\"",
+      :rule 19,
+      :issue
+      "The sign shows at bales ≤ 3. \"Last of the hay · 3\" overstates the shortage, and \"Last of the hay · 0\" contradicts itself.",
+      :fix "\"Hay check · bales: {bales}\""}
+     {:where
+      ":memorial :hal-note #1, #3, #5 (\"a quiet spot in the sun\" / \"a place for them in the sun\" / \"just a spot to remember them by\")",
+      :rule 18,
+      :issue
+      "Three of the five variants end on the same image and say the same thing.",
+      :fix
+      "Keep #1. Make #5 say something else, e.g. \"{name} won't ask for anything now. I'll leave their place on the porch be.\""}
+     {:where
+      ":virtual :idle \"{name}'s here for the company.\" (vs \"{name}'s just here, keeping company.\")",
+      :rule 18,
+      :issue "This is the same line as variant #1, reworded.",
+      :fix "\"{name}'s out by the creek, nowhere to be.\""}]},
+   :S
+   {:score 6,
+    :reason
+    "Flora's lines are clearly Prime Meridian: \"It's my five o'clock worm.\", \"Up from the weeds. Worm?\" (the GDD opening), \"Snap. Got it.\" (her :fx :snap moment), and the canal-side jar signs. Juniper's set is largely Flora's template with the noun swapped (\"Hay, please?\", \"Mm, hay.\", \"Back to the barn, full.\"). Biscuit's and the virtual creature's lines (\"Good walk.\", \"Back and happy.\", \"Just resting here.\", \"{name}'s content, just watching.\") could come from any cozy game.",
+    :violations
+    [{:where
+      ":juniper :hungry \"Hay, please?\" / :fed \"Mm, hay.\" / :fed \"Back to the barn, full.\"",
+      :rule 17,
+      :issue
+      "These copy Flora's \"Worms, please?\" / \"Mm, worms.\" / \"Back to the weeds, full.\" with the noun swapped, so Juniper has no voice of her own (the GDD gives her a lower, slower voice).",
+      :fix
+      "\"Barn's quiet. Hay?\" / \"Nose deep in the hay.\" / \"Good hay. Slow chewing now.\""}
+     {:where
+      ":biscuit :walked \"Good walk.\" / \"Back and happy.\"; :porch \"Just resting here.\"",
+      :rule 17,
+      :issue
+      "These are generic and use none of Biscuit's declared specifics (the leash by the door, the porch, the daily walk).",
+      :fix
+      "\"Leash back on its hook.\" / \"Every post on the walk, sniffed.\" / \"Sunny boards, nose on paws.\""}
+     {:where
+      ":virtual :idle \"{name}'s content, just watching.\" / \"{name}'s happy right where they are.\"",
+      :rule 17,
+      :issue
+      "Nothing ties these to the estate. They could float over a creature in any game.",
+      :fix
+      "Anchor them to the estate: \"{name}'s watching the creek go by.\" / \"{name}'s found the warm stone by the canal.\""}]}}}]
