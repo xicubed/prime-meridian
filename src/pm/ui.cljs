@@ -635,11 +635,18 @@
   [{:keys [kind color body joints]} size]
   (let [w (js/Math.round (* size 0.75))]
     (str "<svg width='" w "' height='" size "' viewBox='0 0 18 24'>"
-         (if (= :creature kind)
+         (cond
+           ;; a place: a small building in its colour (the booth red, the mailbox tin)
+           (= :place kind)
+           (str "<rect x='4' y='6' width='10' height='16' rx='1.5' fill='" (hex-css color) "' stroke='rgba(0,0,0,.45)' stroke-width='1.2'/>"
+                "<rect x='2.5' y='4' width='13' height='3' rx='1' fill='" (hex-css color) "' stroke='rgba(0,0,0,.45)' stroke-width='1.2'/>"
+                "<rect x='7' y='10' width='4' height='7' rx='.5' fill='rgba(255,255,255,.35)'/>")
+           (= :creature kind)
            (str "<ellipse cx='8' cy='15' rx='7' ry='5' fill='" (hex-css color) "' stroke='rgba(0,0,0,.45)' stroke-width='1.2'/>"
                 "<circle cx='13' cy='12' r='3.5' fill='" (hex-css color) "' stroke='rgba(0,0,0,.45)' stroke-width='1.2'/>"
                 "<path d='M1 15 q-2 4 3 6' fill='none' stroke='" (hex-css color) "' stroke-width='2'/>"
                 "<circle cx='14' cy='11' r='.9' fill='#222'/>")
+           :else
            (str "<circle cx='9' cy='5' r='4' fill='" (hex-css (or body 0xf3efe2)) "' stroke='" (hex-css (or joints 0x333333)) "' stroke-width='1.5'/>"
                 "<rect x='4' y='10' width='10' height='13' rx='4' fill='" (hex-css (or body 0xf3efe2)) "' stroke='" (hex-css (or joints 0x333333)) "' stroke-width='1.5'/>"))
          "</svg>")))

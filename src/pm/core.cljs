@@ -1077,20 +1077,35 @@
                                            ;; the SAMPLE/REAL switch (GDD §4.6) rides on the row
                                            :real? (boolean (:real? src)) :can-real? (boolean (:can-real? src)))))
                         (plan/creature-rows w scene/palette))
-        rows (into rows creatures)
-        fly! (fn [h [x y z] lift]
+        ;; the places too (Michael: "add the phone booth and mailbox so we can click them
+        ;; to zoom there, but not jack out till we click the booth"): a row each, the
+        ;; booth's "!" while the hardline is ringing, the mailbox's while mail waits
+        places (vec (for [[id nm color needs?] [[:phone-booth "Phone booth" (scene/palette :booth-red) (world/jacked-out? w)]
+                                                 [:mailbox "Mailbox" (scene/palette :tin) (pos? (or (:flagged (content/mail-counts content/sample-inbox)) 0))]
+                                                 [:lobby "Lobby" (scene/palette :brown) false]]
+                          :when (vector? (get-in w [id :at]))]
+                      {:id id :name nm :kind :place :color color
+                       :dot (if needs? (:needs-you colors) color) :glyph (if needs? "!" "●")
+                       :needs-you? needs? :at (get-in w [id :at])}))
+        rows (-> rows (into creatures) (into places))
+        fly! (fn [h [x y z] lift & [back]]
                (let [[ox oy oz] (get-in w [:crew-key :offset])
                      ;; come in from the creek's side (the open middle of the
                      ;; estate), not out of the woods behind them
-                     ox (if (pos? x) (- (js/Math.abs ox)) (js/Math.abs ox))]
-                 (camera/frame! h [x (+ y lift) z] [ox oy oz])))]
+                     ox (if (pos? x) (- (js/Math.abs ox)) (js/Math.abs ox))
+                     k  (or back 1)]   ; a place is framed from further back than a figure
+                 (camera/frame! h [x (+ y lift) z] [(* k ox) (* k oy) (* k oz)])))]
     (ui/render-crew-key! (get-in w [:crew-key :title]) rows toggle-source!
       (fn [id]
         (when-let [h (kit/handle)]
           (if-let [{:keys [pos]} (first (filter #(= id (:id %)) (bricks/spots)))]
             (do (fly! h pos 1.0) (reset! !follow id))
-            (when-let [c (first (filter #(= id (:id %)) creatures))]
-              (fly! h (:at c) 0.3) (reset! !follow nil))))
+            (if-let [c (first (filter #(= id (:id %)) creatures))]
+              (do (fly! h (:at c) 0.3) (reset! !follow nil))
+              ;; a place: fly there and stop following; the booth only jacks out when
+              ;; clicked on the estate itself
+              (when-let [p (first (filter #(= id (:id %)) places))]
+                (fly! h (:at p) 1.0 1.8) (reset! !follow nil)))))
         ;; someone waiting on you: their entry in 💭 opens too, ready to answer
         (when-let [row (first (filter #(= id (:id %)) rows))]
           (when (and (:agent row)
