@@ -636,7 +636,11 @@
        (mapv (fn [m]
                (let [st (if (and fresh? (contains? agents m)) (:status (get agents m)) :unknown)]
                  {:member m :who (get titles m (name m)) :status st
-                  :say? (and bridge-on? (or (contains? #{:idle :done} st) (contains? asked m)))}))
+                  ;; a member with a question up can always be answered -- in the demo too,
+                  ;; where there's no bridge: the answer applies locally and the sample
+                  ;; question stays answered (Michael: clicked the "!", "didn't have the
+                  ;; place to type"). Plain chat still needs the bridge.
+                  :say? (or (contains? asked m) (and bridge-on? (contains? #{:idle :done} st)))}))
              members))))
   ([crew-state now bridge-on? log expanded]
    (crew-roster crew-state now bridge-on? log expanded #{}))
@@ -661,6 +665,21 @@
                    (map :at) (reduce max 0))
         reply (or (get-in says [(name twin-agent) :since]) 0)]
     (and (pos? sent) (> sent reply) (< (- now sent) twin-think-ms))))
+
+(defn with-walkers
+  "Adds a row for every estate walker Herdr doesn't list -- the demo, where
+   there is no crew state at all, or a member whose pane is gone. `walkers`
+   are pm.world's [{:agent :name}]; `twin` (the twin's agent keyword) is
+   left to with-twin; `asked` opens the say… box for a member with a
+   question up (Michael, in the demo: Le Critique's \"!\" had nowhere to be
+   answered). Status is :unknown; the dot comes from the walker's own look."
+  [rows walkers twin asked]
+  (let [have (set (map :member rows))]
+    (into (vec rows)
+          (for [{:keys [agent name]} walkers
+                :when (and (keyword? agent) (not= agent twin) (not (contains? have agent)))]
+            {:member agent :who (or name (clojure.core/name agent)) :status :unknown
+             :say? (contains? (set asked) agent)}))))
 
 (defn with-twin
   "Adds the twin's row to the roster (GDD §2.1): the twin lives in a Hermes chat,

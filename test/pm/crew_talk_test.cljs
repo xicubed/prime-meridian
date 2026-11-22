@@ -637,11 +637,25 @@
            (mapv (juxt :member :say?) (tk/crew-roster CR A true))))
     (is (= [[:le-testeur true] [:un-architecte false] [:un-automate-monde true]]
            (mapv (juxt :member :say?) (tk/crew-roster CR A true #{:le-testeur :un-automate-monde}))))
-    (is (= [[:le-testeur false] [:un-architecte false] [:un-automate-monde false]]
+    (is (= [[:le-testeur true] [:un-architecte false] [:un-automate-monde true]]
            (mapv (juxt :member :say?) (tk/crew-roster CR A false #{:le-testeur :un-automate-monde})))
-        "asked never opens it when the bridge itself is off")
+        "a question can be answered with the bridge off (the demo): the answer applies locally")
     (is (= [[:le-testeur true] [:un-architecte false] [:un-automate-monde false]]
            (mapv (juxt :member :say?) (tk/crew-roster CR A true [] #{} #{:le-testeur}))))))
+
+(deftest t43c-walkers-without-herdr-are-contacts
+  (let [W [{:agent :le-critique :name "Le Critique"} {:agent :hal :name "Hal"} {:agent :le-testeur :name "Le Testeur"}]]
+    ;; the demo: no crew state, so crew-roster is empty; every walker but the twin becomes a row,
+    ;; and the one with a question up can be answered
+    (is (= [[:le-critique "Le Critique" :unknown true] [:le-testeur "Le Testeur" :unknown false]]
+           (mapv (juxt :member :who :status :say?)
+                 (tk/with-walkers (tk/crew-roster nil A false) W :hal #{:le-critique}))))
+    ;; with Herdr listing a member, its row is kept as is (no duplicate)
+    (let [CR (crew A {:le-testeur {:status :working}})
+          rows (tk/with-walkers (tk/crew-roster CR A true) W :hal #{})]
+      (is (= 1 (count (filter #(= :le-testeur (:member %)) rows))))
+      (is (= :working (:status (first (filter #(= :le-testeur (:member %)) rows))))))
+    (is (= [] (tk/with-walkers [] nil :hal #{})))))
 
 (deftest t44-persistence
   (let [D (tk/crew-send T1 1 :deny "  use bb instead ")

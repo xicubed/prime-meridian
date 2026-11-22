@@ -858,6 +858,7 @@
                                     (crew/dot (:crew w) (:member row) now colors))]
                       (merge row (when entry (walker-colours entry)) {:dot (:color d)})))
           rows  (-> (talk/crew-roster (:crew w) now (bridge-on?) (:crew-log w) (:expanded @!talk-ui) asked)
+                    (talk/with-walkers (:walkers w) (:agent twin) asked)
                     (talk/with-questions (:asks-player w))
                     (talk/with-twin twin (bridge-on?) (twin-thinking? w now))
                     (->> (mapv dressed))
@@ -1428,7 +1429,16 @@
   (add-watch !world ::state-cache on-world-change!)
   (add-watch !world ::play-cache on-play-change!)
   (if DEMO
-    (start-sample-says!)   ; the demo's twin has a voice with nothing real behind it
+    (do (start-sample-says!)   ; the demo's twin has a voice with nothing real behind it
+        ;; and one worker raises its shipped sample question a little after the estate is
+        ;; up (demo script shot 3: "a worker needs a word"): no bridge replays them here.
+        ;; Answered once, it stays answered (crew-sample-muted?) until SAMPLE/REAL flips.
+        (js/setTimeout (fn []
+                         (let [now (js/Date.now)]
+                           (doseq [[agent qs] (group-by :agent (filter sample-question? sample-events))
+                                   :when (not (crew-sample-muted? agent))]
+                             (swap! !world world/apply-event (first qs) now))))
+                       20000))
     (do (start-state-poll!)
         (start-crew-poll!)
         (start-bridge-poll!)
