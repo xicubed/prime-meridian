@@ -45,7 +45,11 @@ release; a grader with the PIN in the submission still plays within two minutes.
 - **Cloudflare Pages/Netlify + a client-side PIN screen** in the demo build (a small overlay before
   the kit loads; the PIN check is in JS, so it's a courtesy lock, not security — fine for this).
   Netlify's real password protection is a paid tier.
-- Lean: itch.io restricted. Fallback: Netlify + PIN overlay (we control it fully).
+- **Michael's own server** (not lotect.com, which is WordPress.com): `rsync dist/demo/` to a
+  docroot and lock it at the web server — nginx `auth_basic` (one user, `htpasswd`) or a Caddy
+  `basicauth` block. A real lock, no third party, no size limit; the browser's password prompt is
+  the PIN. Needs HTTPS (Caddy: automatic; nginx: certbot). **Lean (Nov 21).** Fallbacks: itch.io
+  restricted; Netlify + PIN overlay.
 
 **Remaining decisions:**
 
@@ -183,8 +187,8 @@ it's genuinely the biggest saving.
 
 ## What we know we need to know (the to-do list)
 
-- [ ] Publish `dist/demo/` behind a PIN (itch.io restricted + password, else Netlify + PIN overlay);
-      test the 2-minute rule cold with the PIN in hand.
+- [ ] Michael: which server, and does it run nginx or Caddy? Then Hal writes the auth block and
+      `bb demo-deploy` (build + rsync). Test the 2-minute rule cold with the PIN in hand.
 - [ ] (Later, before a public release) kit license check.
 - [ ] README: playable link + 3-line instructions at the very top; the ~1-page audit under it.
 - [ ] Pipeline: log `total_cost_usd` + tokens per draft; totals in `log.md` and `scores.edn`.
