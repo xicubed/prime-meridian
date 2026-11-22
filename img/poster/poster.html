@@ -1,0 +1,44 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  html,body{margin:0;background:#000}
+  .p{position:relative;width:1600px;height:2313px;overflow:hidden;background:#06101a url(aerial-blue.png) center/cover no-repeat;font-family:"Futura-CondensedExtraBold","Futura Condensed ExtraBold","Impact","Helvetica Neue",sans-serif;color:#f3e9c9}
+  .grade{position:absolute;inset:0;background:
+    linear-gradient(180deg,rgba(2,6,14,.92) 0%,rgba(2,6,14,.55) 22%,rgba(0,0,0,0) 45%,rgba(0,0,0,0) 62%,rgba(2,6,14,.75) 85%,rgba(2,6,14,.97) 100%)}
+  .vig{position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 48%,rgba(0,0,0,0) 40%,rgba(0,0,0,.55) 100%)}
+  .grain{position:absolute;inset:0;opacity:.14;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/></filter><rect width='300' height='300' filter='url(%23n)'/></svg>")}
+  .top{position:absolute;top:110px;left:0;right:0;text-align:center}
+  .kick{font-size:34px;letter-spacing:.42em;text-transform:uppercase;opacity:.9}
+  .tag{margin-top:26px;font-size:60px;letter-spacing:.14em;text-transform:uppercase;color:#ffd978;text-shadow:0 0 30px rgba(255,170,60,.45)}
+  .title{position:absolute;left:0;right:0;top:360px;text-align:center;line-height:.86}
+  .title .a{display:block;font-size:330px;letter-spacing:.02em;color:#fff2cf;
+    text-shadow:0 10px 0 #5a2d0c,0 20px 40px rgba(0,0,0,.9),0 0 90px rgba(255,190,90,.35)}
+  .title .b{display:block;font-size:330px;letter-spacing:.02em;color:#ffcf63;
+    text-shadow:0 10px 0 #5a2d0c,0 20px 40px rgba(0,0,0,.9),0 0 90px rgba(255,190,90,.35)}
+  .rule{position:absolute;left:50%;top:1060px;width:900px;margin-left:-450px;height:3px;background:linear-gradient(90deg,transparent,#ffcf63,transparent)}
+  .bottom{position:absolute;left:0;right:0;bottom:120px;text-align:center}
+  .star{font-size:42px;letter-spacing:.3em;text-transform:uppercase;opacity:.95}
+  .cast{margin:18px 40px 0;font-size:46px;letter-spacing:.12em;text-transform:uppercase;color:#fff2cf}
+  .cast b{color:#ffcf63}
+  .credits{margin:34px 110px 0;font-family:"Helvetica Neue Condensed Bold","HelveticaNeue-CondensedBold","Arial Narrow",sans-serif;font-stretch:condensed;font-size:20px;line-height:1.4;letter-spacing:.06em;text-transform:uppercase;opacity:.8}
+  .url{margin-top:46px;font-size:54px;letter-spacing:.2em;color:#ffcf63}
+  .now{margin-top:14px;font-size:30px;letter-spacing:.5em;text-transform:uppercase;opacity:.85}
+</style></head><body>
+<div class="p">
+  <div class="grade"></div><div class="vig"></div><div class="grain"></div>
+  <div class="top">
+    <div class="kick">Your agent lives here. It is building the game.</div>
+    <div class="tag">What is even real anymore?</div>
+  </div>
+  <div class="title"><span class="a">PRIME</span><span class="b">MERIDIAN</span></div>
+  <div class="rule"></div>
+  <div class="bottom">
+    <div class="star">Starring</div>
+    <div class="cast"><b>Your own agent</b> · Hal · Flora the axolotl · Juniper<br>Un Automate · Le Testeur · Un Architecte<br>Le Coureur · Le Critique · Le Docteur</div>
+    <div class="credits">A LOTECT PRODUCTION &nbsp;·&nbsp; DIRECTED BY MICHAEL LOPEZ &nbsp;·&nbsp; TWIN HAL NINER &nbsp;·&nbsp; WRITTEN BY THE CREW &nbsp;·&nbsp; SCORED BY THE SKY<br>WORLD: HIROSHI'S ISLAND BY 3DITIONS, USED UNDER LICENSE &nbsp;·&nbsp; MOTION: NVIDIA MOTIONBRICKS<br>CLOJURESCRIPT · THREE.JS · BABASHKA · HERMES · HERDR &nbsp;·&nbsp; NO TYPESCRIPT WAS HARMED</div>
+    <div class="url">pm.perstitio.us</div>
+    <div class="now">Playing in a browser near you</div>
+  </div>
+</div>
+</body></html>
