@@ -1,8 +1,58 @@
-# Demo script (demo day Nov 21; final Nov 24)
+# Demo script
 
-*The shot list for the demo video and the live run. Everything below runs in the demo build (`bb demo-build` → `dist/demo/`, pretend data only) unless marked **dev**, which needs the dev build on :8080 with `bb crew-bridge` running.*
+*Two videos for the Nov 29 hand-in (below), then the Nov 21 demo-day run order (kept; its shots are
+the pool both videos draw from). Everything runs on the **dev build** (`localhost:8080`, `bb
+crew-bridge` up, `state/hal-session` pointed at the live Hermes chat) so Hal can speak; the live
+site `pm.perstitio.us` (demo build, SAMPLE only, PIN) appears only as the deploy proof. Audio is
+all the game's own: soundtrack (Construct tracks, then the sky's tracks), the brook, Hal's voice.
+Capture: `screencapture -v -A` (system audio), 1440×900 points; cut with ffmpeg.*
 
-## Run order (about 3 minutes)
+## The two cuts (Nov 29)
+
+**Promo** (45–60 s, the README header and the lotect.com game page): the feeling. **Pipeline**
+(3–4 min, A7 deliverable 2): the same shoot, with the you → twin → crew → gate → `main` → live
+chain given room, the content loop as one fast-forwarded section with a cost card. One piece can
+serve both at different lengths.
+
+| # | Scene | Hal's line (spoken in-game) | Promo | Pipeline | Source |
+|---|---|---|---|---|---|
+| S1 | Title card → fades into the live estate | — | 5 s | 5 s | key art (to make) + estate |
+| S2 | The white room, a glimpse; the twin walks in | "Do you read me?" | 3 s | 10 s | `?construct`, fresh profile |
+| S3 | Hal walks to you and speaks (plate + caption + voice) | "Welcome back. Two letters, neither urgent." | 6 s | 10 s | `bb hal-say … --at mailbox` |
+| S4 | You ask Hal in 💭; the line lands in Hermes | "On it." | 4 s | 20 s | split screen: estate + Hermes |
+| S5 | The crew at work: Herdr panes, walkers go busy | "The crew's on it. I'll gate it." | 6 s | 30 s | film during the T-11 round |
+| S6 | A "!" goes up; you answer in-world; before → proposed; approve; the world changes | "Round or jagged?" | 8 s | 20 s | the rock blueprint, or the round's real question |
+| S7 | Content loop, fast-forward; Flora says a new line | "Ask her." | 5 s | 30 s + cost card ($1.30, Evaluator the dearest) | **shot** (take 1) |
+| S8 | Gate → commit → `bb demo-deploy` → live tab (PIN) → Flora | "Same file, same build, no hands." | — | 25 s | take 1 tail (reshoot the live tab) |
+| S9 | Time of day: Afternoon → Golden → Night by the creek, soundtrack shifts | "The sky, the lamps and the music follow your real clock." | 6 s | 10 s | kit's sky row |
+| S10 | The hardline rings, the world freezes gently, jack out | "Real life's calling. Go. The work waits." | 6 s | 10 s | booth |
+| S11 | End card: title, tagline *What is even real anymore?*, URL | — | 5 s | 5 s | key art |
+
+### Capture checklist
+
+- [x] S7 content loop, one take, narrated (`assets/private/video/pipeline-take1.mov`, 13:20; beats in `pipeline-take1.log`; dead air 6:40–10:30 is a pager stall, cut it)
+- [ ] Key art render (S1, S11): dusk estate, Hal foreground, Flora's jar lit, a "!" up
+- [ ] S2 white room glimpse (fresh Chrome profile, `?construct`)
+- [ ] S3 errand to the mailbox
+- [ ] S4 💭 ask → Hermes (split screen; `state/hal-session` set first)
+- [ ] S5 Herdr + busy walkers (during the T-11 round)
+- [ ] S6 "!" answered in-world, blueprint approve
+- [ ] S8 live-tab tail (you type the PIN, off-camera or masked)
+- [ ] S9 sky row Afternoon → Golden → Night, by the creek
+- [ ] S10 booth rings, jack out
+- [ ] Promo cut (45–60 s) → `assets/private/video/promo.mp4`, then unlisted YouTube
+- [ ] Pipeline cut (3–4 min) → `assets/private/video/pipeline.mp4`, then unlisted YouTube
+- [ ] Links into README (top block) and `docs/assignment-7-pipeline.md`
+
+### Recording rules (learned Nov 22)
+
+- Shoot on localhost; the live site can't hear `hal-say` (DEMO build has no bridge).
+- Hermes may be on screen as "your agent"; keep Herdr's Terminal window unmoved and never close
+  a Terminal window by script (one Cancel dialog cost a take).
+- Terminal commands in a take get `--no-pager` (`git diff` stalled the deploy four minutes).
+- Record before 22:15 local or the closing-time card is on screen.
+
+## Demo-day run order (Nov 21; about 3 minutes)
 
 | # | Shot | What to say | How |
 |---|------|-------------|-----|
