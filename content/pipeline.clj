@@ -30,9 +30,10 @@
 ;; ("draft 2: 6.8 (A 7 B 8 C 5 D 8 S 7)"); scores.edn keeps every draft's
 ;; scores and reasons. Nobody intervenes between draft 1 and the result.
 ;;
-;; Models: WRITER_MODEL (default claude-sonnet-5) for the Generator and the
-;; Refiner, CRITIC_MODEL (default claude-opus-5-5) for the Evaluator, through
-;; the `claude` CLI in print mode with no tools.
+;; Models: WRITER_MODEL (default claude-sonnet-5) for the Generator,
+;; CRITIC_MODEL (default claude-opus-5-5) for the Evaluator, REFINER_MODEL
+;; (default: the Evaluator's) for the Refiner, through the `claude` CLI in
+;; print mode with no tools.
 (ns pipeline
   (:require [babashka.fs :as fs]
             [babashka.process :as p]
@@ -47,6 +48,11 @@
 
 (def writer-model (or (System/getenv "WRITER_MODEL") "claude-sonnet-5"))
 (def critic-model (or (System/getenv "CRITIC_MODEL") "claude-opus-5-5"))
+;; The Refiner defaults to the Evaluator's model: on the first real run (content/runs/
+;; hal-lines-20261121-1949) a Sonnet Refiner reworded the lines the Evaluator called
+;; "the same line reworded" (rule 18) four drafts running (D stayed 5-6), and it
+;; touched lines it hadn't been asked to (C fell 10 -> 8 on draft 3).
+(def refiner-model (or (System/getenv "REFINER_MODEL") critic-model))
 
 ;; ---------------------------------------------------------------- context --
 
@@ -387,7 +393,11 @@ Reply with the complete revised EDN value only: no prose, no code fence.")
                                                  ": " (:issue %) " -> fix: " (:fix %)) vs)))
                   "\n\nNo violations were listed; raise the low criteria using their reasons."))))
        "\n\nChange only the lines named above (and whatever the validator flagged); keep every other "
-       "line word for word. Return the complete revised EDN."))
+       "line word for word. Where a violation says variants are the same line reworded (rule 18), "
+       "rewording again is not a fix: give each variant its own job, fact or picture from the GDD "
+       "(what happened, what's next, where it sits on the estate, who did it), so no two say the "
+       "same thing. Where a placeholder reads badly with real values (rule 19), move it after a "
+       "label or inside a clause that works for any value. Return the complete revised EDN."))
 
 ;; ------------------------------------------------------------------- run --
 
@@ -405,7 +415,7 @@ Reply with the complete revised EDN value only: no prose, no code fence.")
         style (style-guide)
         log (atom [(str "# Content run: " (:title req) "\n")
                    (str "- request: `content/requests/" (name req-id) ".edn`")
-                   (str "- generator + refiner: `" writer-model "`, evaluator: `" critic-model "`")
+                   (str "- generator: `" writer-model "`, evaluator: `" critic-model "`, refiner: `" refiner-model "`")
                    (str "- GDD sections: " (str/join ", " (map #(str "§" %) (get-in req [:sources :gdd])))
                         "; style guide: `content/STYLE.md`")
                    (str "- threshold: overall ≥ " pass-overall ", no criterion under " pass-each
@@ -431,7 +441,7 @@ Reply with the complete revised EDN value only: no prose, no code fence.")
         (let [role (if prev "refiner" "generator")
               wp (if prev (refiner-prompt req context style prev) (writer-prompt req context style))
               _  (spit-run dir (str role "-prompt-" n ".md") wp)
-              {:keys [text usage]} (call-model writer-model (if prev refiner-system writer-system) wp)
+              {:keys [text usage]} (call-model (if prev refiner-model writer-model) (if prev refiner-system writer-system) wp)
               _  (spit-run dir (str "draft-" n ".edn") text)
               {:keys [value error]} (read-edn text)
               errors (vec (if error [error] (validate req value)))
