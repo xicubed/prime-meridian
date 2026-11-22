@@ -271,6 +271,13 @@
 
 ;; History across reloads
 
+(deftest t22b-seen-by-survives-a-reload
+  (let [T (-> T3 (tk/mark-seen :hal))
+        R (tk/restore (tk/save-text T))]
+    (is (= (:seen-by T) (:seen-by R)))
+    (is (= (tk/unread-by T :who) (tk/unread-by R :who))))
+  (is (nil? (:seen-by (tk/restore (pr-str {:v 1 :n 3 :entries [] :seen-by {:hal "x" "bad" 2}}))))))
+
 (deftest t22-save-restore-roundtrip
   (is (true? (string? (tk/save-text T3))))
   (let [R (tk/restore (tk/save-text T3))]

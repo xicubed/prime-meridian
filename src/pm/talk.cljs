@@ -726,7 +726,7 @@
 
 (defn save-text [talk]
   (let [talk (or talk empty-talk)]
-    (pr-str {:v 1 :n (:n talk) :seen (:seen talk) :crew-last (:crew-last talk) :log-at (:log-at talk)
+    (pr-str {:v 1 :n (:n talk) :seen (:seen talk) :seen-by (:seen-by talk) :crew-last (:crew-last talk) :log-at (:log-at talk)
              :entries (mapv #(select-keys % [:n :who :text :at :kind :mirror :event :chore :done? :asks
                                                :member :prompt :state :action :note :answered-at :error :to
                                                :by :log])
@@ -845,7 +845,13 @@
                           (-> seen-m (max 0) (min n))
                           n)
             log-at-m    (:log-at m)
-            log-at      (if (and (integer? log-at-m) (>= log-at-m 0)) log-at-m 0)]
-        (assoc empty-talk :entries entries :n n :seen seen :log-at log-at
-               :last-say (last-says entries)
-               :crew-last (clean-crew-last (:crew-last m)))))))
+            log-at      (if (and (integer? log-at-m) (>= log-at-m 0)) log-at-m 0)
+            ;; what was read per thread (the roster's unread badges), so a reload
+            ;; doesn't bring every line back as unread (Michael)
+            seen-by     (into {} (for [[c v] (when (map? (:seen-by m)) (:seen-by m))
+                                       :when (and (keyword? c) (integer? v))]
+                                   [c (-> v (max 0) (min n))]))]
+        (cond-> (assoc empty-talk :entries entries :n n :seen seen :log-at log-at
+                       :last-say (last-says entries)
+                       :crew-last (clean-crew-last (:crew-last m)))
+          (seq seen-by) (assoc :seen-by seen-by))))))
