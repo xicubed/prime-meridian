@@ -1,7 +1,7 @@
 {:id    :hal-lines
  :title "Hal's voice lines, keyed by event"
  :out   "resources/content/hal-lines.edn"
- :max-drafts 5
+ :max-drafts 4
  :sources {:gdd ["1." "2.1" "2.3" "2.6" "2.7" "3."]
            :files []}
  :brief "Hal is the player's digital twin (for the author, his real bot; in demo mode, the

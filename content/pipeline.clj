@@ -1,25 +1,38 @@
 #!/usr/bin/env bb
-;; Prime Meridian content pipeline (Assignment 4: dynamic content from the GDD).
+;; Prime Meridian content pipeline (Assignment 4: dynamic content from the GDD;
+;; Assignment 5: a scored Generator -> Evaluator -> Refiner loop).
 ;;
 ;;   bb content <request>            e.g. bb content hal-lines
 ;;   bb content all                  every request in content/requests/
 ;;   bb content <request> --dry-run  build and save the prompts, call no model
 ;;
 ;; One run, logged step by step under content/runs/<request>-<stamp>/:
-;;   1. context   pull the GDD sections the request names (+ any repo files)
-;;   2. writer    a Claude model drafts the content as EDN, in the GDD's voice
-;;   3. validate  plain code checks shape, coverage, lengths, placeholders,
-;;                banned words and the GDD's hard rules (no model involved)
-;;   4. critic    a second, stronger model reads the same GDD and the draft and
-;;                returns findings (blocker / minor) with the GDD section each
-;;                one rests on
-;;   5. loop      any validator error or critic blocker goes back to the writer
-;;                with the draft; up to :max-drafts drafts
-;;   6. install   only a draft that passes both is written to the request's
-;;                :out file (resources/content/*.edn), which the game loads
+;;   1. context    pull the GDD sections the request names (+ any repo files)
+;;   2. generator  a Claude model drafts the content as EDN, in the GDD's voice
+;;                 (draft 1 only)
+;;   3. validate   plain code checks shape, coverage, lengths, placeholders,
+;;                 banned words and the GDD's hard rules (no model involved)
+;;   4. evaluator  a second, stronger model scores the draft 0-10 WITH A REASON
+;;                 on each rule family of content/STYLE.md (A who's talking,
+;;                 B what the world is, C what's never said, D look and length)
+;;                 plus S specificity (could a stranger tell it's this game),
+;;                 listing the violations behind each score with a fix
+;;   5. threshold  overall = weighted mean (C x2, A x1.5, B x1, D x1, S x1.5);
+;;                 a draft passes at 8.0 or better with no criterion under 6
+;;   6. refiner    its own model call with its own prompt: the draft, the scores
+;;                 and reasons, the violations with fixes, STYLE.md, and any
+;;                 validator errors; returns a revised draft that changes only
+;;                 what scored down (drafts 2..:max-drafts)
+;;   7. install    only a draft that passes the validator and the threshold is
+;;                 written to the request's :out file, which the game loads
 ;;
-;; Models: WRITER_MODEL (default claude-sonnet-5) and CRITIC_MODEL (default
-;; claude-opus-5-5), through the `claude` CLI in print mode with no tools.
+;; log.md shows the three roles and one trajectory line per draft
+;; ("draft 2: 6.8 (A 7 B 8 C 5 D 8 S 7)"); scores.edn keeps every draft's
+;; scores and reasons. Nobody intervenes between draft 1 and the result.
+;;
+;; Models: WRITER_MODEL (default claude-sonnet-5) for the Generator and the
+;; Refiner, CRITIC_MODEL (default claude-opus-5-5) for the Evaluator, through
+;; the `claude` CLI in print mode with no tools.
 (ns pipeline
   (:require [babashka.fs :as fs]
             [babashka.process :as p]
@@ -225,56 +238,156 @@
                [(str w ": asks for credentials or bank details outside a :suspicious message (§3.2)")]))))
         (range) msgs)))))
 
+;; ----------------------------------------------------------------- scoring --
+;; Pure functions (tested in content/pipeline_test.clj).
+
+(def criteria
+  "The Evaluator's criteria: STYLE.md's rule families A-D plus S, specificity.
+   Weights from STYLE.md 'How a draft is scored'."
+  [[:A "who's talking, and to whom (rules 1-5)" 1.5]
+   [:B "what the world is (rules 6-10)" 1.0]
+   [:C "what's never said (rules 11-15)" 2.0]
+   [:D "look and length (rules 16-19)" 1.0]
+   [:S "specificity: could a stranger tell these lines belong to Prime Meridian?" 1.5]])
+
+(def weights (into {} (map (fn [[k _ w]] [k w]) criteria)))
+(def criterion-keys (mapv first criteria))
+
+(def pass-overall 8.0)
+(def pass-each 6)
+
+(defn- clamp-score [x]
+  (if (number? x) (-> x double (max 0.0) (min 10.0) Math/round long) 0))
+
+(defn parse-scores
+  "The Evaluator's reply as a map criterion -> {:score 0-10 :reason :violations}.
+   A missing or malformed criterion counts as 0 with the reason \"not scored\";
+   violations are kept only when they are maps."
+  [reply]
+  (let [m (if (map? reply) reply {})]
+    (into {}
+          (for [k criterion-keys]
+            (let [c (get m k)]
+              [k (if (and (map? c) (number? (:score c)))
+                   {:score (clamp-score (:score c))
+                    :reason (if (string? (:reason c)) (:reason c) "no reason given")
+                    :violations (vec (filter map? (:violations c)))}
+                   {:score 0 :reason "not scored" :violations []})])))))
+
+(defn overall
+  "Weighted mean of the criterion scores, one decimal."
+  [scores]
+  (let [num (reduce + (map (fn [[k w]] (* w (get-in scores [k :score] 0))) weights))
+        den (reduce + (vals weights))]
+    (/ (Math/round (* 10.0 (/ num den))) 10.0)))
+
+(defn passes?
+  "The threshold: overall at least 8.0 and no criterion under 6."
+  [scores]
+  (and (>= (overall scores) pass-overall)
+       (every? #(>= (get-in scores [% :score] 0) pass-each) criterion-keys)))
+
+(defn trajectory-line
+  "One log line per draft: `draft 2: 6.8 (A 7 B 8 C 5 D 8 S 7)`."
+  [n scores]
+  (str "draft " n ": " (overall scores) " ("
+       (str/join " " (map #(str (name %) " " (get-in scores [% :score] 0)) criterion-keys))
+       ")"))
+
+(defn low-criteria
+  "The criteria under the per-criterion bar, lowest first."
+  [scores]
+  (->> criterion-keys
+       (filter #(< (get-in scores [% :score] 0) pass-each))
+       (sort-by #(get-in scores [% :score] 0))))
+
+(defn all-violations [scores]
+  (vec (for [k criterion-keys, v (get-in scores [k :violations])] (assoc v :criterion k))))
+
 ;; ----------------------------------------------------------------- prompts --
 
+(defn style-guide [] (slurp (rpath "content" "STYLE.md")))
+
 (def writer-system
-  "You are the Writer on Prime Meridian's development crew (GDD §4.2): you write the
+  "You are the Generator on Prime Meridian's development crew (GDD §4.2): you write the
 digital twin's voice, the status bubbles, and sample content, as EDN data the game
-loads. You write ONLY from the game's own design document, which you are given.
-Everything must sound like Prime Meridian, never like generic game text. Reply with
-the EDN value only: no prose, no code fence.")
+loads. You write ONLY from the game's own design document and style guide, which you
+are given. Everything must sound like Prime Meridian, never like generic game text.
+Reply with the EDN value only: no prose, no code fence.")
 
-(def critic-system
-  "You are the critic on Prime Meridian's development crew. You review content the
-Writer drafted, against the game's design document, which you are given. You are
-strict about facts and rules and fair about taste. Reply with one EDN map only: no
-prose, no code fence.")
+(def scorer-system
+  "You are the Evaluator on Prime Meridian's development crew. You score content the
+Generator drafted against the game's style guide (every rule cites the design
+document, which you are also given). You never give a pass/fail: every criterion gets
+a score 0-10 AND a reason, and every point you take off names the line and the rule.
+Reply with one EDN map only: no prose, no code fence.")
 
-(defn writer-prompt [req context prev]
+(def refiner-system
+  "You are the Refiner on Prime Meridian's development crew. You receive a draft, the
+Evaluator's scores and reasons, its violations with suggested fixes, and the style
+guide. You revise the draft so the violations are gone and the low criteria come up,
+changing ONLY what was scored down: lines that drew no violation stay word for word.
+Reply with the complete revised EDN value only: no prose, no code fence.")
+
+(defn writer-prompt
+  "The Generator's prompt (draft 1): the GDD context, the style guide, the brief."
+  [req context style]
   (str context
+       "\n\n===\n\n# Source: content/STYLE.md (the style guide every line is scored against)\n\n" style
        "\n\n===\n\n# Your job: " (:title req) "\n\n" (:brief req)
        "\n\n## Exact shape\n\n" (:shape req)
-       "\n\n## Hard rules (a script checks these)\n\n" (:rules req)
-       (when prev
-         (str "\n\n===\n\n# Revise your previous draft\n\nYour previous draft:\n\n"
-              (:draft-text prev)
-              (when (seq (:errors prev))
-                (str "\n\nThe validator found these errors (fix every one):\n"
-                     (str/join "\n" (map #(str "- " %) (:errors prev)))))
-              (when (seq (:blockers prev))
-                (str "\n\nThe critic's blockers on this draft (fix every one; keep what it didn't flag):\n"
-                     (str/join "\n" (map #(str "- " (:where %) ": " (:issue %) " [" (:gdd %) "] fix: " (:fix %)) (:blockers prev)))))
-              (when (seq (:earlier prev))
-                (str "\n\nBlockers the critic raised on EARLIER drafts (already fixed; don't bring any back):\n"
-                     (str/join "\n" (map #(str "- " (:where %) ": " (:issue %)) (:earlier prev)))))
-              "\n\nReturn the complete revised EDN."))))
+       "\n\n## Hard rules (a script checks these)\n\n" (:rules req)))
 
-(defn critic-prompt [req context draft-text]
+(defn scorer-prompt
+  "The Evaluator's prompt: GDD context, STYLE.md verbatim, the draft, the reply shape."
+  [req context style draft-text]
   (str context
-       "\n\n===\n\n# The Writer's draft: " (:title req) "\n\nWhat was asked:\n\n" (:brief req)
+       "\n\n===\n\n# Source: content/STYLE.md (the rules; score against these and nothing else)\n\n" style
+       "\n\n===\n\n# The Generator's draft: " (:title req) "\n\nWhat was asked:\n\n" (:brief req)
        "\n\nThe draft:\n\n" draft-text
-       "\n\n===\n\n# Review it\n\nCheck, citing the GDD section each point rests on:\n"
-       "1. Facts: does anything contradict the GDD (times, names, rules, places, who does what)?\n"
-       "2. Voice: does it sound like Prime Meridian (warm, wry, a little Matrix/TRON shorthand, never the films' own lines; the twin is a companion, not a butler or a drill sergeant)? Quote any line that sounds generic.\n"
-       "3. Guardrails: never shames, no scores or streaks, sends the player back to real life, purchases and messages to other people need approval, memorial and virtual creatures have no needs, the reader with no keys.\n"
-       "4. Usefulness: would the game actually use each part; is there real variety, or the same line reworded?\n"
-       "5. Public repo: no real person's private details.\n"
-       (:critic req)
-       "\n\nA **blocker** is anything that breaks a GDD fact or rule, or a line the game should not ship. "
-       "A **minor** is taste. Return exactly:\n\n"
-       "{:verdict :pass-or-:revise\n :sounds-like-game \"one sentence: does it sound like this game, and why\"\n"
-       " :findings [{:severity :blocker-or-:minor :where \"which key/line\" :issue \"...\" :gdd \"§x.y\" :fix \"...\"}]}\n\n"
-       ":verdict is :pass exactly when there are no blockers."))
+       "\n\n===\n\n# Score it\n\n"
+       "Score the draft on each criterion, 0-10, with a reason of one to three sentences that "
+       "quotes the lines behind the score. 10 means every line keeps every rule in that family; "
+       "take points off per violation, more for a rule broken in several lines. Under each criterion "
+       "list the violations: which key/line, which STYLE.md rule number, what's wrong, and the fix "
+       "(the rewritten line, or how to rewrite it). A criterion with no violations has an empty "
+       "vector and a reason saying what it does well.\n\n"
+       (str/join "\n" (map (fn [[k what]] (str "- " (name k) ": " what)) criteria))
+       (when (:critic req) (str "\n\nRequest-specific notes (they fall under A and B):\n" (:critic req)))
+       "\n\nReturn exactly:\n\n"
+       "{:A {:score 0-10 :reason \"...\" :violations [{:where \"which key/line\" :rule 3 :issue \"...\" :fix \"...\"}]}\n"
+       " :B {:score 0-10 :reason \"...\" :violations [...]}\n"
+       " :C {:score 0-10 :reason \"...\" :violations [...]}\n"
+       " :D {:score 0-10 :reason \"...\" :violations [...]}\n"
+       " :S {:score 0-10 :reason \"...\" :violations [...]}}\n\n"
+       "No :verdict, no pass/fail: the pipeline applies the threshold."))
+
+(defn refiner-prompt
+  "The Refiner's prompt: the draft, the scores and reasons, every violation with its fix,
+   the validator's errors if any, and the style guide. Names every violation."
+  [req context style {:keys [draft-text scores errors]}]
+  (str context
+       "\n\n===\n\n# Source: content/STYLE.md (the rules the scores rest on)\n\n" style
+       "\n\n===\n\n# Refine this draft: " (:title req) "\n\nWhat was asked:\n\n" (:brief req)
+       "\n\n## Exact shape\n\n" (:shape req)
+       "\n\n## Hard rules (a script checks these)\n\n" (:rules req)
+       "\n\n## The draft\n\n" draft-text
+       (when (seq errors)
+         (str "\n\n## Validator errors (a script found these; fix every one)\n"
+              (str/join "\n" (map #(str "- " %) errors))))
+       (when scores
+         (str "\n\n## The Evaluator's scores (overall " (overall scores) "; passes at "
+              pass-overall " with none under " pass-each ")\n"
+              (str/join "\n" (for [k criterion-keys]
+                               (str "- " (name k) " " (get-in scores [k :score]) "/10: " (get-in scores [k :reason]))))
+              (let [vs (all-violations scores)]
+                (if (seq vs)
+                  (str "\n\n## Violations to fix (every one)\n"
+                       (str/join "\n" (map #(str "- [" (name (:criterion %)) " rule " (:rule %) "] " (:where %)
+                                                 ": " (:issue %) " -> fix: " (:fix %)) vs)))
+                  "\n\nNo violations were listed; raise the low criteria using their reasons."))))
+       "\n\nChange only the lines named above (and whatever the validator flagged); keep every other "
+       "line word for word. Return the complete revised EDN."))
 
 ;; ------------------------------------------------------------------- run --
 
@@ -289,64 +402,84 @@ prose, no code fence.")
         dir (rpath "content" "runs" (str (name req-id) "-" (stamp)))
         _   (fs/create-dirs dir)
         context (build-context req)
+        style (style-guide)
         log (atom [(str "# Content run: " (:title req) "\n")
                    (str "- request: `content/requests/" (name req-id) ".edn`")
-                   (str "- writer: `" writer-model "`, critic: `" critic-model "`")
-                   (str "- GDD sections: " (str/join ", " (map #(str "§" %) (get-in req [:sources :gdd]))))
+                   (str "- generator + refiner: `" writer-model "`, evaluator: `" critic-model "`")
+                   (str "- GDD sections: " (str/join ", " (map #(str "§" %) (get-in req [:sources :gdd])))
+                        "; style guide: `content/STYLE.md`")
+                   (str "- threshold: overall ≥ " pass-overall ", no criterion under " pass-each
+                        " (weights " (str/join " " (map (fn [[k _ w]] (str (name k) "×" w)) criteria)) ")")
                    ""])
-        say (fn [& xs] (let [s (apply str xs)] (println (str (name req-id) ": " s)) (swap! log conj s)))]
+        say (fn [& xs] (let [s (apply str xs)] (println (str (name req-id) ": " s)) (swap! log conj s)))
+        finish (fn [ok n history]
+                 (say "\n## Trajectory\n")
+                 (doseq [{:keys [draft scores errors]} history]
+                   (say "- " (if scores (trajectory-line draft scores)
+                                 (str "draft " draft ": not scored (" (count errors) " validator errors)"))))
+                 (spit-run dir "scores.edn" (pretty (mapv #(select-keys % [:draft :overall :passes :errors :scores]) history)))
+                 (spit-run dir "log.md" (str/join "\n" @log))
+                 {:ok ok :dir dir :drafts n :history history})]
     (spit-run dir "context.md" context)
     (if dry-run
-      (do (spit-run dir "writer-prompt-1.md" (writer-prompt req context nil))
-          (spit-run dir "critic-prompt-example.md" (critic-prompt req context "<draft>"))
+      (do (spit-run dir "generator-prompt-1.md" (writer-prompt req context style))
+          (spit-run dir "evaluator-prompt-example.md" (scorer-prompt req context style "<draft>"))
+          (spit-run dir "refiner-prompt-example.md" (refiner-prompt req context style {:draft-text "<draft>" :scores (parse-scores {}) :errors []}))
           (say "dry run: prompts saved in " dir) {:ok true :dir dir})
-      (loop [n 1, prev nil]
-        (say "\n## Draft " n "\n")
-        (let [wp (writer-prompt req context prev)
-              _  (spit-run dir (str "writer-prompt-" n ".md") wp)
-              {:keys [text usage]} (call-model writer-model writer-system wp)
+      (loop [n 1, prev nil, history []]
+        (say "\n## Draft " n " — " (if prev "Refiner" "Generator") "\n")
+        (let [role (if prev "refiner" "generator")
+              wp (if prev (refiner-prompt req context style prev) (writer-prompt req context style))
+              _  (spit-run dir (str role "-prompt-" n ".md") wp)
+              {:keys [text usage]} (call-model writer-model (if prev refiner-system writer-system) wp)
               _  (spit-run dir (str "draft-" n ".edn") text)
               {:keys [value error]} (read-edn text)
               errors (vec (if error [error] (validate req value)))
               _  (spit-run dir (str "validate-" n ".edn") (pretty errors))
-              _  (say "- writer: " (:output_tokens usage) " tokens out; validator: "
+              _  (say "- " role ": " (:output_tokens usage) " tokens out; validator: "
                       (if (empty? errors) "PASS" (str (count errors) " errors")))
               _  (doseq [e (take 12 errors)] (say "  - " e))
-              review (when (empty? errors)
-                       (let [cp (critic-prompt req context (pretty value))
-                             {ct :text} (call-model critic-model critic-system cp)
-                             {cv :value cerr :error} (read-edn ct)]
-                         (spit-run dir (str "critic-" n ".edn") ct)
-                         (if cerr
-                           {:verdict :revise :findings [{:severity :blocker :where "critic" :issue cerr :gdd "-" :fix "-"}]}
-                           cv)))
-              blockers (vec (filter #(= :blocker (:severity %)) (:findings review)))
-              minors   (vec (filter #(= :minor (:severity %)) (:findings review)))]
-          (when review
-            (say "- critic: " (if (empty? blockers) "PASS" (str (count blockers) " blockers")) ", "
-                 (count minors) " minor; \"" (:sounds-like-game review) "\"")
-            (doseq [b blockers] (say "  - BLOCKER " (:where b) ": " (:issue b) " [" (:gdd b) "]"))
-            (doseq [m minors] (say "  - minor " (:where m) ": " (:issue m) " [" (:gdd m) "]")))
+              draft-text (if value (pretty value) text)
+              scores (when value
+                       (let [sp (scorer-prompt req context style draft-text)
+                             _  (spit-run dir (str "evaluator-prompt-" n ".md") sp)
+                             {st :text} (call-model critic-model scorer-system sp)
+                             {sv :value serr :error} (read-edn st)]
+                         (spit-run dir (str "evaluator-" n ".edn") st)
+                         (when serr (say "- evaluator: reply was " serr))
+                         (parse-scores sv)))
+              entry {:draft n :errors errors :scores scores
+                     :overall (when scores (overall scores))
+                     :passes (boolean (and scores (empty? errors) (passes? scores)))}
+              history (conj history entry)]
+          (when scores
+            (say "- evaluator: " (trajectory-line n scores)
+                 (if (passes? scores)
+                   " — over the bar"
+                   (str " — under the bar"
+                        (when-let [low (seq (low-criteria scores))]
+                          (str " (under " pass-each ": " (str/join ", " (map name low)) ")")))))
+            (doseq [k criterion-keys]
+              (say "  - " (name k) " " (get-in scores [k :score]) ": " (get-in scores [k :reason])))
+            (doseq [v (all-violations scores)]
+              (say "  - violation [" (name (:criterion v)) " rule " (:rule v) "] " (:where v) ": " (:issue v))))
           (cond
-            (and (empty? errors) review (empty? blockers))
+            (:passes entry)
             (let [out (rpath (:out req))]
               (fs/create-dirs (fs/parent out))
-              (spit out (str ";; GENERATED by the content pipeline (content/pipeline.clj) from docs/GDD.md.\n"
+              (spit out (str ";; GENERATED by the content pipeline (content/pipeline.clj) from docs/GDD.md and content/STYLE.md.\n"
                              ";; Request: content/requests/" (name req-id) ".edn. Run: content/runs/" (fs/file-name dir) "/\n"
-                             ";; Passed the validator and the critic on draft " n ". Edit the request, not this file.\n"
+                             ";; Passed the validator and the threshold (" (overall scores) ") on draft " n ". Edit the request, not this file.\n"
                              (pretty value)))
-              (say "\n**Installed** `" (:out req) "` (draft " n ").")
-              (spit-run dir "log.md" (str/join "\n" @log))
-              {:ok true :dir dir :drafts n})
+              (say "\n**Installed** `" (:out req) "` (draft " n ", " (overall scores) ").")
+              (finish true n history))
 
             (>= n (:max-drafts req 3))
-            (do (say "\n**Not installed**: still failing after " n " drafts.")
-                (spit-run dir "log.md" (str/join "\n" @log))
-                {:ok false :dir dir :drafts n})
+            (do (say "\n**Not installed**: still under the bar after " n " drafts.")
+                (finish false n history))
 
             :else
-            (recur (inc n) {:draft-text (if value (pretty value) text) :errors errors :blockers blockers
-                             :earlier (vec (concat (:earlier prev) (:blockers prev)))})))))))
+            (recur (inc n) {:draft-text draft-text :errors errors :scores scores} history)))))))
 
 (defn -main [& args]
   (let [dry (some #{"--dry-run"} args)

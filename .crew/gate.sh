@@ -24,4 +24,8 @@ summary="$(echo "$tout" | grep -E '^Ran [0-9]+ tests' || true)"
 [ -n "$summary" ] || { echo "GATE: FAIL no test summary"; exit 1; }
 echo "$summary" | grep -q '^Ran 0 tests' && { echo "GATE: FAIL no tests"; exit 1; }
 [ $trc = 0 ] && echo "$tout" | grep -q '0 failures, 0 errors' || { echo "GATE: FAIL tests ($summary)"; exit 1; }
+echo "--- bb content-test"
+ctout="$(bb content/pipeline_test.clj 2>&1)"; crc=$?
+echo "$ctout" | grep -E '^Ran [0-9]+ tests|failures' || true
+[ $crc = 0 ] || { echo "GATE: FAIL content tests"; exit 1; }
 echo "GATE: PASS — 0 warnings; $summary"

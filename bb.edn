@@ -14,6 +14,8 @@
                 :task (apply shell "bb" "scripts/crew_fielder.clj" *command-line-args*)}
   content {:doc  "Generate game content from the GDD: bb content <request>|all [--dry-run]"
            :task (apply shell "bb" "content/pipeline.clj" *command-line-args*)}
+  content-test {:doc  "Deterministic tests for the scored content loop's pure parts (content/pipeline_test.clj)"
+                :task (shell "bb" "content/pipeline_test.clj")}
   goal-agent {:doc  "Assignment 5 goal agent: bb goal-agent extract | plan | run [--max N] | test (tools/goal-agent/README.md)"
               :task (if (= "test" (first *command-line-args*))
                       (shell "bb" "-cp" "tools/goal-agent/src:tools/goal-agent/test" "-e"
