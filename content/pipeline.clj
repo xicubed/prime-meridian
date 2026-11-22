@@ -422,14 +422,37 @@ Reply with the complete revised EDN value only: no prose, no code fence.")
                         " (weights " (str/join " " (map (fn [[k _ w]] (str (name k) "×" w)) criteria)) ")")
                    ""])
         say (fn [& xs] (let [s (apply str xs)] (println (str (name req-id) ": " s)) (swap! log conj s)))
+        spend (atom [])
+        model! (fn [draft role model system prompt]
+                 (let [{:keys [usage cost] :as r} (call-model model system prompt)]
+                   (swap! spend conj {:draft draft :role role :model model
+                                      :in (:input_tokens usage 0) :out (:output_tokens usage 0)
+                                      :cost (or cost 0.0)})
+                   r))
+        usd (fn [x] (format "$%.4f" (double x)))
         finish (fn [ok n history]
                  (say "\n## Trajectory\n")
                  (doseq [{:keys [draft scores errors]} history]
                    (say "- " (if scores (trajectory-line draft scores)
                                  (str "draft " draft ": not scored (" (count errors) " validator errors)"))))
+                 (let [calls @spend
+                       total (reduce + 0.0 (map :cost calls))
+                       by-role (->> (group-by :role calls)
+                                    (map (fn [[role cs]] {:role role :calls (count cs)
+                                                          :in (reduce + (map :in cs)) :out (reduce + (map :out cs))
+                                                          :cost (reduce + 0.0 (map :cost cs))}))
+                                    (sort-by :cost >))
+                       dearest (first (sort-by :cost > calls))]
+                   (say "\n## Cost\n")
+                   (say "- total: " (usd total) " over " (count calls) " model calls (API-equivalent, as reported by `claude -p`)")
+                   (doseq [{:keys [role calls in out cost]} by-role]
+                     (say "- " role ": " calls " call" (if (= 1 calls) "" "s") ", " in " in / " out " out, " (usd cost)))
+                   (when dearest
+                     (say "- most expensive step: " (:role dearest) " on draft " (:draft dearest) " (" (:model dearest) "), " (usd (:cost dearest))))
+                   (spit-run dir "cost.edn" (pretty {:total-usd total :by-role (vec by-role) :calls calls})))
                  (spit-run dir "scores.edn" (pretty (mapv #(select-keys % [:draft :overall :passes :errors :scores]) history)))
                  (spit-run dir "log.md" (str/join "\n" @log))
-                 {:ok ok :dir dir :drafts n :history history})]
+                 {:ok ok :dir dir :drafts n :history history :cost (reduce + 0.0 (map :cost @spend))})]
     (spit-run dir "context.md" context)
     (if dry-run
       (do (spit-run dir "generator-prompt-1.md" (writer-prompt req context style))
@@ -441,21 +464,23 @@ Reply with the complete revised EDN value only: no prose, no code fence.")
         (let [role (if prev "refiner" "generator")
               wp (if prev (refiner-prompt req context style prev) (writer-prompt req context style))
               _  (spit-run dir (str role "-prompt-" n ".md") wp)
-              {:keys [text usage]} (call-model (if prev refiner-model writer-model) (if prev refiner-system writer-system) wp)
+              {:keys [text usage cost]} (model! n role (if prev refiner-model writer-model) (if prev refiner-system writer-system) wp)
               _  (spit-run dir (str "draft-" n ".edn") text)
               {:keys [value error]} (read-edn text)
               errors (vec (if error [error] (validate req value)))
               _  (spit-run dir (str "validate-" n ".edn") (pretty errors))
-              _  (say "- " role ": " (:output_tokens usage) " tokens out; validator: "
+              _  (say "- " role ": " (:input_tokens usage) " tokens in, " (:output_tokens usage) " out, "
+                      (usd (or cost 0)) "; validator: "
                       (if (empty? errors) "PASS" (str (count errors) " errors")))
               _  (doseq [e (take 12 errors)] (say "  - " e))
               draft-text (if value (pretty value) text)
               scores (when value
                        (let [sp (scorer-prompt req context style draft-text)
                              _  (spit-run dir (str "evaluator-prompt-" n ".md") sp)
-                             {st :text} (call-model critic-model scorer-system sp)
+                             {st :text su :usage sc :cost} (model! n "evaluator" critic-model scorer-system sp)
                              {sv :value serr :error} (read-edn st)]
                          (spit-run dir (str "evaluator-" n ".edn") st)
+                         (say "- evaluator: " (:input_tokens su) " tokens in, " (:output_tokens su) " out, " (usd (or sc 0)))
                          (when serr (say "- evaluator: reply was " serr))
                          (parse-scores sv)))
               entry {:draft n :errors errors :scores scores
