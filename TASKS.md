@@ -79,7 +79,7 @@ Plan of record: [`docs/session-2026-10-17.md`](docs/session-2026-10-17.md) §7. 
 - [ ] N-2 Closing-time lines: goodnight fires again on every page load after bedtime (the once-per-day state isn't persisted), and "10:30 PM's close" showed before the fifteen-minute last call.
 - [ ] N-4 Share your estate (Michael, Nov 15; after v1): builds already save as a small data layer (pm.overlay/play-of :blueprints); export just that as a file or a link (`?estate=...`) another player can load into their own world. Builds only, never life data (mirror states, mail, chores). GDD: v1 is single-player, a shared world is vision; this is the first, read-only step.
 - [x] N-5 (Nov 15) The Construct's building drop plays behind the white screen (invisible) and off camera: move it to beat 5 ("free your mind"), where the white dissolves into the estate and the camera frames your agent's workshop as it lands.
-- [ ] N-3 Blueprint ghosts read poorly: the thin wireframe vanishes against the grass, even in screenshots.
+- [x] N-3 Nov 22: Blueprint ghosts read poorly: the thin wireframe vanished against the grass. Now neon blueprint blue (Michael: "neon blue aka blue print"): a translucent glowing blue fill with cyan edges (`pm.three/ghost!`); building restores the real colours.
 
 ## Next (from Nov 16)
 The twin on the estate (GDD §2.1). Built today: he walks (black body, white joints), is in the crew key, and clicking him opens a say… box that the bridge passes into his Hermes chat (`scripts/hal_relay.py`). Michael's call: the game passes the message, the twin answers in his chat.
