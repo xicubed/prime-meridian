@@ -67,7 +67,7 @@
                            (fn [x _] (* 1.4 x)))
         b     (first (bp/pending w))]
     (is (true? (:too-steep? b)))
-    (is (= "proposed: a bench · too steep here" (bp/sign-text w b)))
+    (is (= "proposed: a bench\ntoo steep here" (bp/sign-text w b)))
     (is (= "too steep here" (get-in (bp/refuse-steep w 0) [:hal :text])))
     ;; still a ghost: refusing never builds it
     (is (= :pending (bp/status (bp/refuse-steep w 0) :bench)))))

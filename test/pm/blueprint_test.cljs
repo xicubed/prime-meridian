@@ -92,9 +92,9 @@
 (def TXT {:hint "click to build" :failed "won't build"})
 
 (deftest t20-sign-text-hint-and-failed
-  (is (= "proposed: a bench · click to build"
+  (is (= "proposed: a bench\nclick to build"
          (:text (first (bp/ghost-plan {:blueprint-text TXT :blueprints [B1]})))))
-  (is (= "proposed: a bench · won't build"
+  (is (= "proposed: a bench\nwon't build"
          (:text (first (bp/ghost-plan (bp/mark-failed {:blueprint-text TXT :blueprints [B1]} :bench))))))
   (testing "no wording in the data: just the summary"
     (is (= "proposed: a bench" (bp/sign-text {} B1)))))
@@ -121,7 +121,7 @@
     (is (nil? more))
     (is (= [:blueprint :bench] (:key trial)))
     (is (nil? (:ghost? trial)))
-    (is (= "proposed: a bench · trial" (:text trial)) "a trial says how to make it real")
+    (is (= "proposed: a bench\ntrial" (:text trial)) "a trial says how to make it real")
     (is (nil? (:label real)) "a real build has no sign")))
 
 (deftest t24-trial-real-and-immutable

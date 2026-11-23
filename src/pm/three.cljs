@@ -12,7 +12,8 @@
    three.js copies on one page break materials. `use-three!` points every
    constructor below at whichever THREE is current; `defonce` keeps that choice
    across hot reloads."
-  (:require ["three/webgpu" :as THREE]))
+  (:require ["three/webgpu" :as THREE]
+            [clojure.string :as str]))
 
 (defonce ^:private !three (atom THREE))
 
@@ -274,12 +275,19 @@
         (set! (.-fillStyle ctx) ink)
         (set! (.-textAlign ctx) "center")
         (set! (.-textBaseline ctx) "middle")
-        (loop [size font-max]
-          (set! (.-font ctx) (str "bold " size "px sans-serif"))
-          (if (and (> size 12) (> (.-width (.measureText ctx text)) (- w (* 0.3 h))))
-            (recur (dec size))
-            nil))
-        (.fillText ctx text (/ w 2) (/ h 2))
+        ;; one line per "\n", each fitted to the width, all one size
+        (let [lines  (str/split text #"\n")
+              n      (count lines)
+              line-h (/ h n)
+              cap    (min font-max (* 0.8 line-h))]
+          (loop [size cap]
+            (set! (.-font ctx) (str "bold " size "px sans-serif"))
+            (if (and (> size 12)
+                     (some #(> (.-width (.measureText ctx %)) (- w (* 0.3 (min h 128)))) lines))
+              (recur (dec size))
+              nil))
+          (doseq [[i line] (map-indexed vector lines)]
+            (.fillText ctx line (/ w 2) (* line-h (+ i 0.5)))))
         (set! (.-visible sprite) true)
         (set! (.-needsUpdate tex) true)))
     sprite))

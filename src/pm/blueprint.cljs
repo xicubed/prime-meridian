@@ -74,7 +74,7 @@
       w)))
 
 (defn sign-text
-  "A ghost's sign: its one-line summary, then how to act on it, or why its
+  "A ghost's sign: its one-line summary, then on a second line how to act on it, or why its
    approval was refused. The wording is data (`:blueprint-text` in
    estate.edn); without it, just the summary."
   [world bp]
@@ -84,7 +84,7 @@
                    (= :approved (:status bp)) trial
                    :else hint)]
     (if (and (string? tail) (not (str/blank? tail)))
-      (str (:summary bp) " · " tail)
+      (str (:summary bp) "\n" tail)   ; two lines: one long line shrank the font to fit (Michael)
       (:summary bp))))
 
 (defn make-real

@@ -5,7 +5,8 @@
   (:require [pm.three :as t]
             [pm.plan :as p]
             [pm.blueprint :as bp]
-            [pm.content :as c]))
+            [pm.content :as c]
+            [clojure.string :as str]))
 
 (def palette
   "The only hex literals. A look colour not in this map -> :stand-in."
@@ -51,12 +52,22 @@
   (let [[paper ink] (if (= label-kind :sign)
                        [:sign-paper :sign-ink]
                        [:bubble-paper :bubble-ink])]
-    (assoc plate
-           :text   text
-           :paper  (color paper)
-           :ink    (color ink)
-           :border (color ink)
-           :pos    pos)))
+    ;; a two-line sign (a blueprint's) gets a taller plate, so each line keeps
+    ;; the one-line font size, and rises by the extra so it never sinks into its item
+    (let [n          (if (string? text) (count (str/split text #"\n")) 1)
+          [cw ch]    (:canvas plate)
+          k          (+ 1 (* 0.65 (dec n)))   ; each extra line adds 0.65 of a plate: lines sit close
+          ch'        (js/Math.round (* ch k))
+          height'    (* (:height plate) k)
+          [x y z]    pos]
+      (assoc plate
+             :text   text
+             :paper  (color paper)
+             :ink    (color ink)
+             :border (color ink)
+             :canvas [cw ch']
+             :height height'
+             :pos    (if pos [x (+ y (/ (- height' (:height plate)) 2)) z] pos)))))
 
 (defn- mount-item! [root item]
   (let [{:keys [key at yaw parts label label-at text ghost?]} item
