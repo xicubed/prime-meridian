@@ -3,7 +3,8 @@
    request validation, the allow/deny/say decision, replies, argv for
    babashka.process, and the log line. Portable (bb + cljs via the :test
    build); never required by pm.core."
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [pm.blueprint-file :as bf]))
 
 (def host "127.0.0.1")
 (def port 8091)
@@ -15,7 +16,7 @@
 (def hold-uri "/hold")
 (def events-uri "/events")
 (def real-uri "/real")      ; make something real: a build that stays, a real chore (GDD §4.6)
-(def ^:private real-id-re #"[a-z0-9][a-z0-9-]{0,40}")
+(def ^:private real-id-re bf/id-re)
 
 (def ^:private name-re #"[a-z][a-z0-9_-]{0,31}")
 (def ^:private uri-re #"^/crew/([a-z][a-z0-9_-]{0,31})$")
@@ -173,6 +174,15 @@
       (not (token= token (:token ctx))) {:ok false :status 401 :reason "bad token"}
       (not= origin allowed-origin) {:ok false :status 403 :reason "bad origin"}
       :else {:ok true})))
+
+(defn known-build-ids
+  "Ids a /real build request may name (GDD §4.6, TASKS T-13b): the
+   estate's own blueprint ids plus every valid id in `state/blueprints.edn`
+   (an agent's proposed blueprint, read at request time). Either arg may
+   be nil."
+  [estate file]
+  (into (set (keep :id (:blueprints estate)))
+        (keep :id (filter bf/valid? (:blueprints (bf/normalize file))))))
 
 (defn add-real-build
   "The real-builds file (state/builds.edn) with `id` made real at `now`

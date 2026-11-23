@@ -116,20 +116,42 @@
         (.finally (fn [] (swap! !state-poll assoc :busy? false))))))
 
 (def builds-url "/state/builds.edn")   ; builds made real (the bridge writes it)
+(def blueprints-url "/state/blueprints.edn")   ; an agent's proposed blueprints (TASKS T-13b)
+(defonce ^:private !last-builds (atom nil))   ; the parsed builds.edn, for apply-blueprint-file!
+(defonce ^:private !kit (atom nil))           ; the kit handle, once start-kit! has it
+
+(declare apply-blueprint-file!)
 
 (defn- fetch-builds! []
   (-> (js/fetch (str builds-url "?t=" (js/Date.now)) #js {:cache "no-store"})
       (.then (fn [^js resp] (if (.-ok resp) (.text resp) nil)))
       (.then (fn [text]
                (when-let [b (overlay/parse-file text)]
+                 (reset! !last-builds b)
                  (swap! !world bp/apply-real-builds b))))
+      (.catch (fn [_]))))
+
+(defn- fetch-blueprints!
+  "The 5 s state poll's read of `state/blueprints.edn` (TASKS T-13b): a
+   crew member's `bb blueprint-add` lands here within one poll, merged
+   into `!world` by `apply-blueprint-file!` -- no reload, no remount."
+  []
+  (-> (js/fetch (str blueprints-url "?t=" (js/Date.now)) #js {:cache "no-store"})
+      (.then (fn [^js resp]
+               (cond
+                 (= 404 (.-status resp)) (apply-blueprint-file! nil)
+                 (.-ok resp) (-> (.text resp)
+                                 (.then (fn [text]
+                                          (when-let [f (overlay/parse-file text)]
+                                            (apply-blueprint-file! f)))))
+                 :else nil)))
       (.catch (fn [_]))))
 
 (defn- start-state-poll! []
   (when (nil? (:timer @!state-poll))
-    (fetch-state!)
-    (fetch-builds!)
-    (swap! !state-poll assoc :timer (js/setInterval (fn [] (fetch-state!) (fetch-builds!)) state-poll-ms))))
+    (fetch-blueprints!) (fetch-state!) (fetch-builds!)
+    (swap! !state-poll assoc :timer
+           (js/setInterval (fn [] (fetch-blueprints!) (fetch-state!) (fetch-builds!)) state-poll-ms))))
 
 (def crew-url "/state/crew.edn")
 (def crew-poll-ms 2000)
@@ -1486,16 +1508,49 @@
                           ", " (for [[y n] (t/drop-ray (.-scene h) (.-camera h) x z 40 5)]
                                  (str y " " n))))))))))
 
+(defn- ground-at-fn
+  "The kit's ground-at fn (x z -> height, pm.motion/ground-height) for
+   seating blueprints, or nil until its ground meshes can be found."
+  [^js h]
+  (let [prefixes (get-in @!world [:motion :ground])
+        gm       (t/find-meshes (.-scene h) #(m/ground-name? % prefixes))]
+    (when (seq gm)
+      (fn [x z] (m/ground-height (t/down-hits gm x z 40) prefixes)))))
+
 (defn- seat-blueprints!
   "Seats every blueprint on the kit's ground before it is drawn
    (pm.blueprint/seat): an agent's :at is a one-point guess, and on a slope
    that sinks one end and floats the other."
   [^js h]
-  (let [prefixes (get-in @!world [:motion :ground])
-        gm       (t/find-meshes (.-scene h) #(m/ground-name? % prefixes))]
-    (when (seq gm)
-      (swap! !world bp/seat-all
-             (fn [x z] (m/ground-height (t/down-hits gm x z 40) prefixes))))))
+  (when-let [ground-at (ground-at-fn h)]
+    (swap! !world bp/seat-all ground-at)))
+
+(defn- apply-blueprint-file!
+  "A freshly polled `state/blueprints.edn` (or nil, 404) merged into
+   `!world` (TASKS T-13b, `bp/merge-file`): a no-op when nothing changed.
+   Otherwise the real-builds file applies to the new entries too, the
+   newly added ones are seated (once the kit's ground is up; before that,
+   `start-kit!`'s `seat-blueprints!` seats them -- `seat` is idempotent via
+   :seated?), each newly announced one adds its author's line to 💭, and
+   the result replaces `!world` in one swap -- the running scene redraws
+   just those blueprints next frame, no reload, no remount."
+  [f]
+  (let [r (bp/merge-file @!world f)]
+    (when-not (identical? (:world r) @!world)
+      (let [w1  (-> (:world r) (bp/apply-real-builds @!last-builds))
+            w2  (if-let [^js h @!kit]
+                  (if-let [ground-at (ground-at-fn h)]
+                    (bp/seat-ids w1 (:added r) ground-at)
+                    w1)
+                  w1)
+            now (js/Date.now)
+            w3  (reduce (fn [w id]
+                          (if-let [line (bp/author-line w2 id)]
+                            (update w :talk talk/append line now)
+                            w))
+                        w2 (:announce r))]
+        (reset! !world w3)
+        (js/console.info "Prime Meridian: blueprints added" (:added r) "removed" (:removed r))))))
 
 (defn start-kit!
   "The kit's scene is live: show the game's layer on top of it."
@@ -1505,6 +1560,7 @@
   (js/console.log "Prime Meridian: running on the kit's estate," @!backend)
   (wire-kit-brook-ui! h)
   (t/use-three! (.-THREE h))
+  (reset! !kit h)
   (seat-blueprints! h)
   (scene/mount! (.-scene h) @!world (js/Date.now))
   (when (camera/restore! h) (js/console.log "Prime Meridian: camera restored"))

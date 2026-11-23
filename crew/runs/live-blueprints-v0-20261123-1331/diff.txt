@@ -1,0 +1,454 @@
+diff --git a/TASKS.md b/TASKS.md
+index f5834e9..e87fcb8 100644
+--- a/TASKS.md
++++ b/TASKS.md
+@@ -93,7 +93,7 @@ The twin on the estate (GDD §2.1). Built today: he walks (black body, white joi
+ - [ ] T-7 Wandering follow-ups: re-run the walkable-ground probe whenever placed things move (the spots are data in `:wander :areas`); a wanderer still walks through a fresh build's footprint until then.
+ - [ ] T-8 v1.1 from the finish list: jack-out priority, the Construct as a Hermes onboarding skill.
+ - [x] Nov 22 (crew round calls-v0) T-11 Call a contact, in the room (Michael, Nov 21: "because I can talk to you and there are bots that can speak"): a 📞 on a contact's row opens a call; the walker's plate shows "on a call", their lines are spoken aloud as they arrive (the voice the twin already has), and the player's mic goes through the browser's speech recognition (Web Speech API, no server, no cost) down the bridge as if typed. First for the twin: "Do you read me, Hal?" made literal. Works in the demo build with SAMPLE voices. Follow-up fixed Nov 22: the 📞/End button shifted 1 px between states (the composer grew 39 → 40 px when the 🎙 joined it; the input is now 40 px), and 🎙 Talk in an embedded window with no speech service (Electron answers `network`) now goes disabled, "No mic here", with the twin's line, instead of snapping back.
+-- [ ] T-13 Demo scene (Michael, Nov 22): a bot builds something, and you finish it from the wireframe when it looks good. You ask in 💭 ("put a bench by the creek"), a member writes the `:blueprints` entry, the ghost appears, a click builds it as a trial, a second click makes it real (`state/builds.edn`). Exists today except: (a) N-3, the ghost is hard to see on grass; (b) a new blueprint shows only after a page reload (the estate is compiled in, `!world` is a defonce), so it can't appear while you watch. Candidate for S6 in `docs/demo-script.md` beside the rock; the unbuilt bench by the mailbox can stand in meanwhile. Nov 22: blueprints are now seated on the ground before they're drawn (`pm.blueprint/seat`: level at the highest foot, lower feet stretched down; more than 25 cm of drop is refused as too steep, sign + twin say so), and the bench moved off the creek bank to level grass by the mailbox.
++- [ ] T-13 Demo scene (Michael, Nov 22): a bot builds something, and you finish it from the wireframe when it looks good. You ask in 💭 ("put a bench by the creek"), a member writes the `:blueprints` entry, the ghost appears, a click builds it as a trial, a second click makes it real (`state/builds.edn`). Exists today except: (a) N-3, the ghost is hard to see on grass; (b) a new blueprint shows only after a page reload (the estate is compiled in, `!world` is a defonce), so it can't appear while you watch. Candidate for S6 in `docs/demo-script.md` beside the rock; the unbuilt bench by the mailbox can stand in meanwhile. Nov 22: blueprints are now seated on the ground before they're drawn (`pm.blueprint/seat`: level at the highest foot, lower feet stretched down; more than 25 cm of drop is refused as too steep, sign + twin say so), and the bench moved off the creek bank to level grass by the mailbox. Nov 23: (b) done: a crew member proposes with `bb blueprint-add <member> <blueprint.edn>` (kept in the private `state/blueprints.edn`; `--remove <id>` takes one out), and within one 5-second poll its ghost appears in the estate, seated, with no reload, and the member says "drew a blueprint: … Click it to try it." in 💭. Two clicks still make it a trial, then real.
+ - [ ] T-12 Call the player's real phone (after T-11; the GDD's jack-out hook, §2.3): Twilio voice from the bot number to his cell when something real is due (Flora's chore, a "!" waiting past closing) or when he taps 📞 away from the laptop; the twin reads the lines, speech-to-text comes back down the bridge; a crew member who takes a minute "calls back". Costs per minute; FaceTime/Teams have no agent end and are out. Ready-made ways to add it (Nov 22, nothing installed): Hermes's official `telephony` skill (one-way calls on the existing Twilio number: a spoken message or a TTS recording); the community **Hermes Voice Gateway** plugin (two-way: the player calls the twin's number and talks; needs ElevenLabs and a tunnel); Zoom only as a meeting bot that joins a meeting (Meetstream / Meeting AI plugins, paid bot services); Slack is text and voice notes only (bots can't join huddles).
+ - [ ] T-9 v2 idea: living objects (docs/ideas-living-objects.md): stateful things that age, speak, and pass messages through the twin; Flora's hunger in the game first, a text only when she's well overdue (replacing the 09:00/17:00 cron).
+ 
+diff --git a/bb.edn b/bb.edn
+index a5b6733..f556b46 100644
+--- a/bb.edn
++++ b/bb.edn
+@@ -4,6 +4,9 @@
+                :task (apply shell "bb" "scripts/crew_status.clj" *command-line-args*)}
+   crew-bridge {:doc  "Local bridge for the game's 💭: allow / no / reply to crew prompts (127.0.0.1:8091)"
+                :task (apply shell "bb" "scripts/crew_bridge.clj" *command-line-args*)}
++  blueprint-add {:doc  "An agent proposes a blueprint: its ghost appears in the estate (state/blueprints.edn): bb blueprint-add <member> <blueprint.edn> | bb blueprint-add --remove <id>"
++                 :task (let [r (apply shell {:continue true} "bb" "scripts/blueprint_add.clj" *command-line-args*)]
++                         (System/exit (:exit r)))}
+   ask-player {:doc  "ask_player: raise the estate's \"!\" over a crew member and wait for the player's answer: bb ask-player <member> \"question\" [--wait S]"
+               :task (apply shell "bb" "scripts/ask_player.clj" *command-line-args*)}
+   juice      {:doc  "The real usage meter: types /usage into an idle Claude member, writes state/juice.edn: bb juice [--watch [S]] [--member NAME]"
+diff --git a/docs/GDD.md b/docs/GDD.md
+index 7834a41..585ebe9 100644
+--- a/docs/GDD.md
++++ b/docs/GDD.md
+@@ -70,7 +70,7 @@
+ | **Talk** | Click an agent and a speech bubble opens. Ask what it's doing, give it a task, answer its question. Replies stream in as the agent writes them. *Built (Nov 20): your twin's answers come back as a speech plate over his walker, his caption and the 💭 history (`bb hal-say`); with `--at` he walks to the place first and says it there (an errand). Without a bridge he says so himself.* |
+ | **Assign** | Say it in conversation ("make all the rocks procedural"). The agent confirms in one line, takes a desk, and gets to work. |
+ | **Answer** | An agent that needs a decision stops, raises "!", and walks to you wherever you are. You answer in-world; it resumes. |
+-| **Approve** | Agent-made changes first appear as a **blueprint**, a ghosted version of the change. Approve it and it becomes real; reject it and it vanishes. A bad change can never take down the running game: it reverts to the last working build. Approvals come **grouped**, not one at a time: the morning card holds last night's blueprints as one tray, each with a one-line summary and a before/after you can see, and reads never ask. |
++| **Approve** | Agent-made changes first appear as a **blueprint**, a ghosted version of the change. Approve it and it becomes real; reject it and it vanishes. A bad change can never take down the running game: it reverts to the last working build. Approvals come **grouped**, not one at a time: the morning card holds last night's blueprints as one tray, each with a one-line summary and a before/after you can see, and reads never ask. *Built (Nov 23): a crew member's blueprint arrives while you watch: `bb blueprint-add` writes it to the private `state/blueprints.edn`, the estate's ghost appears within seconds without a reload, and whoever drew it says so in 💭. The public sample estate never changes when an agent proposes something.* |
+ | **Hand out a keycard** | When an agent needs a permission for a task ("write access to the river shader"), it asks you for a keycard. Every key that's out is visible, and it comes back when the task ends. |
+ | **Possess** | Toggle direct control of one agent: the camera follows it, your messages go straight to it, and you see what it sees on a desk screen, not a pop-up. |
+ | **Set autonomy** | A dial per agent: *ask before anything* · *ask before approving* · *fully autonomous*. The dial covers reads and reversible writes; money, deletion, security changes, and messages to other people need you at every setting. You set trust: no agent can start a trust change, so no "!" can ever ask for more autonomy. The notice board shows each agent's track record (tasks done, approvals, reverts); if game code thinks a dial could go up, it says so on the board in the board's own style, never as a "!". |
+diff --git a/scripts/crew_bridge.clj b/scripts/crew_bridge.clj
+index c437661..1ea4d06 100644
+--- a/scripts/crew_bridge.clj
++++ b/scripts/crew_bridge.clj
+@@ -42,6 +42,7 @@
+ (def bridge-file "state/bridge.edn")
+ (def hold-file "state/hold.edn")
+ (def builds-file "state/builds.edn")       ; builds made real (pm.bridge/add-real-build)
++(def blueprints-file "state/blueprints.edn") ; agent-proposed blueprints (pm.bridge/known-build-ids)
+ (def mirrors-file "state/mirrors.edn")     ; the twin's real mirror state
+ (def crew-log-file "state/crew-log.edn")
+ (def log-file "crew/bridge.log")
+@@ -115,7 +116,7 @@
+         e   (estate)]
+     (case (:action v)
+       :real-build
+-      (if-let [b (b/add-real-build (read-edn builds-file) (:id v) (set (map :id (:blueprints e))) now)]
++      (if-let [b (b/add-real-build (read-edn builds-file) (:id v) (b/known-build-ids e (read-edn blueprints-file)) now)]
+         (if (write-edn! builds-file b) {:ok true :reason "made real"} {:ok false :reason "not saved"})
+         {:ok false :reason "unknown build"})
+       :real-mirror
+diff --git a/src/pm/blueprint.cljs b/src/pm/blueprint.cljs
+index eebe3c9..8d660ea 100644
+--- a/src/pm/blueprint.cljs
++++ b/src/pm/blueprint.cljs
+@@ -5,6 +5,7 @@
+    three.js, no js/Date, no atoms; `pm.scene` turns `ghost-plan` into meshes
+    through `pm.three/ghost!`."
+   (:require [clojure.string :as str]
++            [pm.blueprint-file :as bf]
+             [pm.content :as c]
+             [pm.plan :as p]))
+ 
+@@ -15,13 +16,6 @@
+ (defn- valid-at? [at]
+   (and (vector? at) (= 3 (count at)) (every? number? at)))
+ 
+-(defn- valid-blueprint? [bp]
+-  (and (map? bp)
+-       (keyword? (:id bp))
+-       (valid-at? (:at bp))
+-       (string? (:summary bp))
+-       (not (str/blank? (:summary bp)))))
+-
+ (defn- status-of [bp]
+   (let [s (:status bp)]
+     (if (contains? statuses s) s :pending)))
+@@ -30,7 +24,7 @@
+   "Every well-formed blueprint in `world`, each defaulted to :pending."
+   [world]
+   (->> (:blueprints world)
+-       (filter valid-blueprint?)
++       (filter bf/valid?)
+        (mapv #(assoc % :status (status-of %)))))
+ 
+ (defn pending
+@@ -123,6 +117,94 @@
+     (set-status world id :rejected)
+     world))
+ 
++;; -- Live file merge (TASKS T-13b) --------------------------------------
++;; An agent proposes a blueprint with `bb blueprint-add`, into the private
++;; state/blueprints.edn; the 5 s state poll merges it into `!world` without
++;; a reload. merge-file is the one pure step: new file ids arrive pending,
++;; ids the file drops disappear unless they're :real or a trial is
++;; standing, an estate id always wins over a file entry with the same id,
++;; and an existing entry keeps everything about it (status, seat, look).
++
++(defn- distinct-by-id
++  "`entries` with every id after its first occurrence dropped, order kept."
++  [entries]
++  (first (reduce (fn [[out seen] e]
++                   (if (contains? seen (:id e))
++                     [out seen]
++                     [(conj out e) (conj seen (:id e))]))
++                 [[] #{}] entries)))
++
++(defn merge-file
++  "`state/blueprints.edn` (raw, or nil when it's missing) merged into
++   `world`: `{:world w' :added [ids] :removed [ids] :announce [ids]}`.
++   A no-op (world unchanged, `identical?`) when the file's `:as-of` hasn't
++   moved since the last merge."
++  [world file]
++  (let [f (bf/normalize file)]
++    (if (= (:as-of f) (:blueprints-as-of world))
++      {:world world :added [] :removed [] :announce []}
++      (let [first?       (nil? (:blueprints-as-of world))
++            bps          (or (:blueprints world) [])
++            estate-ids   (set (keep #(when-not (:from-file? %) (:id %)) bps))
++            incoming     (->> (:blueprints f)
++                               (filter bf/valid?)
++                               (remove #(contains? estate-ids (:id %)))
++                               distinct-by-id)
++            incoming-ids (set (map :id incoming))
++            drop?        (fn [bp] (and (:from-file? bp)
++                                        (not (contains? incoming-ids (:id bp)))
++                                        (not (contains? #{:real :approved} (status-of bp)))))
++            kept         (vec (remove drop? bps))
++            removed      (mapv :id (filter drop? bps))
++            kept-ids     (set (map :id kept))
++            new          (->> incoming
++                               (remove #(contains? kept-ids (:id %)))
++                               (mapv #(assoc (select-keys % [:id :at :yaw :summary :look :by])
++                                             :from-file? true :status :pending)))
++            announced    (or (:blueprints-announced world) #{})
++            announce     (if first? [] (vec (remove announced (map :id new))))]
++        {:world    (assoc world :blueprints (into kept new)
++                           :blueprints-as-of (:as-of f)
++                           :blueprints-announced (into announced (map :id new)))
++         :added    (mapv :id new)
++         :removed  removed
++         :announce announce}))))
++
++(defn author-line
++  "The talk entry for a newly arrived blueprint's author (GDD §2.1, §4.8):
++   `{:who :text :kind :blueprint :event :blueprint-drawn}`, or nil unless
++   `id` is a current blueprint with a keyword `:by`. `:who` is that
++   member's walker name, else its crew title, else its bare keyword name."
++  [world id]
++  (when-let [bp (first (filter #(= id (:id %)) (:blueprints world)))]
++    (when (keyword? (:by bp))
++      (let [by      (:by bp)
++            who     (or (:name (first (filter #(= (name by) (name (:agent %))) (:walkers world))))
++                        (let [title (get-in world [:crew :titles by])]
++                          (when (and (string? title) (not (str/blank? title))) title))
++                        (name by))
++            summary (:summary bp)
++            s       (if (str/ends-with? summary ".") (subs summary 0 (dec (count summary))) summary)]
++        ;; TODO content: move to the content pipeline (no hal-lines event fits)
++        {:who who :text (str "drew a blueprint: " s ". Click it to try it.")
++         :kind :blueprint :event :blueprint-drawn}))))
++
++(defn drawable-changes
++  "What `pm.scene` must mount/unmount to catch up with `world`'s
++   blueprints, given `drawn` (the set of ids it already has groups for,
++   nil = #{}): `{:add [ids] :remove #{ids}}`. `:add` is drawable
++   (:pending/:approved/:real) ids not yet drawn, in `all`'s order;
++   `:remove` is drawn ids that are no longer any blueprint's at all (a
++   :rejected one is neither -- the status sync already removed its mesh)."
++  [drawn world]
++  (let [drawn (or drawn #{})
++        bps   (all world)
++        ids   (set (map :id bps))]
++    {:add    (mapv :id (filter #(and (contains? #{:pending :approved :real} (:status %))
++                                      (not (contains? drawn (:id %))))
++                                bps))
++     :remove (set (remove ids drawn))}))
++
+ (def max-part-dim
+   "Metres. Any part dimension past this reads as a generation gone wrong,
+    not a deliberately large object -- the kind of change GDD §4.8 says
+@@ -210,6 +292,16 @@
+     (update world :blueprints (fn [bps] (mapv #(if (map? %) (seat % ground-at) %) bps)))
+     world))
+ 
++(defn seat-ids
++  "Like `seat-all`, but only blueprints whose id is in `ids` go through
++   `seat`; `world` unchanged if `ids` is empty or matches none."
++  [world ids ground-at]
++  (let [idset (set ids)]
++    (if (and (sequential? (:blueprints world)) (seq idset))
++      (update world :blueprints
++              (fn [bps] (mapv #(if (and (map? %) (contains? idset (:id %))) (seat % ground-at) %) bps)))
++      world)))
++
+ (defn- valid-part-strict? [part]
+   (and (map? part)
+        (contains? p/shapes (:shape part))
+diff --git a/src/pm/bridge.cljc b/src/pm/bridge.cljc
+index bf3f6b9..b512f86 100644
+--- a/src/pm/bridge.cljc
++++ b/src/pm/bridge.cljc
+@@ -3,7 +3,8 @@
+    request validation, the allow/deny/say decision, replies, argv for
+    babashka.process, and the log line. Portable (bb + cljs via the :test
+    build); never required by pm.core."
+-  (:require [clojure.string :as str]))
++  (:require [clojure.string :as str]
++            [pm.blueprint-file :as bf]))
+ 
+ (def host "127.0.0.1")
+ (def port 8091)
+@@ -15,7 +16,7 @@
+ (def hold-uri "/hold")
+ (def events-uri "/events")
+ (def real-uri "/real")      ; make something real: a build that stays, a real chore (GDD §4.6)
+-(def ^:private real-id-re #"[a-z0-9][a-z0-9-]{0,40}")
++(def ^:private real-id-re bf/id-re)
+ 
+ (def ^:private name-re #"[a-z][a-z0-9_-]{0,31}")
+ (def ^:private uri-re #"^/crew/([a-z][a-z0-9_-]{0,31})$")
+@@ -174,6 +175,15 @@
+       (not= origin allowed-origin) {:ok false :status 403 :reason "bad origin"}
+       :else {:ok true})))
+ 
++(defn known-build-ids
++  "Ids a /real build request may name (GDD §4.6, TASKS T-13b): the
++   estate's own blueprint ids plus every valid id in `state/blueprints.edn`
++   (an agent's proposed blueprint, read at request time). Either arg may
++   be nil."
++  [estate file]
++  (into (set (keep :id (:blueprints estate)))
++        (keep :id (filter bf/valid? (:blueprints (bf/normalize file))))))
++
+ (defn add-real-build
+   "The real-builds file (state/builds.edn) with `id` made real at `now`
+    (GDD §2.1, §4.6): a build recorded here is in the estate every session
+diff --git a/src/pm/core.cljs b/src/pm/core.cljs
+index 5d717ca..18f75b1 100644
+--- a/src/pm/core.cljs
++++ b/src/pm/core.cljs
+@@ -116,20 +116,42 @@
+         (.finally (fn [] (swap! !state-poll assoc :busy? false))))))
+ 
+ (def builds-url "/state/builds.edn")   ; builds made real (the bridge writes it)
++(def blueprints-url "/state/blueprints.edn")   ; an agent's proposed blueprints (TASKS T-13b)
++(defonce ^:private !last-builds (atom nil))   ; the parsed builds.edn, for apply-blueprint-file!
++(defonce ^:private !kit (atom nil))           ; the kit handle, once start-kit! has it
++
++(declare apply-blueprint-file!)
+ 
+ (defn- fetch-builds! []
+   (-> (js/fetch (str builds-url "?t=" (js/Date.now)) #js {:cache "no-store"})
+       (.then (fn [^js resp] (if (.-ok resp) (.text resp) nil)))
+       (.then (fn [text]
+                (when-let [b (overlay/parse-file text)]
++                 (reset! !last-builds b)
+                  (swap! !world bp/apply-real-builds b))))
+       (.catch (fn [_]))))
+ 
++(defn- fetch-blueprints!
++  "The 5 s state poll's read of `state/blueprints.edn` (TASKS T-13b): a
++   crew member's `bb blueprint-add` lands here within one poll, merged
++   into `!world` by `apply-blueprint-file!` -- no reload, no remount."
++  []
++  (-> (js/fetch (str blueprints-url "?t=" (js/Date.now)) #js {:cache "no-store"})
++      (.then (fn [^js resp]
++               (cond
++                 (= 404 (.-status resp)) (apply-blueprint-file! nil)
++                 (.-ok resp) (-> (.text resp)
++                                 (.then (fn [text]
++                                          (when-let [f (overlay/parse-file text)]
++                                            (apply-blueprint-file! f)))))
++                 :else nil)))
++      (.catch (fn [_]))))
++
+ (defn- start-state-poll! []
+   (when (nil? (:timer @!state-poll))
+-    (fetch-state!)
+-    (fetch-builds!)
+-    (swap! !state-poll assoc :timer (js/setInterval (fn [] (fetch-state!) (fetch-builds!)) state-poll-ms))))
++    (fetch-blueprints!) (fetch-state!) (fetch-builds!)
++    (swap! !state-poll assoc :timer
++           (js/setInterval (fn [] (fetch-blueprints!) (fetch-state!) (fetch-builds!)) state-poll-ms))))
+ 
+ (def crew-url "/state/crew.edn")
+ (def crew-poll-ms 2000)
+@@ -1486,16 +1508,49 @@
+                           ", " (for [[y n] (t/drop-ray (.-scene h) (.-camera h) x z 40 5)]
+                                  (str y " " n))))))))))
+ 
++(defn- ground-at-fn
++  "The kit's ground-at fn (x z -> height, pm.motion/ground-height) for
++   seating blueprints, or nil until its ground meshes can be found."
++  [^js h]
++  (let [prefixes (get-in @!world [:motion :ground])
++        gm       (t/find-meshes (.-scene h) #(m/ground-name? % prefixes))]
++    (when (seq gm)
++      (fn [x z] (m/ground-height (t/down-hits gm x z 40) prefixes)))))
++
+ (defn- seat-blueprints!
+   "Seats every blueprint on the kit's ground before it is drawn
+    (pm.blueprint/seat): an agent's :at is a one-point guess, and on a slope
+    that sinks one end and floats the other."
+   [^js h]
+-  (let [prefixes (get-in @!world [:motion :ground])
+-        gm       (t/find-meshes (.-scene h) #(m/ground-name? % prefixes))]
+-    (when (seq gm)
+-      (swap! !world bp/seat-all
+-             (fn [x z] (m/ground-height (t/down-hits gm x z 40) prefixes))))))
++  (when-let [ground-at (ground-at-fn h)]
++    (swap! !world bp/seat-all ground-at)))
++
++(defn- apply-blueprint-file!
++  "A freshly polled `state/blueprints.edn` (or nil, 404) merged into
++   `!world` (TASKS T-13b, `bp/merge-file`): a no-op when nothing changed.
++   Otherwise the real-builds file applies to the new entries too, the
++   newly added ones are seated (once the kit's ground is up; before that,
++   `start-kit!`'s `seat-blueprints!` seats them -- `seat` is idempotent via
++   :seated?), each newly announced one adds its author's line to 💭, and
++   the result replaces `!world` in one swap -- the running scene redraws
++   just those blueprints next frame, no reload, no remount."
++  [f]
++  (let [r (bp/merge-file @!world f)]
++    (when-not (identical? (:world r) @!world)
++      (let [w1  (-> (:world r) (bp/apply-real-builds @!last-builds))
++            w2  (if-let [^js h @!kit]
++                  (if-let [ground-at (ground-at-fn h)]
++                    (bp/seat-ids w1 (:added r) ground-at)
++                    w1)
++                  w1)
++            now (js/Date.now)
++            w3  (reduce (fn [w id]
++                          (if-let [line (bp/author-line w2 id)]
++                            (update w :talk talk/append line now)
++                            w))
++                        w2 (:announce r))]
++        (reset! !world w3)
++        (js/console.info "Prime Meridian: blueprints added" (:added r) "removed" (:removed r))))))
+ 
+ (defn start-kit!
+   "The kit's scene is live: show the game's layer on top of it."
+@@ -1505,6 +1560,7 @@
+   (js/console.log "Prime Meridian: running on the kit's estate," @!backend)
+   (wire-kit-brook-ui! h)
+   (t/use-three! (.-THREE h))
++  (reset! !kit h)
+   (seat-blueprints! h)
+   (scene/mount! (.-scene h) @!world (js/Date.now))
+   (when (camera/restore! h) (js/console.log "Prime Meridian: camera restored"))
+diff --git a/src/pm/scene.cljs b/src/pm/scene.cljs
+index 78e1de8..19590a9 100644
+--- a/src/pm/scene.cljs
++++ b/src/pm/scene.cljs
+@@ -234,13 +234,48 @@
+ 
+ (defn- blueprint-key [bp] [:blueprint (:id bp)])
+ 
++(defn- bp-ids-in
++  "Every id a `[:blueprint id]` item in `plan` carries."
++  [plan]
++  (set (keep (fn [item] (let [k (:key item)] (when (and (vector? k) (= :blueprint (first k))) (second k)))) plan)))
++
++(defn- sync-blueprint-draw!
++  "A blueprint arriving live or dropping out of `state/blueprints.edn`
++   (TASKS T-13b, `bp/drawable-changes`) has to be drawn or undrawn for the
++   first time -- never a remount, and never anything else in the scene.
++   Runs before `sync-blueprints!`'s status loop, which only ever flips a
++   mesh already mounted here."
++  [world]
++  (when-let [{:keys [root labels texts bp-drawn]} @!mounted]
++    (let [{:keys [add remove]} (bp/drawable-changes bp-drawn world)]
++      (doseq [id remove]
++        (when-let [^js g (t/by-name root (pr-str [:blueprint id]))] (t/remove! root g))
++        (when-let [sprite (get labels [:blueprint id])] (t/remove! root sprite)))
++      (let [labels (apply dissoc labels (map #(vector :blueprint %) remove))
++            texts  (apply dissoc texts (map #(vector :blueprint %) remove))
++            add-ids (set add)
++            items   (filter (fn [item] (let [k (:key item)]
++                                          (and (vector? k) (= :blueprint (first k)) (contains? add-ids (second k)))))
++                             (into (bp/ghost-plan world) (bp/built-plan world)))
++            [labels texts] (reduce (fn [[labs txt] item]
++                                      (let [sprite (mount-item! root item)]
++                                        [(cond-> labs sprite (assoc (:key item) sprite))
++                                         (cond-> txt (:text item) (assoc (:key item) (:text item)))]))
++                                    [labels texts] items)]
++        (swap! !mounted assoc :labels labels :texts texts
++               :bp-drawn (-> (apply disj bp-drawn remove) (into add))))))
++  nil)
++
+ (defn- sync-blueprints!
+   "Approving or rejecting a blueprint (GDD §2.1, §4.8) has to change a mesh
+-   already mounted as a ghost -- the one case where this namespace creates
+-   or removes something after `mount!`. Runs once per status change (a
+-   pending blueprint going :approved un-ghosts its mesh so it reads as
+-   real; going :rejected removes its mesh and sign so it vanishes)."
++   already mounted as a ghost -- after `sync-blueprint-draw!` has drawn or
++   undrawn whatever newly needs it, the one other case where this
++   namespace creates or removes something after `mount!`. Runs once per
++   status change (a pending blueprint going :approved un-ghosts its mesh
++   so it reads as real; going :rejected removes its mesh and sign so it
++   vanishes)."
+   [world]
++  (sync-blueprint-draw! world)
+   (when-let [{:keys [root labels] bp-status :bp-status} @!mounted]
+     (let [prev (or bp-status {})
+           now  (into {} (map (fn [bp] [(blueprint-key bp) (:status bp)])) (bp/all world))]
+@@ -294,7 +329,8 @@
+       (t/add! scene root)
+       (reset! !mounted {:root root :labels labels :texts (p/label-texts plan) :plan plan
+                         :kit-lights (t/kit-light-sources scene (:kit-lights world))
+-                        :snap-worm (snap-worm! root)})
++                        :snap-worm (snap-worm! root)
++                        :bp-drawn (bp-ids-in plan)})
+       (update! world now)))
+   nil)
+ 
+diff --git a/test/pm/bridge_real_test.cljs b/test/pm/bridge_real_test.cljs
+index 91acf8e..8a5829e 100644
+--- a/test/pm/bridge_real_test.cljs
++++ b/test/pm/bridge_real_test.cljs
+@@ -25,3 +25,22 @@
+     (is (= {:as-of 9 :mirrors {:flora {:state {:stock 29 :last-fed 8}}}}
+            (b/merge-real-mirror f :flora {:stock 29 :last-fed 8 :source :hacked :mood 3} #{:stock :last-fed :source} 9)))
+     (is (nil? (b/merge-real-mirror f :flora {:mood 3} #{:stock} 9)))))
++
++(def CB {:id :bench-by-creek :at [1.0 1.2 -9.0] :yaw 0 :summary "proposed: a bench by the creek"})
++(def PL {:id :planter :at [-2.0 1.0 -4.0] :summary "proposed: a planter by the path"})
++(def E-BENCH {:id :bench-by-mailbox :at [4.0 1.66 -6.5] :yaw 90 :summary "proposed: a bench by the mailbox"})
++(def E-LAMP {:id :lamp-post-by-canal :at [3.8 0.63 -5.0] :summary "proposed: a lamp post by the canal"})
++
++(deftest t04-known-build-ids
++  (is (= #{:bench-by-mailbox :lamp-post-by-canal :bench-by-creek :planter}
++         (b/known-build-ids {:blueprints [E-BENCH E-LAMP]}
++                             {:as-of 1 :blueprints [CB PL {:id "bad" :at [0 0 0] :summary "s"}]})))
++  (is (= #{:bench-by-mailbox :lamp-post-by-canal} (b/known-build-ids {:blueprints [E-BENCH E-LAMP]} nil)))
++  (is (= #{} (b/known-build-ids nil nil)))
++  (is (= {:as-of 9 :real [:lamp-post-by-canal :planter]}
++         (b/add-real-build {:real [:lamp-post-by-canal]} :planter
++                            (b/known-build-ids {:blueprints [E-BENCH E-LAMP]} {:as-of 1 :blueprints [PL]}) 9)))
++  (is (nil? (b/add-real-build {:real [:lamp-post-by-canal]} :planter
++                               (b/known-build-ids {:blueprints [E-BENCH E-LAMP]} nil) 9)))
++  (is (= {:ok true :action :real-build :id :bench-by-creek}
++         (b/validate (req {"action" "build" "id" "bench-by-creek"}) ctx))))

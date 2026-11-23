@@ -42,6 +42,7 @@
 (def bridge-file "state/bridge.edn")
 (def hold-file "state/hold.edn")
 (def builds-file "state/builds.edn")       ; builds made real (pm.bridge/add-real-build)
+(def blueprints-file "state/blueprints.edn") ; agent-proposed blueprints (pm.bridge/known-build-ids)
 (def mirrors-file "state/mirrors.edn")     ; the twin's real mirror state
 (def crew-log-file "state/crew-log.edn")
 (def log-file "crew/bridge.log")
@@ -115,7 +116,7 @@
         e   (estate)]
     (case (:action v)
       :real-build
-      (if-let [b (b/add-real-build (read-edn builds-file) (:id v) (set (map :id (:blueprints e))) now)]
+      (if-let [b (b/add-real-build (read-edn builds-file) (:id v) (b/known-build-ids e (read-edn blueprints-file)) now)]
         (if (write-edn! builds-file b) {:ok true :reason "made real"} {:ok false :reason "not saved"})
         {:ok false :reason "unknown build"})
       :real-mirror

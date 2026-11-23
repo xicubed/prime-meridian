@@ -1,0 +1,115 @@
+
+ ▐▛███▛█   Claude Code v2.1.330
+▝▜██████▀  Sonnet 5 · Claude Max
+ ▝▝   ▝▝   ~/src/prime-meridian
+
+
+❯ Say hi in ONE line: your name, your job, and the model you're running on. Don't use any tools.
+
+⏺ Hi, I'm Le Testeur, tester for prime-meridian, running on Claude Sonnet 5.
+
+✻ Crunched for 2s · done 11:42 AM
+
+❯ Spec: crew/runs/live-blueprints-v0-20261123-1331/spec.md (quest: .crew/quests/live-blueprints-v0.md). Write its test
+  cases in the test file the spec assigns the tester, and nothing else. The builder is coding in parallel.
+
+  When you have completely finished, end your reply with a line containing only this: done-3994
+
+  Read 6 files, listed 1 directory
+
+⏺ Write(test/pm/blueprint_file_test.cljs)
+  ⎿  Wrote 142 lines to test/pm/blueprint_file_test.cljs
+       1 (ns pm.blueprint-file-test
+       2   (:require [cljs.test :refer [deftest is]]
+       3             [pm.blueprint-file :as bf]
+       4             [pm.blueprint :as bp]))
+       5
+       6 (def LOOK  {:parts [{:shape :box :size [0.6 0.4 0.6] :at [0 0.4 0] :color :brown}]}) ; no feet (0.4 ≠ 0
+         .4/2)
+       7 (def CB-IN {:id :bench-by-creek :at [1.0 1.2 -9.0] :yaw 0 :summary "proposed: a bench by the creek" :lo
+         ok LOOK})
+       8 (def PL-IN {:id :planter :at [-2.0 1.0 -4.0] :summary "proposed: a planter by the path" :look LOOK})
+     … +134 lines
+
+⏺ Now file 2, the live-merge test file.
+
+⏺ Write(test/pm/blueprint_live_test.cljs)
+  ⎿  Wrote 189 lines to test/pm/blueprint_live_test.cljs
+       1 (ns pm.blueprint-live-test
+       2   (:require [cljs.test :refer [deftest is]]
+       3             [pm.blueprint :as bp]
+       4             [pm.talk :as talk]))
+       5
+       6 (def LOOK  {:parts [{:shape :box :size [0.6 0.4 0.6] :at [0 0.4 0] :color :brown}]}) ; no feet (0.4 ≠ 0
+         .4/2)
+       7 (def CB-IN {:id :bench-by-creek :at [1.0 1.2 -9.0] :yaw 0 :summary "proposed: a bench by the creek" :lo
+         ok LOOK})
+       8 (def PL-IN {:id :planter :at [-2.0 1.0 -4.0] :summary "proposed: a planter by the path" :look LOOK})
+     … +181 lines
+
+⏺ Now append the t04 block to bridge_real_test.cljs.
+
+⏺ Update(test/pm/bridge_real_test.cljs)
+  ⎿  Added 19 lines
+      25      (is (= {:as-of 9 :mirrors {:flora {:state {:stock 29 :last-fed 8}}}}
+      26             (b/merge-real-mirror f :flora {:stock 29 :last-fed 8 :source :hacked :mood 3} #{:stock :las
+          t-fed :source} 9)))
+      27      (is (nil? (b/merge-real-mirror f :flora {:mood 3} #{:stock} 9)))))
+      28 +
+      29 +(def CB {:id :bench-by-creek :at [1.0 1.2 -9.0] :yaw 0 :summary "proposed: a bench by the creek"})
+      30 +(def PL {:id :planter :at [-2.0 1.0 -4.0] :summary "proposed: a planter by the path"})
+      31 +(def E-BENCH {:id :bench-by-mailbox :at [4.0 1.66 -6.5] :yaw 90 :summary "proposed: a bench by the mai
+         +lbox"})
+      32 +(def E-LAMP {:id :lamp-post-by-canal :at [3.8 0.63 -5.0] :summary "proposed: a lamp post by the canal"
+         +})
+      33 +
+      34 +(deftest t04-known-build-ids
+      35 +  (is (= #{:bench-by-mailbox :lamp-post-by-canal :bench-by-creek :planter}
+      36 +         (b/known-build-ids {:blueprints [E-BENCH E-LAMP]}
+      37 +                             {:as-of 1 :blueprints [CB PL {:id "bad" :at [0 0 0] :summary "s"}]})))
+      38 +  (is (= #{:bench-by-mailbox :lamp-post-by-canal} (b/known-build-ids {:blueprints [E-BENCH E-LAMP]} ni
+         +l)))
+      39 +  (is (= #{} (b/known-build-ids nil nil)))
+      40 +  (is (= {:as-of 9 :real [:lamp-post-by-canal :planter]}
+      41 +         (b/add-real-build {:real [:lamp-post-by-canal]} :planter
+      42 +                            (b/known-build-ids {:blueprints [E-BENCH E-LAMP]} {:as-of 1 :blueprints [P
+         +L]}) 9)))
+      43 +  (is (nil? (b/add-real-build {:real [:lamp-post-by-canal]} :planter
+      44 +                               (b/known-build-ids {:blueprints [E-BENCH E-LAMP]} nil) 9)))
+      45 +  (is (= {:ok true :action :real-build :id :bench-by-creek}
+      46 +         (b/validate (req {"action" "build" "id" "bench-by-creek"}) ctx))))
+
+  Ran 1 shell command
+
+⏺ Done. Diff stats:
+
+   /dev/null => test/pm/blueprint_file_test.cljs | 142 ++++++++++++++++
+   /dev/null => test/pm/blueprint_live_test.cljs | 189 ++++++++++++++++
+   test/pm/bridge_real_test.cljs                 |  19 ++
+
+  test/pm/blueprint_file_test.cljs (new, pm.blueprint-file-test): p1-valid-blueprint-has-no-problems, p2-not-a-map,
+  p3-bad-id, p4-bad-at, p5-bad-summary, p6-every-rule-at-once, p7-one-validator-shared-with-pm-blueprint,
+  n1-normalize-nil, n2-normalize-drops-non-maps-and-other-keys, n3-normalize-bad-as-of-and-blueprints,
+  n4-normalize-not-a-map, d1-add-into-nil-file, d2-add-second-member, d3-as-of-always-advances,
+  d4-add-sets-by-drops-status-and-seated, d5-estate-id-refused, d6-duplicate-file-id-refused,
+  d7-invalid-blueprint-refused-with-reason, d8-invalid-blueprint-all-reasons-joined, d9-invalid-blueprint-not-a-map,
+  d10-id-must-be-lowercase-letters-digits-dashes, d11-command-to-game, r1-remove-a-file-blueprint,
+  r2-estate-id-cant-be-removed, r3-unknown-id-refused, r4-remove-as-of-always-advances,
+  r5-remove-from-nil-file-refused, u1-parse-add-args, u2-parse-remove-args,
+  u3-parse-remove-args-strips-one-leading-colon, u4-parse-args-usage.
+
+  test/pm/blueprint_live_test.cljs (new, pm.blueprint-live-test): m1–m14 (merge-file), s1–s3 (seat-ids), a1–a7
+  (author-line), c1–c5 (drawable-changes).
+
+  test/pm/bridge_real_test.cljs: appended t04-known-build-ids (B1–B4) plus local CB/PL/E-BENCH/E-LAMP fixtures.
+
+  All pure, no files written, nothing staged.
+
+  done-3994
+
+✻ Cooked for 2m 25s · done 1:41 PM
+                                                                               ✔ Update installed · /restart to apply
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

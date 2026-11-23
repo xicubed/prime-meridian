@@ -234,13 +234,48 @@
 
 (defn- blueprint-key [bp] [:blueprint (:id bp)])
 
+(defn- bp-ids-in
+  "Every id a `[:blueprint id]` item in `plan` carries."
+  [plan]
+  (set (keep (fn [item] (let [k (:key item)] (when (and (vector? k) (= :blueprint (first k))) (second k)))) plan)))
+
+(defn- sync-blueprint-draw!
+  "A blueprint arriving live or dropping out of `state/blueprints.edn`
+   (TASKS T-13b, `bp/drawable-changes`) has to be drawn or undrawn for the
+   first time -- never a remount, and never anything else in the scene.
+   Runs before `sync-blueprints!`'s status loop, which only ever flips a
+   mesh already mounted here."
+  [world]
+  (when-let [{:keys [root labels texts bp-drawn]} @!mounted]
+    (let [{:keys [add remove]} (bp/drawable-changes bp-drawn world)]
+      (doseq [id remove]
+        (when-let [^js g (t/by-name root (pr-str [:blueprint id]))] (t/remove! root g))
+        (when-let [sprite (get labels [:blueprint id])] (t/remove! root sprite)))
+      (let [labels (apply dissoc labels (map #(vector :blueprint %) remove))
+            texts  (apply dissoc texts (map #(vector :blueprint %) remove))
+            add-ids (set add)
+            items   (filter (fn [item] (let [k (:key item)]
+                                          (and (vector? k) (= :blueprint (first k)) (contains? add-ids (second k)))))
+                             (into (bp/ghost-plan world) (bp/built-plan world)))
+            [labels texts] (reduce (fn [[labs txt] item]
+                                      (let [sprite (mount-item! root item)]
+                                        [(cond-> labs sprite (assoc (:key item) sprite))
+                                         (cond-> txt (:text item) (assoc (:key item) (:text item)))]))
+                                    [labels texts] items)]
+        (swap! !mounted assoc :labels labels :texts texts
+               :bp-drawn (-> (apply disj bp-drawn remove) (into add))))))
+  nil)
+
 (defn- sync-blueprints!
   "Approving or rejecting a blueprint (GDD §2.1, §4.8) has to change a mesh
-   already mounted as a ghost -- the one case where this namespace creates
-   or removes something after `mount!`. Runs once per status change (a
-   pending blueprint going :approved un-ghosts its mesh so it reads as
-   real; going :rejected removes its mesh and sign so it vanishes)."
+   already mounted as a ghost -- after `sync-blueprint-draw!` has drawn or
+   undrawn whatever newly needs it, the one other case where this
+   namespace creates or removes something after `mount!`. Runs once per
+   status change (a pending blueprint going :approved un-ghosts its mesh
+   so it reads as real; going :rejected removes its mesh and sign so it
+   vanishes)."
   [world]
+  (sync-blueprint-draw! world)
   (when-let [{:keys [root labels] bp-status :bp-status} @!mounted]
     (let [prev (or bp-status {})
           now  (into {} (map (fn [bp] [(blueprint-key bp) (:status bp)])) (bp/all world))]
@@ -294,7 +329,8 @@
       (t/add! scene root)
       (reset! !mounted {:root root :labels labels :texts (p/label-texts plan) :plan plan
                         :kit-lights (t/kit-light-sources scene (:kit-lights world))
-                        :snap-worm (snap-worm! root)})
+                        :snap-worm (snap-worm! root)
+                        :bp-drawn (bp-ids-in plan)})
       (update! world now)))
   nil)
 

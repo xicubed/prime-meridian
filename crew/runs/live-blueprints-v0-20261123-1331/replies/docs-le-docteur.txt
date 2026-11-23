@@ -1,0 +1,251 @@
+
+ ▐▛███▛█   Claude Code v2.1.330
+▝▜██████▀  Sonnet 5 · Claude Max
+ ▝▝   ▝▝   ~/src/prime-meridian
+
+
+❯ Say hi in ONE line: your name, your job, and the model
+  you're running on. Don't use any tools.
+
+⏺ Hi, I'm Le Docteur — the crew's writer and chronicler —
+  running on Claude Sonnet 5.
+
+✻ Churned for 3s · done 11:42 AM
+
+❯ Spec:
+  crew/runs/live-blueprints-v0-20261123-1331/spec.md
+  (quest: .crew/quests/live-blueprints-v0.md). Make only
+  the documentation edits the spec's who-touches-what
+  table gives le-docteur (if none, change nothing).
+  Reply with git diff --stat of what you changed.
+
+  When you have completely finished, end your reply with
+  a line containing only this: done-4901
+
+  Read 3 files, listed 1 directory
+
+⏺ Gate passed. Now let me check TASKS.md and docs/GDD.md
+  current state.
+
+  Searched for 2 patterns, read 1 file
+
+⏺ Now I'll make the two edits.
+
+⏺ Update(TASKS.md)
+  ⎿  Added 1 line, removed 1 line
+      93  - [ ] T-7 Wandering follow-ups: re-run t
+          he walkable-ground probe whenever placed
+           things move (the spots are data in `:wa
+          nder :areas`); a wanderer still walks th
+          rough a fresh build's footprint until th
+          en.
+      94  - [ ] T-8 v1.1 from the finish list: jac
+          k-out priority, the Construct as a Herme
+          s onboarding skill.
+      95  - [x] Nov 22 (crew round calls-v0) T-11
+          Call a contact, in the room (Michael, No
+          v 21: "because I can talk to you and the
+          re are bots that can speak"): a 📞 on a
+          contact's row opens a call; the walker's
+           plate shows "on a call", their lines ar
+          e spoken aloud as they arrive (the voice
+           the twin already has), and the player's
+           mic goes through the browser's speech r
+          ecognition (Web Speech API, no server, n
+          o cost) down the bridge as if typed. Fir
+          st for the twin: "Do you read me, Hal?"
+          made literal. Works in the demo build wi
+          th SAMPLE voices. Follow-up fixed Nov 22
+          : the 📞/End button shifted 1 px between
+           states (the composer grew 39 → 40 px wh
+          en the 🎙 joined it; the input is now 40
+          px), and 🎙 Talk in an embedded window wi
+          th no speech service (Electron answers `
+          network`) now goes disabled, "No mic her
+          e", with the twin's line, instead of sna
+          pping back.
+      96 -- [ ] T-13 Demo scene (Michael, Nov 22):
+         - a bot builds something, and you finish
+         -it from the wireframe when it looks good
+         -. You ask in 💭 ("put a bench by the cre
+         -ek"), a member writes the `:blueprints`
+         -entry, the ghost appears, a click builds
+         - it as a trial, a second click makes it
+         -real (`state/builds.edn`). Exists today
+         -except: (a) N-3, the ghost is hard to se
+         -e on grass; (b) a new blueprint shows on
+         -ly after a page reload (the estate is co
+         -mpiled in, `!world` is a defonce), so it
+         - can't appear while you watch. Candidate
+         - for S6 in `docs/demo-script.md` beside
+         -the rock; the unbuilt bench by the mailb
+         -ox can stand in meanwhile. Nov 22: bluep
+         -rints are now seated on the ground befor
+         -e they're drawn (`pm.blueprint/seat`: le
+         -vel at the highest foot, lower feet stre
+         -tched down; more than 25 cm of drop is r
+         -efused as too steep, sign + twin say so)
+         -, and the bench moved off the creek bank
+         - to level grass by the mailbox.
+      96 +- [ ] T-13 Demo scene (Michael, Nov 22):
+         + a bot builds something, and you finish
+         +it from the wireframe when it looks good
+         +. You ask in 💭 ("put a bench by the cre
+         +ek"), a member writes the `:blueprints`
+         +entry, the ghost appears, a click builds
+         + it as a trial, a second click makes it
+         +real (`state/builds.edn`). Exists today
+         +except: (a) N-3, the ghost is hard to se
+         +e on grass; (b) a new blueprint shows on
+         +ly after a page reload (the estate is co
+         +mpiled in, `!world` is a defonce), so it
+         + can't appear while you watch. Candidate
+         + for S6 in `docs/demo-script.md` beside
+         +the rock; the unbuilt bench by the mailb
+         +ox can stand in meanwhile. Nov 22: bluep
+         +rints are now seated on the ground befor
+         +e they're drawn (`pm.blueprint/seat`: le
+         +vel at the highest foot, lower feet stre
+         +tched down; more than 25 cm of drop is r
+         +efused as too steep, sign + twin say so)
+         +, and the bench moved off the creek bank
+         + to level grass by the mailbox. Nov 23:
+         +(b) done: a crew member proposes with `b
+         +b blueprint-add <member> <blueprint.edn>
+         +` (kept in the private `state/blueprints
+         +.edn`; `--remove <id>` takes one out), a
+         +nd within one 5-second poll its ghost ap
+         +pears in the estate, seated, with no rel
+         +oad, and the member says "drew a bluepri
+         +nt: … Click it to try it." in 💭. Two cl
+         +icks still make it a trial, then real.
+      97  - [ ] T-12 Call the player's real phone
+          (after T-11; the GDD's jack-out hook, §2
+          .3): Twilio voice from the bot number to
+           his cell when something real is due (Fl
+          ora's chore, a "!" waiting past closing)
+           or when he taps 📞 away from the laptop
+          ; the twin reads the lines, speech-to-te
+          xt comes back down the bridge; a crew me
+          mber who takes a minute "calls back". Co
+          sts per minute; FaceTime/Teams have no a
+          gent end and are out. Ready-made ways to
+           add it (Nov 22, nothing installed): Her
+          mes's official `telephony` skill (one-wa
+          y calls on the existing Twilio number: a
+           spoken message or a TTS recording); the
+           community **Hermes Voice Gateway** plug
+          in (two-way: the player calls the twin's
+           number and talks; needs ElevenLabs and
+          a tunnel); Zoom only as a meeting bot th
+          at joins a meeting (Meetstream / Meeting
+           AI plugins, paid bot services); Slack i
+          s text and voice notes only (bots can't
+          join huddles).
+      98  - [ ] T-9 v2 idea: living objects (docs/
+          ideas-living-objects.md): stateful thing
+          s that age, speak, and pass messages thr
+          ough the twin; Flora's hunger in the gam
+          e first, a text only when she's well ove
+          rdue (replacing the 09:00/17:00 cron).
+      99
+
+⏺ Update(docs/GDD.md)
+  ⎿  Added 1 line, removed 1 line
+      70  | **Talk** | Click an agent and a speech
+           bubble opens. Ask what it's doing, give
+           it a task, answer its question. Replies
+           stream in as the agent writes them. *Bu
+          ilt (Nov 20): your twin's answers come b
+          ack as a speech plate over his walker, h
+          is caption and the 💭 history (`bb hal-s
+          ay`); with `--at` he walks to the place
+          first and says it there (an errand). Wit
+          hout a bridge he says so himself.* |
+      71  | **Assign** | Say it in conversation ("
+          make all the rocks procedural"). The age
+          nt confirms in one line, takes a desk, a
+          nd gets to work. |
+      72  | **Answer** | An agent that needs a dec
+          ision stops, raises "!", and walks to yo
+          u wherever you are. You answer in-world;
+           it resumes. |
+      73 -| **Approve** | Agent-made changes first
+         - appear as a **blueprint**, a ghosted ve
+         -rsion of the change. Approve it and it b
+         -ecomes real; reject it and it vanishes.
+         -A bad change can never take down the run
+         -ning game: it reverts to the last workin
+         -g build. Approvals come **grouped**, not
+         - one at a time: the morning card holds l
+         -ast night's blueprints as one tray, each
+         - with a one-line summary and a before/af
+         -ter you can see, and reads never ask. |
+      73 +| **Approve** | Agent-made changes first
+         + appear as a **blueprint**, a ghosted ve
+         +rsion of the change. Approve it and it b
+         +ecomes real; reject it and it vanishes.
+         +A bad change can never take down the run
+         +ning game: it reverts to the last workin
+         +g build. Approvals come **grouped**, not
+         + one at a time: the morning card holds l
+         +ast night's blueprints as one tray, each
+         + with a one-line summary and a before/af
+         +ter you can see, and reads never ask. *B
+         +uilt (Nov 23): a crew member's blueprint
+         + arrives while you watch: `bb blueprint-
+         +add` writes it to the private `state/blu
+         +eprints.edn`, the estate's ghost appears
+         + within seconds without a reload, and wh
+         +oever drew it says so in 💭. The public
+         +sample estate never changes when an agen
+         +t proposes something.* |
+      74  | **Hand out a keycard** | When an agent
+           needs a permission for a task ("write a
+          ccess to the river shader"), it asks you
+           for a keycard. Every key that's out is
+          visible, and it comes back when the task
+           ends. |
+      75  | **Possess** | Toggle direct control of
+           one agent: the camera follows it, your
+          messages go straight to it, and you see
+          what it sees on a desk screen, not a pop
+          -up. |
+      76  | **Set autonomy** | A dial per agent: *
+          ask before anything* · *ask before appro
+          ving* · *fully autonomous*. The dial cov
+          ers reads and reversible writes; money,
+          deletion, security changes, and messages
+           to other people need you at every setti
+          ng. You set trust: no agent can start a
+          trust change, so no "!" can ever ask for
+           more autonomy. The notice board shows e
+          ach agent's track record (tasks done, ap
+          provals, reverts); if game code thinks a
+           dial could go up, it says so on the boa
+          rd in the board's own style, never as a
+          "!". |
+
+  Ran 1 shell command
+
+⏺ My edits only touched the two files the spec assigns to
+  me:
+
+   TASKS.md    | 2 +-
+   docs/GDD.md | 2 +-
+   2 files changed, 2 insertions(+), 2 deletions(-)
+
+  (The rest of git diff --stat shown above —
+  blueprint.cljs, bridge.cljc, core.cljs, scene.cljs,
+  etc. — is builder/tester work already in the tree, not
+  mine.) Both lines append the exact §9 wording after
+  confirming gate-1.txt / gate-note.md show PASS.
+
+  done-4901
+
+✻ Cooked for 32s · done 2:02 PM
+                 ✔ Update installed · /restart to apply
+─────────────────────────────────────────────────────────
+❯
+─────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

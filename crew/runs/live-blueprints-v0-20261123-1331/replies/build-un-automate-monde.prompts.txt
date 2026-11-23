@@ -1,0 +1,156 @@
+=== prompt 1 (13:47:45)
+
+
+⏺ Now let's run the project's build gate.
+
+  Running export
+  PATH="/opt/homebrew/opt/openjdk@21/bin:/op…
+  ⎿  $ export PATH="/opt/homebrew/opt/openjdk@21/bin:/opt
+     /homebrew/bin:$PATH"
+     JAVA_HOME=/opt/homebrew/opt/openjdk@21 && npx
+     shadow-cljs compile app test --config-merge
+     '{:output-dir "out/gate-js2" :asset-path
+     "/gate-js2"}' 2>&1 | tail -60
+
+─────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ export PATH="/opt/homebrew/opt/openjdk@21/bin:/opt/ho
+ │ mebrew/bin:$PATH"
+ │ JAVA_HOME=/opt/homebrew/opt/openjdk@21 && npx
+ │ shadow-cljs compile app test --config-merge
+ │ '{:output-dir "out/gate-js2" :asset-path
+ │ "/gate-js2"}' 2>&1 | tail -60
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ 'export' operand 'PATH=/opt/homebrew/opt/openjdk@21/b
+ │ in:/opt/homebrew/bin:${…}' is runtime-determined and
+ │ may carry an array subscript — shell arith-evals
+ │ $(cmd) in subscripts
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 2 (13:49:46)
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ export PATH="/opt/homebrew/bin:$PATH" && TMP=$(mktemp
+ │ -d) && F="$TMP/blueprints.edn"
+ │ echo "-- add bench --"
+ │ PM_BLUEPRINTS_FILE="$F" bb blueprint-add
+ │ un-automate-monde crew/runs/live-blueprints-v0-202611
+ │ 23-1331/bench-by-creek.edn; echo "exit=$?"
+ │ echo "-- cat file --"
+ │ cat "$F"
+ │ echo "-- duplicate add (expect exit 1) --"
+ │ PM_BLUEPRINTS_FILE="$F" bb blueprint-add
+ │ un-automate-monde crew/runs/live-blueprints-v0-202611
+ │ 23-1331/bench-by-creek.edn; echo "exit=$?"
+ │ echo "-- invalid blueprint (missing file) --"
+ │ PM_BLUEPRINTS_FILE="$F" bb blueprint-add le-testeur
+ │ /nonexistent.edn; echo "exit=$?"
+ │ echo "-- bad usage (expect exit 2) --"
+ │ PM_BLUEPRINTS_FILE="$F" bb blueprint-add; echo
+ │ "exit=$?"
+ │ echo "-- remove --"
+ │ PM_BLUEPRINTS_FILE="$F" bb blueprint-add --remove
+ │ bench-by-creek; echo "exit=$?"
+ │ cat "$F"
+ │ rm -rf "$TMP"
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Quoted text in this command can't be checked before it
+ runs
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   3. No
+ ↑ 2 more lines
+ Esc to cancel · Tab to amend
+=== prompt 3 (13:52:16)
+ │ PM_BLUEPRINTS_FILE="$F" bb blueprint-add
+ │ un-automate-monde crew/runs/live-blueprints-v0-202611
+ │ 23-1331/bench-by-creek.edn; echo "exit=$?"
+ │ echo "-- cat file --"
+ │ cat "$F"
+ │ echo
+ │ echo "-- duplicate add (expect exit 1) --"
+ │ PM_BLUEPRINTS_FILE="$F" bb blueprint-add
+ │ un-automate-monde crew/runs/live-blueprints-v0-202611
+ │ 23-1331/bench-by-creek.edn; echo "exit=$?"
+ │ echo "-- invalid blueprint (missing file, expect exit
+ │ 1) --"
+ │ PM_BLUEPRINTS_FILE="$F" bb blueprint-add le-testeur
+ │ /nonexistent.edn; echo "exit=$?"
+ │ echo "-- bad usage (expect exit 2) --"
+ │ PM_BLUEPRINTS_FILE="$F" bb blueprint-add; echo
+ │ "exit=$?"
+ │ echo "-- remove --"
+ │ PM_BLUEPRINTS_FILE="$F" bb blueprint-add --remove
+ │ bench-by-creek; echo "exit=$?"
+ │ cat "$F"
+ │ echo
+ │ echo "-- id already in estate (expect exit 1) --"
+ │ PM_BLUEPRINTS_FILE="$F" bb blueprint-add
+ │ un-automate-monde <(echo '{:id :bench-by-mailbox :at
+ │ [0 0 0] :summary "x"}') 2>&1 | head -5
+ │ rm -rf "$TMP"
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Quoted text in this command can't be checked before it
+ runs
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   3. No
+ ↑ 9 more lines
+ Esc to cancel · Tab to amend
+=== prompt 4 (13:54:11)
+  ⎿  $ export PATH="/opt/homebrew/bin:$PATH" &&
+     TMP=$(mktemp -d) && F="$TMP/blueprints.edn"
+     echo '{:id :bench-by-mailbox :at [0 0 0] :summary
+     "x"}' > "$TMP/estate-clash.edn"
+     PM_BLUEPRINTS_FILE="$F" bb blueprint-add
+     un-automate-monde "$TMP/estate-clash.edn"; echo
+     "exit=$?"
+     echo '{:id "bad" :at [0 0 0] :s…
+
+─────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ export PATH="/opt/homebrew/bin:$PATH" && TMP=$(mktemp
+ │ -d) && F="$TMP/blueprints.edn"
+ │ echo '{:id :bench-by-mailbox :at [0 0 0] :summary
+ │ "x"}' > "$TMP/estate-clash.edn"
+ │ PM_BLUEPRINTS_FILE="$F" bb blueprint-add
+ │ un-automate-monde "$TMP/estate-clash.edn"; echo
+ │ "exit=$?"
+ │ echo '{:id "bad" :at [0 0 0] :summary "x"}' >
+ │ "$TMP/bad.edn"
+ │ PM_BLUEPRINTS_FILE="$F" bb blueprint-add
+ │ un-automate-monde "$TMP/bad.edn"; echo "exit=$?"
+ │ rm -rf "$TMP"
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Redirect target contains $(cmd) output — path is
+ runtime-determined
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend

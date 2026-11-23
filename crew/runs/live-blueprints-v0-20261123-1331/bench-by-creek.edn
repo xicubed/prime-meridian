@@ -1,0 +1,16 @@
+;; Example blueprint for `bb blueprint-add` (TASKS T-13b): a bench by the creek, built
+;; like the estate's own bench-by-mailbox (resources/estate.edn). On level grass near the
+;; creek (Hal probed every foot: 1.7 cm across the legs; the builder's first guess, [1.0 1.2 -9.0],
+;; straddled the creek bed); the game seats it (pm.blueprint/seat) and its sign says if the ground was too
+;; steep. Hal places it with:
+;;
+;;   bb blueprint-add un-automate-monde crew/runs/live-blueprints-v0-20261123-1331/bench-by-creek.edn
+;;   bb blueprint-add --remove bench-by-creek
+{:id :bench-by-creek :at [2.5 1.69 -7.5] :yaw 0
+ :summary "proposed: a bench by the creek"
+ :look {:parts
+        [{:shape :box :size [1.1 0.1 0.4]  :at [0 0.45 0] :color :brown}    ; seat
+         {:shape :box :size [0.08 0.45 0.08] :at [ 0.45 0.225 0.15] :color :brown}  ; legs
+         {:shape :box :size [0.08 0.45 0.08] :at [ 0.45 0.225 -0.15] :color :brown}
+         {:shape :box :size [0.08 0.45 0.08] :at [-0.45 0.225 0.15] :color :brown}
+         {:shape :box :size [0.08 0.45 0.08] :at [-0.45 0.225 -0.15] :color :brown}]}}

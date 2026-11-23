@@ -5,6 +5,7 @@
    three.js, no js/Date, no atoms; `pm.scene` turns `ghost-plan` into meshes
    through `pm.three/ghost!`."
   (:require [clojure.string :as str]
+            [pm.blueprint-file :as bf]
             [pm.content :as c]
             [pm.plan :as p]))
 
@@ -15,13 +16,6 @@
 (defn- valid-at? [at]
   (and (vector? at) (= 3 (count at)) (every? number? at)))
 
-(defn- valid-blueprint? [bp]
-  (and (map? bp)
-       (keyword? (:id bp))
-       (valid-at? (:at bp))
-       (string? (:summary bp))
-       (not (str/blank? (:summary bp)))))
-
 (defn- status-of [bp]
   (let [s (:status bp)]
     (if (contains? statuses s) s :pending)))
@@ -30,7 +24,7 @@
   "Every well-formed blueprint in `world`, each defaulted to :pending."
   [world]
   (->> (:blueprints world)
-       (filter valid-blueprint?)
+       (filter bf/valid?)
        (mapv #(assoc % :status (status-of %)))))
 
 (defn pending
@@ -123,6 +117,94 @@
     (set-status world id :rejected)
     world))
 
+;; -- Live file merge (TASKS T-13b) --------------------------------------
+;; An agent proposes a blueprint with `bb blueprint-add`, into the private
+;; state/blueprints.edn; the 5 s state poll merges it into `!world` without
+;; a reload. merge-file is the one pure step: new file ids arrive pending,
+;; ids the file drops disappear unless they're :real or a trial is
+;; standing, an estate id always wins over a file entry with the same id,
+;; and an existing entry keeps everything about it (status, seat, look).
+
+(defn- distinct-by-id
+  "`entries` with every id after its first occurrence dropped, order kept."
+  [entries]
+  (first (reduce (fn [[out seen] e]
+                   (if (contains? seen (:id e))
+                     [out seen]
+                     [(conj out e) (conj seen (:id e))]))
+                 [[] #{}] entries)))
+
+(defn merge-file
+  "`state/blueprints.edn` (raw, or nil when it's missing) merged into
+   `world`: `{:world w' :added [ids] :removed [ids] :announce [ids]}`.
+   A no-op (world unchanged, `identical?`) when the file's `:as-of` hasn't
+   moved since the last merge."
+  [world file]
+  (let [f (bf/normalize file)]
+    (if (= (:as-of f) (:blueprints-as-of world))
+      {:world world :added [] :removed [] :announce []}
+      (let [first?       (nil? (:blueprints-as-of world))
+            bps          (or (:blueprints world) [])
+            estate-ids   (set (keep #(when-not (:from-file? %) (:id %)) bps))
+            incoming     (->> (:blueprints f)
+                               (filter bf/valid?)
+                               (remove #(contains? estate-ids (:id %)))
+                               distinct-by-id)
+            incoming-ids (set (map :id incoming))
+            drop?        (fn [bp] (and (:from-file? bp)
+                                        (not (contains? incoming-ids (:id bp)))
+                                        (not (contains? #{:real :approved} (status-of bp)))))
+            kept         (vec (remove drop? bps))
+            removed      (mapv :id (filter drop? bps))
+            kept-ids     (set (map :id kept))
+            new          (->> incoming
+                               (remove #(contains? kept-ids (:id %)))
+                               (mapv #(assoc (select-keys % [:id :at :yaw :summary :look :by])
+                                             :from-file? true :status :pending)))
+            announced    (or (:blueprints-announced world) #{})
+            announce     (if first? [] (vec (remove announced (map :id new))))]
+        {:world    (assoc world :blueprints (into kept new)
+                           :blueprints-as-of (:as-of f)
+                           :blueprints-announced (into announced (map :id new)))
+         :added    (mapv :id new)
+         :removed  removed
+         :announce announce}))))
+
+(defn author-line
+  "The talk entry for a newly arrived blueprint's author (GDD §2.1, §4.8):
+   `{:who :text :kind :blueprint :event :blueprint-drawn}`, or nil unless
+   `id` is a current blueprint with a keyword `:by`. `:who` is that
+   member's walker name, else its crew title, else its bare keyword name."
+  [world id]
+  (when-let [bp (first (filter #(= id (:id %)) (:blueprints world)))]
+    (when (keyword? (:by bp))
+      (let [by      (:by bp)
+            who     (or (:name (first (filter #(= (name by) (name (:agent %))) (:walkers world))))
+                        (let [title (get-in world [:crew :titles by])]
+                          (when (and (string? title) (not (str/blank? title))) title))
+                        (name by))
+            summary (:summary bp)
+            s       (if (str/ends-with? summary ".") (subs summary 0 (dec (count summary))) summary)]
+        ;; TODO content: move to the content pipeline (no hal-lines event fits)
+        {:who who :text (str "drew a blueprint: " s ". Click it to try it.")
+         :kind :blueprint :event :blueprint-drawn}))))
+
+(defn drawable-changes
+  "What `pm.scene` must mount/unmount to catch up with `world`'s
+   blueprints, given `drawn` (the set of ids it already has groups for,
+   nil = #{}): `{:add [ids] :remove #{ids}}`. `:add` is drawable
+   (:pending/:approved/:real) ids not yet drawn, in `all`'s order;
+   `:remove` is drawn ids that are no longer any blueprint's at all (a
+   :rejected one is neither -- the status sync already removed its mesh)."
+  [drawn world]
+  (let [drawn (or drawn #{})
+        bps   (all world)
+        ids   (set (map :id bps))]
+    {:add    (mapv :id (filter #(and (contains? #{:pending :approved :real} (:status %))
+                                      (not (contains? drawn (:id %))))
+                                bps))
+     :remove (set (remove ids drawn))}))
+
 (def max-part-dim
   "Metres. Any part dimension past this reads as a generation gone wrong,
    not a deliberately large object -- the kind of change GDD §4.8 says
@@ -209,6 +291,16 @@
   (if (sequential? (:blueprints world))
     (update world :blueprints (fn [bps] (mapv #(if (map? %) (seat % ground-at) %) bps)))
     world))
+
+(defn seat-ids
+  "Like `seat-all`, but only blueprints whose id is in `ids` go through
+   `seat`; `world` unchanged if `ids` is empty or matches none."
+  [world ids ground-at]
+  (let [idset (set ids)]
+    (if (and (sequential? (:blueprints world)) (seq idset))
+      (update world :blueprints
+              (fn [bps] (mapv #(if (and (map? %) (contains? idset (:id %))) (seat % ground-at) %) bps)))
+      world)))
 
 (defn- valid-part-strict? [part]
   (and (map? part)

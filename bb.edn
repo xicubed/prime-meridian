@@ -4,6 +4,9 @@
                :task (apply shell "bb" "scripts/crew_status.clj" *command-line-args*)}
   crew-bridge {:doc  "Local bridge for the game's 💭: allow / no / reply to crew prompts (127.0.0.1:8091)"
                :task (apply shell "bb" "scripts/crew_bridge.clj" *command-line-args*)}
+  blueprint-add {:doc  "An agent proposes a blueprint: its ghost appears in the estate (state/blueprints.edn): bb blueprint-add <member> <blueprint.edn> | bb blueprint-add --remove <id>"
+                 :task (let [r (apply shell {:continue true} "bb" "scripts/blueprint_add.clj" *command-line-args*)]
+                         (System/exit (:exit r)))}
   ask-player {:doc  "ask_player: raise the estate's \"!\" over a crew member and wait for the player's answer: bb ask-player <member> \"question\" [--wait S]"
               :task (apply shell "bb" "scripts/ask_player.clj" *command-line-args*)}
   juice      {:doc  "The real usage meter: types /usage into an idle Claude member, writes state/juice.edn: bb juice [--watch [S]] [--member NAME]"

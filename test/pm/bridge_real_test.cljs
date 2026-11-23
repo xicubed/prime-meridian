@@ -25,3 +25,22 @@
     (is (= {:as-of 9 :mirrors {:flora {:state {:stock 29 :last-fed 8}}}}
            (b/merge-real-mirror f :flora {:stock 29 :last-fed 8 :source :hacked :mood 3} #{:stock :last-fed :source} 9)))
     (is (nil? (b/merge-real-mirror f :flora {:mood 3} #{:stock} 9)))))
+
+(def CB {:id :bench-by-creek :at [1.0 1.2 -9.0] :yaw 0 :summary "proposed: a bench by the creek"})
+(def PL {:id :planter :at [-2.0 1.0 -4.0] :summary "proposed: a planter by the path"})
+(def E-BENCH {:id :bench-by-mailbox :at [4.0 1.66 -6.5] :yaw 90 :summary "proposed: a bench by the mailbox"})
+(def E-LAMP {:id :lamp-post-by-canal :at [3.8 0.63 -5.0] :summary "proposed: a lamp post by the canal"})
+
+(deftest t04-known-build-ids
+  (is (= #{:bench-by-mailbox :lamp-post-by-canal :bench-by-creek :planter}
+         (b/known-build-ids {:blueprints [E-BENCH E-LAMP]}
+                             {:as-of 1 :blueprints [CB PL {:id "bad" :at [0 0 0] :summary "s"}]})))
+  (is (= #{:bench-by-mailbox :lamp-post-by-canal} (b/known-build-ids {:blueprints [E-BENCH E-LAMP]} nil)))
+  (is (= #{} (b/known-build-ids nil nil)))
+  (is (= {:as-of 9 :real [:lamp-post-by-canal :planter]}
+         (b/add-real-build {:real [:lamp-post-by-canal]} :planter
+                            (b/known-build-ids {:blueprints [E-BENCH E-LAMP]} {:as-of 1 :blueprints [PL]}) 9)))
+  (is (nil? (b/add-real-build {:real [:lamp-post-by-canal]} :planter
+                               (b/known-build-ids {:blueprints [E-BENCH E-LAMP]} nil) 9)))
+  (is (= {:ok true :action :real-build :id :bench-by-creek}
+         (b/validate (req {"action" "build" "id" "bench-by-creek"}) ctx))))

@@ -1,0 +1,400 @@
+      263 +
+          +  (cond-> txt (:text item) (assoc (:key
+          + item) (:text item)))]))
+      264 +                                    [la
+          +bels texts] items)]
+      265 +        (swap! !mounted assoc :labels l
+          +abels :texts texts
+      266 +               :bp-drawn (-> (apply dis
+          +j bp-drawn remove) (into add))))))
+      267 +  nil)
+      268 +
+      269  (defn- sync-blueprints!
+      270    "Approving or rejecting a blueprint (
+           GDD §2.1, §4.8) has to change a mesh
+      239 -   already mounted as a ghost -- the on
+          -e case where this namespace creates
+      240 -   or removes something after `mount!`.
+          - Runs once per status change (a
+      241 -   pending blueprint going :approved un
+          --ghosts its mesh so it reads as
+      242 -   real; going :rejected removes its me
+          -sh and sign so it vanishes)."
+      271 +   already mounted as a ghost -- after
+          +`sync-blueprint-draw!` has drawn or
+      272 +   undrawn whatever newly needs it, the
+          + one other case where this
+      273 +   namespace creates or removes somethi
+          +ng after `mount!`. Runs once per
+      274 +   status change (a pending blueprint g
+          +oing :approved un-ghosts its mesh
+      275 +   so it reads as real; going :rejected
+          + removes its mesh and sign so it
+      276 +   vanishes)."
+      277    [world]
+      278 +  (sync-blueprint-draw! world)
+      279    (when-let [{:keys [root labels] bp-st
+           atus :bp-status} @!mounted]
+      280      (let [prev (or bp-status {})
+      281            now  (into {} (map (fn [bp] [
+           (blueprint-key bp) (:status bp)])) (bp/
+           all world))]
+
+⏺ Now update mount! to set initial :bp-drawn:
+
+⏺ Update(src/pm/scene.cljs)
+  ⎿  Added 2 lines, removed 1 line
+      329        (t/add! scene root)
+      330        (reset! !mounted {:root root :lab
+           els labels :texts (p/label-texts plan)
+           :plan plan
+      331                          :kit-lights (t/
+           kit-light-sources scene (:kit-lights wo
+           rld))
+      332 -                        :snap-worm (sna
+          -p-worm! root)})
+      332 +                        :snap-worm (sna
+          +p-worm! root)
+      333 +                        :bp-drawn (bp-i
+          +ds-in plan)})
+      334        (update! world now)))
+      335    nil)
+      336
+
+  Searched for 1 pattern
+
+⏺ Now let's make the edits to core.cljs.
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 25 lines, removed 3 lines
+      116          (.finally (fn [] (swap! !state-
+           poll assoc :busy? false))))))
+      117
+      118  (def builds-url "/state/builds.edn")
+           ; builds made real (the bridge writes i
+           t)
+      119 +(def blueprints-url "/state/blueprints.
+          +edn")   ; an agent's proposed blueprint
+          +s (TASKS T-13b)
+      120 +(defonce ^:private !last-builds (atom n
+          +il))   ; the parsed builds.edn, for app
+          +ly-blueprint-file!
+      121 +(defonce ^:private !kit (atom nil))
+          +       ; the kit handle, once start-kit
+          +! has it
+      122
+      123 +(declare apply-blueprint-file!)
+      124 +
+      125  (defn- fetch-builds! []
+      126    (-> (js/fetch (str builds-url "?t=" (
+           js/Date.now)) #js {:cache "no-store"})
+      127        (.then (fn [^js resp] (if (.-ok r
+           esp) (.text resp) nil)))
+      128        (.then (fn [text]
+      129                 (when-let [b (overlay/pa
+           rse-file text)]
+      130 +                 (reset! !last-builds b
+          +)
+      131                   (swap! !world bp/apply
+           -real-builds b))))
+      132        (.catch (fn [_]))))
+      133
+      134 +(defn- fetch-blueprints!
+      135 +  "The 5 s state poll's read of `state/
+          +blueprints.edn` (TASKS T-13b): a
+      136 +   crew member's `bb blueprint-add` lan
+          +ds here within one poll, merged
+      137 +   into `!world` by `apply-blueprint-fi
+          +le!` -- no reload, no remount."
+      138 +  []
+      139 +  (-> (js/fetch (str blueprints-url "?t
+          +=" (js/Date.now)) #js {:cache "no-store
+          +"})
+      140 +      (.then (fn [^js resp]
+      141 +               (cond
+      142 +                 (= 404 (.-status resp)
+          +) (apply-blueprint-file! nil)
+      143 +                 (.-ok resp) (-> (.text
+          + resp)
+      144 +                                 (.then
+          + (fn [text]
+      145 +
+          +   (when-let [f (overlay/parse-file tex
+          +t)]
+      146 +
+          +     (apply-blueprint-file! f)))))
+      147 +                 :else nil)))
+      148 +      (.catch (fn [_]))))
+      149 +
+      150  (defn- start-state-poll! []
+      151    (when (nil? (:timer @!state-poll))
+      130 -    (fetch-state!)
+      131 -    (fetch-builds!)
+      132 -    (swap! !state-poll assoc :timer (js
+          -/setInterval (fn [] (fetch-state!) (fet
+          -ch-builds!)) state-poll-ms))))
+      152 +    (fetch-blueprints!) (fetch-state!)
+          +(fetch-builds!)
+      153 +    (swap! !state-poll assoc :timer
+      154 +           (js/setInterval (fn [] (fetc
+          +h-blueprints!) (fetch-state!) (fetch-bu
+          +ilds!)) state-poll-ms))))
+      155
+      156  (def crew-url "/state/crew.edn")
+      157  (def crew-poll-ms 2000)
+
+⏺ Now let's refactor seat-blueprints! and add
+  apply-blueprint-file! + !kit set in start-kit!:
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 39 lines, removed 5 lines
+      1508                            ", " (for [[
+            y n] (t/drop-ray (.-scene h) (.-camera
+             h) x z 40 5)]
+      1509                                   (str
+            y " " n))))))))))
+      1510
+      1511 +(defn- ground-at-fn
+      1512 +  "The kit's ground-at fn (x z -> heig
+           +ht, pm.motion/ground-height) for
+      1513 +   seating blueprints, or nil until it
+           +s ground meshes can be found."
+      1514 +  [^js h]
+      1515 +  (let [prefixes (get-in @!world [:mot
+           +ion :ground])
+      1516 +        gm       (t/find-meshes (.-sce
+           +ne h) #(m/ground-name? % prefixes))]
+      1517 +    (when (seq gm)
+      1518 +      (fn [x z] (m/ground-height (t/do
+           +wn-hits gm x z 40) prefixes)))))
+      1519 +
+      1520  (defn- seat-blueprints!
+      1521    "Seats every blueprint on the kit's
+            ground before it is drawn
+      1522     (pm.blueprint/seat): an agent's :at
+             is a one-point guess, and on a slope
+      1523     that sinks one end and floats the o
+            ther."
+      1524    [^js h]
+      1516 -  (let [prefixes (get-in @!world [:mot
+           -ion :ground])
+      1517 -        gm       (t/find-meshes (.-sce
+           -ne h) #(m/ground-name? % prefixes))]
+      1518 -    (when (seq gm)
+      1519 -      (swap! !world bp/seat-all
+      1520 -             (fn [x z] (m/ground-heigh
+           -t (t/down-hits gm x z 40) prefixes))))
+           -))
+      1525 +  (when-let [ground-at (ground-at-fn h
+           +)]
+      1526 +    (swap! !world bp/seat-all ground-a
+           +t)))
+      1527
+      1528 +(defn- apply-blueprint-file!
+      1529 +  "A freshly polled `state/blueprints.
+           +edn` (or nil, 404) merged into
+      1530 +   `!world` (TASKS T-13b, `bp/merge-fi
+           +le`): a no-op when nothing changed.
+      1531 +   Otherwise the real-builds file appl
+           +ies to the new entries too, the
+      1532 +   newly added ones are seated (once t
+           +he kit's ground is up; before that,
+      1533 +   `start-kit!`'s `seat-blueprints!` s
+           +eats them -- `seat` is idempotent via
+      1534 +   :seated?), each newly announced one
+           + adds its author's line to 💭, and
+      1535 +   the result replaces `!world` in one
+           + swap -- the running scene redraws
+      1536 +   just those blueprints next frame, n
+           +o reload, no remount."
+      1537 +  [f]
+      1538 +  (let [r (bp/merge-file @!world f)]
+      1539 +    (when-not (identical? (:world r) @
+           +!world)
+      1540 +      (let [w1  (-> (:world r) (bp/app
+           +ly-real-builds @!last-builds))
+      1541 +            w2  (if-let [^js h @!kit]
+      1542 +                  (if-let [ground-at (
+           +ground-at-fn h)]
+      1543 +                    (bp/seat-ids w1 (:
+           +added r) ground-at)
+      1544 +                    w1)
+      1545 +                  w1)
+      1546 +            now (js/Date.now)
+      1547 +            w3  (reduce (fn [w id]
+      1548 +                          (if-let [lin
+           +e (bp/author-line w2 id)]
+      1549 +                            (update w
+           +:talk talk/append line now)
+      1550 +                            w))
+      1551 +                        w2 (:announce
+           +r))]
+      1552 +        (reset! !world w3)
+      1553 +        (js/console.info "Prime Meridi
+           +an: blueprints added" (:added r) "remo
+           +ved" (:removed r))))))
+      1554 +
+      1555  (defn start-kit!
+      1556    "The kit's scene is live: show the g
+            ame's layer on top of it."
+      1557    [^js h]
+     ...
+      1560    (js/console.log "Prime Meridian: run
+            ning on the kit's estate," @!backend)
+      1561    (wire-kit-brook-ui! h)
+      1562    (t/use-three! (.-THREE h))
+      1563 +  (reset! !kit h)
+      1564    (seat-blueprints! h)
+      1565    (scene/mount! (.-scene h) @!world (j
+            s/Date.now))
+      1566    (when (camera/restore! h) (js/consol
+            e.log "Prime Meridian: camera restored
+            "))
+
+⏺ Now let's run the project's build gate.
+
+  Read 1 file, ran 2 shell commands
+
+⏺ Gate passes. Let me do a quick hand test of the bb
+  command per spec §10, using a temp file (never the real
+  state/).
+
+  Searched for 2 patterns, ran 1 shell command
+
+⏺ Write(crew/runs/live-blueprints-v0…/bench-by-creek.edn)
+  ⎿  Wrote 15 lines to crew/runs/live-blueprints-v0-
+     20261123-1331/bench-by-creek.edn
+      1 ;; Example blueprint for `bb blueprint-add
+        ` (TASKS T-13b): a bench by the creek, bui
+        lt
+      2 ;; like the estate's own bench-by-mailbox
+        (resources/estate.edn). On level grass nea
+        r the
+      3 ;; creek; the game seats it (pm.blueprint/
+        seat) and its sign says if the ground was
+        too
+      4 ;; steep. Hal places it with:
+     … +11 lines
+
+  Ran 2 shell commands
+
+⏺ All hand-tested paths work correctly: add, duplicate,
+  estate-id clash, invalid blueprint, missing file, bad
+  usage, and remove, with the correct exit codes (0/1/2).
+  Now let's write the builder notes.
+
+⏺ Write(crew/runs/live-blueprints-v0-2…/builder-notes.md)
+  ⎿  Wrote 64 lines to crew/runs/live-blueprints-v0-
+     20261123-1331/builder-notes.md
+      1 # Builder notes — live blueprints v0 (TASK
+        S T-13 part b)
+      2
+      3 ## What was built
+      4
+      5 - `src/pm/blueprint_file.cljc` (new): the
+        one validator (`problems`/`valid?`), `norm
+        alize`,
+      6   `add`, `remove-id`, `parse-args`. Portab
+        le (bb + cljs).
+     … +58 lines
+
+⏺ I should correct a claim I made — I didn't actually
+  launch the browser; let me fix that.
+
+⏺ Update(crew/runs/live-blueprints-v0-…/builder-notes.md)
+  ⎿  Added 6 lines, removed 5 lines
+      38  - bad usage (no args) → usage line on st
+          derr, exit 2.
+      39  - `--remove bench-by-creek` → `removed b
+          ench-by-creek`, exit 0; file's `:bluepri
+          nts` back
+      40    to `[]`.
+      41 -- `npx shadow-cljs watch app`, with the
+         -kit up (`public/kit/` present): added th
+         -e example
+      42 -  blueprint below while the page was ope
+         -n — its neon-blue ghost appeared on the
+         -next state
+      43 -  poll (within 5 s), seated on the grass
+         -, with no reload; its sign showed the su
+         -mmary and
+      44 -  "click to build"; clicking it built it
+         -, clicking again made it a trial, matchi
+         -ng the
+      45 -  existing single-blueprint flow.
+      41 +- Did not open the compiled page myself
+         +this run (no browser here); `.crew/gate.
+         +sh` passed
+      42 +  (`compile app test` → 0 warnings, 1154
+         + existing tests green). Hal/Michael: to
+         +see it
+      43 +  live, run `npx shadow-cljs watch app`
+         +with the kit up (`public/kit/` present),
+         + load the
+      44 +  page, then run the example below in an
+         +other terminal — the ghost should appear
+         + within
+      45 +  one 5 s poll, seated, with no reload,
+         +and 💭 should show "Un Automate: drew a
+         +blueprint:
+      46 +  proposed: a bench by the creek. Click
+         +it to try it."
+      47
+      48  ## For Hal: the example blueprint
+      49
+
+⏺ Now let's check git diff --stat.
+
+  Ran 2 shell commands
+
+⏺ Gate passed (0 warnings, 1154 tests green). Hand-tested
+  bb blueprint-add/--remove for all exit-code paths
+  (0/1/2), duplicate/estate-id/invalid/missing-file
+  refusals.
+
+  Changes:
+  - New: src/pm/blueprint_file.cljc,
+    scripts/blueprint_add.clj, plus the run-dir
+    bench-by-creek.edn and builder-notes.md.
+  - Edited: src/pm/blueprint.cljs (merge-file, seat-ids,
+    author-line, drawable-changes, validator now shared),
+    src/pm/bridge.cljc (known-build-ids),
+    scripts/crew_bridge.clj (reads state/blueprints.edn
+    at request time), src/pm/core.cljs
+    (fetch-blueprints!/apply-blueprint-file! wired into
+    the state poll, !kit/!last-builds), src/pm/scene.cljs
+    (sync-blueprint-draw! mounts/unmounts only the
+    changed blueprint groups, no remount), bb.edn (new
+    blueprint-add task).
+
+  Gate's last line: GATE: PASS — 0 warnings; Ran 1154
+  tests containing 7326 assertions.
+
+   bb.edn                        |   3 ++
+   scripts/crew_bridge.clj       |   3 +-
+   src/pm/blueprint.cljs         | 108
+  ++++++++++++++++++++++++++++++++++++++----
+   src/pm/bridge.cljc            |  14 +++++-
+   src/pm/core.cljs              |  72
+  ++++++++++++++++++++++++----
+   src/pm/scene.cljs             |  46 ++++++++++++++++--
+   7 files changed, 241 insertions(+), 24 deletions(-)
+   (new) src/pm/blueprint_file.cljc       | 109
+  ++++++++++++++
+   (new) scripts/blueprint_add.clj        |  69 ++++++
+   (new) crew/runs/.../bench-by-creek.edn |  15 +++
+   (new) crew/runs/.../builder-notes.md   |  65 ++++
+
+  Note: test/pm/blueprint_file_test.cljs,
+  test/pm/blueprint_live_test.cljs, and modified
+  test/pm/bridge_real_test.cljs are already present from
+  the tester's parallel work — untouched by me.
+
+  done-5725
+
+✻ Baked for 10m 2s · done 1:55 PM
+                 ✔ Update installed · /restart to apply
+─────────────────────────────────────────────────────────
+❯ send the gate results to le-testeur
+─────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)
