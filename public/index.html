@@ -116,7 +116,7 @@
     #crew-roster .thread-head .back { font: 14px system-ui, sans-serif; padding: 4px 10px; border-radius: 999px; border: 0; background: rgba(255,255,255,.12); color: inherit; cursor: pointer; }
     #crew-roster .thread-head .back:hover { background: rgba(255,255,255,.22); }
     #crew-roster .composer { padding: 6px 2px 4px; gap: 8px; }
-    #crew-roster .composer input { border-radius: 999px; padding: 8px 14px; font-size: 15px; }
+    #crew-roster .composer input { border-radius: 999px; padding: 8px 14px; font-size: 15px; box-sizing: border-box; height: 40px; } /* = the 🎙's 40px: a call adding the 🎙 must not grow the row and lift the 📞/End above it (fixed controls never move) */
     /* bubbles: theirs left, yours right */
     #talk-list { display: flex; flex-direction: column; gap: 6px; }
     #talk-list[hidden] { display: none; }

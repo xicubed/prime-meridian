@@ -1,5 +1,6 @@
 (ns pm.calls-test
   (:require [cljs.test :refer [deftest is]]
+            [clojure.string :as str]
             [pm.talk :as talk]
             [pm.call :as call]
             [pm.crew :as crew]))
@@ -231,10 +232,18 @@
   (is (= {:status :off :why :no-mic}
          (call/mic-step {:status :listening :member :hal :text ""} [:error "audio-capture"]))))
 
+(deftest c47b-mic-step-error-network-is-off
+  (is (= {:status :off :why :no-service}
+         (call/mic-step {:status :listening :member :hal :text ""} [:error "network"])))
+  (is (true? (:disabled? (call/mic-view {:status :off :why :no-service}))))
+  (is (str/starts-with? (:title (call/mic-view {:status :off :why :no-service})) "No mic here"))
+  ;; going :off is what makes the twin say no-mic-line, once
+  (is (true? (call/mic-line? {:status :listening :member :hal :text ""}
+                             (call/mic-step {:status :listening :member :hal :text ""} [:error "network"])))))
+
 (deftest c48-mic-step-error-other-codes
   (is (= {:status :idle} (call/mic-step {:status :listening :member :hal :text ""} [:error "no-speech"])))
   (is (= {:status :idle} (call/mic-step {:status :listening :member :hal :text ""} [:error "aborted"])))
-  (is (= {:status :idle} (call/mic-step {:status :listening :member :hal :text ""} [:error "network"])))
   (is (= {:status :idle} (call/mic-step {:status :listening :member :hal :text ""} [:error "start-failed"]))))
 
 (deftest c49-mic-step-unsupported

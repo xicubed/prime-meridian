@@ -91,6 +91,8 @@
         :error       (cond
                        (contains? #{"not-allowed" "service-not-allowed"} a) {:status :off :why :refused}
                        (= "audio-capture" a)                                {:status :off :why :no-mic}
+                       ;; no speech service behind the API (an embedded webview): off, and say why
+                       (= "network" a)                                      {:status :off :why :no-service}
                        :else                                                {:status :idle})
         :unsupported {:status :off :why :unsupported}
         mic))))
@@ -112,6 +114,7 @@
                    :refused     {:label "🎙 Talk" :disabled? true :title "The browser refused the microphone; allow it for this page to talk"}
                    :unsupported {:label "🎙 Talk" :disabled? true :title "This browser can't hear you (no speech recognition); type instead"}
                    :no-mic      {:label "🎙 Talk" :disabled? true :title "No microphone found; type instead"}
+                   :no-service  {:label "🎙 Talk" :disabled? true :title "No mic here: this window has no speech recognition (open the game in Chrome to talk); type instead"}
                    {:label "🎙 Talk" :disabled? true :title "The mic is off; type instead"})
       {:label "🎙 Talk" :disabled? false :title "Talk instead of typing"})))
 
