@@ -355,3 +355,10 @@
           (call/glyph-name "Hal" nil)
           (call/glyph-name nil true)
           (call/glyph-name nil false)])))
+
+;; A line from the mic is marked, so the far end knows it was said, not typed.
+(deftest spoken-lines-say-so
+  (is (= "🎙 do you read me" (call/spoken "do you read me")))
+  (is (= "🎙 hi" (call/spoken (call/spoken " hi "))) "idempotent, trimmed")
+  (is (= "" (call/spoken "   ")))
+  (is (= "" (call/spoken nil))))

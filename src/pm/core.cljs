@@ -769,7 +769,9 @@
                                     (let [old (:mic @!talk-ui)]
                                       (swap! !talk-ui update :mic call/mic-step [:final text])
                                       (mic-after-swap! old))
-                                    (on-say member who text))
+                                    ;; a spoken line says so (call/spoken), so the far end knows
+                                    ;; it's on a call and answers in a sentence it can say aloud
+                                    (on-say member who (call/spoken text)))
                       :on-end     (fn []
                                     (let [old (:mic @!talk-ui)]
                                       (swap! !talk-ui update :mic call/mic-step [:end])

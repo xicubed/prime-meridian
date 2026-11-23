@@ -25,6 +25,18 @@
       world
       (assoc world :call {:with member :since now}))))
 
+(def spoken-tag "🎙 ")
+
+(defn spoken
+  "A line that came in through the mic, marked so the far end (the twin's chat,
+   a member's pane) knows it was said, not typed: keep the answer short enough
+   to speak. Idempotent; blank stays blank."
+  [text]
+  (let [t (str/trim (or text ""))]
+    (cond (str/blank? t) t
+          (str/starts-with? t spoken-tag) t
+          :else (str spoken-tag t))))
+
 (defn end-call
   "Ends whatever call is on. `world` unchanged (identical) with no :call."
   [world]
