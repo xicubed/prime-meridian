@@ -9,6 +9,7 @@
             [pm.blueprint :as bp]
             [pm.bricks :as bricks]
             [pm.brook :as brook]
+            [pm.call :as call]
             [pm.music :as music]
             [pm.chores :as chores]
             [pm.closing :as closing]
@@ -695,15 +696,17 @@
     (swap! !world world/apply-event ev (js/Date.now))))
 
 (defn- on-say
-  "Typing to a member with a pending ask_player question answers it via
-   send-answer!. Everyone else still goes through the Herdr crew-say/bridge
-   POST path."
+  "Typed text and recognised text both come through here: call/say-route is
+   the whole decision, and there's no second path. An answer to a pending
+   ask_player question goes through send-answer!; everything else is the
+   Herdr crew-say/bridge POST path, fed the routed text."
   [member who text]
-  (let [agent (name member)]
-    (if (world/needs-you? @!world agent)
-      (when-let [t (not-empty (clojure.string/trim (or text "")))]
-        (send-answer! agent t))
-      (let [before-n (:n (:talk @!world))
+  (when-let [r (call/say-route @!world member text)]
+    (case (:route r)
+      :answer (send-answer! (:agent r) (:text r))
+      :say
+      (let [text     (:text r)
+            before-n (:n (:talk @!world))
             now      (js/Date.now)]
         (swap! !world update :talk talk/crew-say member who text now)
         (let [t (:talk @!world) n (:n t)]
@@ -714,6 +717,71 @@
             (when (and (not (bridge-on?)) (= member (:agent (world/twin-walker @!world))))
               (when-let [ev (world/twin-says @!world (world/no-bridge-line @!world))]
                 (swap! !world world/apply-event ev (+ now 1))))))))))
+
+(defn- call-say!
+  "Like say-entry!, for a call's lines: the same !spoken guard (a line that
+   started playing isn't said again), but in the call's own voice. Ignores
+   :voice? -- a call speaks regardless of the global voice switch."
+  [e with]
+  (when (and e (not= (:n e) @!spoken))
+    (ui/speak! (:text e) (talk/call-voice @!world with e) #(reset! !spoken (:n e)))))
+
+(defn- start-call! [member]
+  (reset! !gesture? true)   ; this is a click
+  (swap! !world call/start-call member (js/Date.now))
+  (swap! !talk-ui assoc :call-heard (:n (:talk @!world)) :roster nil))
+
+(defn- end-call! []
+  (swap! !world call/end-call)
+  (ui/stop-speech!)
+  (ui/stop-listening!)
+  (swap! !talk-ui update :mic call/mic-step [:stop])
+  (swap! !talk-ui assoc :call-heard nil :roster nil))
+
+(defn- on-call-button! [member]
+  (if (= member (call/call-with @!world))
+    (end-call!)
+    (start-call! member)))
+
+(defn- mic-after-swap!
+  "The mic just moved from `old`: the twin says no-mic-line, once, the
+   moment it goes :off. Nothing without a twin walker (world/twin-says)."
+  [old]
+  (when (call/mic-line? old (:mic @!talk-ui))
+    (when-let [ev (world/twin-says @!world call/no-mic-line)]
+      (swap! !world world/apply-event ev (js/Date.now)))))
+
+(defn- on-mic!
+  "The 🎙 click: starts browser speech recognition for `member`'s composer
+   (`who` is its display name, for the final transcript's on-say)."
+  [member who]
+  (if-not (ui/recognition?)
+    (let [old (:mic @!talk-ui)]
+      (swap! !talk-ui update :mic call/mic-step [:unsupported])
+      (mic-after-swap! old))
+    (let [lang     (:lang (talk/voice-for @!world {:kind :hal}))
+          started? (ui/listen! lang
+                     {:on-interim (fn [text]
+                                    (let [old (:mic @!talk-ui)]
+                                      (swap! !talk-ui update :mic call/mic-step [:interim text])
+                                      (mic-after-swap! old)))
+                      :on-final   (fn [text]
+                                    (let [old (:mic @!talk-ui)]
+                                      (swap! !talk-ui update :mic call/mic-step [:final text])
+                                      (mic-after-swap! old))
+                                    (on-say member who text))
+                      :on-end     (fn []
+                                    (let [old (:mic @!talk-ui)]
+                                      (swap! !talk-ui update :mic call/mic-step [:end])
+                                      (mic-after-swap! old)))
+                      :on-error   (fn [code]
+                                    (let [old (:mic @!talk-ui)]
+                                      (swap! !talk-ui update :mic call/mic-step [:error code])
+                                      (mic-after-swap! old)))})]
+      (when started?
+        (let [old (:mic @!talk-ui)]
+          (swap! !talk-ui update :mic call/mic-step [:start member])
+          (mic-after-swap! old))))))
 
 (defonce ^:private !sample-say (atom {:timer nil :n 0}))
 
@@ -812,75 +880,91 @@
                (talk/observe-log (:crew-log @!world) (:crew @!world) now jum))]
     (when-not (identical? t' t)
       (swap! !world assoc :talk t'))
-    (let [e (talk/caption t' now)]
-      (cond
-        (and (some? e) (not= (:n e) (:shown @!talk-ui)))
-        (do
-          (ui/show-caption! e)
-          (when (:voice? t')
-            (say-entry! e))
-          (swap! !talk-ui assoc :shown (:n e)))
-
-        (and (nil? e) (some? (:shown @!talk-ui)))
-        (do
-          (ui/hide-caption!)
-          (swap! !talk-ui assoc :shown nil))))
-    (let [badge  (talk/badge-text t')
-          alert? (talk/prompt-waiting? t')]
-      (when (or (not= badge (:badge @!talk-ui)) (not= alert? (:alert @!talk-ui)))
-        (ui/set-badge! badge alert?)
-        (swap! !talk-ui assoc :badge badge :alert alert?)))
-    (let [bridge-on (bridge-on?)]
-      (if (:open? t')
-        (when-not (and (identical? (:entries t') (:listed @!talk-ui)) (= bridge-on (:listed-bridge @!talk-ui)))
-          (let [keep-scroll? (= (:n t') (:listed-n @!talk-ui))]
-            (ui/render-panel! (:entries t') offset-of label-of pick! on-check keep-scroll?
-                               {:bridge-on? bridge-on :on-allow on-allow :on-deny on-deny :jumeaux jum
-                                :twin (:agent (world/twin-walker @!world))} gone-fn)
-            (swap! !talk-ui assoc :listed (:entries t') :listed-n (:n t') :listed-bridge bridge-on)))
-        (swap! !talk-ui assoc :listed nil :listed-n nil :listed-bridge nil)))
-    (let [asked (set (map keyword (keys (:asks-player @!world))))
-          twin  (world/twin-walker @!world)
-          w     @!world
-          ;; the creatures are contacts too: their lines and chores make their thread
-          colors (crew/colors w)
-          pets  (vec (for [c (plan/creature-rows w scene/palette)
-                           :let [id (:id c) due? (plan/needs-you? w id now)]]
-                       {:member id :who (:who c (:name c)) :kind :creature :status :idle :say? false :color (:color c)
-                        :dot (if due? (:needs-you colors) (:color c))
-                        :question (when due? (talk/say-text w id now))}))
-          tdots (twin-dots w now colors)
-          ;; each crew row carries its walker's look and status dot, for the phone's avatars
-          dressed (fn [row]
-                    (let [entry (first (filter #(= (:member row) (:agent %)) (:walkers w)))
-                          d     (or (crew/ask-dot (boolean (:question row)) colors)
-                                    (get tdots (:member row))
-                                    (crew/dot (:crew w) (:member row) now colors))]
-                      (merge row (when entry (walker-colours entry)) {:dot (:color d)})))
-          rows  (-> (talk/crew-roster (:crew w) now (bridge-on?) (:crew-log w) (:expanded @!talk-ui) asked)
-                    (talk/with-walkers (:walkers w) (:agent twin) asked)
-                    (talk/with-questions (:asks-player w))
-                    (talk/with-twin twin (bridge-on?) (twin-thinking? w now))
-                    (->> (mapv dressed))
-                    (into pets))
-          ;; each contact's last line and unread count, for the contacts list
+    ;; 1. a call ends itself: End clicked elsewhere, the 💭 toggle, Escape,
+    ;; ‹ Contacts, or any other set-thread!
+    (when (call/end-reason (:call @!world) (ui/thread) (:open? t'))
+      (end-call!))
+    (let [twin       (world/twin-walker @!world)
           contact-of (fn [e] (ui/entry-contact e (:agent twin)))
-          previews (reduce (fn [acc e] (if-let [c (contact-of e)] (assoc acc c (:text e)) acc))
-                           {} (:entries t'))
-          unread   (talk/unread-by t' contact-of)
-          key   [rows previews unread (ui/thread)]]
-      ;; an open thread is read as it fills
-      (when-let [th (ui/thread)]
-        (when (and (keyword? th) (:open? t') (not= (:n t') (get-in t' [:seen-by th])))
-          (swap! !world update :talk talk/mark-seen th)))
-      (when (not= key (:roster @!talk-ui))
-        (ui/render-roster! rows on-say on-expand offset-of jum (assoc previews :pm.ui/unread unread))
-        (ui/show-hold-row! (and (some? twin) (= (ui/thread) (:agent twin))))
-        (swap! !talk-ui assoc :roster key)))
-    (let [sw (talk/hold-switch (:hold @!world) (bridge-on?) @!hold-ui jum)]
-      (when (not= sw (:hold-sw @!talk-ui))
-        (ui/render-hold-switch! sw)
-        (swap! !talk-ui assoc :hold-sw sw)))))
+          call'      (:call @!world)]
+      ;; 2. the call speaks the lines that arrived since it started -- without
+      ;; the gesture, :call-heard still moves: lines from before the click
+      ;; are never queued
+      (when call'
+        (when @!gesture?
+          (doseq [e (talk/call-lines t' contact-of (:with call') (:call-heard @!talk-ui))]
+            (call-say! e (:with call'))))
+        (swap! !talk-ui assoc :call-heard (:n t')))
+      (let [e (talk/caption t' now)]
+        (cond
+          (and (some? e) (not= (:n e) (:shown @!talk-ui)))
+          (do
+            (ui/show-caption! e)
+            ;; 3. a line a call already speaks is never said twice here
+            (when (and (:voice? t') (not (talk/call-line? e contact-of (call/call-with @!world))))
+              (say-entry! e))
+            (swap! !talk-ui assoc :shown (:n e)))
+
+          (and (nil? e) (some? (:shown @!talk-ui)))
+          (do
+            (ui/hide-caption!)
+            (swap! !talk-ui assoc :shown nil))))
+      (let [badge  (talk/badge-text t')
+            alert? (talk/prompt-waiting? t')]
+        (when (or (not= badge (:badge @!talk-ui)) (not= alert? (:alert @!talk-ui)))
+          (ui/set-badge! badge alert?)
+          (swap! !talk-ui assoc :badge badge :alert alert?)))
+      (let [bridge-on (bridge-on?)]
+        (if (:open? t')
+          (when-not (and (identical? (:entries t') (:listed @!talk-ui)) (= bridge-on (:listed-bridge @!talk-ui)))
+            (let [keep-scroll? (= (:n t') (:listed-n @!talk-ui))]
+              (ui/render-panel! (:entries t') offset-of label-of pick! on-check keep-scroll?
+                                 {:bridge-on? bridge-on :on-allow on-allow :on-deny on-deny :jumeaux jum
+                                  :twin (:agent twin)} gone-fn)
+              (swap! !talk-ui assoc :listed (:entries t') :listed-n (:n t') :listed-bridge bridge-on)))
+          (swap! !talk-ui assoc :listed nil :listed-n nil :listed-bridge nil)))
+      (let [asked (set (map keyword (keys (:asks-player @!world))))
+            w     @!world
+            ;; the creatures are contacts too: their lines and chores make their thread
+            colors (crew/colors w)
+            pets  (vec (for [c (plan/creature-rows w scene/palette)
+                             :let [id (:id c) due? (plan/needs-you? w id now)]]
+                         {:member id :who (:who c (:name c)) :kind :creature :status :idle :say? false :color (:color c)
+                          :dot (if due? (:needs-you colors) (:color c))
+                          :question (when due? (talk/say-text w id now))}))
+            tdots (twin-dots w now colors)
+            ;; each crew row carries its walker's look and status dot, for the phone's avatars
+            dressed (fn [row]
+                      (let [entry (first (filter #(= (:member row) (:agent %)) (:walkers w)))
+                            d     (or (crew/ask-dot (boolean (:question row)) colors)
+                                      (get tdots (:member row))
+                                      (crew/dot (:crew w) (:member row) now colors))]
+                        (merge row (when entry (walker-colours entry)) {:dot (:color d)})))
+            rows  (-> (talk/crew-roster (:crew w) now (bridge-on?) (:crew-log w) (:expanded @!talk-ui) asked)
+                      (talk/with-walkers (:walkers w) (:agent twin) asked)
+                      (talk/with-questions (:asks-player w))
+                      (talk/with-twin twin (bridge-on?) (twin-thinking? w now))
+                      (->> (mapv dressed))
+                      (into pets)
+                      (call/mark-on-call call' :member))
+            ;; each contact's last line and unread count, for the contacts list
+            previews (reduce (fn [acc e] (if-let [c (contact-of e)] (assoc acc c (:text e)) acc))
+                             {} (:entries t'))
+            unread   (talk/unread-by t' contact-of)
+            key   [rows previews unread (ui/thread) call' (:mic @!talk-ui)]]
+        ;; an open thread is read as it fills
+        (when-let [th (ui/thread)]
+          (when (and (keyword? th) (:open? t') (not= (:n t') (get-in t' [:seen-by th])))
+            (swap! !world update :talk talk/mark-seen th)))
+        (when (not= key (:roster @!talk-ui))
+          (ui/render-roster! rows on-say on-expand offset-of jum (assoc previews :pm.ui/unread unread)
+                             {:call call' :mic (:mic @!talk-ui) :on-call on-call-button! :on-mic on-mic!})
+          (ui/show-hold-row! (and (some? twin) (= (ui/thread) (:agent twin))))
+          (swap! !talk-ui assoc :roster key)))
+      (let [sw (talk/hold-switch (:hold @!world) (bridge-on?) @!hold-ui jum)]
+        (when (not= sw (:hold-sw @!talk-ui))
+          (ui/render-hold-switch! sw)
+          (swap! !talk-ui assoc :hold-sw sw))))))
 
 (defn frame [now]
   (let [dt (if-let [l @!last] (/ (- now l) 1000) 0)
@@ -894,7 +978,8 @@
     (when (kit/handle) (creature-spike/tick! dt' now))
     (when-let [h (kit/handle)] (camera/save-tick! h now))
     (bricks/set-dots! (:crew @!world) (:asks-player @!world) (js/Date.now)
-                      (twin-dots @!world (js/Date.now) (crew/colors @!world)))
+                      (twin-dots @!world (js/Date.now) (crew/colors @!world))
+                      (:call @!world))
     (bricks/set-says! (world/says-now @!world (js/Date.now)))
     (errands-tick! (js/Date.now))
     (crew-key-tick! (js/Date.now))
@@ -1087,7 +1172,8 @@
                       {:id id :name nm :kind :place :color color
                        :dot (if needs? (:needs-you colors) color) :glyph (if needs? "!" "●")
                        :needs-you? needs? :at (get-in w [id :at])}))
-        rows (-> rows (into creatures) (into places))
+        rows (-> rows (into creatures) (into places)
+                 (call/mark-on-call (:call w) #(or (:agent %) (:id %))))
         fly! (fn [h [x y z] lift & [back]]
                (let [[ox oy oz] (get-in w [:crew-key :offset])
                      ;; come in from the creek's side (the open middle of the

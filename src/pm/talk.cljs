@@ -743,6 +743,37 @@
         (layer-voice kind-layer)
         (layer-voice mirror-layer))))
 
+(defn call-line?
+  "Is talk entry `e` a line the call with `with` speaks? Its contact is
+   `with` and it's a message (counts?: not the quiet crew log, a status
+   flip, or the player's own line)."
+  [e contact-of with]
+  (boolean (and (keyword? with) (= with (contact-of e)) (counts? e))))
+
+(defn call-lines
+  "The entries a call with `with` should speak: newer than `since-n`, from
+   `with` (call-line?), in :n order."
+  [talk contact-of with since-n]
+  (if (nil? talk)
+    []
+    (let [since-n (if (number? since-n) since-n 0)]
+      (filterv #(and (> (:n %) since-n) (call-line? % contact-of with)) (:entries talk)))))
+
+(defn call-voice
+  "The voice a call with `with` speaks entry `e` in. A creature's line (e
+   has a keyword :mirror) uses voice-for, the same as today. Any other
+   line uses the twin's voice (voice-for world {:kind :hal}) with the
+   :voice of the walker whose :agent is `with` layered on top (each field
+   only when valid, as layer-voice already checks)."
+  [world with e]
+  (if (keyword? (:mirror e))
+    (voice-for world e)
+    (let [base   (voice-for world {:kind :hal})
+          walker (first (filter #(= with (:agent %)) (:walkers world)))]
+      (if-let [v (:voice walker)]
+        (layer-voice base v)
+        base))))
+
 (defn save-text [talk]
   (let [talk (or talk empty-talk)]
     (pr-str {:v 1 :n (:n talk) :seen (:seen talk) :seen-by (:seen-by talk) :crew-last (:crew-last talk) :log-at (:log-at talk)

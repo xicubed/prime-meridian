@@ -2,6 +2,7 @@
   "DOM and speech side effects for talk captions. No game logic: pm.core
    decides what to show, pm.ui only shows it."
   (:require [clojure.string :as str]
+            [pm.call :as call]
             [pm.talk :as talk]))
 
 (defn- el [id]
@@ -32,6 +33,60 @@
 (defn stop-speech! []
   (when (speech?)
     (try (.cancel js/speechSynthesis) (catch :default _))))
+
+(defn recognition? []
+  (boolean (or (.-SpeechRecognition js/window) (.-webkitSpeechRecognition js/window))))
+
+(defonce ^:private !rec (atom nil))
+
+(defn stop-listening!
+  "No-op when idle. Clears the recogniser's handlers before aborting it, so
+   nothing fires after a call ends."
+  []
+  (when-let [^js r @!rec]
+    (set! (.-onresult r) nil)
+    (set! (.-onerror r) nil)
+    (set! (.-onend r) nil)
+    (set! (.-onstart r) nil)
+    (try (.abort r) (catch :default _ nil)))
+  (reset! !rec nil))
+
+(defn listen!
+  "Starts the browser's speech recognition for one utterance (`continuous
+   false`, so it ends itself on the first pause). `on-final`/`on-interim`
+   get the joined transcript of every result so far; `on-final` only once
+   the last one is final. Returns true once started, false if unsupported
+   or it threw (calling `(on-error \"start-failed\")` in that case)."
+  [lang {:keys [on-interim on-final on-end on-error]}]
+  (stop-listening!)
+  (if-not (recognition?)
+    false
+    (let [^js Ctor (or (.-SpeechRecognition js/window) (.-webkitSpeechRecognition js/window))
+          ^js r    (Ctor.)]
+      (set! (.-continuous r) false)
+      (set! (.-interimResults r) true)
+      (set! (.-lang r) lang)
+      (set! (.-onresult r)
+            (fn [^js e]
+              (let [^js results (.-results e)
+                    n           (.-length results)
+                    text        (loop [i 0 parts []]
+                                  (if (>= i n)
+                                    (str/join "" parts)
+                                    (recur (inc i) (conj parts (.-transcript (aget (aget results i) 0))))))
+                    final?      (and (pos? n) (.-isFinal (aget results (dec n))))]
+                (if final?
+                  (when on-final (on-final text))
+                  (when on-interim (on-interim text))))))
+      (set! (.-onerror r) (fn [^js e] (when on-error (on-error (.-error e)))))
+      (set! (.-onend r) (fn [_] (when on-end (on-end))))
+      (reset! !rec r)
+      (try
+        (.start r)
+        true
+        (catch :default _
+          (when on-error (on-error "start-failed"))
+          false)))))
 
 (defn show-caption! [entry]
   (when-let [^js who-el (el "caption-who")]
@@ -726,7 +781,7 @@
           (set! (.. s -style -cssText) "font-size:11px;letter-spacing:.12em;text-transform:uppercase;opacity:.8;margin-bottom:4px")
           (set! (.-textContent s) title)
           (.appendChild panel s))
-        (doseq [{:keys [id name body joints dot glyph kind color real? can-real?]} rows]
+        (doseq [{:keys [id name body joints dot glyph kind color real? can-real? on-call?]} rows]
           (let [^js r (js/document.createElement "div")]
             (set! (.. r -style -cssText) "display:flex;align-items:center;gap:8px;padding:4px 4px;border-radius:8px;cursor:pointer")
             (.addEventListener r "mouseenter" (fn [_] (set! (.. r -style -background) "rgba(255,255,255,.12)")))
@@ -737,7 +792,7 @@
                   (str (figure-svg {:kind kind :color color :body body :joints joints} 24)
                        "<span style='width:12px;text-align:center;font-weight:700;color:" (hex-css dot) "'>" (if (= "!" glyph) "!" "●") "</span>"
                        "<span></span>"))
-            (set! (.-textContent (aget (.-children r) 2)) name)
+            (set! (.-textContent (aget (.-children r) 2)) (call/glyph-name name on-call?))
             (.addEventListener r "click" (fn [^js e] (.preventDefault e) (.stopPropagation e) (on-pick id)))
             ;; the SAMPLE/REAL box: on creatures, and on crew members with a shipped
             ;; sample question (REAL for them is nothing until a real agent asks)
@@ -945,7 +1000,7 @@
                "<i class='badge' style='background:" (hex-css (or (:dot row) 0x9aa0a6)) "'>" (when (:question row) "!") "</i>"))
     (when (= :unknown (:status row)) (.add (.-classList glyph) "hollow"))
     (set! (.-className who) "who")
-    (set! (.-textContent who) (:who row))
+    (set! (.-textContent who) (call/glyph-name (:who row) (:on-call? row)))
     (set! (.-className sub) "preview")
     (set! (.-textContent sub) (or (:question row) preview ""))
     (set! (.-className arrow) "arrow")
@@ -967,62 +1022,86 @@
   "The phone's bottom part. With no thread open it's the contacts list: one
    row per `rows` entry (crew members, the twin, the creatures), plus
    Everything; `previews` is contact -> last line text. With a thread open
-   it's that contact's header (‹ back, name, their pending question) and the
-   composer: the say… input (enabled when the row is :say?), Enter calls
-   (on-say member who value); a creature's thread has no composer (its
-   chores are the checkboxes in the thread). A re-render keeps a typed value."
-  [rows on-say _on-expand _offset-of _jum previews]
-  (when-let [^js root (el "crew-roster")]
-    (let [^js active    (.-activeElement js/document)
-          focused-value (when (and active (= "INPUT" (.-tagName active)) (= "text" (.-type active)))
-                          (not-empty (.-value active)))
-          t             (thread)]
-      (set! (.-innerHTML root) "")
-      (if (nil? t)
-        (let [unread (get previews ::unread {})]
-          (doseq [row rows] (contact-row! root row (get previews (:member row)) (get unread (:member row))))
-          (contact-row! root {:member :all :who "Everything" :status :idle} "the whole day, in order" nil))
-        (let [row     (first (filter #(= t (:member %)) rows))
-              ^js hd  (js/document.createElement "div")
-              ^js bk  (js/document.createElement "button")
-              ^js nm  (js/document.createElement "span")]
-          (set! (.-className hd) "thread-head")
-          (set! (.-className bk) "pm-btn back")
-          (set! (.-textContent bk) "‹ Contacts")
-          (.addEventListener bk "click" (fn [_] (set-thread! nil)))
-          (set! (.-className nm) "who")
-          (set! (.-textContent nm) (if (= :all t) "Everything" (or (:who row) (name t))))
-          (.appendChild hd bk)
-          (.appendChild hd nm)
-          (.appendChild root hd)
-          (when-let [q (:question row)]
-            (let [^js qd (js/document.createElement "div")]
-              (set! (.-className qd) "roster-log")
-              (set! (.. qd -style -opacity) "1")
-              (set! (.-textContent qd) (str "! " q))
-              (.appendChild root qd)))
-          (when (and row (not= :creature (:kind row)))
-            (let [^js r   (js/document.createElement "div")
-                  ^js inp (js/document.createElement "input")]
-              (set! (.-className r) "row composer")
-              (set! (.-type inp) "text")
-              (.setAttribute inp "placeholder" (if (:question row) "answer…" (str "Text " (:who row) "…")))
-              (.setAttribute inp "data-member" (name (:member row)))
-              (set! (.-disabled inp) (not (:say? row)))
-              (when focused-value (set! (.-value inp) focused-value))
-              (.addEventListener inp "keydown"
-                (fn [^js e] (when (= "Enter" (.-key e))
-                              (on-say (:member row) (:who row) (.. e -target -value))
-                              (set! (.-value (.-target e)) ""))))
-              (.appendChild r inp)
-              (.appendChild root r)
-              (when (and active (= "INPUT" (.-tagName active)) (= "text" (.-type active)))
-                (.focus inp))))
-          (when (= :creature (:kind row))
-            (let [^js p (js/document.createElement "div")]
-              (set! (.-className p) "roster-log")
-              (set! (.-textContent p) "Tick a chore above to do it; untick to undo.")
-              (.appendChild root p))))))))
+   it's that contact's header (‹ back, 📞, name, their pending question) and
+   the composer: the say… input (enabled when the row is :say?), Enter calls
+   (on-say member who value), plus the 🎙 during a call; a creature's thread
+   has no composer (its chores are the checkboxes in the thread). A
+   re-render keeps a typed value. `phone` ({:call :mic :on-call :on-mic}) is
+   nil in the 6-arity: no 📞, no 🎙."
+  ([rows on-say on-expand offset-of jum previews]
+   (render-roster! rows on-say on-expand offset-of jum previews nil))
+  ([rows on-say _on-expand _offset-of _jum previews phone]
+   (when-let [^js root (el "crew-roster")]
+     (let [^js active    (.-activeElement js/document)
+           focused-value (when (and active (= "INPUT" (.-tagName active)) (= "text" (.-type active)))
+                           (not-empty (.-value active)))
+           t             (thread)]
+       (set! (.-innerHTML root) "")
+       (if (nil? t)
+         (let [unread (get previews ::unread {})]
+           (doseq [row rows] (contact-row! root row (get previews (:member row)) (get unread (:member row))))
+           (contact-row! root {:member :all :who "Everything" :status :idle} "the whole day, in order" nil))
+         (let [row     (first (filter #(= t (:member %)) rows))
+               ^js hd  (js/document.createElement "div")
+               ^js bk  (js/document.createElement "button")
+               ^js nm  (js/document.createElement "span")]
+           (set! (.-className hd) "thread-head")
+           (set! (.-className bk) "pm-btn back")
+           (set! (.-textContent bk) "‹ Contacts")
+           (.addEventListener bk "click" (fn [_] (set-thread! nil)))
+           (.appendChild hd bk)
+           (when (and row (:on-call phone))
+             (when-let [cb (call/call-button (:call phone) t)]
+               (let [^js pb (js/document.createElement "button")]
+                 (set! (.-className pb) (str "pm-btn call" (when (:on? cb) " on")))
+                 (set! (.-textContent pb) (:label cb))
+                 (.setAttribute pb "title" (:title cb))
+                 (.addEventListener pb "click" (fn [^js e] (.stopPropagation e) ((:on-call phone) t)))
+                 (.appendChild hd pb))))
+           (set! (.-className nm) "who")
+           (set! (.-textContent nm) (if (= :all t) "Everything" (or (:who row) (name t))))
+           (.appendChild hd nm)
+           (.appendChild root hd)
+           (when-let [q (:question row)]
+             (let [^js qd (js/document.createElement "div")]
+               (set! (.-className qd) "roster-log")
+               (set! (.. qd -style -opacity) "1")
+               (set! (.-textContent qd) (str "! " q))
+               (.appendChild root qd)))
+           (when (and row (not= :creature (:kind row)))
+             (let [^js r   (js/document.createElement "div")
+                   ^js inp (js/document.createElement "input")
+                   mic     (:mic phone)]
+               (set! (.-className r) "row composer")
+               (set! (.-type inp) "text")
+               (.setAttribute inp "placeholder" (if (:question row) "answer…" (str "Text " (:who row) "…")))
+               (.setAttribute inp "data-member" (name (:member row)))
+               (set! (.-disabled inp) (not (:say? row)))
+               (when focused-value (set! (.-value inp) focused-value))
+               (when (and (= :listening (:status mic)) (= (:member row) (:member mic)))
+                 (set! (.-value inp) (:text mic)))
+               (.addEventListener inp "keydown"
+                 (fn [^js e] (when (= "Enter" (.-key e))
+                               (on-say (:member row) (:who row) (.. e -target -value))
+                               (set! (.-value (.-target e)) ""))))
+               (.appendChild r inp)
+               (when (and (:on-mic phone) (call/mic-shown? (:call phone) row))
+                 (let [mv (call/mic-view mic)
+                       ^js mb (js/document.createElement "button")]
+                   (set! (.-className mb) (str "pm-btn mic" (when (= :listening (:status mic)) " listening")))
+                   (set! (.-textContent mb) (:label mv))
+                   (.setAttribute mb "title" (:title mv))
+                   (set! (.-disabled mb) (or (boolean (:disabled? mv)) (not (:say? row))))
+                   (.addEventListener mb "click" (fn [^js e] (.stopPropagation e) ((:on-mic phone) (:member row) (:who row))))
+                   (.appendChild r mb)))
+               (.appendChild root r)
+               (when (and active (= "INPUT" (.-tagName active)) (= "text" (.-type active)))
+                 (.focus inp))))
+           (when (= :creature (:kind row))
+             (let [^js p (js/document.createElement "div")]
+               (set! (.-className p) "roster-log")
+               (set! (.-textContent p) "Tick a chore above to do it; untick to undo.")
+               (.appendChild root p)))))))))
 
 (defn show-hold-row!
   "The 'I'll answer' switch is the twin's setting: it shows only in his

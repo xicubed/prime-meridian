@@ -1,0 +1,400 @@
+          -y th])))
+      943 -          (swap! !world update :talk ta
+          -lk/mark-seen th)))
+      944 -      (when (not= key (:roster @!talk-u
+          -i))
+      945 -        (ui/render-roster! rows on-say
+          -on-expand offset-of jum (assoc previews
+          - :pm.ui/unread unread))
+      946 -        (ui/show-hold-row! (and (some?
+          -twin) (= (ui/thread) (:agent twin))))
+      947 -        (swap! !talk-ui assoc :roster k
+          -ey)))
+      948 -    (let [sw (talk/hold-switch (:hold @
+          -!world) (bridge-on?) @!hold-ui jum)]
+      949 -      (when (not= sw (:hold-sw @!talk-u
+          -i))
+      950 -        (ui/render-hold-switch! sw)
+      951 -        (swap! !talk-ui assoc :hold-sw
+          -sw)))))
+      889 +          call'      (:call @!world)]
+      890 +      ;; 2. the call speaks the lines t
+          +hat arrived since it started -- without
+      891 +      ;; the gesture, :call-heard still
+          + moves: lines from before the click
+      892 +      ;; are never queued
+      893 +      (when call'
+      894 +        (when @!gesture?
+      895 +          (doseq [e (talk/call-lines t'
+          + contact-of (:with call') (:call-heard
+          +@!talk-ui))]
+      896 +            (call-say! e (:with call'))
+          +))
+      897 +        (swap! !talk-ui assoc :call-hea
+          +rd (:n t')))
+      898 +      (let [e (talk/caption t' now)]
+      899 +        (cond
+      900 +          (and (some? e) (not= (:n e) (
+          +:shown @!talk-ui)))
+      901 +          (do
+      902 +            (ui/show-caption! e)
+      903 +            ;; 3. a line a call already
+          + speaks is never said twice here
+      904 +            (when (and (:voice? t') (no
+          +t (talk/call-line? e contact-of (call/c
+          +all-with @!world))))
+      905 +              (say-entry! e))
+      906 +            (swap! !talk-ui assoc :show
+          +n (:n e)))
+      907
+      908 +          (and (nil? e) (some? (:shown
+          +@!talk-ui)))
+      909 +          (do
+      910 +            (ui/hide-caption!)
+      911 +            (swap! !talk-ui assoc :show
+          +n nil))))
+      912 +      (let [badge  (talk/badge-text t')
+      913 +            alert? (talk/prompt-waiting
+          +? t')]
+      914 +        (when (or (not= badge (:badge @
+          +!talk-ui)) (not= alert? (:alert @!talk-
+          +ui)))
+      915 +          (ui/set-badge! badge alert?)
+      916 +          (swap! !talk-ui assoc :badge
+          +badge :alert alert?)))
+      917 +      (let [bridge-on (bridge-on?)]
+      918 +        (if (:open? t')
+      919 +          (when-not (and (identical? (:
+          +entries t') (:listed @!talk-ui)) (= bri
+          +dge-on (:listed-bridge @!talk-ui)))
+      920 +            (let [keep-scroll? (= (:n t
+          +') (:listed-n @!talk-ui))]
+      921 +              (ui/render-panel! (:entri
+          +es t') offset-of label-of pick! on-chec
+          +k keep-scroll?
+      922 +                                 {:brid
+          +ge-on? bridge-on :on-allow on-allow :on
+          +-deny on-deny :jumeaux jum
+      923 +                                  :twin
+          + (:agent twin)} gone-fn)
+      924 +              (swap! !talk-ui assoc :li
+          +sted (:entries t') :listed-n (:n t') :l
+          +isted-bridge bridge-on)))
+      925 +          (swap! !talk-ui assoc :listed
+          + nil :listed-n nil :listed-bridge nil))
+          +)
+      926 +      (let [asked (set (map keyword (ke
+          +ys (:asks-player @!world))))
+      927 +            w     @!world
+      928 +            ;; the creatures are contac
+          +ts too: their lines and chores make the
+          +ir thread
+      929 +            colors (crew/colors w)
+      930 +            pets  (vec (for [c (plan/cr
+          +eature-rows w scene/palette)
+      931 +                             :let [id (
+          +:id c) due? (plan/needs-you? w id now)]
+          +]
+      932 +                         {:member id :w
+          +ho (:who c (:name c)) :kind :creature :
+          +status :idle :say? false :color (:color
+          + c)
+      933 +                          :dot (if due?
+          + (:needs-you colors) (:color c))
+      934 +                          :question (wh
+          +en due? (talk/say-text w id now))}))
+      935 +            tdots (twin-dots w now colo
+          +rs)
+      936 +            ;; each crew row carries it
+          +s walker's look and status dot, for the
+          + phone's avatars
+      937 +            dressed (fn [row]
+      938 +                      (let [entry (firs
+          +t (filter #(= (:member row) (:agent %))
+          + (:walkers w)))
+      939 +                            d     (or (
+          +crew/ask-dot (boolean (:question row))
+          +colors)
+      940 +                                      (
+          +get tdots (:member row))
+      941 +                                      (
+          +crew/dot (:crew w) (:member row) now co
+          +lors))]
+      942 +                        (merge row (whe
+          +n entry (walker-colours entry)) {:dot (
+          +:color d)})))
+      943 +            rows  (-> (talk/crew-roster
+          + (:crew w) now (bridge-on?) (:crew-log
+          +w) (:expanded @!talk-ui) asked)
+      944 +                      (talk/with-walker
+          +s (:walkers w) (:agent twin) asked)
+      945 +                      (talk/with-questi
+          +ons (:asks-player w))
+      946 +                      (talk/with-twin t
+          +win (bridge-on?) (twin-thinking? w now)
+          +)
+      947 +                      (->> (mapv dresse
+          +d))
+      948 +                      (into pets)
+      949 +                      (call/mark-on-cal
+          +l call' :member))
+      950 +            ;; each contact's last line
+          + and unread count, for the contacts lis
+          +t
+      951 +            previews (reduce (fn [acc e
+          +] (if-let [c (contact-of e)] (assoc acc
+          + c (:text e)) acc))
+      952 +                             {} (:entri
+          +es t'))
+      953 +            unread   (talk/unread-by t'
+          + contact-of)
+      954 +            key   [rows previews unread
+          + (ui/thread) call' (:mic @!talk-ui)]]
+      955 +        ;; an open thread is read as it
+          + fills
+      956 +        (when-let [th (ui/thread)]
+      957 +          (when (and (keyword? th) (:op
+          +en? t') (not= (:n t') (get-in t' [:seen
+          +-by th])))
+      958 +            (swap! !world update :talk
+          +talk/mark-seen th)))
+      959 +        (when (not= key (:roster @!talk
+          +-ui))
+      960 +          (ui/render-roster! rows on-sa
+          +y on-expand offset-of jum (assoc previe
+          +ws :pm.ui/unread unread)
+      961 +                             {:call cal
+          +l' :mic (:mic @!talk-ui) :on-call on-ca
+          +ll-button! :on-mic on-mic!})
+      962 +          (ui/show-hold-row! (and (some
+          +? twin) (= (ui/thread) (:agent twin))))
+      963 +          (swap! !talk-ui assoc :roster
+          + key)))
+      964 +      (let [sw (talk/hold-switch (:hold
+          + @!world) (bridge-on?) @!hold-ui jum)]
+      965 +        (when (not= sw (:hold-sw @!talk
+          +-ui))
+      966 +          (ui/render-hold-switch! sw)
+      967 +          (swap! !talk-ui assoc :hold-s
+          +w sw))))))
+      968 +
+      969  (defn frame [now]
+      970    (let [dt (if-let [l @!last] (/ (- now
+            l) 1000) 0)
+      971          ;; Jacked out (GDD §2.3, §4.8):
+            the estate freezes gently -- no dt
+
+⏺ Now update crew-key-tick! and frame:
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Couldn't edit file
+
+  Searched for 1 pattern, read 1 file
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 2 lines, removed 1 line
+      1171                        {:id id :name nm
+             :kind :place :color color
+      1172                         :dot (if needs?
+             (:needs-you colors) color) :glyph (if
+             needs? "!" "●")
+      1173                         :needs-you? nee
+            ds? :at (get-in w [id :at])}))
+      1174 -        rows (-> rows (into creatures)
+           - (into places))
+      1174 +        rows (-> rows (into creatures)
+           + (into places)
+      1175 +                 (call/mark-on-call (:
+           +call w) #(or (:agent %) (:id %))))
+      1176          fly! (fn [h [x y z] lift & [ba
+            ck]]
+      1177                 (let [[ox oy oz] (get-i
+            n w [:crew-key :offset])
+      1178                       ;; come in from t
+            he creek's side (the open middle of th
+            e
+
+⏺ Now the frame function's bricks/set-dots! call:
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 2 lines, removed 1 line
+      978      (when (kit/handle) (creature-spike/
+           tick! dt' now))
+      979      (when-let [h (kit/handle)] (camera/
+           save-tick! h now))
+      980      (bricks/set-dots! (:crew @!world) (
+           :asks-player @!world) (js/Date.now)
+      981 -                      (twin-dots @!worl
+          -d (js/Date.now) (crew/colors @!world)))
+      981 +                      (twin-dots @!worl
+          +d (js/Date.now) (crew/colors @!world))
+      982 +                      (:call @!world))
+      983      (bricks/set-says! (world/says-now @
+           !world (js/Date.now)))
+      984      (errands-tick! (js/Date.now))
+      985      (crew-key-tick! (js/Date.now))
+
+⏺ Now let's check public/index.html for the CSS section
+  to edit.
+
+  Searched for 1 pattern, read 1 file · 1 failed
+
+⏺ Update(public/index.html)
+  ⎿  Added 7 lines, removed 1 line
+      30      /* The three round-cornered buttons
+          in the bottom-left row (💭 ⓘ 🎬): one si
+          ze, one look,
+      31         8px apart, 44px wide each: 14 | 6
+          6 | 118. The badge on 💭 floats over its
+           corner so the
+      32         button never grows and pushes int
+          o ⓘ. */
+      33 -    #talk-toggle, #admin > summary, #vie
+         -ws-label {
+      33 +    #talk-toggle, #admin > summary, #vie
+         +ws-label, #crew-roster .pm-btn.call, #cr
+         +ew-roster .pm-btn.mic {
+      34        box-sizing: border-box; width: 44p
+          x; height: 40px; padding: 0; margin: 0;
+          border: 1px solid rgba(255,255,255,.14);
+      35        border-radius: 10px; background: r
+          gba(20,24,32,.55); color: #f3efe2; font:
+           20px/1 system-ui, sans-serif;
+      36        display: flex; align-items: center
+          ; justify-content: center; cursor: point
+          er; user-select: none;
+      37        backdrop-filter: blur(4px); transi
+          tion: background .15s, border-color .15s
+          ; }
+      38      #talk-toggle:hover, #admin > summary
+          :hover, #views-label:hover { background:
+           rgba(20,24,32,.8); border-color: rgba(2
+          55,255,255,.3); }
+      39 +    /* the 📞/🎙 buttons: same 44×40 box,
+         + but a short label instead of one glyph
+         +*/
+      40 +    #crew-roster .pm-btn.call, #crew-ros
+         +ter .pm-btn.mic {
+      41 +      font: 600 11px/1.1 system-ui, sans
+         +-serif; white-space: normal; text-align:
+         + center; overflow: hidden; flex: 0 0 aut
+         +o; }
+      42 +    #crew-roster .pm-btn.mic.listening {
+         + font-size: 9px; }
+      43 +    #crew-roster .pm-btn.call.on { backg
+         +round: #e5484d; border-color: transparen
+         +t; color: #fff; }
+      44 +    #crew-roster .pm-btn.call:disabled,
+         +#crew-roster .pm-btn.mic:disabled { opac
+         +ity: .4; cursor: default; }
+      45      #admin { position: fixed; left: 66px
+          ; bottom: 170px; z-index: 200; font: 14p
+          x/1.4 system-ui, sans-serif; }
+      46      #admin > summary { list-style: none;
+           position: relative; z-index: 230; } /*
+          above #hud (220): open, the HUD box cove
+          red the ⓘ and it couldn't be closed */
+      47      #admin > summary::-webkit-details-ma
+          rker { display: none; }
+
+⏺ Update(public/index.html)
+  ⎿  Added 2 lines, removed 2 lines
+      112      #crew-roster .contact .preview { fl
+           ex: 1 1 auto; min-width: 0; opacity: .5
+           5; font-size: 12px; white-space: nowrap
+           ; overflow: hidden; text-overflow: elli
+           psis; }
+      113      #crew-roster .contact .arrow { opac
+           ity: .4; }
+      114      #crew-roster .contact .unread { min
+           -width: 20px; height: 20px; padding: 0
+           6px; box-sizing: border-box; border-rad
+           ius: 10px; background: #3b82f6; color:
+           #fff; font: 700 12px/20px system-ui; te
+           xt-align: center; flex: 0 0 auto; }
+      115 -    #crew-roster .thread-head { display
+          -: flex; align-items: center; gap: 10px;
+          - padding: 6px 4px 4px; font-size: 15px;
+          - }
+      115 +    #crew-roster .thread-head { display
+          +: flex; align-items: center; gap: 8px;
+          +padding: 6px 4px 4px; font-size: 15px;
+          +}
+      116      #crew-roster .thread-head .back { f
+           ont: 14px system-ui, sans-serif; paddin
+           g: 4px 10px; border-radius: 999px; bord
+           er: 0; background: rgba(255,255,255,.12
+           ); color: inherit; cursor: pointer; }
+      117      #crew-roster .thread-head .back:hov
+           er { background: rgba(255,255,255,.22);
+            }
+      118 -    #crew-roster .composer { padding: 6
+          -px 2px 4px; }
+      118 +    #crew-roster .composer { padding: 6
+          +px 2px 4px; gap: 8px; }
+      119      #crew-roster .composer input { bord
+           er-radius: 999px; padding: 8px 14px; fo
+           nt-size: 15px; }
+      120      /* bubbles: theirs left, yours righ
+           t */
+      121      #talk-list { display: flex; flex-di
+           rection: column; gap: 6px; }
+
+⏺ Now let's run the gate.
+
+  Ran 1 shell command
+
+⏺ The gate passes: 0 warnings, all existing tests green.
+  Now let's write the note.
+
+⏺ Write(crew/runs/calls-v0-20261122-1708/note.md)
+  ⎿  Wrote 32 lines to
+     crew/runs/calls-v0-20261122-1708/note.md
+       1 # calls-v0: builder's note
+       2
+       3 **New:** `src/pm/call.cljs` (`pm.call`) —
+          `start-call`/`end-call`/`call-with`,
+       4 `end-reason`, `call-button`, `mic-shown?`
+         , `mic-step`/`mic-line?`/`mic-view`,
+       5 `say-route`, `mark-on-call`, `glyph-name`
+         , `no-mic-line`/`call-suffix-glyph`.
+       6
+       7 **Changed:**
+     … +25 lines
+
+  Ran 2 shell commands
+
+⏺ Implemented calls-v0 across the files assigned to the
+  builder: new src/pm/call.cljs, three additions to
+  pm.talk, the plate-name 3-arity and on-call-suffix in
+  pm.crew, the 5-arity set-dots! in pm.bricks,
+  speech-recognition wiring + 📞/🎙 UI in pm.ui, the
+  on-say/call/mic dispatch in pm.core, and the CSS in
+  public/index.html. Wrote
+  crew/runs/calls-v0-20261122-1708/note.md.
+
+  Gate's last line: GATE: PASS — 0 warnings; Ran 1083
+  tests containing 7186 assertions. (pm.calls-test isn't
+  present yet — that's the tester's file.)
+
+   public/index.html  |  12 ++-
+   src/pm/bricks.cljs |   8 +-
+   src/pm/core.cljs   | 242
+  ++++++++++++++++++++++++++++++++++++-----------------
+   src/pm/crew.cljs   |  12 ++-
+   src/pm/talk.cljs   |  31 +++++++
+   src/pm/ui.cljs     | 197
+  ++++++++++++++++++++++++++++++-------------
+   /dev/null => src/pm/call.cljs                      |
+  130 ++++++++++++++++++
+   .../runs/calls-v0-20261122-1708/note.md            |
+  32 ++++++++++++++
+
+  done-1717
+
+✻ Crunched for 9m 16s · done 5:24 PM
+
+─────────────────────────────────────────────────────────
+❯
+─────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

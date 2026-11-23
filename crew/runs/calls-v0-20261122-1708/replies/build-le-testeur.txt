@@ -1,0 +1,72 @@
+
+ ▐▛███▛█   Claude Code v2.1.330
+▝▜██████▀  Sonnet 5 · Claude Max
+ ▝▝   ▝▝   ~/src/prime-meridian
+
+
+❯ Say hi in ONE line: your name, your job, and the model
+  you're running on. Don't use any tools.
+
+⏺ Hi — I'm Le Testeur, the tester for the prime-meridian
+  crew, running on Claude Sonnet 5.
+
+✻ Worked for 2s · done Saturday 7:17 PM
+
+❯ Spec: crew/runs/calls-v0-20261122-1708/spec.md (quest:
+  .crew/quests/calls-v0.md). Write its test cases in
+  the test file the spec assigns the tester, and nothing
+  else. The builder is coding in parallel.
+
+  When you have completely finished, end your reply with
+  a line containing only this: done-8986
+
+⏺ I'll start by reading the spec to find my assignment.
+
+  Read 1 file, ran 1 shell command
+
+⏺ Now let me check shadow-cljs.edn for the :test build
+  target to confirm the new test file gets picked up
+  automatically.
+
+  Searched for 1 pattern
+
+⏺ Good, it picks up any *-test namespace automatically.
+  Now I'll write the test file per the spec's §5, copying
+  fixtures verbatim and encoding all 71 cases.
+
+⏺ Write(test/pm/calls_test.cljs)
+  ⎿  Wrote 357 lines to test/pm/calls_test.cljs
+       1 (ns pm.calls-test
+       2   (:require [cljs.test :refer [deftest is
+         ]]
+       3             [pm.talk :as talk]
+       4             [pm.call :as call]
+       5             [pm.crew :as crew]))
+       6
+       7 ;; Fixtures (spec §5, copied verbatim)
+       8
+       9 (defn contact-of [e]          ; = pm.ui/e
+     … +349 lines (~16 KB)
+
+  Ran 1 shell command
+
+⏺ git diff --no-index --stat: test/pm/calls_test.cljs —
+  357 insertions (new file).
+
+  Added 71 deftests in pm.calls-test (c01–c71), one per
+  spec case: c01–c14 talk/call-lines & call-line?,
+  c15–c21 talk/call-voice, c22–c29 call/start-call,
+  end-call, call-with, c30–c36 call/end-reason, c37–c41
+  call/call-button & mic-shown?, c42–c57 call/mic-step,
+  mic-line?, mic-view, no-mic-line, c58–c61
+  call/say-route, c62–c71 crew/plate-name,
+  call/mark-on-call, call/glyph-name.
+
+  done-8986
+
+✻ Baked for 1m 6s · done 5:16 PM
+
+─────────────────────────────────────────────────────────
+❯
+─────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

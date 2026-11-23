@@ -470,7 +470,7 @@ Medium-poly, flat-shaded, warm palette, soft shadows: a diorama you'd keep on a 
 **Still open**
 
 1. Single estate or one per profile (personal vs. work)? *(Lean: one estate, buildings per profile, later.)*
-2. Voice in and out, or text only? *(Lean: text for the course; voice is a stretch.)*
+2. Voice in and out, or text only? **Answered Nov 22 (T-11):** both. A 📞 on a contact's thread opens a *call*: that contact's lines are spoken as they arrive and the player's mic goes through the browser's speech recognition into the same say path as typing (no server, no cost). Real phones (Twilio) are T-12.
 3. What exactly counts as "jacked in": game open, focused, or active? *(Lean: focused and active within the last few minutes.)*
 4. Snooze when the hardline rings: allowed, and how many times? *(Lean: one five-minute snooze, never louder the second time.)*
 5. Does Pepper get her own agent now, or does Hal run business errands until the first sale? *(Lean: Hal's errands until then.)*

@@ -30,12 +30,18 @@
     /* The three round-cornered buttons in the bottom-left row (💭 ⓘ 🎬): one size, one look,
        8px apart, 44px wide each: 14 | 66 | 118. The badge on 💭 floats over its corner so the
        button never grows and pushes into ⓘ. */
-    #talk-toggle, #admin > summary, #views-label {
+    #talk-toggle, #admin > summary, #views-label, #crew-roster .pm-btn.call, #crew-roster .pm-btn.mic {
       box-sizing: border-box; width: 44px; height: 40px; padding: 0; margin: 0; border: 1px solid rgba(255,255,255,.14);
       border-radius: 10px; background: rgba(20,24,32,.55); color: #f3efe2; font: 20px/1 system-ui, sans-serif;
       display: flex; align-items: center; justify-content: center; cursor: pointer; user-select: none;
       backdrop-filter: blur(4px); transition: background .15s, border-color .15s; }
     #talk-toggle:hover, #admin > summary:hover, #views-label:hover { background: rgba(20,24,32,.8); border-color: rgba(255,255,255,.3); }
+    /* the 📞/🎙 buttons: same 44×40 box, but a short label instead of one glyph */
+    #crew-roster .pm-btn.call, #crew-roster .pm-btn.mic {
+      font: 600 11px/1.1 system-ui, sans-serif; white-space: normal; text-align: center; overflow: hidden; flex: 0 0 auto; }
+    #crew-roster .pm-btn.mic.listening { font-size: 9px; }
+    #crew-roster .pm-btn.call.on { background: #e5484d; border-color: transparent; color: #fff; }
+    #crew-roster .pm-btn.call:disabled, #crew-roster .pm-btn.mic:disabled { opacity: .4; cursor: default; }
     #admin { position: fixed; left: 66px; bottom: 170px; z-index: 200; font: 14px/1.4 system-ui, sans-serif; }
     #admin > summary { list-style: none; position: relative; z-index: 230; } /* above #hud (220): open, the HUD box covered the ⓘ and it couldn't be closed */
     #admin > summary::-webkit-details-marker { display: none; }
@@ -106,10 +112,10 @@
     #crew-roster .contact .preview { flex: 1 1 auto; min-width: 0; opacity: .55; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #crew-roster .contact .arrow { opacity: .4; }
     #crew-roster .contact .unread { min-width: 20px; height: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 10px; background: #3b82f6; color: #fff; font: 700 12px/20px system-ui; text-align: center; flex: 0 0 auto; }
-    #crew-roster .thread-head { display: flex; align-items: center; gap: 10px; padding: 6px 4px 4px; font-size: 15px; }
+    #crew-roster .thread-head { display: flex; align-items: center; gap: 8px; padding: 6px 4px 4px; font-size: 15px; }
     #crew-roster .thread-head .back { font: 14px system-ui, sans-serif; padding: 4px 10px; border-radius: 999px; border: 0; background: rgba(255,255,255,.12); color: inherit; cursor: pointer; }
     #crew-roster .thread-head .back:hover { background: rgba(255,255,255,.22); }
-    #crew-roster .composer { padding: 6px 2px 4px; }
+    #crew-roster .composer { padding: 6px 2px 4px; gap: 8px; }
     #crew-roster .composer input { border-radius: 999px; padding: 8px 14px; font-size: 15px; }
     /* bubbles: theirs left, yours right */
     #talk-list { display: flex; flex-direction: column; gap: 6px; }
