@@ -1307,10 +1307,14 @@
   (let [before    @!world
         blueprint (first (filter #(= id (:id %)) (bp/all before)))]
     (reset! !last-good before)
-    (if (and blueprint (bp/breaks-build? blueprint))
+    (cond
+      (and blueprint (:too-steep? blueprint))
+      (swap! !world bp/refuse-steep (js/Date.now))
+      (and blueprint (bp/breaks-build? blueprint))
       (do (revert-to-last-good!)
           ;; say so on its sign: a silent no-op reads as a broken click
           (swap! !world bp/refuse id (js/Date.now)))
+      :else
       (swap! !world bp/approve-blueprint id))))
 
 (defn- wire-pointer!
@@ -1482,6 +1486,17 @@
                           ", " (for [[y n] (t/drop-ray (.-scene h) (.-camera h) x z 40 5)]
                                  (str y " " n))))))))))
 
+(defn- seat-blueprints!
+  "Seats every blueprint on the kit's ground before it is drawn
+   (pm.blueprint/seat): an agent's :at is a one-point guess, and on a slope
+   that sinks one end and floats the other."
+  [^js h]
+  (let [prefixes (get-in @!world [:motion :ground])
+        gm       (t/find-meshes (.-scene h) #(m/ground-name? % prefixes))]
+    (when (seq gm)
+      (swap! !world bp/seat-all
+             (fn [x z] (m/ground-height (t/down-hits gm x z 40) prefixes))))))
+
 (defn start-kit!
   "The kit's scene is live: show the game's layer on top of it."
   [^js h]
@@ -1490,6 +1505,7 @@
   (js/console.log "Prime Meridian: running on the kit's estate," @!backend)
   (wire-kit-brook-ui! h)
   (t/use-three! (.-THREE h))
+  (seat-blueprints! h)
   (scene/mount! (.-scene h) @!world (js/Date.now))
   (when (camera/restore! h) (js/console.log "Prime Meridian: camera restored"))
   (bricks/start! h @!world)

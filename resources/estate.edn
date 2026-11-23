@@ -250,8 +250,9 @@
                   :trial     "trial · click to make it real · right-click to undo"    ; a build is a trial: gone on reload
                   :real      "Made real. It stays."                                   ; twin's caption once it's recorded
                   :no-bridge "Start the bridge (bb crew-bridge) to make it real."     ; no bridge, nothing real changes
+                  :steep     "the ground's too steep here, so it won't build; ask for a flatter spot"   ; pm.blueprint/seat: a foot would hang past max-seat-drop-m
                   :failed    "that one won't build, so the estate stays as it was"}  ; after a refused approval
- :blueprints [{:id :bench-by-mailbox :at [4.4 0.86 -4.6] :yaw 0   ; open ground north of the booth, probed 0.86 m (Hal)
+ :blueprints [{:id :bench-by-mailbox :at [4.0 1.66 -6.5] :yaw 90   ; level terrain 1.4 m from the mailbox (6 cm across the legs; the old spot straddled the bank); the game seats it (pm.blueprint/seat)
                :summary "proposed: a bench by the mailbox"
                :look {:parts
                       [{:shape :box :size [1.1 0.1 0.4]  :at [0 0.45 0] :color :brown}    ; seat

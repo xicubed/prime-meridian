@@ -78,8 +78,9 @@
    approval was refused. The wording is data (`:blueprint-text` in
    estate.edn); without it, just the summary."
   [world bp]
-  (let [{:keys [hint failed trial]} (:blueprint-text world)
+  (let [{:keys [hint failed trial steep]} (:blueprint-text world)
         tail (cond (:failed? bp) failed
+                   (and (:too-steep? bp) (= :pending (:status bp)) (string? steep)) steep
                    (= :approved (:status bp)) trial
                    :else hint)]
     (if (and (string? tail) (not (str/blank? tail)))
@@ -127,6 +128,87 @@
    not a deliberately large object -- the kind of change GDD §4.8 says
    must never reach the live estate."
   20)
+
+;; -- Seating on the ground --------------------------------------------------
+;; An agent guesses a blueprint's :at from one probe at its centre; on the
+;; creek bank that left the mailbox bench's legs half a metre in the hill on
+;; one side and in the air on the other (Michael, Nov 22). So before it is
+;; drawn, every blueprint is seated: the game reads the ground under each
+;; foot, keeps the item level at the highest one, and stretches the lower
+;; feet down to touch. Ground that falls away more than `max-seat-drop-m`
+;; under one item is too steep: it is still drawn seated, but it won't
+;; build, and its sign says why.
+
+(def max-seat-drop-m
+  "Metres: the most a foot may be stretched to reach the ground."
+  0.25)
+
+(def ^:private foot-eps 0.02)
+
+(defn- foot? [{[_ dy _] :at [_ sy _] :size}]
+  (and (number? dy) (number? sy) (< (js/Math.abs (- dy (/ sy 2))) foot-eps)))
+
+(defn- foot-xz
+  "World x/z of `part`'s centre for an item at `at` turned `yaw` degrees
+   (pm.scene's convention: +90 points the item's +x at world -z)."
+  [[x _ z] yaw {[dx _ dz] :at}]
+  (let [r (* (/ (or yaw 0) 180) js/Math.PI)
+        c (js/Math.cos r) s (js/Math.sin r)]
+    [(+ x (* c dx) (* s dz)) (+ z (- (* s dx)) (* c dz))]))
+
+(defn seat
+  "`bp` seated on the ground (`ground-at` is x z -> height or nil): :at's
+   height becomes the highest ground under its feet (parts resting on the
+   item's base, y 0), and each lower foot is stretched down to its own
+   ground. `:seat-drop` is the largest stretch; `:too-steep?` is true past
+   `max-seat-drop-m`. With no feet it sits on the ground at its centre.
+   Unchanged if any ground read is missing, the look has no :parts list,
+   or it's already seated."
+  [bp ground-at]
+  (let [{:keys [at yaw look]} bp
+        parts (:parts look)]
+    (if (or (:seated? bp) (not (valid-at? at)) (not (sequential? parts)) (empty? parts))
+      bp
+      (let [feet  (keep-indexed (fn [i part] (when (foot? part) [i (foot-xz at yaw part)])) parts)
+            pts   (if (seq feet) (map second feet) [[(first at) (nth at 2)]])
+            ys    (map (fn [[x z]] (ground-at x z)) pts)]
+        (if (some #(not (number? %)) ys)
+          bp
+          (let [base  (apply max ys)
+                drops (zipmap (map first feet) (map #(- base %) ys))
+                most  (apply max 0 (vals drops))
+                parts' (vec (map-indexed
+                              (fn [i part]
+                                (let [d (get drops i 0)]
+                                  (if (pos? d)
+                                    (-> part
+                                        (update-in [:size 1] + d)
+                                        (update-in [:at 1] - (/ d 2)))
+                                    part)))
+                              parts))]
+            (-> bp
+                (assoc :at [(first at) base (nth at 2)]
+                       :seated? true
+                       :seat-drop most
+                       :too-steep? (> most max-seat-drop-m))
+                (assoc-in [:look :parts] parts'))))))))
+
+(defn refuse-steep
+  "Approval refused because the ground under the blueprint is too steep
+   (`seat`'s :too-steep?): it stays a ghost (its sign already says so) and
+   the twin says it in the caption. Wording: `:blueprint-text :steep`."
+  [world now]
+  (let [text (get-in world [:blueprint-text :steep])]
+    (if (and (string? text) (not (str/blank? text)))
+      (assoc world :hal {:event :blueprint-refused :text text :until (+ now c/hal-ms)})
+      world)))
+
+(defn seat-all
+  "Every blueprint in `world` seated on the ground (`seat`)."
+  [world ground-at]
+  (if (sequential? (:blueprints world))
+    (update world :blueprints (fn [bps] (mapv #(if (map? %) (seat % ground-at) %) bps)))
+    world))
 
 (defn- valid-part-strict? [part]
   (and (map? part)
