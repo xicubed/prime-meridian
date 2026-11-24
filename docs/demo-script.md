@@ -45,6 +45,7 @@ serve both at different lengths.
 | S4 | You ask Hal in 💭; the line lands in Hermes | "On it." | 4 s | 20 s | split screen: estate + Hermes |
 | S5 | The crew at work: Herdr panes, walkers go busy | "The crew's on it. I'll gate it." | 6 s | 30 s | film during the T-11 round |
 | S6 | A "!" goes up; you answer in-world; before → proposed; approve; the world changes | "Round or jagged?" | 8 s | 20 s | the rock blueprint, or the round's real question |
+| S6b | "Put a bench here, behind the house" in Hal's 💭; Hal reads where you're looking (`bb where`), Un Automate draws it, the blue ghost appears on the nearest level grass; try it, make it real | "Done: a bench behind the house. Click it to try it." | 8 s | 25 s | done live Nov 24 (`bench-behind-house`); reshoot with a fresh id, Hermes + Herdr pane on split screen for the pipeline cut |
 | S7 | Content loop, fast-forward; Flora says a new line | "Ask her." | 5 s | 30 s + cost card ($1.30, Evaluator the dearest) | **shot** (take 1) |
 | S8 | Gate → commit → `bb demo-deploy` → live tab (PIN) → Flora | "Same file, same build, no hands." | — | 25 s | take 1 tail (reshoot the live tab) |
 | S9 | Time of day: Afternoon → Golden → Night by the creek, soundtrack shifts | "The sky, the lamps and the music follow your real clock." | 6 s | 10 s | kit's sky row |
@@ -60,6 +61,7 @@ serve both at different lengths.
 - [ ] S4 💭 ask → Hermes (split screen; `state/hal-session` set first)
 - [ ] S5 Herdr + busy walkers (during the T-11 round)
 - [ ] S6 "!" answered in-world, blueprint approve
+- [ ] S6b ask Hal for a bench "here" → ghost → make it real (promo: the ask + the ghost appearing + the click)
 - [ ] S8 live-tab tail (you type the PIN, off-camera or masked)
 - [ ] S9 sky row Afternoon → Golden → Night, by the creek
 - [ ] S10 booth rings, jack out
