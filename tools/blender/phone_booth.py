@@ -147,37 +147,74 @@ def side(axis, sign, door=False):
         h = 0.045 if r in (0, ROWS) else BAR
         put(f'hbar{tag}{r}', 0, z, inner, h, 0.035, 'booth-red')
     # the sign: a white backlit panel with black letters, framed red
-    put(f'signframe{tag}', 0, (SIGN_Z0 + SIGN_Z1) / 2, inner + 0.02, SIGN_Z1 - SIGN_Z0 + 0.04, 0.03, 'booth-red', out=-0.012)
-    put(f'sign{tag}', 0, (SIGN_Z0 + SIGN_Z1) / 2, inner - 0.04, SIGN_Z1 - SIGN_Z0 - 0.03, 0.01, 'sign', out=0.006)
-    letters(axis, sign, off + sign * 0.013)
+    sign_bulge(axis, sign)
     if door:
         # handle on the door's opening side, and a thin seam where the door meets its frame
         put(f'handle{tag}', inner / 2 - 0.08, 1.05, 0.03, 0.16, 0.05, 'metal', out=0.03)
 
-def letters(axis, sign, plane):
+# The TELEPHONE sign bulges out as an eighth of a pipe (Michael: the flat frame and the cornice
+# hid the words from the game's raised camera): a convex arc from vertical at the bottom to 45°
+# up at the top, tucked under the cornice, so the lettering tilts up toward the viewer.
+SIGN_ARC = math.radians(45)
+SIGN_TOP = SIGN_Z1 + 0.035
+SIGN_R = (SIGN_TOP - SIGN_Z0) / math.sin(SIGN_ARC)
+SIGN_SEG = 8
+
+def side_rot(axis, sign):
+    """Z rotation taking the canonical front (outward = -Y) to this face."""
+    if axis == 'y':
+        return 0.0 if sign < 0 else math.pi
+    return math.pi / 2 if sign > 0 else -math.pi / 2
+
+def sign_bulge(axis, sign):
+    F = W / 2 - 0.03                        # the face plane, outward distance from the centre
+    oc = W / 2 + 0.002 - SIGN_R * math.cos(SIGN_ARC)   # its top meets the cornice's front: no ledge over the words
+    wid = inner + 0.01
+    arc = [(oc + SIGN_R * math.cos(SIGN_ARC * i / SIGN_SEG), SIGN_Z0 + SIGN_R * math.sin(SIGN_ARC * i / SIGN_SEG))
+           for i in range(SIGN_SEG + 1)]
+    prof = arc + [(F - 0.012, SIGN_TOP), (F - 0.012, SIGN_Z0)]      # closed: back wall, underside
+    bm = bmesh.new()
+    L = [bm.verts.new((-wid / 2, -o, z)) for (o, z) in prof]
+    Rv = [bm.verts.new((wid / 2, -o, z)) for (o, z) in prof]
+    n = len(prof)
+    sign_faces = []
+    for i in range(n):
+        j = (i + 1) % n
+        f = bm.faces.new([L[i], L[j], Rv[j], Rv[i]])
+        if i < SIGN_SEG:
+            sign_faces.append(f)
+    bm.faces.new(L); bm.faces.new(list(reversed(Rv)))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    for f in bm.faces:
+        f.material_index = 1 if f in sign_faces else 0
+    bmesh.ops.rotate(bm, verts=bm.verts, cent=(0, 0, 0),
+                     matrix=__import__('mathutils').Matrix.Rotation(side_rot(axis, sign), 3, 'Z'))
+    me = bpy.data.meshes.new(f'sign{axis}{sign}')
+    bm.to_mesh(me); bm.free()
+    me.materials.append(M['booth-red']); me.materials.append(M['sign'])
+    ob = bpy.data.objects.new(me.name, me); scene.collection.objects.link(ob); parts.append(ob)
+    letters(axis, sign, oc)
+
+def letters(axis, sign, oc):
     bpy.ops.object.text_add()
     t = bpy.context.object
     t.data.body = 'TELEPHONE'
     t.data.align_x = 'CENTER'; t.data.align_y = 'CENTER'
-    t.data.size = 0.085
-    t.data.extrude = 0.003
+    t.data.size = 0.09
+    t.data.extrude = 0.002
     t.data.space_character = 1.15
     bpy.ops.object.convert(target='MESH')
     ob = bpy.context.object
     ob.name = f'letters{axis}{sign}'
     ob.data.materials.clear(); ob.data.materials.append(M['letters'])
-    # text lies in its local XY plane facing +Z: stand it up on the face, reading from outside
-    ob.rotation_euler = (math.radians(90), 0, 0)
+    # text lies in its XY plane facing +Z; stand it up facing -Y, tilted up to the arc's middle
+    mid = SIGN_ARC / 2
+    ob.rotation_euler = (math.pi / 2 - mid, 0, 0)
     bpy.ops.object.transform_apply(rotation=True)
-    zc = (SIGN_Z0 + SIGN_Z1) / 2
-    if axis == 'y':
-        if sign > 0:
-            ob.rotation_euler = (0, 0, math.radians(180))
-        ob.location = (0, plane, zc)
-    else:
-        ob.rotation_euler = (0, 0, math.radians(90 if sign > 0 else -90))
-        ob.location = (plane, 0, zc)
-    bpy.ops.object.transform_apply(location=True, rotation=True)
+    ob.location = (0, -(oc + (SIGN_R + 0.004) * math.cos(mid)), SIGN_Z0 + (SIGN_R + 0.004) * math.sin(mid))
+    bpy.ops.object.transform_apply(location=True)
+    ob.rotation_euler = (0, 0, side_rot(axis, sign))
+    bpy.ops.object.transform_apply(rotation=True)
     parts.append(ob)
 
 side('y', -1, door=True)   # front: the door (game +z)
@@ -186,7 +223,7 @@ side('x', -1)
 side('x', +1)
 
 # cornice, the four domed pediments (two crossing arches), and the cap
-box('cornice', (W + 0.06, W + 0.06, 0.06), (0, 0, CORNICE_Z + 0.03), 'booth-red')
+box('cornice', (W + 0.005, W + 0.005, 0.06), (0, 0, CORNICE_Z + 0.03), 'booth-red')   # flush: the sign below is the trim now
 arch('roof-y', W + 0.02, W + 0.02, CORNICE_Z + 0.12, ROOF_RISE, 'y', 'booth-red')
 arch('roof-x', W + 0.02, W + 0.02, CORNICE_Z + 0.12, ROOF_RISE, 'x', 'booth-red')
 box('cap', (0.36, 0.36, 0.06), (0, 0, CORNICE_Z + 0.12 + ROOF_RISE + 0.01), 'booth-red')
@@ -383,7 +420,7 @@ if PREVIEW:
     scene.collection.objects.link(cam); scene.camera = cam
     cam.data.lens = 50
     for nm, (az, el, dist, tz) in {'front': (-35, 12, 6.2, 1.25), 'back': (145, 18, 6.2, 1.25),
-                                   'base': (-40, 14, 2.6, 0.55)}.items():
+                                   'base': (-40, 14, 2.6, 0.55), 'sign': (-20, 4, 2.2, 2.05), 'high': (-25, 32, 3.4, 1.8)}.items():
         a, e = math.radians(az), math.radians(el)
         tgt = Vector((0, 0, tz))
         cam.location = tgt + Vector((math.sin(a) * math.cos(e), -math.cos(a) * math.cos(e), math.sin(e))) * dist
