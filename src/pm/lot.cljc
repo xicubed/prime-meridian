@@ -10,9 +10,11 @@
 (def default-radius-m 0.6)
 (def grounded-m 0.02)
 (def narrow-m 0.3)
-(def usage "usage: bb blueprint-draft <member> <draft.edn> --near <landmark|x,z> [--dry-run] | bb blueprint-draft --landmarks")
+(def usage "usage: bb blueprint-draft <member> <draft.edn> --near <landmark|here|walker|x,z> [--dry-run] | bb blueprint-draft --landmarks")
 (def no-ground-map "no ground map (state/ground.edn): the twin samples it from the kit")
 (def nothing-grounded "nothing touches the ground")
+(def no-view "I can't see where you're looking: the game isn't sending its view")
+(def sky "I can't tell where you're looking: the middle of your screen is sky")
 
 (def ^:private pi #?(:clj Math/PI :cljs js/Math.PI))
 (defn- sqrt* [x]  #?(:clj (Math/sqrt x) :cljs (js/Math.sqrt x)))
@@ -182,7 +184,7 @@
                         (blueprints-of file-blueprints)
                         (obstacles-of estate)))))
 
-(defn landmarks
+(defn- landmarks3
   "Sorted map {id {:word w :xz [x z]}}, plus :creek when ground has any
    creek/water cell and no :creek landmark already exists."
   [ground estate file-blueprints]
@@ -207,6 +209,35 @@
           (assoc base :creek {:word "the creek" :cells (vec cells)})
           base))
       base)))
+
+(defn view-landmarks
+  "Sorted map of the view's own landmarks (TASKS T-19): :here (the view's
+   :center, when non-nil) and one entry per walker in (:walkers view),
+   named by the matching estate walker's :name, else its id with dashes
+   turned to spaces. nil view -> {}."
+  [view estate]
+  (if (nil? view)
+    (sorted-map)
+    (let [wnames (into {} (map (fn [w] [(:id w) (:name w)])) (:walkers estate))
+          base (reduce (fn [m [id [x _ z]]]
+                         (assoc m id {:word (or (get wnames id) (words id)) :xz [x z]}))
+                       (sorted-map)
+                       (:walkers view))]
+      (if-let [c (:center view)]
+        (assoc base :here {:word "where you're looking" :xz [(nth c 0) (nth c 2)]})
+        base))))
+
+(defn landmarks
+  "Sorted map {id {:word w :xz [x z]}} (see landmarks3); the 4-arity also
+   merges in the view's own landmarks (view-landmarks) for any id not
+   already named -- estate names win. No view (3-arity, or a nil view)
+   behaves exactly as landmarks3."
+  ([ground estate file-blueprints] (landmarks3 ground estate file-blueprints))
+  ([ground estate file-blueprints view]
+   (let [base (landmarks3 ground estate file-blueprints)]
+     (reduce (fn [m [k v]] (if (contains? m k) m (assoc m k v)))
+             base
+             (view-landmarks view estate)))))
 
 (declare fmt)
 
@@ -233,6 +264,20 @@
   (if (:cells lm)
     (apply min (map (fn [[cx cz]] (norm2 [(- x cx) (- z cz)])) (:cells lm)))
     (norm2 (sub2 [x z] (:xz lm)))))
+
+(defn nearest-landmark
+  "The closest of lms (a sorted map, see landmarks) to [x z]: {:id :word
+   :distance-m}, or nil for an empty lms. A tie keeps the first in lms
+   order (the smaller name), since only a strictly closer candidate
+   replaces the best so far."
+  [lms [x z]]
+  (reduce (fn [best [id lm]]
+            (let [d (dist-to-landmark lm [x z])]
+              (if (or (nil? best) (< d (:distance-m best)))
+                {:id id :word (:word lm) :distance-m d}
+                best)))
+          nil
+          lms))
 
 (defn- cell-reason [kind]
   (cond
@@ -299,14 +344,29 @@
 (defn place
   "The quest's placement: ground, estate, file-blueprints, rules, draft,
    near (a landmark keyword) -> {:ok true :at [x y z] :yaw deg :landmark k
-   :distance-m d :spread-m s} | {:ok false :reason \"...\"}."
-  [ground estate file-blueprints rules draft near]
-  (if-not (map? ground)
+   :distance-m d :spread-m s} | {:ok false :reason \"...\"}. `seen` (7-arity,
+   TASKS T-19) is (view/fresh raw now) or nil: when ok, its :view's :here
+   and walkers join the landmarks near can name; the 6-arity is this with
+   seen nil, behaving exactly as before."
+  ([ground estate file-blueprints rules draft near]
+   (place ground estate file-blueprints rules draft near nil))
+  ([ground estate file-blueprints rules draft near seen]
+   (if-not (map? ground)
     {:ok false :reason no-ground-map}
-    (let [lms (landmarks ground estate file-blueprints)]
+    (let [view (when (:ok seen) (:view seen))
+          lms (landmarks ground estate file-blueprints view)]
       (if-not (resolve-landmark lms near)
-        {:ok false :reason (str "I don't know a place called " (name near) "; I know: "
-                                 (str/join ", " (map name (keys lms))))}
+        (cond
+          (and (= near :here) (some? view))
+          {:ok false :reason sky}
+
+          (and (or (= near :here) (contains? (set (map :id (:walkers estate))) near))
+               (nil? view))
+          {:ok false :reason (or (:reason seen) no-view)}
+
+          :else
+          {:ok false :reason (str "I don't know a place called " (name near) "; I know: "
+                                   (str/join ", " (map name (keys lms))))})
         (let [fs (feet (:look draft))]
           (if (empty? fs)
             {:ok false :reason nothing-grounded}
@@ -343,7 +403,7 @@
                                         [(round* (* d 1e6)) (round* (* (:spread v) 1e6)) x z yaw])
                                       accepted))]
                   {:ok true :at [x (:y v) z] :yaw yaw :landmark near :distance-m d :spread-m (:spread v)})
-                {:ok false :reason (refusal whys search-m (:word lm))}))))))))
+                {:ok false :reason (refusal whys search-m (:word lm))})))))))))
 
 (defn parse-args [args]
   (let [args (vec (or args []))]

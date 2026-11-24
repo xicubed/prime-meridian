@@ -616,6 +616,37 @@
                   (recur (.-parent o) chain'))))))))
     (catch :default _ [])))
 
+(defn rig-view
+  "{:pos [x y z] :target [x y z]} from the kit handle's camera position and
+   its rig's orbit target (TASKS T-19), or nil when there is no rig or
+   orbit. Never throws."
+  [^js h]
+  (try
+    (when-let [^js rig (.-rig h)]
+      (when-let [^js orbit (.-orbit rig)]
+        (let [^js p (.. h -camera -position)
+              ^js t (.-target orbit)]
+          {:pos [(.-x p) (.-y p) (.-z p)] :target [(.-x t) (.-y t) (.-z t)]})))
+    (catch :default _ nil)))
+
+(defn center-hit
+  "[x y z] of the nearest hit of a ray from `camera` through the screen's
+   centre (NDC [0 0]) against `meshes` (TASKS T-19), or nil: empty meshes,
+   no hit, or any exception. The decision logic (what nil means) lives in
+   pm.view."
+  [^js camera meshes]
+  (try
+    (when (seq meshes)
+      (let [^js T (three)
+            ^js Raycaster (.-Raycaster T)
+            ^js Vector2 (.-Vector2 T)
+            ^js rc (Raycaster.)]
+        (.setFromCamera rc (Vector2. 0 0) camera)
+        (when-let [^js hit (first (.intersectObjects rc (into-array meshes) true))]
+          (let [^js pt (.-point hit)]
+            [(.-x pt) (.-y pt) (.-z pt)]))))
+    (catch :default _ nil)))
+
 (defn vec3
   "new THREE.Vector3(x, y, z) with the current THREE."
   [[x y z]]

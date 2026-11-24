@@ -4,7 +4,8 @@
    babashka.process, and the log line. Portable (bb + cljs via the :test
    build); never required by pm.core."
   (:require [clojure.string :as str]
-            [pm.blueprint-file :as bf]))
+            [pm.blueprint-file :as bf]
+            [pm.view :as view]))
 
 (def host "127.0.0.1")
 (def port 8091)
@@ -16,6 +17,7 @@
 (def hold-uri "/hold")
 (def events-uri "/events")
 (def real-uri "/real")      ; make something real: a build that stays, a real chore (GDD §4.6)
+(def view-uri "/view")      ; the game's camera, screen-centre ground spot and every walker's position (TASKS T-19)
 (def ^:private real-id-re bf/id-re)
 
 (def ^:private name-re #"[a-z][a-z0-9_-]{0,31}")
@@ -102,7 +104,7 @@
       (not= method "POST")
       {:ok false :status 405 :reason "method not allowed"}
 
-      (not (or (and (string? uri) (re-matches uri-re uri)) (= uri hold-uri) (= uri real-uri)))
+      (not (or (and (string? uri) (re-matches uri-re uri)) (= uri hold-uri) (= uri real-uri) (= uri view-uri)))
       {:ok false :status 404 :reason "not found"}
 
       (not (map? body))
@@ -119,6 +121,33 @@
         (not= (get body "action") "hold") {:ok false :status 400 :reason "bad action"}
         (not (boolean? (get body "on"))) {:ok false :status 400 :reason "bad on"}
         :else {:ok true :action :hold :on (get body "on")})
+
+      (= uri view-uri)
+      (let [camera  (get body "camera")
+            pos     (get camera "pos")
+            target  (get camera "target")
+            center  (get body "center")
+            walkers (get body "walkers")
+            bad-walker? (fn [w]
+                          (or (not (map? w))
+                              (not (and (string? (get w "id")) (re-matches real-id-re (get w "id"))))
+                              (not (view/vec3? (get w "pos")))))]
+        (cond
+          (not= (get body "action") "view") {:ok false :status 400 :reason "bad action"}
+          (or (not (map? camera)) (not (view/vec3? pos)) (not (view/vec3? target)))
+          {:ok false :status 400 :reason "bad camera"}
+          (or (not (contains? body "center")) (not (or (nil? center) (view/vec3? center))))
+          {:ok false :status 400 :reason "bad center"}
+          (not (sequential? walkers)) {:ok false :status 400 :reason "bad walkers"}
+          (> (count walkers) view/max-walkers) {:ok false :status 400 :reason "too many walkers"}
+          (or (some bad-walker? walkers)
+              (not= (count walkers) (count (distinct (map #(get % "id") walkers)))))
+          {:ok false :status 400 :reason "bad walker"}
+          :else
+          {:ok true :action :view
+           :camera {:pos (vec pos) :target (vec target)}
+           :center (some-> center vec)
+           :walkers (into {} (map (fn [w] [(keyword (get w "id")) (vec (get w "pos"))])) walkers)}))
 
       (= uri real-uri)
       (let [action (get body "action")
@@ -311,5 +340,5 @@
   (let [m (loggable member)
         a (loggable action)
         m' (cond (nil? member) "-" (and m (re-matches name-re m)) m :else "?")
-        a' (cond (nil? action) "-" (and a (or (contains? actions a) (contains? #{"hold" "ws"} a))) a :else "?")]
+        a' (cond (nil? action) "-" (and a (or (contains? actions a) (contains? #{"hold" "ws" "view"} a))) a :else "?")]
     (str iso " " m' " " a' " " status " " reason)))

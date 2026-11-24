@@ -1,0 +1,400 @@
+      152        (= uri real-uri)
+      153        (let [action (get body "action")
+      154              id     (get body (if (= action "mirror") "mirror" "id"))
+
+⏺ Now log-line:
+
+⏺ Update(src/pm/bridge.cljc)
+  ⎿  Added 1 line, removed 1 line
+      340    (let [m (loggable member)
+      341          a (loggable action)
+      342          m' (cond (nil? member) "-" (and m (re-matches name-re m)) m :else "?")
+      343 -        a' (cond (nil? action) "-" (and a (or (contains? actions a) (contains? #{"hold" "ws"} a))) a
+          -:else "?")]
+      343 +        a' (cond (nil? action) "-" (and a (or (contains? actions a) (contains? #{"hold" "ws" "view"}
+          +a))) a :else "?")]
+      344      (str iso " " m' " " a' " " status " " reason)))
+
+⏺ Now let's create src/pm/view.cljc:
+
+⏺ Write(src/pm/view.cljc)
+  ⎿  Wrote 165 lines to src/pm/view.cljc
+       1 (ns pm.view
+       2   "Where the player is looking and where everyone is (TASKS T-19): pure
+       3    data in, pure data out. No I/O, no atoms, no js/Date, no three.js.
+       4    Portable (bb + cljs): requires only clojure.string and pm.lot (cell,
+       5    fmt, nearest-landmark, no-view)."
+       6   (:require [clojure.string :as str]
+       7             [pm.lot :as lot]))
+       8
+       9 (def max-coord 2000)          ; metres, the same bound as pm.camera/max-coord
+      10 (def max-walkers 32)
+     … +155 lines
+
+⏺ Now pm.three.cljs additions:
+
+⏺ Update(src/pm/three.cljs)
+  ⎿  Added 31 lines
+      616                    (recur (.-parent o) chain'))))))))
+      617      (catch :default _ [])))
+      618
+      619 +(defn rig-view
+      620 +  "{:pos [x y z] :target [x y z]} from the kit handle's camera position and
+      621 +   its rig's orbit target (TASKS T-19), or nil when there is no rig or
+      622 +   orbit. Never throws."
+      623 +  [^js h]
+      624 +  (try
+      625 +    (when-let [^js rig (.-rig h)]
+      626 +      (when-let [^js orbit (.-orbit rig)]
+      627 +        (let [^js p (.. h -camera -position)
+      628 +              ^js t (.-target orbit)]
+      629 +          {:pos [(.-x p) (.-y p) (.-z p)] :target [(.-x t) (.-y t) (.-z t)]})))
+      630 +    (catch :default _ nil)))
+      631 +
+      632 +(defn center-hit
+      633 +  "[x y z] of the nearest hit of a ray from `camera` through the screen's
+      634 +   centre (NDC [0 0]) against `meshes` (TASKS T-19), or nil: empty meshes,
+      635 +   no hit, or any exception. The decision logic (what nil means) lives in
+      636 +   pm.view."
+      637 +  [^js camera meshes]
+      638 +  (try
+      639 +    (when (seq meshes)
+      640 +      (let [^js T (three)
+      641 +            ^js Raycaster (.-Raycaster T)
+      642 +            ^js Vector2 (.-Vector2 T)
+      643 +            ^js rc (Raycaster.)]
+      644 +        (.setFromCamera rc (Vector2. 0 0) camera)
+      645 +        (when-let [^js hit (first (.intersectObjects rc (into-array meshes) true))]
+      646 +          (let [^js pt (.-point hit)]
+      647 +            [(.-x pt) (.-y pt) (.-z pt)]))))
+      648 +    (catch :default _ nil)))
+      649 +
+      650  (defn vec3
+      651    "new THREE.Vector3(x, y, z) with the current THREE."
+      652    [[x y z]]
+
+⏺ Now pm.core.cljs: add the require, state, and view-tick!, then wire it into the frame loop.
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 1 line
+      32              [pm.plan :as plan]
+      33              [pm.talk :as talk]
+      34              [pm.ui :as ui]
+      35 +            [pm.view :as view]
+      36              [pm.world :as world]
+      37              [shadow.resource :as rc]
+      38              [clojure.string]))
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 36 lines
+      1557                            ", " (for [[y n] (t/drop-ray (.-scene h) (.-camera h) x z 40 5)]
+      1558                                   (str y " " n))))))))))
+      1559
+      1560 +;; The view (TASKS T-19): the game's own camera, the ground spot at the
+      1561 +;; screen's centre, and every walker's position, posted to the bridge's
+      1562 +;; /view at most every view/post-every-ms and only when something changed
+      1563 +;; (view/post?), so the twin and the crew's commands can read
+      1564 +;; state/view.edn instead of a screenshot. Never in the demo build.
+      1565 +(defonce ^:private !view (atom {:last nil :last-at nil :in-flight? false :checked-at 0}))
+      1566 +(defonce ^:private !view-meshes (atom []))
+      1567 +
+      1568 +(defn- view-ground-meshes!
+      1569 +  "The kit's ground meshes, found once (and cached) the first time they're
+      1570 +   non-empty -- the same set blueprints are seated on."
+      1571 +  [^js h]
+      1572 +  (when (empty? @!view-meshes)
+      1573 +    (let [prefixes (get-in @!world [:motion :ground])
+      1574 +          gm (t/find-meshes (.-scene h) #(m/ground-name? % prefixes))]
+      1575 +      (when (seq gm) (reset! !view-meshes gm))))
+      1576 +  @!view-meshes)
+      1577 +
+      1578 +(defn- view-tick!
+      1579 +  "Posts the game's view to the bridge (TASKS T-19) at most every
+      1580 +   view/post-every-ms, and only when view/post? says to."
+      1581 +  [^js h now]
+      1582 +  (when-not DEMO
+      1583 +    (when (>= (- now (:checked-at @!view)) view/post-every-ms)
+      1584 +      (swap! !view assoc :checked-at now)
+      1585 +      (let [meshes (view-ground-meshes! h)
+      1586 +            snap (view/snapshot (t/rig-view h) (t/center-hit (.-camera h) meshes) (bricks/spots))]
+      1587 +        (when (view/post? @!view snap now {:demo? DEMO :bridge-on? (bridge-on?)})
+      1588 +          (swap! !view view/sent snap now)
+      1589 +          (let [b (:bridge @!world)]
+      1590 +            (-> (js/fetch (view/view-url b)
+      1591 +                          #js {:method "POST" :headers #js {"Content-Type" "application/json"}
+      1592 +                               :body (js/JSON.stringify (clj->js (view/body b snap)))})
+      1593 +                (.then (fn [_] (swap! !view view/settled)))
+      1594 +                (.catch (fn [_] (swap! !view view/settled))))))))))
+      1595 +
+      1596  (defn- ground-at-fn
+      1597    "The kit's ground-at fn (x z -> height, pm.motion/ground-height) for
+      1598     seating blueprints, or nil until its ground meshes can be found."
+
+⏺ Now wire it into the frame loop, right after camera/save-tick!:
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 1 line
+      1002      (when-let [h (kit/handle)] (bricks/tick! h dt'))
+      1003      (when (kit/handle) (creature-spike/tick! dt' now))
+      1004      (when-let [h (kit/handle)] (camera/save-tick! h now))
+      1005 +    (when-let [h (kit/handle)] (view-tick! h now))
+      1006      (bricks/set-dots! (:crew @!world) (:asks-player @!world) (js/Date.now)
+      1007                        (twin-dots @!world (js/Date.now) (crew/colors @!world))
+      1008                        (:call @!world))
+
+⏺ I need to forward-declare view-tick! since frame (defined earlier in the file) calls it before its later definition —
+  matching the existing pattern for crew-key-tick!/trial-card!.
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 1 line, removed 1 line
+      603    (- (.getTimezoneOffset (js/Date.))))
+      604
+      605  (defonce ^:private !sky (atom nil))   ; the kit hour pm.sky last set
+      606 -(declare toggle-jack-out! crew-key-tick! twin-thinking? twin-dots walker-colours trial-card!)
+      606 +(declare toggle-jack-out! crew-key-tick! twin-thinking? twin-dots walker-colours trial-card! view-tic
+          +k!)
+      607  (defonce ^:private !gesture? (atom false))   ; browsers play nothing before one
+      608
+      609  (defn- music-scene
+
+⏺ Now scripts/crew_bridge.clj:
+
+⏺ Update(scripts/crew_bridge.clj)
+  ⎿  Added 2 lines, removed 1 line
+      33           '[pm.bridge :as b]
+      34           '[pm.events :as events]
+      35           '[pm.prompt :as pr]
+      36 -         '[pm.crew-log :as cl])
+      36 +         '[pm.crew-log :as cl]
+      37 +         '[pm.view :as view])
+      38
+      39  (import '[java.security SecureRandom]
+      40          '[java.time Instant])
+
+⏺ Update(scripts/crew_bridge.clj)
+  ⎿  Added 1 line
+      44  (def hold-file "state/hold.edn")
+      45  (def builds-file "state/builds.edn")       ; builds made real (pm.bridge/add-real-build)
+      46  (def blueprints-file "state/blueprints.edn") ; agent-proposed blueprints (pm.bridge/known-build-ids)
+      47 +(def view-file (or (System/getenv "PM_VIEW_FILE") "state/view.edn")) ; the game's camera/centre/walker
+         +s (TASKS T-19)
+      48  (def mirrors-file "state/mirrors.edn")     ; the twin's real mirror state
+      49  (def crew-log-file "state/crew-log.edn")
+      50  (def log-file "crew/bridge.log")
+
+⏺ Now add the :view branch inside handle:
+
+⏺ Update(scripts/crew_bridge.clj)
+  ⎿  Added 7 lines
+      309                      {:status (if (:ok r) 200 409)
+      310                       :headers (merge {"Content-Type" "application/json"} (b/cors-headers origin))
+      311                       :body (json/generate-string {"ok" (:ok r) "reason" (:reason r)})})
+      312 +                (if (= :view (:action v))
+      313 +                  (if (write-edn! view-file (view/view-edn v (System/currentTimeMillis)))
+      314 +                    {:status 200 :headers (merge {"Content-Type" "application/json"} (b/cors-headers
+          +origin))
+      315 +                     :body (json/generate-string {"ok" true "result" "seen"})}
+      316 +                    (do (log! nil :view 500 "view not saved")
+      317 +                        {:status 500 :headers (merge {"Content-Type" "application/json"} (b/cors-head
+          +ers origin))
+      318 +                         :body (json/generate-string {"ok" false "reason" "view not saved"})}))
+      319                  (if (= :hold (:action v))
+      320                    (if (write-edn! hold-file (cl/hold-edn (:on v) (System/currentTimeMillis)))
+      321                      (let [result (if (:on v) "on" "off")]
+
+⏺ Now I need to balance the extra (if ...) I inserted by adding one closing paren at the end of handle.
+
+  Read 1 file
+
+⏺ Update(scripts/crew_bridge.clj)
+  ⎿  Added 1 line, removed 1 line
+      344                          (log! (:member v) (:action v) (:status r) reason)
+      345                          (when (and (:ok ran) (contains? #{:allow :deny} (:action v)))
+      346                            (append-crew-log! (:member v) (if (= :allow (:action v)) :allowed :declined
+           ) (:prompt live)))
+      347 -                        {:status (:status r) :headers (:headers r) :body (json/generate-string (:body
+          - r))})))))))))))))))
+      347 +                        {:status (:status r) :headers (:headers r) :body (json/generate-string (:body
+          + r))}))))))))))))))))
+      348
+      349  (defn -main [& _]
+      350    (let [token (random-token)]
+
+⏺ Now scripts/blueprint_draft.clj:
+
+⏺ Update(scripts/blueprint_draft.clj)
+  ⎿  Added 2 lines, removed 1 line
+      13           '[clojure.java.io :as io]
+      14           '[babashka.process :as p]
+      15           '[pm.blueprint-file :as bf]
+      16 -         '[pm.lot :as lot])
+      16 +         '[pm.lot :as lot]
+      17 +         '[pm.view :as view])
+      18
+      19  (defn- fail! [text]
+      20    (binding [*out* *err*] (println (str "blueprint-draft: " text)))
+
+⏺ Update(scripts/blueprint_draft.clj)
+  ⎿  Added 3 lines
+      26  (defn- blueprints-file []
+      27    (or (System/getenv "PM_BLUEPRINTS_FILE") bf/state-path))
+      28
+      29 +(defn- view-file []
+      30 +  (or (System/getenv "PM_VIEW_FILE") "state/view.edn"))
+      31 +
+      32  (defn- read-edn [path]
+      33    (let [f (io/file path)]
+      34      (when (.exists f)
+
+⏺ Update(scripts/blueprint_draft.clj)
+  ⎿  Added 6 lines, removed 4 lines
+      46      (when-not rules
+      47        (fail! "resources/estate.edn has no :build-rules"))
+      48      (let [ground (read-edn (ground-file))
+      49 -          file-bps (:blueprints (bf/normalize (read-edn (blueprints-file))))]
+      49 +          file-bps (:blueprints (bf/normalize (read-edn (blueprints-file))))
+      50 +          seen (view/fresh (read-edn (view-file)) (System/currentTimeMillis))
+      51 +          view' (when (:ok seen) (:view seen))]
+      52        (case (:mode parsed)
+      53          :landmarks
+      52 -        (do (doseq [line (lot/landmark-lines (lot/landmarks ground estate file-bps))]
+      54 +        (do (doseq [line (lot/landmark-lines (lot/landmarks ground estate file-bps view'))]
+      55                (println line))
+      56              (System/exit 0))
+      57
+      58          :draft
+      59          (let [{:keys [path member near dry-run]} parsed
+      60                draft (or (read-edn path) (fail! (str "can't read " path)))
+      59 -              result (lot/place ground estate file-bps rules draft near)]
+      61 +              result (lot/place ground estate file-bps rules draft near seen)]
+      62            (if-not (:ok result)
+      63              (fail! (:reason result))
+      64              (let [bp (lot/blueprint draft result)
+      65                    problems (bf/problems bp)
+      64 -                  lm (lot/resolve-landmark (lot/landmarks ground estate file-bps) near)]
+      66 +                  lm (lot/resolve-landmark (lot/landmarks ground estate file-bps view') near)]
+      67                (when (seq problems)
+      68                  (fail! (str "invalid draft: " (clojure.string/join "; " problems))))
+      69                (if dry-run
+
+⏺ Now create scripts/where.clj:
+
+⏺ Write(scripts/where.clj)
+  ⎿  Wrote 47 lines to scripts/where.clj
+       1 #!/usr/bin/env bb
+       2 ;; bb where (TASKS T-19): prints where the player is looking and where every
+       3 ;; walker is, from the game's own view (state/view.edn) -- so the twin can
+       4 ;; read a few lines instead of asking for a screenshot.
+       5 ;;
+       6 ;;   bb where
+       7 ;;
+       8 ;; All I/O; every decision is pm.view's / pm.lot's.
+       9
+      10 (require '[clojure.edn :as edn]
+     … +37 lines
+
+⏺ Now bb.edn:
+
+⏺ Update(bb.edn)
+  ⎿  Added 3 lines
+      12                             (System/exit (:exit r)))}
+      13    ask-player {:doc  "ask_player: raise the estate's \"!\" over a crew member and wait for the player's
+           answer: bb ask-player <member> \"question\" [--wait S]"
+      14                :task (apply shell "bb" "scripts/ask_player.clj" *command-line-args*)}
+      15 +  where      {:doc  "Where the player is looking and where everyone is, from the game's view (state/vi
+         +ew.edn): bb where"
+      16 +              :task (let [r (apply shell {:continue true} "bb" "scripts/where.clj" *command-line-args*
+         +)]
+      17 +                      (System/exit (:exit r)))}
+      18    juice      {:doc  "The real usage meter: types /usage into an idle Claude member, writes state/juice
+          .edn: bb juice [--watch [S]] [--member NAME]"
+      19                :task (apply shell "bb" "scripts/juice.clj" *command-line-args*)}
+      20    hal-say    {:doc  "An agent speaks on the estate: a bubble over its walker (the twin's line also cap
+          tioned, spoken, kept in 💭); --at makes it an errand, said there: bb hal-say \"line\" [--as <member>]
+          [--at <where>]"
+
+⏺ Now let's run the gate.
+
+  Read 1 file, ran 1 shell command
+
+⏺ Update(src/pm/view.cljc)
+  ⎿  Added 11 lines, removed 10 lines
+      62     appeared/disappeared or moved past center-move-m, or the walker set
+      63     changed or one moved past walker-move-m."
+      64    [last snap]
+      65 -  (or (nil? last)
+      66 -      (> (d3 (get-in snap [:camera :pos]) (get-in last [:camera :pos])) (+ camera-move-m eps))
+      67 -      (> (d3 (get-in snap [:camera :target]) (get-in last [:camera :target])) (+ camera-move-m eps))
+      68 -      (let [c1 (:center last) c2 (:center snap)]
+      69 -        (or (and (nil? c1) (some? c2))
+      70 -            (and (some? c1) (nil? c2))
+      71 -            (and (some? c1) (some? c2) (> (d3 c1 c2) (+ center-move-m eps)))))
+      72 -      (let [w1 (:walkers last) w2 (:walkers snap)]
+      73 -        (or (not= (set (keys w1)) (set (keys w2)))
+      74 -            (some (fn [[k v]] (> (d3 v (get w2 k)) (+ walker-move-m eps))) w1)))))
+      65 +  (boolean
+      66 +    (or (nil? last)
+      67 +        (> (d3 (get-in snap [:camera :pos]) (get-in last [:camera :pos])) (+ camera-move-m eps))
+      68 +        (> (d3 (get-in snap [:camera :target]) (get-in last [:camera :target])) (+ camera-move-m eps))
+      69 +        (let [c1 (:center last) c2 (:center snap)]
+      70 +          (or (and (nil? c1) (some? c2))
+      71 +              (and (some? c1) (nil? c2))
+      72 +              (and (some? c1) (some? c2) (> (d3 c1 c2) (+ center-move-m eps)))))
+      73 +        (let [w1 (:walkers last) w2 (:walkers snap)]
+      74 +          (or (not= (set (keys w1)) (set (keys w2)))
+      75 +              (some (fn [[k v]] (> (d3 v (get w2 k)) (+ walker-move-m eps))) w1))))))
+      76
+      77  (defn post?
+      78    "Whether view-tick! should post snap now (TASKS T-19), the first rule
+
+  Listed 1 directory, ran 4 shell commands
+
+⏺ All hand tests pass as expected. Now let's clean up the scratch blueprints copy isn't needed to delete (it's in
+  scratchpad), and write the builder notes.
+
+⏺ Write(crew/runs/view-share-v0-20261124-1401/builder-notes.md)
+  ⎿  Wrote 100 lines to crew/runs/view-share-v0-20261124-1401/builder-notes.md
+       1 # Builder notes: view-share-v0 (TASKS T-19)
+       2
+       3 ## What was built
+       4
+       5 - `src/pm/view.cljc` (new, ns `pm.view`): `vec3?`, `round-cm`, `snapshot`,
+       6   `changed?`, `post?`, `sent`/`settled`, `view-url`, `body`, `view-edn`,
+       7   `fresh`, `ground-word`, `where-lines`. Pure, portable (bb + cljs).
+       8 - `src/pm/bridge.cljc`: `view-uri`, the `/view` route added to the method/
+       9   route/json/token/origin guard chain, its own validation branch (action,
+      10   camera, center, walkers, max-walkers, per-walker id/pos/dup checks), and
+     … +90 lines
+
+  Ran 2 shell commands
+
+⏺ Implemented view-share-v0 (T-19) across src/pm/view.cljc (new), pm.bridge/pm.three/pm.core/pm.lot,
+  scripts/crew_bridge.clj, scripts/blueprint_draft.clj, scripts/where.clj (new), and bb.edn, exactly per spec. No files
+  outside the builder's list were touched.
+
+  Gate's last line: GATE: PASS — 0 warnings; Ran 1465 tests containing 8049 assertions.
+
+   bb.edn                        |  3 ++
+   scripts/blueprint_draft.clj   | 16 ++++++---
+   scripts/crew_bridge.clj       | 13 ++++++--
+   src/pm/bridge.cljc            | 35 +++++++++++++++++--
+   src/pm/core.cljs              | 40 +++++++++++++++++++++-
+   src/pm/lot.cljc               | 78 ++++++++++++++++++++++++++++++++++++++-----
+   src/pm/three.cljs             | 31 +++++++++++++++++
+   test/pm/bridge_real_test.cljs | 67 +++++++++++++++++++++++++++++++++++++   (tester's, in parallel)
+   test/pm/lot_test.cljs         | 66 ++++++++++++++++++++++++++++++++++++   (tester's, in parallel)
+   9 files changed, 329 insertions(+), 20 deletions(-)
+   + new: src/pm/view.cljc (166 lines), scripts/where.clj (47 lines)
+
+  Hand-tested with PM_VIEW_FILE/PM_BLUEPRINTS_FILE pointed at temp copies and --dry-run throughout (fresh/stale/missing
+  view, bb where, --near here, --near <walker-id>, --landmarks) — all matched spec. Full notes, including exactly what
+  Hal runs after restarting the bridge, are in crew/runs/view-share-v0-20261124-1401/builder-notes.md.
+
+  done-3474
+
+✻ Sautéed for 12m 18s · done 2:21 PM
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

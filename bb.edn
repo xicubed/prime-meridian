@@ -12,6 +12,9 @@
                            (System/exit (:exit r)))}
   ask-player {:doc  "ask_player: raise the estate's \"!\" over a crew member and wait for the player's answer: bb ask-player <member> \"question\" [--wait S]"
               :task (apply shell "bb" "scripts/ask_player.clj" *command-line-args*)}
+  where      {:doc  "Where the player is looking and where everyone is, from the game's view (state/view.edn): bb where"
+              :task (let [r (apply shell {:continue true} "bb" "scripts/where.clj" *command-line-args*)]
+                      (System/exit (:exit r)))}
   juice      {:doc  "The real usage meter: types /usage into an idle Claude member, writes state/juice.edn: bb juice [--watch [S]] [--member NAME]"
               :task (apply shell "bb" "scripts/juice.clj" *command-line-args*)}
   hal-say    {:doc  "An agent speaks on the estate: a bubble over its walker (the twin's line also captioned, spoken, kept in 💭); --at makes it an errand, said there: bb hal-say \"line\" [--as <member>] [--at <where>]"

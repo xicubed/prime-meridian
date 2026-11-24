@@ -1,0 +1,587 @@
+diff --git a/TASKS.md b/TASKS.md
+index 9aa8e98..1893961 100644
+--- a/TASKS.md
++++ b/TASKS.md
+@@ -99,6 +99,7 @@ The twin on the estate (GDD §2.1). Built today: he walks (black body, white joi
+ - [x] Nov 23 (crew round tidy-after-remove-v0) T-16 Tidy-ups after removal (Michael, Nov 23: "ya just remove the sign"). The lobby's signpost by the cottage is gone; the lobby is still where errands go (`bb hal-say --at lobby`). Up close to a tall build, its card stays pinned at the top of the screen instead of vanishing. A real build's sign drops "proposed:" from its summary.
+ - [x] Nov 23 (crew round kit-materials-v0) T-17 Our things wear the kit's materials (Michael, Nov 23: "can we texture these items? they're kinda plain"). Benches, the lamp post, and the workshop and mailbox use the kit's own timber and metal (estate.edn `:kit-materials`: palette key → kit material), the grain tiled by each part's size so a thin leg isn't stretched, and box edges are slightly rounded. Ghosts look as before; Undo brings the wood back. Without the kit (a public clone) everything keeps its flat colour.
+ - [x] Nov 23 (crew round booth-model-v0) T-18 Props can be models; the red phone box goes in (Michael, Nov 23: "make the phone booth look more like a real london phone booth … keep with the theme"). The booth is now Hal's weathered red phone box (a Blender model, `tools/blender/phone_booth.py`), loaded from `public/assets/props/phone-booth.glb` through a prop's `:model`; its old boxes show until it loads, or if it can't. You can see the phone through its glass; at night its ceiling lamp glows and lights the box with one small light, and the TELEPHONE signs glow. Clicking it still jacks you back in.
++- [x] Nov 24 (crew round view-share-v0) T-19 The twin knows where you're looking (Michael, Nov 24: "lets send it to you so you know the location without a screenshot / high count for tokens"). The game posts its camera, the ground spot at the centre of the screen and every walker's position to the bridge (POST /view, at most every 2 s and only when something moved, plus every 30 s); the bridge keeps it in the private state/view.edn. bb where prints it as a few lines (how old, what ground you're looking at and the nearest landmark, where each walker is), and bb blueprint-draft takes --near here or --near <walker-id>. Nothing new on screen; never in the demo build.
+ - [ ] T-12 Call the player's real phone (after T-11; the GDD's jack-out hook, §2.3): Twilio voice from the bot number to his cell when something real is due (Flora's chore, a "!" waiting past closing) or when he taps 📞 away from the laptop; the twin reads the lines, speech-to-text comes back down the bridge; a crew member who takes a minute "calls back". Costs per minute; FaceTime/Teams have no agent end and are out. Ready-made ways to add it (Nov 22, nothing installed): Hermes's official `telephony` skill (one-way calls on the existing Twilio number: a spoken message or a TTS recording); the community **Hermes Voice Gateway** plugin (two-way: the player calls the twin's number and talks; needs ElevenLabs and a tunnel); Zoom only as a meeting bot that joins a meeting (Meetstream / Meeting AI plugins, paid bot services); Slack is text and voice notes only (bots can't join huddles).
+ - [ ] T-9 v2 idea: living objects (docs/ideas-living-objects.md): stateful things that age, speak, and pass messages through the twin; Flora's hunger in the game first, a text only when she's well overdue (replacing the 09:00/17:00 cron).
+ 
+diff --git a/bb.edn b/bb.edn
+index f979aad..091afd2 100644
+--- a/bb.edn
++++ b/bb.edn
+@@ -12,6 +12,9 @@
+                            (System/exit (:exit r)))}
+   ask-player {:doc  "ask_player: raise the estate's \"!\" over a crew member and wait for the player's answer: bb ask-player <member> \"question\" [--wait S]"
+               :task (apply shell "bb" "scripts/ask_player.clj" *command-line-args*)}
++  where      {:doc  "Where the player is looking and where everyone is, from the game's view (state/view.edn): bb where"
++              :task (let [r (apply shell {:continue true} "bb" "scripts/where.clj" *command-line-args*)]
++                      (System/exit (:exit r)))}
+   juice      {:doc  "The real usage meter: types /usage into an idle Claude member, writes state/juice.edn: bb juice [--watch [S]] [--member NAME]"
+               :task (apply shell "bb" "scripts/juice.clj" *command-line-args*)}
+   hal-say    {:doc  "An agent speaks on the estate: a bubble over its walker (the twin's line also captioned, spoken, kept in 💭); --at makes it an errand, said there: bb hal-say \"line\" [--as <member>] [--at <where>]"
+diff --git a/scripts/blueprint_draft.clj b/scripts/blueprint_draft.clj
+index 08ca25e..925e064 100644
+--- a/scripts/blueprint_draft.clj
++++ b/scripts/blueprint_draft.clj
+@@ -13,7 +13,8 @@
+          '[clojure.java.io :as io]
+          '[babashka.process :as p]
+          '[pm.blueprint-file :as bf]
+-         '[pm.lot :as lot])
++         '[pm.lot :as lot]
++         '[pm.view :as view])
+ 
+ (defn- fail! [text]
+   (binding [*out* *err*] (println (str "blueprint-draft: " text)))
+@@ -25,6 +26,9 @@
+ (defn- blueprints-file []
+   (or (System/getenv "PM_BLUEPRINTS_FILE") bf/state-path))
+ 
++(defn- view-file []
++  (or (System/getenv "PM_VIEW_FILE") "state/view.edn"))
++
+ (defn- read-edn [path]
+   (let [f (io/file path)]
+     (when (.exists f)
+@@ -42,22 +46,24 @@
+     (when-not rules
+       (fail! "resources/estate.edn has no :build-rules"))
+     (let [ground (read-edn (ground-file))
+-          file-bps (:blueprints (bf/normalize (read-edn (blueprints-file))))]
++          file-bps (:blueprints (bf/normalize (read-edn (blueprints-file))))
++          seen (view/fresh (read-edn (view-file)) (System/currentTimeMillis))
++          view' (when (:ok seen) (:view seen))]
+       (case (:mode parsed)
+         :landmarks
+-        (do (doseq [line (lot/landmark-lines (lot/landmarks ground estate file-bps))]
++        (do (doseq [line (lot/landmark-lines (lot/landmarks ground estate file-bps view'))]
+               (println line))
+             (System/exit 0))
+ 
+         :draft
+         (let [{:keys [path member near dry-run]} parsed
+               draft (or (read-edn path) (fail! (str "can't read " path)))
+-              result (lot/place ground estate file-bps rules draft near)]
++              result (lot/place ground estate file-bps rules draft near seen)]
+           (if-not (:ok result)
+             (fail! (:reason result))
+             (let [bp (lot/blueprint draft result)
+                   problems (bf/problems bp)
+-                  lm (lot/resolve-landmark (lot/landmarks ground estate file-bps) near)]
++                  lm (lot/resolve-landmark (lot/landmarks ground estate file-bps view') near)]
+               (when (seq problems)
+                 (fail! (str "invalid draft: " (clojure.string/join "; " problems))))
+               (if dry-run
+diff --git a/scripts/crew_bridge.clj b/scripts/crew_bridge.clj
+index 82bc69d..a340d7f 100644
+--- a/scripts/crew_bridge.clj
++++ b/scripts/crew_bridge.clj
+@@ -33,7 +33,8 @@
+          '[pm.bridge :as b]
+          '[pm.events :as events]
+          '[pm.prompt :as pr]
+-         '[pm.crew-log :as cl])
++         '[pm.crew-log :as cl]
++         '[pm.view :as view])
+ 
+ (import '[java.security SecureRandom]
+         '[java.time Instant])
+@@ -43,6 +44,7 @@
+ (def hold-file "state/hold.edn")
+ (def builds-file "state/builds.edn")       ; builds made real (pm.bridge/add-real-build)
+ (def blueprints-file "state/blueprints.edn") ; agent-proposed blueprints (pm.bridge/known-build-ids)
++(def view-file (or (System/getenv "PM_VIEW_FILE") "state/view.edn")) ; the game's camera/centre/walkers (TASKS T-19)
+ (def mirrors-file "state/mirrors.edn")     ; the twin's real mirror state
+ (def crew-log-file "state/crew-log.edn")
+ (def log-file "crew/bridge.log")
+@@ -307,6 +309,13 @@
+                     {:status (if (:ok r) 200 409)
+                      :headers (merge {"Content-Type" "application/json"} (b/cors-headers origin))
+                      :body (json/generate-string {"ok" (:ok r) "reason" (:reason r)})})
++                (if (= :view (:action v))
++                  (if (write-edn! view-file (view/view-edn v (System/currentTimeMillis)))
++                    {:status 200 :headers (merge {"Content-Type" "application/json"} (b/cors-headers origin))
++                     :body (json/generate-string {"ok" true "result" "seen"})}
++                    (do (log! nil :view 500 "view not saved")
++                        {:status 500 :headers (merge {"Content-Type" "application/json"} (b/cors-headers origin))
++                         :body (json/generate-string {"ok" false "reason" "view not saved"})}))
+                 (if (= :hold (:action v))
+                   (if (write-edn! hold-file (cl/hold-edn (:on v) (System/currentTimeMillis)))
+                     (let [result (if (:on v) "on" "off")]
+@@ -335,7 +344,7 @@
+                         (log! (:member v) (:action v) (:status r) reason)
+                         (when (and (:ok ran) (contains? #{:allow :deny} (:action v)))
+                           (append-crew-log! (:member v) (if (= :allow (:action v)) :allowed :declined) (:prompt live)))
+-                        {:status (:status r) :headers (:headers r) :body (json/generate-string (:body r))})))))))))))))))
++                        {:status (:status r) :headers (:headers r) :body (json/generate-string (:body r))}))))))))))))))))
+ 
+ (defn -main [& _]
+   (let [token (random-token)]
+diff --git a/src/pm/bridge.cljc b/src/pm/bridge.cljc
+index 58e0280..5faf0ab 100644
+--- a/src/pm/bridge.cljc
++++ b/src/pm/bridge.cljc
+@@ -4,7 +4,8 @@
+    babashka.process, and the log line. Portable (bb + cljs via the :test
+    build); never required by pm.core."
+   (:require [clojure.string :as str]
+-            [pm.blueprint-file :as bf]))
++            [pm.blueprint-file :as bf]
++            [pm.view :as view]))
+ 
+ (def host "127.0.0.1")
+ (def port 8091)
+@@ -16,6 +17,7 @@
+ (def hold-uri "/hold")
+ (def events-uri "/events")
+ (def real-uri "/real")      ; make something real: a build that stays, a real chore (GDD §4.6)
++(def view-uri "/view")      ; the game's camera, screen-centre ground spot and every walker's position (TASKS T-19)
+ (def ^:private real-id-re bf/id-re)
+ 
+ (def ^:private name-re #"[a-z][a-z0-9_-]{0,31}")
+@@ -102,7 +104,7 @@
+       (not= method "POST")
+       {:ok false :status 405 :reason "method not allowed"}
+ 
+-      (not (or (and (string? uri) (re-matches uri-re uri)) (= uri hold-uri) (= uri real-uri)))
++      (not (or (and (string? uri) (re-matches uri-re uri)) (= uri hold-uri) (= uri real-uri) (= uri view-uri)))
+       {:ok false :status 404 :reason "not found"}
+ 
+       (not (map? body))
+@@ -120,6 +122,33 @@
+         (not (boolean? (get body "on"))) {:ok false :status 400 :reason "bad on"}
+         :else {:ok true :action :hold :on (get body "on")})
+ 
++      (= uri view-uri)
++      (let [camera  (get body "camera")
++            pos     (get camera "pos")
++            target  (get camera "target")
++            center  (get body "center")
++            walkers (get body "walkers")
++            bad-walker? (fn [w]
++                          (or (not (map? w))
++                              (not (and (string? (get w "id")) (re-matches real-id-re (get w "id"))))
++                              (not (view/vec3? (get w "pos")))))]
++        (cond
++          (not= (get body "action") "view") {:ok false :status 400 :reason "bad action"}
++          (or (not (map? camera)) (not (view/vec3? pos)) (not (view/vec3? target)))
++          {:ok false :status 400 :reason "bad camera"}
++          (or (not (contains? body "center")) (not (or (nil? center) (view/vec3? center))))
++          {:ok false :status 400 :reason "bad center"}
++          (not (sequential? walkers)) {:ok false :status 400 :reason "bad walkers"}
++          (> (count walkers) view/max-walkers) {:ok false :status 400 :reason "too many walkers"}
++          (or (some bad-walker? walkers)
++              (not= (count walkers) (count (distinct (map #(get % "id") walkers)))))
++          {:ok false :status 400 :reason "bad walker"}
++          :else
++          {:ok true :action :view
++           :camera {:pos (vec pos) :target (vec target)}
++           :center (some-> center vec)
++           :walkers (into {} (map (fn [w] [(keyword (get w "id")) (vec (get w "pos"))])) walkers)}))
++
+       (= uri real-uri)
+       (let [action (get body "action")
+             id     (get body (if (= action "mirror") "mirror" "id"))
+@@ -311,5 +340,5 @@
+   (let [m (loggable member)
+         a (loggable action)
+         m' (cond (nil? member) "-" (and m (re-matches name-re m)) m :else "?")
+-        a' (cond (nil? action) "-" (and a (or (contains? actions a) (contains? #{"hold" "ws"} a))) a :else "?")]
++        a' (cond (nil? action) "-" (and a (or (contains? actions a) (contains? #{"hold" "ws" "view"} a))) a :else "?")]
+     (str iso " " m' " " a' " " status " " reason)))
+diff --git a/src/pm/core.cljs b/src/pm/core.cljs
+index d8a7302..38f2d63 100644
+--- a/src/pm/core.cljs
++++ b/src/pm/core.cljs
+@@ -32,6 +32,7 @@
+             [pm.plan :as plan]
+             [pm.talk :as talk]
+             [pm.ui :as ui]
++            [pm.view :as view]
+             [pm.world :as world]
+             [shadow.resource :as rc]
+             [clojure.string]))
+@@ -602,7 +603,7 @@
+   (- (.getTimezoneOffset (js/Date.))))
+ 
+ (defonce ^:private !sky (atom nil))   ; the kit hour pm.sky last set
+-(declare toggle-jack-out! crew-key-tick! twin-thinking? twin-dots walker-colours trial-card!)
++(declare toggle-jack-out! crew-key-tick! twin-thinking? twin-dots walker-colours trial-card! view-tick!)
+ (defonce ^:private !gesture? (atom false))   ; browsers play nothing before one
+ 
+ (defn- music-scene
+@@ -1001,6 +1002,7 @@
+     (when-let [h (kit/handle)] (bricks/tick! h dt'))
+     (when (kit/handle) (creature-spike/tick! dt' now))
+     (when-let [h (kit/handle)] (camera/save-tick! h now))
++    (when-let [h (kit/handle)] (view-tick! h now))
+     (bricks/set-dots! (:crew @!world) (:asks-player @!world) (js/Date.now)
+                       (twin-dots @!world (js/Date.now) (crew/colors @!world))
+                       (:call @!world))
+@@ -1556,6 +1558,42 @@
+                           ", " (for [[y n] (t/drop-ray (.-scene h) (.-camera h) x z 40 5)]
+                                  (str y " " n))))))))))
+ 
++;; The view (TASKS T-19): the game's own camera, the ground spot at the
++;; screen's centre, and every walker's position, posted to the bridge's
++;; /view at most every view/post-every-ms and only when something changed
++;; (view/post?), so the twin and the crew's commands can read
++;; state/view.edn instead of a screenshot. Never in the demo build.
++(defonce ^:private !view (atom {:last nil :last-at nil :in-flight? false :checked-at 0}))
++(defonce ^:private !view-meshes (atom []))
++
++(defn- view-ground-meshes!
++  "The kit's ground meshes, found once (and cached) the first time they're
++   non-empty -- the same set blueprints are seated on."
++  [^js h]
++  (when (empty? @!view-meshes)
++    (let [prefixes (get-in @!world [:motion :ground])
++          gm (t/find-meshes (.-scene h) #(m/ground-name? % prefixes))]
++      (when (seq gm) (reset! !view-meshes gm))))
++  @!view-meshes)
++
++(defn- view-tick!
++  "Posts the game's view to the bridge (TASKS T-19) at most every
++   view/post-every-ms, and only when view/post? says to."
++  [^js h now]
++  (when-not DEMO
++    (when (>= (- now (:checked-at @!view)) view/post-every-ms)
++      (swap! !view assoc :checked-at now)
++      (let [meshes (view-ground-meshes! h)
++            snap (view/snapshot (t/rig-view h) (t/center-hit (.-camera h) meshes) (bricks/spots))]
++        (when (view/post? @!view snap now {:demo? DEMO :bridge-on? (bridge-on?)})
++          (swap! !view view/sent snap now)
++          (let [b (:bridge @!world)]
++            (-> (js/fetch (view/view-url b)
++                          #js {:method "POST" :headers #js {"Content-Type" "application/json"}
++                               :body (js/JSON.stringify (clj->js (view/body b snap)))})
++                (.then (fn [_] (swap! !view view/settled)))
++                (.catch (fn [_] (swap! !view view/settled))))))))))
++
+ (defn- ground-at-fn
+   "The kit's ground-at fn (x z -> height, pm.motion/ground-height) for
+    seating blueprints, or nil until its ground meshes can be found."
+diff --git a/src/pm/lot.cljc b/src/pm/lot.cljc
+index 77c036b..7b423c0 100644
+--- a/src/pm/lot.cljc
++++ b/src/pm/lot.cljc
+@@ -10,9 +10,11 @@
+ (def default-radius-m 0.6)
+ (def grounded-m 0.02)
+ (def narrow-m 0.3)
+-(def usage "usage: bb blueprint-draft <member> <draft.edn> --near <landmark|x,z> [--dry-run] | bb blueprint-draft --landmarks")
++(def usage "usage: bb blueprint-draft <member> <draft.edn> --near <landmark|here|walker|x,z> [--dry-run] | bb blueprint-draft --landmarks")
+ (def no-ground-map "no ground map (state/ground.edn): the twin samples it from the kit")
+ (def nothing-grounded "nothing touches the ground")
++(def no-view "I can't see where you're looking: the game isn't sending its view")
++(def sky "I can't tell where you're looking: the middle of your screen is sky")
+ 
+ (def ^:private pi #?(:clj Math/PI :cljs js/Math.PI))
+ (defn- sqrt* [x]  #?(:clj (Math/sqrt x) :cljs (js/Math.sqrt x)))
+@@ -182,7 +184,7 @@
+                         (blueprints-of file-blueprints)
+                         (obstacles-of estate)))))
+ 
+-(defn landmarks
++(defn- landmarks3
+   "Sorted map {id {:word w :xz [x z]}}, plus :creek when ground has any
+    creek/water cell and no :creek landmark already exists."
+   [ground estate file-blueprints]
+@@ -208,6 +210,35 @@
+           base))
+       base)))
+ 
++(defn view-landmarks
++  "Sorted map of the view's own landmarks (TASKS T-19): :here (the view's
++   :center, when non-nil) and one entry per walker in (:walkers view),
++   named by the matching estate walker's :name, else its id with dashes
++   turned to spaces. nil view -> {}."
++  [view estate]
++  (if (nil? view)
++    (sorted-map)
++    (let [wnames (into {} (map (fn [w] [(:id w) (:name w)])) (:walkers estate))
++          base (reduce (fn [m [id [x _ z]]]
++                         (assoc m id {:word (or (get wnames id) (words id)) :xz [x z]}))
++                       (sorted-map)
++                       (:walkers view))]
++      (if-let [c (:center view)]
++        (assoc base :here {:word "where you're looking" :xz [(nth c 0) (nth c 2)]})
++        base))))
++
++(defn landmarks
++  "Sorted map {id {:word w :xz [x z]}} (see landmarks3); the 4-arity also
++   merges in the view's own landmarks (view-landmarks) for any id not
++   already named -- estate names win. No view (3-arity, or a nil view)
++   behaves exactly as landmarks3."
++  ([ground estate file-blueprints] (landmarks3 ground estate file-blueprints))
++  ([ground estate file-blueprints view]
++   (let [base (landmarks3 ground estate file-blueprints)]
++     (reduce (fn [m [k v]] (if (contains? m k) m (assoc m k v)))
++             base
++             (view-landmarks view estate)))))
++
+ (declare fmt)
+ 
+ ;; A spot given as coordinates (`--near x,z`, the twin's pick from where the
+@@ -234,6 +265,20 @@
+     (apply min (map (fn [[cx cz]] (norm2 [(- x cx) (- z cz)])) (:cells lm)))
+     (norm2 (sub2 [x z] (:xz lm)))))
+ 
++(defn nearest-landmark
++  "The closest of lms (a sorted map, see landmarks) to [x z]: {:id :word
++   :distance-m}, or nil for an empty lms. A tie keeps the first in lms
++   order (the smaller name), since only a strictly closer candidate
++   replaces the best so far."
++  [lms [x z]]
++  (reduce (fn [best [id lm]]
++            (let [d (dist-to-landmark lm [x z])]
++              (if (or (nil? best) (< d (:distance-m best)))
++                {:id id :word (:word lm) :distance-m d}
++                best)))
++          nil
++          lms))
++
+ (defn- cell-reason [kind]
+   (cond
+     (= kind "T") "most of it is under trees"
+@@ -299,14 +344,29 @@
+ (defn place
+   "The quest's placement: ground, estate, file-blueprints, rules, draft,
+    near (a landmark keyword) -> {:ok true :at [x y z] :yaw deg :landmark k
+-   :distance-m d :spread-m s} | {:ok false :reason \"...\"}."
+-  [ground estate file-blueprints rules draft near]
+-  (if-not (map? ground)
++   :distance-m d :spread-m s} | {:ok false :reason \"...\"}. `seen` (7-arity,
++   TASKS T-19) is (view/fresh raw now) or nil: when ok, its :view's :here
++   and walkers join the landmarks near can name; the 6-arity is this with
++   seen nil, behaving exactly as before."
++  ([ground estate file-blueprints rules draft near]
++   (place ground estate file-blueprints rules draft near nil))
++  ([ground estate file-blueprints rules draft near seen]
++   (if-not (map? ground)
+     {:ok false :reason no-ground-map}
+-    (let [lms (landmarks ground estate file-blueprints)]
++    (let [view (when (:ok seen) (:view seen))
++          lms (landmarks ground estate file-blueprints view)]
+       (if-not (resolve-landmark lms near)
+-        {:ok false :reason (str "I don't know a place called " (name near) "; I know: "
+-                                 (str/join ", " (map name (keys lms))))}
++        (cond
++          (and (= near :here) (some? view))
++          {:ok false :reason sky}
++
++          (and (or (= near :here) (contains? (set (map :id (:walkers estate))) near))
++               (nil? view))
++          {:ok false :reason (or (:reason seen) no-view)}
++
++          :else
++          {:ok false :reason (str "I don't know a place called " (name near) "; I know: "
++                                   (str/join ", " (map name (keys lms))))})
+         (let [fs (feet (:look draft))]
+           (if (empty? fs)
+             {:ok false :reason nothing-grounded}
+@@ -343,7 +403,7 @@
+                                         [(round* (* d 1e6)) (round* (* (:spread v) 1e6)) x z yaw])
+                                       accepted))]
+                   {:ok true :at [x (:y v) z] :yaw yaw :landmark near :distance-m d :spread-m (:spread v)})
+-                {:ok false :reason (refusal whys search-m (:word lm))}))))))))
++                {:ok false :reason (refusal whys search-m (:word lm))})))))))))
+ 
+ (defn parse-args [args]
+   (let [args (vec (or args []))]
+diff --git a/src/pm/three.cljs b/src/pm/three.cljs
+index b4dc110..31395b7 100644
+--- a/src/pm/three.cljs
++++ b/src/pm/three.cljs
+@@ -616,6 +616,37 @@
+                   (recur (.-parent o) chain'))))))))
+     (catch :default _ [])))
+ 
++(defn rig-view
++  "{:pos [x y z] :target [x y z]} from the kit handle's camera position and
++   its rig's orbit target (TASKS T-19), or nil when there is no rig or
++   orbit. Never throws."
++  [^js h]
++  (try
++    (when-let [^js rig (.-rig h)]
++      (when-let [^js orbit (.-orbit rig)]
++        (let [^js p (.. h -camera -position)
++              ^js t (.-target orbit)]
++          {:pos [(.-x p) (.-y p) (.-z p)] :target [(.-x t) (.-y t) (.-z t)]})))
++    (catch :default _ nil)))
++
++(defn center-hit
++  "[x y z] of the nearest hit of a ray from `camera` through the screen's
++   centre (NDC [0 0]) against `meshes` (TASKS T-19), or nil: empty meshes,
++   no hit, or any exception. The decision logic (what nil means) lives in
++   pm.view."
++  [^js camera meshes]
++  (try
++    (when (seq meshes)
++      (let [^js T (three)
++            ^js Raycaster (.-Raycaster T)
++            ^js Vector2 (.-Vector2 T)
++            ^js rc (Raycaster.)]
++        (.setFromCamera rc (Vector2. 0 0) camera)
++        (when-let [^js hit (first (.intersectObjects rc (into-array meshes) true))]
++          (let [^js pt (.-point hit)]
++            [(.-x pt) (.-y pt) (.-z pt)]))))
++    (catch :default _ nil)))
++
+ (defn vec3
+   "new THREE.Vector3(x, y, z) with the current THREE."
+   [[x y z]]
+diff --git a/test/pm/bridge_real_test.cljs b/test/pm/bridge_real_test.cljs
+index 8a5829e..7b8564f 100644
+--- a/test/pm/bridge_real_test.cljs
++++ b/test/pm/bridge_real_test.cljs
+@@ -44,3 +44,70 @@
+                                (b/known-build-ids {:blueprints [E-BENCH E-LAMP]} nil) 9)))
+   (is (= {:ok true :action :real-build :id :bench-by-creek}
+          (b/validate (req {"action" "build" "id" "bench-by-creek"}) ctx))))
++
++;; ---------------------------------------------------------------------------
++;; view-share-v0 (TASKS T-19): POST /view
++
++(def GB {"action" "view" "camera" {"pos" [1.23 5.68 -10] "target" [0 0 -2.35]} "center" [1.5 1.7 -8.2]
++         "walkers" [{"id" "hal" "pos" [2.5 1.8 -7]} {"id" "b-walker" "pos" [-5 1.6 -14]}]})
++(defn- vreq [body] {:method "POST" :uri b/view-uri :origin b/allowed-origin :body (assoc body "token" "t")})
++(defn- ws [n] (vec (for [i (range n)] {"id" (str "w" i) "pos" [0 0 0]})))
++
++(deftest t05-validate-view-good
++  (is (= {:ok true :action :view :camera {:pos [1.23 5.68 -10] :target [0 0 -2.35]}
++          :center [1.5 1.7 -8.2] :walkers {:hal [2.5 1.8 -7] :b-walker [-5 1.6 -14]}}
++         (b/validate (vreq GB) ctx)))
++  (is (true? (:ok (b/validate (vreq (assoc GB "center" nil)) ctx))))
++  (is (nil? (:center (b/validate (vreq (assoc GB "center" nil)) ctx))))
++  (is (true? (:ok (b/validate (vreq (assoc GB "walkers" [])) ctx))))
++  (is (= {} (:walkers (b/validate (vreq (assoc GB "walkers" [])) ctx))))
++  (is (true? (:ok (b/validate (vreq (assoc GB "walkers" (ws 32))) ctx))))
++  (is (= 32 (count (:walkers (b/validate (vreq (assoc GB "walkers" (ws 32))) ctx))))))
++
++(deftest t06-validate-view-refusals
++  (is (= {:ok false :status 400 :reason "bad action"}
++         (b/validate (vreq (assoc GB "action" "look")) ctx)))
++  (is (= {:ok false :status 400 :reason "bad camera"}
++         (b/validate (vreq (dissoc GB "camera")) ctx)))
++  (is (= {:ok false :status 400 :reason "bad camera"}
++         (b/validate (vreq (assoc-in GB ["camera" "pos"] [1 2])) ctx)))
++  (is (= {:ok false :status 400 :reason "bad camera"}
++         (b/validate (vreq (assoc-in GB ["camera" "target"] [0 0 2001])) ctx)))
++  (is (= {:ok false :status 400 :reason "bad camera"}
++         (b/validate (vreq (assoc-in GB ["camera" "pos"] [js/NaN 0 0])) ctx)))
++  (is (= {:ok false :status 400 :reason "bad center"}
++         (b/validate (vreq (dissoc GB "center")) ctx)))
++  (is (= {:ok false :status 400 :reason "bad center"}
++         (b/validate (vreq (assoc GB "center" [0 0])) ctx)))
++  (is (= {:ok false :status 400 :reason "bad center"}
++         (b/validate (vreq (assoc GB "center" "here")) ctx)))
++  (is (= {:ok false :status 400 :reason "bad walkers"}
++         (b/validate (vreq (dissoc GB "walkers")) ctx)))
++  (is (= {:ok false :status 400 :reason "bad walkers"}
++         (b/validate (vreq (assoc GB "walkers" "x")) ctx)))
++  (is (= {:ok false :status 400 :reason "too many walkers"}
++         (b/validate (vreq (assoc GB "walkers" (ws 33))) ctx)))
++  (is (= {:ok false :status 400 :reason "bad walker"}
++         (b/validate (vreq (assoc GB "walkers" [{"id" "Hal" "pos" [1 1 1]}])) ctx)))
++  (is (= {:ok false :status 400 :reason "bad walker"}
++         (b/validate (vreq (assoc GB "walkers" [{"id" "../x" "pos" [1 1 1]}])) ctx)))
++  (is (= {:ok false :status 400 :reason "bad walker"}
++         (b/validate (vreq (assoc GB "walkers" [{"id" "ok" "pos" [0 0]}])) ctx)))
++  (is (= {:ok false :status 400 :reason "bad walker"}
++         (b/validate (vreq (assoc GB "walkers" ["hal"])) ctx)))
++  (is (= {:ok false :status 400 :reason "bad walker"}
++         (b/validate (vreq (assoc GB "walkers" [{"id" "hal" "pos" [0 0 0]} {"id" "hal" "pos" [1 1 1]}])) ctx))))
++
++(deftest t07-validate-view-guards
++  (is (= {:ok false :status 401 :reason "bad token"}
++         (b/validate (assoc-in (vreq GB) [:body "token"] "no") ctx)))
++  (is (= {:ok false :status 403 :reason "bad origin"}
++         (b/validate (assoc (vreq GB) :origin "http://evil.test") ctx)))
++  (is (= 405 (:status (b/validate (assoc (vreq GB) :method "GET") ctx))))
++  (is (= 404 (:status (b/validate (assoc (vreq GB) :uri "/views") ctx))))
++  (is (= {:ok false :status 400 :reason "bad json"}
++         (b/validate {:method "POST" :uri b/view-uri :origin b/allowed-origin :body "x"} ctx))))
++
++(deftest t08-log-line-view
++  (is (= "2026-11-24T14:00:00Z - view 400 bad camera"
++         (b/log-line "2026-11-24T14:00:00Z" nil "view" 400 "bad camera"))))
+diff --git a/test/pm/lot_test.cljs b/test/pm/lot_test.cljs
+index a46ea23..8955a91 100644
+--- a/test/pm/lot_test.cljs
++++ b/test/pm/lot_test.cljs
+@@ -399,3 +399,69 @@
+   (is (= "[1.5 -2]" (:word (lot/resolve-landmark {} [1.5 -2]))))
+   (is (= "no level open ground within 1 m of [1.5 1.5]: most of it is under trees"
+          (:reason (lot/place GT9 {} [] (rules {}) stool [1.5 1.5])))))
++
++;; ---------------------------------------------------------------------------
++;; view-share-v0 (TASKS T-19): the view as a source of landmarks (:here, a
++;; walker's current position) and place's 7-arity that reads it
++
++(def EW  {:walkers [{:id :walker-a :name "Walker A"} {:id :walker-b}]})
++(def EWp (assoc EW :well {:at [0 1 0]}))
++(def VW  {:as-of 1000 :camera {:pos [2 10 -3] :target [2 1 2]} :center [2.2 1.0 1.9]
++          :walkers {:walker-a [1 1.0 1] :walker-c [3 1.0 3]}})
++(def seen-ok {:ok true :view VW})
++(def stale {:ok false :reason "I can't see where you're looking: the game isn't open"})
++
++(deftest t43-view-landmarks
++  (is (= {:here {:word "where you're looking" :xz [2.2 1.9]}
++          :walker-a {:word "Walker A" :xz [1 1]}
++          :walker-c {:word "walker c" :xz [3 3]}}
++         (lot/view-landmarks VW EW)))
++  (is (= [:here :walker-a :walker-c] (keys (lot/view-landmarks VW EW))))
++  (is (= {:walker-a {:word "Walker A" :xz [1 1]}
++          :walker-c {:word "walker c" :xz [3 3]}}
++         (lot/view-landmarks (assoc VW :center nil) EW)))
++  (is (= {} (lot/view-landmarks nil EW))))
++
++(deftest t44-landmarks-with-view
++  (is (= [:here :walker-a :walker-c :well] (keys (lot/landmarks GF9 EWp [] VW))))
++  (is (= {:word "the here" :xz [4 4]} (:here (lot/landmarks GF9 {:here {:at [4 1 4]}} [] VW))))
++  (is (= [:well] (keys (lot/landmarks GF9 EWp [])))))
++
++(deftest t45-nearest-landmark
++  (let [lms (into (sorted-map) {:a {:word "the a" :xz [0 0]} :b {:word "the b" :xz [2 0]}})]
++    (is (= {:id :a :word "the a" :distance-m 1.0} (lot/nearest-landmark lms [1 0])))
++    (is (= {:id :b :word "the b" :distance-m 0.5} (lot/nearest-landmark lms [1.5 0]))))
++  (is (= {:id :creek :word "the creek" :distance-m 2.0}
++         (lot/nearest-landmark {:creek {:word "the creek" :cells [[0 3] [1 3]]}} [1 1])))
++  (is (nil? (lot/nearest-landmark {} [1 1]))))
++
++(deftest t46-place-near-here
++  (is (approx= {:ok true :at [2.0 1.0 2.0] :yaw 0 :landmark :here :distance-m 0.22360679774997896 :spread-m 0}
++               (lot/place GF9 EW [] (rules {}) stool :here seen-ok)))
++  (is (= "where you're looking" (:word (lot/resolve-landmark (lot/landmarks GF9 EW [] VW) :here)))))
++
++(deftest t47-place-near-walkers
++  (is (= {:ok true :at [1.0 1.0 1.0] :yaw 0 :landmark :walker-a :distance-m 0 :spread-m 0}
++         (lot/place GF9 EW [] (rules {}) stool :walker-a seen-ok)))
++  (is (= {:ok true :at [3.0 1.0 3.0] :yaw 0 :landmark :walker-c :distance-m 0 :spread-m 0}
++         (lot/place GF9 EW [] (rules {}) stool :walker-c seen-ok))))
++
++(deftest t48-place-view-refusals
++  (is (= "I can't see where you're looking: the game isn't open"
++         (:reason (lot/place GF9 EWp [] (rules {}) stool :here stale))))
++  (is (= "I can't see where you're looking: the game isn't sending its view"
++         (:reason (lot/place GF9 EWp [] (rules {}) stool :here nil))))
++  (is (= "I can't see where you're looking: the game isn't open"
++         (:reason (lot/place GF9 EWp [] (rules {}) stool :walker-a stale))))
++  (is (= "I don't know a place called walker-b; I know: here, walker-a, walker-c, well"
++         (:reason (lot/place GF9 EWp [] (rules {}) stool :walker-b seen-ok))))
++  (is (= "I can't tell where you're looking: the middle of your screen is sky"
++         (:reason (lot/place GF9 EWp [] (rules {}) stool :here {:ok true :view (assoc VW :center nil)}))))
++  (is (= "I don't know a place called pond; I know: well"
++         (:reason (lot/place GF9 EWp [] (rules {}) stool :pond stale))))
++  (is (= "no ground map (state/ground.edn): the twin samples it from the kit"
++         (:reason (lot/place nil EWp [] (rules {}) stool :here stale)))))
++
++(deftest t49-landmark-lines-with-view
++  (is (= ["here: where you're looking" "walker-a: Walker A" "walker-c: walker c" "well: the well"]
++         (lot/landmark-lines (lot/landmarks GF9 EWp [] VW)))))

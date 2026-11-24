@@ -1,0 +1,123 @@
+=== prompt 1 (14:17:48)
+⏺ Setting up temp view files and a draft for hand tests
+  ⎿  $ SCRATCH=/private/tmp/claude-504/-Users-hal-src-prime-meridian/fa096556-ac59-491f-8767-893db9eee48a/scratchpad
+     cp state/blueprints.edn "$SCRATCH/blueprints-copy.edn"
+     NOW=$(bb -e '(print (System/currentTimeMillis))')
+     cat > "$SCRATCH/view-fresh.edn" <<EOF
+     {:as-of $NOW :camera {:pos [5 8 -20] :target…
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose "switch to auto mode" below
+ Set up temp view files and a draft for hand tests
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ SCRATCH=/private/tmp/claude-504/-Users-hal-src-prime-meridian/fa096556-ac59-491f-8767-893db9eee48a/scratchpad
+ │ cp state/blueprints.edn "$SCRATCH/blueprints-copy.edn"
+ │ NOW=$(bb -e '(print (System/currentTimeMillis))')
+ │ cat > "$SCRATCH/view-fresh.edn" <<EOF
+ │ {:as-of $NOW :camera {:pos [5 8 -20] :target [3 6.2 -23]} :center [3.0 6.2 -23.0] :walkers {:un-automate-monde [4
+ │ 6.2 -22]}}
+ │ EOF
+ │ cat > "$SCRATCH/view-stale.edn" <<EOF
+ │ {:as-of 0 :camera {:pos [5 8 -20] :target [3 6.2 -23]} :center [3.0 6.2 -23.0] :walkers {:un-automate-monde [4 6.2
+ │ -22]}}
+ │ EOF
+ │ cat > "$SCRATCH/draft-handtest.edn" <<'EOF'
+ │ {:id :hand-test-item
+ │  :summary "hand-test: a lamp-ish box for the view-share-v0 hand test"
+ │  :look {:parts [{:shape :box :size [0.3 2.4 0.3] :at [0 1.2 0] :color :tin}
+ │                 {:shape :cone :size [0.7 0.4 0.7] :at [0 2.75 0] :color :tin}]}}
+ │ EOF
+ │ echo "--- view-fresh.edn ---"; cat "$SCRATCH/view-fresh.edn"
+ │ echo "--- view-stale.edn ---"; cat "$SCRATCH/view-stale.edn"
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Contains brace with quote character (expansion obfuscation)
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 2 (14:19:57)
+ │ Run bb where and blueprint-draft --dry-run against fresh, stale and missing view files
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ SCRATCH=/private/tmp/claude-504/-Users-hal-src-prime-meridian/fa096556-ac59-491f-8767-893db9eee48a/scratchpad
+ │ echo "=== FRESH: bb where ==="
+ │ PM_VIEW_FILE="$SCRATCH/view-fresh.edn" bb where
+ │ echo "=== FRESH: blueprint-draft --near here --dry-run ==="
+ │ PM_VIEW_FILE="$SCRATCH/view-fresh.edn" PM_BLUEPRINTS_FILE="$SCRATCH/blueprints-copy.edn" bb blueprint-draft
+ │ un-automate-monde "$SCRATCH/draft-handtest.edn" --near here --dry-run
+ │ echo
+ │ echo "=== STALE: bb where ==="
+ │ PM_VIEW_FILE="$SCRATCH/view-stale.edn" bb where
+ │ echo "exit: $?"
+ │ echo "=== STALE: blueprint-draft --near here --dry-run ==="
+ │ PM_VIEW_FILE="$SCRATCH/view-stale.edn" PM_BLUEPRINTS_FILE="$SCRATCH/blueprints-copy.edn" bb blueprint-draft
+ │ un-automate-monde "$SCRATCH/draft-handtest.edn" --near here --dry-run
+ │ echo "exit: $?"
+ │ echo
+ │ echo "=== MISSING: bb where ==="
+ │ PM_VIEW_FILE="$SCRATCH/view-missing.edn" bb where
+ │ echo "exit: $?"
+ │ echo "=== MISSING: blueprint-draft --near here --dry-run ==="
+ │ PM_VIEW_FILE="$SCRATCH/view-missing.edn" PM_BLUEPRINTS_FILE="$SCRATCH/blueprints-copy.edn" bb blueprint-draft
+ │ un-automate-monde "$SCRATCH/draft-handtest.edn" --near here --dry-run
+ │ echo "exit: $?"
+ │ echo
+ │ echo "=== sanity: --near un-automate-monde (walker id) with fresh view ==="
+ │ PM_VIEW_FILE="$SCRATCH/view-fresh.edn" PM_BLUEPRINTS_FILE="$SCRATCH/blueprints-copy.edn" bb blueprint-draft
+ │ un-automate-monde "$SCRATCH/draft-handtest.edn" --near un-automate-monde --dry-run
+ │ echo
+ │ echo "=== sanity: --landmarks with fresh view ==="
+ │ PM_VIEW_FILE="$SCRATCH/view-fresh.edn" bb blueprint-draft --landmarks
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles these prompts for you
+   3. No
+ ↑ 3 more lines
+ Esc to cancel · Tab to amend
+=== prompt 3 (14:20:17)
+      69 -        (or (and (nil? c1) (some? c2))
+      70 -            (and (some? c1) (nil? c2))
+      71 -            (and (some? c1) (some? c2) (> (d3 c1 c2) (+ center-move-m eps)))))
+      72 -      (let [w1 (:walkers last) w2 (:walkers snap)]
+      73 -        (or (not= (set (keys w1)) (set (keys w2)))
+      74 -            (some (fn [[k v]] (> (d3 v (get w2 k)) (+ walker-move-m eps))) w1)))))
+      65 +  (boolean
+      66 +    (or (nil? last)
+      67 +        (> (d3 (get-in snap [:camera :pos]) (get-in last [:camera :pos])) (+ camera-move-m eps))
+      68 +        (> (d3 (get-in snap [:camera :target]) (get-in last [:camera :target])) (+ camera-move-m eps))
+      69 +        (let [c1 (:center last) c2 (:center snap)]
+      70 +          (or (and (nil? c1) (some? c2))
+      71 +              (and (some? c1) (nil? c2))
+      72 +              (and (some? c1) (some? c2) (> (d3 c1 c2) (+ center-move-m eps)))))
+      73 +        (let [w1 (:walkers last) w2 (:walkers snap)]
+      74 +          (or (not= (set (keys w1)) (set (keys w2)))
+      75 +              (some (fn [[k v]] (> (d3 v (get w2 k)) (+ walker-move-m eps))) w1))))))
+      76
+      77  (defn post?
+      78    "Whether view-tick! should post snap now (TASKS T-19), the first rule
+
+  Checking bb where usage/exit-2 path with a stray argument
+  ⎿  $ bb where extra-arg; echo "exit: $?"
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose "switch to auto mode" below
+ Check bb where usage/exit-2 path with a stray argument
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ bb where extra-arg; echo "exit: $?"
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don't ask again for bb where and "echo \"exit: $?\"" commands in /Users/hal/src/prime-meridian
+   3. Yes, and switch to auto mode · auto mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend

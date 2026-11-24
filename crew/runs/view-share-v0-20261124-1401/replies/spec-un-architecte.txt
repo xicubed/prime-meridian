@@ -1,0 +1,115 @@
+
+ ▐▛███▛█   Claude Code v2.1.331
+▝▜██████▀  Opus 5.5 with high effort · Claude Max
+ ▝▝   ▝▝   ~/src/prime-meridian
+
+
+❯ Say hi in ONE line: your name, your job, and the model you're running on. Don't use any tools.
+
+⏺ Hi, I'm Un Architecte, the Prime Meridian crew's lead architect: I turn each quest into a spec the builder and tester
+  can work from in parallel, and I'm running on Claude Opus 5.5 (claude-opus-5-5).
+
+✻ Worked for 1s · done 11:35 AM
+
+❯ New quest: read .crew/quests/blueprint-draft-v0.md (and the code and earlier runs it cites; read state/ground.edn's
+  header and a few rows, but tests must not read it). Write the spec to
+  crew/runs/blueprint-draft-v0-20261124-1208/spec.md following your role card: exact signatures for src/pm/lot.cljc,
+  numbered test cases on small hand-built grids/estates with hand-checked expected values (work the yaw formula and
+  tie-breaks by hand), and a who-touches-what table (builder: src/pm/lot.cljc, scripts/blueprint_draft.clj, bb.edn's
+  new task, resources/estate.edn's new :build-rules only; tester: a new test/pm/lot_test.cljs only; le-docteur:
+  TASKS.md T-13 row note and the AGENTS.md/README line listing bb commands, if one exists). Reply when it's written.
+
+  When you have completely finished, end your reply with a line containing only this: done-4481
+
+  Searched for 1 pattern, read 1 file, listed 2 directories, ran 2 shell commands · 1 failed
+
+⏺ Still on it: I've read the quest and the code it points to, and I'm now writing the spec with the hand-worked test
+  values.
+
+  Searched for 1 pattern
+
+⏺ Write(crew/runs/blueprint-draft-v0-20261124-1208/spec.md)
+  ⎿  Wrote 540 lines to crew/runs/blueprint-draft-v0-20261124-1208/spec.md
+       1 # Spec: blueprint draft v0 (TASKS T-13, the last piece)
+       2
+       3 Quest: `.crew/quests/blueprint-draft-v0.md`. Start commit `94f9706`.
+       4 A crew member writes a **draft** (a blueprint with no `:at`/`:yaw`) and runs
+       5 `bb blueprint-draft <member> <draft.edn> --near <landmark>`. The pure `pm.lot` finds a level,
+       6 open spot near that landmark on the kit's sampled ground map, clear of everything else, and the
+       7 command hands the full blueprint to the existing `scripts/blueprint_add.clj`.
+       8
+       9 Everything the quest records as decided stands. This spec fixes the names, shapes, order of checks,
+      10 rounding and messages, and works the test values by hand.
+     … +530 lines
+
+⏺ Spec: crew/runs/blueprint-draft-v0-20261124-1208/spec.md
+  Public pm.lot functions: feet, look-radius, turn, feet-at, cell, segments, seg-dist, things, landmarks,
+  landmark-lines, spot, refusal, place, fmt, placed-line, blueprint, parse-args
+  Test cases: 40 numbered (t01–t40), each with hand-worked values, covering both mirrors and every refusal reason.
+  done-4481
+
+✻ Cogitated for 9m 47s · done 12:17 PM
+
+❯ New quest: read .crew/quests/view-share-v0.md (and the code it cites). Write the spec to
+  crew/runs/view-share-v0-20261124-1401/spec.md following your role card: exact signatures (new src/pm/view.cljc, the
+  pm.bridge /view validation, the pm.three centre ray, the pm.lot additions), numbered test cases with hand-checked
+  expected values, and a who-touches-what table (builder: src/pm/view.cljc, src/pm/bridge.cljc, src/pm/three.cljs,
+  src/pm/core.cljs, src/pm/lot.cljc, scripts/crew_bridge.clj, scripts/blueprint_draft.clj, new scripts/where.clj,
+  bb.edn's new task; tester: new test/pm/view_test.cljs plus additions to test/pm/lot_test.cljs and the existing
+  bridge test file, only adding tests; le-docteur: a TASKS.md row T-19 only; Hal updates the role cards himself).
+  Reply when it's written.
+
+  When you have completely finished, end your reply with a line containing only this: done-7468
+
+  Searched for 1 pattern, read 2 files, ran 3 shell commands
+
+⏺ Reading how the game finds the kit's ground meshes and how the bridge handles /hold. After that I'll write the spec.
+
+  Ran 2 shell commands
+
+⏺ Read everything the quest cites. Checking the TASKS.md row format, then writing the spec.
+
+  Ran 1 shell command
+
+⏺ Write(crew/runs/view-share-v0-20261124-1401/spec.md)
+  ⎿  Wrote 483 lines to crew/runs/view-share-v0-20261124-1401/spec.md
+       1 # Spec: view share v0 (TASKS T-19)
+       2
+       3 Quest: `.crew/quests/view-share-v0.md`. Start commit `6b469db`.
+       4 The game posts the player's camera, the ground spot at the screen's centre, and every walker's
+       5 position to the bridge's new `POST /view`. The bridge writes the private `state/view.edn`. Then
+       6 `bb blueprint-draft … --near here|<walker-id>` and the new `bb where` can read it, so the twin no
+       7 longer needs a screenshot to know where the player is looking. Nothing new appears on screen.
+       8
+       9 Everything the quest records as decided stands. This spec fixes the names, shapes, thresholds,
+      10 messages and order of checks, and works the test values out by hand.
+     … +473 lines
+
+⏺ Spec: crew/runs/view-share-v0-20261124-1401/spec.md
+
+  Public functions:
+  - pm.view (new): vec3?, round-cm, snapshot, changed?, post?, sent, settled, view-url, body, view-edn, fresh,
+    ground-word, where-lines.
+  - pm.bridge: view-uri and a /view branch in validate; log-line now accepts "view".
+  - pm.three: rig-view, center-hit.
+  - pm.lot: view-landmarks, a 4-arity landmarks, nearest-landmark, a 7-arity place, and the strings no-view and sky.
+
+  Test cases: 26, all numbered (v01–v15 view, t05–t08 bridge, t43–t49 lot). Of the new functions, only center-hit and
+  rig-view have no tests; they're three.js interop.
+
+  The quest didn't settle a few things, so I decided them in the spec:
+  - Which message when: no view file gives "the game isn't sending its view"; a view older than 120 s gives "the game
+    isn't open".
+  - Looking at the sky: --near here while the centre of the screen is sky is refused with its own line ("the middle of
+    your screen is sky").
+  - Walkers aren't obstacles: a draft placed --near <walker> can land right on that walker's spot, since walkers and
+    the centre spot are not things to keep clear of.
+  - Failed posts: a refused or failed /view post isn't retried until something moves or the 30 s keep-alive comes due.
+    done-7468
+
+✻ Baked for 4m 57s · done 2:06 PM
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

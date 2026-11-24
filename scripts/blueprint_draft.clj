@@ -13,7 +13,8 @@
          '[clojure.java.io :as io]
          '[babashka.process :as p]
          '[pm.blueprint-file :as bf]
-         '[pm.lot :as lot])
+         '[pm.lot :as lot]
+         '[pm.view :as view])
 
 (defn- fail! [text]
   (binding [*out* *err*] (println (str "blueprint-draft: " text)))
@@ -24,6 +25,9 @@
 
 (defn- blueprints-file []
   (or (System/getenv "PM_BLUEPRINTS_FILE") bf/state-path))
+
+(defn- view-file []
+  (or (System/getenv "PM_VIEW_FILE") "state/view.edn"))
 
 (defn- read-edn [path]
   (let [f (io/file path)]
@@ -42,22 +46,24 @@
     (when-not rules
       (fail! "resources/estate.edn has no :build-rules"))
     (let [ground (read-edn (ground-file))
-          file-bps (:blueprints (bf/normalize (read-edn (blueprints-file))))]
+          file-bps (:blueprints (bf/normalize (read-edn (blueprints-file))))
+          seen (view/fresh (read-edn (view-file)) (System/currentTimeMillis))
+          view' (when (:ok seen) (:view seen))]
       (case (:mode parsed)
         :landmarks
-        (do (doseq [line (lot/landmark-lines (lot/landmarks ground estate file-bps))]
+        (do (doseq [line (lot/landmark-lines (lot/landmarks ground estate file-bps view'))]
               (println line))
             (System/exit 0))
 
         :draft
         (let [{:keys [path member near dry-run]} parsed
               draft (or (read-edn path) (fail! (str "can't read " path)))
-              result (lot/place ground estate file-bps rules draft near)]
+              result (lot/place ground estate file-bps rules draft near seen)]
           (if-not (:ok result)
             (fail! (:reason result))
             (let [bp (lot/blueprint draft result)
                   problems (bf/problems bp)
-                  lm (lot/resolve-landmark (lot/landmarks ground estate file-bps) near)]
+                  lm (lot/resolve-landmark (lot/landmarks ground estate file-bps view') near)]
               (when (seq problems)
                 (fail! (str "invalid draft: " (clojure.string/join "; " problems))))
               (if dry-run

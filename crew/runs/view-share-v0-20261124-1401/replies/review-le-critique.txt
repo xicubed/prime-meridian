@@ -1,0 +1,303 @@
+hal in ~/src/prime-meridian on main ● λ export PATH=/Users/hal/.cache/crew-up/prime-meridian/bin-le-critique:$PATH
+hal in ~/src/prime-meridian on main ● λ hermes -p crew -m claude-sonnet-5 --in /Users/hal/src/prime-meridian --provider anthropic
+You are Le Critique (Herdr agent name "le-critique"), the critic in the "prime-meridian" crew: coding agents in Herdr panes.
+The manager is Hal ("hal"). They send you work by typing into your pane and read your reply on your screen, so answer in your pane; you can't message them any other way.
+Project directory: /Users/hal/src/prime-meridian
+
+# Role: critic
+
+You do a read-only review of the round's diff against the spec: naming,
+idiomatic ClojureScript, purity (no js/Date or three.js inside `pm.world`),
+anything specific to one pet leaking into code, and whether the code and
+tests match what the spec asked for.
+
+Project: **Prime Meridian**, a cozy 3D management game where the characters are real AI agents (`docs/GDD.md`). Read `AGENTS.md` before your first change: ClojureScript via shadow-cljs, three.js only through `pm.three`, Babashka for scripts, **no TypeScript, ever**, 0 compile warnings. The repo is public: no secrets, phone numbers or emails in anything you write.
+
+- Never edit source or t
+
+██╗  ██╗███████╗██████╗ ███╗   ███╗███████╗███████╗       █████╗  ██████╗ ███████╗███╗   ██╗████████╗
+██║  ██║██╔════╝██╔══██╗████╗ ████║██╔════╝██╔════╝      ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝
+███████║█████╗  ██████╔╝██╔████╔██║█████╗  ███████╗█████╗███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║
+██╔══██║██╔══╝  ██╔══██╗██║╚██╔╝██║██╔══╝  ╚════██║╚════╝██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║
+██║  ██║███████╗██║  ██║██║ ╚═╝ ██║███████╗███████║      ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║
+╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝      ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝
+
+╭────────────────────────── Hermes Agent v0.23.1 (2026.9.24) · stable · local 3b4215785882 ───────────────────────────╮
+│                                   Available Tools                                                                   │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀⠀⢀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   browser-use: browser_exec                                                         │
+│  ⠀⠀⠀⠀⠀⠀⢀⣠⣴⣾⣿⣿⣇⠸⣿⣿⠇⣸⣿⣿⣷⣦⣄⡀⠀⠀⠀⠀⠀⠀   clarify: clarify                                                                  │
+│  ⠀⢀⣠⣴⣶⠿⠋⣩⡿⣿⡿⠻⣿⡇⢠⡄⢸⣿⠟⢿⣿⢿⣍⠙⠿⣶⣦⣄⡀⠀   code_execution: execute_code                                                      │
+│  ⠀⠀⠉⠉⠁⠶⠟⠋⠀⠉⠀⢀⣈⣁⡈⢁⣈⣁⡀⠀⠉⠀⠙⠻⠶⠈⠉⠉⠀⠀   connections: manage_connections                                                   │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⣿⡿⠛⢁⡈⠛⢿⣿⣦⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   delegation: delegate_task                                                         │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠿⣿⣦⣤⣈⠁⢠⣴⣿⠿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   file: patch, read_file, search_files, write_file                                  │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠻⢿⣿⣦⡉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   image_gen: image_generate                                                         │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⢷⣦⣈⠛⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   memory: memory                                                                    │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣴⠦⠈⠙⠿⣦⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   (and 6 more toolsets...)                                                          │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⣿⣤⡈⠁⢤⣿⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀                                                                                     │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠷⠄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   Available Skills                                                                  │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠑⢶⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   autonomous-ai-agents: hermes-agent                                                │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠁⢰⡆⠈⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   general: crew-round-review                                                        │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠳⠈⣡⠞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀                                                                                     │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   Profile: crew                                                                     │
+│                                   21 tools · 2 skills · /help for commands                                          │
+│  claude-sonnet-5 · Nous Research  ⚠ update available                                                                │
+│  /Users/hal/src/prime-meridian                                                                                      │
+│  Session: 86a98d2b                                                                                                  │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+Welcome to Hermes Agent! Type your message or /help for commands.
+✦ Tip: On second+ compression, the compressor updates the previous summary instead of starting from scratch.
+
+
+
+────────────────────────────────────────
+❯ Say hi in ONE line: your name, your job, and the model you're running on. Don't use any tools.
+────────────────────────────────────────
+
+────────────────────────────────────────
+☤ Hermes
+Hal, dev agent on Prime Meridian, running on Claude Sonnet 5.
+────────────────────────────────────────
+
+─ 4.8s · 11:35 AM
+
+
+────────────────────────────────────────
+❯ Review the round's changes against crew/runs/blueprint-draft-v0-20261124-1208/spec.md and .crew/quests/blueprint-draft-v0.md: git diff for edited files, and read the new files (git status lists them). Check in particular: pm.lot is pure cljc (no I/O, no js/Date) and its rules come from the rules map; feet, yaw rotation and the highest-foot y match the quest; every refusal reason is reachable and readable; the command hands the blueprint to the existing blueprint_add.clj (one writer, one validator) and honours PM_GROUND_FILE/PM_BLUEPRINTS_FILE; --dry-run writes nothing; tests never read state/; no person, pet, member or prop named in code; no npm deps. Write the review to crew/runs/blueprint-draft-v0-20261124-1208/review.md.
+
+When you have completely finished, end your reply with a line containing only this: done-5431
+────────────────────────────────────────
+
+📚 Skill crew-round-review
+💻 $ echo "=== git status ===" + 5 commands  0.7s
+💻 $ echo "=== quest ===" + 1 command  0.3s
+💻 $ ls crew/runs/blueprint-draft-v0-20261124-1208/ + 2 commands  0.3s
+💻 $ wc -l crew/runs/blueprint-draft-v0-20261124-1208/spec.md + 1 command  0.3s
+💻 $ echo "=== git diff bb.edn ===" + 3 commands  0.4s
+💻 $ wc -l src/pm/lot.cljc scripts/blueprint_draft.clj test/pm/lot_test.cljs  0.3s
+
+────────────────────────────────────────
+☤ Hermes
+Both bb.edn and estate.edn diffs match the spec exactly. Now let's read the three new source files in full.
+────────────────────────────────────────
+
+📖 Read lot.cljc
+📖 Read blueprint_draft.clj
+📖 Read lot_test.cljs  0.5s
+🔎 Grep member-re|id-re|state-path|defn problems|defn normalize|defn valid\?  0.5s
+💻 $ echo "=== npm deps diff ===" + 8 commands  0.4s
+💻 $ cat crew/runs/blueprint-draft-v0-20261124-1208/builder-notes.md + 2 commands  0.3s
+💻 $ grep -c "^(deftest" test/pm/lot_test.cljs + 1 command  21.4s
+💻 $ bash .crew/gate.sh | grep -i "pm.lot"  19.5s
+💻 $ grep -n "js/Date\|atom\|js/fetch\|slurp\|spit\|println" src/pm/lot.cljc  0.4s
+
+────────────────────────────────────────
+☤ Hermes
+All checks confirm clean (only the docstring mentions those words; no actual usage). Everything verifies against spec. Writing the review.
+────────────────────────────────────────
+
+✍️ Write /Users/hal/src/prime-meridian/crew/runs/blueprint-draft-v0-20261124-1208/review.md
+│ crew/runs/blueprint-draft-v0-20261124-1208/review.md
+│ @@ -0,0 +1,59 @@
+│ +# Review — blueprint-draft-v0 (2026-11-24 12:08)
+│ +
+│ +## Scope
+│ +`git status --short`: new `src/pm/lot.cljc`, `scripts/blueprint_draft.clj`, `test/pm/lot_test.cljs`,
+│ +plus edits to `bb.edn` and `resources/estate.edn`. Diffed `bb.edn`/`resources/estate.edn` with
+│ +`git diff`, read the three new files in full, and read `spec.md` (540 lines) and the quest in
+│ +full. No pre-existing/unrelated dirt in the diff — both edited files' hunks are exactly the lines
+│ +the spec's boundary table allows (the `blueprint-draft` bb task; the `:build-rules` key with its
+│ +comment, nothing else in `estate.edn`).
+│ +
+│ +## Verified independently
+│ +- Re-ran `bash .crew/gate.sh` myself (not just read `gate-note.md`): **PASS, 0 warnings, 1437
+│ +  tests / 7917 assertions**, matching `gate-note.md` exactly. `pm.lot-test` appears in the
+│ +  compiler's namespace list and its own `Testing pm.lot-test` line is in the output.
+│ +- `grep -c "^(deftest" test/pm/lot_test.cljs` → 40, matching spec §6's "40 cases" and every t01–
+│ +  t40 label is present under the headings the spec groups them into.
+│ +- `pm.lot.cljc`: requires only `clojure.string` and `pm.blueprint-file` (confirmed in the `ns`
+│ +  form); grepped for `js/Date`, `atom`, `slurp`, `spit`, `println` — zero real hits (only the
+│ +  docstring's own prose mentions "no atoms, no js/Date"). No `::k` keys in either new source file.
+│ +- Rules come from the passed-in map everywhere: `spot`'s destructure (`max-spread-m gap-m
+│ +  route-m`) and `place`'s (`step search-m yaws`) all read off the `rules` arg; `resources/estate.edn`
+│ +  only supplies `:build-rules` data, never consulted inside `pm.lot` itself.
+│ +- `feet`/`turn`/highest-foot-`y` match the quest/spec formulas exactly: grounded test is
+│ +  `|ay − sy/2| <= grounded-m + eps`; narrow one-foot vs. wide five-foot split at `narrow-m`;
+│ +  `turn` is `[(+ (* c dx) (* s dz)) (+ (* (- s) dx) (* c dz))]` with cos/sin rounded to 12
+│ +  decimals; `spot`'s success branch returns `:y (apply max ys)`. Hand-checked `look-radius`
+│ +  against t07/t13's worked numbers (base √1.36/2 ≈ 0.58309519; jar √0.0128/2×4 ≈ 0.22627417) —
+│ +  both match the implementation's formula and the test's expected value.
+│ +- Every refusal reason in the quest's list is reachable and reads as a line a player can parse:
+│ +  canopy/bushes/rocks/creek/no-ground via `cell-reason` (§3.1's five strings), "too steep",
+│ +  "too close to <word>", "on a walker's path", unknown-landmark, no-ground-map, and
+│ +  "nothing touches the ground" each has its own exercising test (t16, t17, t18/t19, t29–t36) and
+│ +  all pass against the real `spot`/`place` code, not a mock.
+│ +- `spot`'s check order is ground → steep → too-close → route, matching §3.12 and the quest; the
+│ +  code's `cond`/`if` chain was read directly, not inferred from test names.
+│ +- `scripts/blueprint_draft.clj` hands the full blueprint to the **existing**
+│ +  `scripts/blueprint_add.clj` via a temp file + `p/shell`, never writes `state/` itself — one
+│ +  writer, one validator, as required. `PM_GROUND_FILE`/`PM_BLUEPRINTS_FILE` are both honoured
+│ +  (`ground-file`/`blueprints-file` helpers check the env var before the default path).
+│ +  `--dry-run` only calls `println`; the temp-file/`blueprint_add.clj` branch is structurally in
+│ +  the `else` of `if dry-run`, so dry-run writes nothing — confirmed by reading the branch, and
+│ +  `builder-notes.md` documents a real hand run against the live ground map with `diff` showing
+│ +  the temp copy unchanged.
+│ +- `test/pm/lot_test.cljs` builds every grid/estate fixture inline (§5) and never opens
+│ +  `state/ground.edn`; the only two appearances of the string `"state/"` are inside expected
+│ +  refusal-message literals (`no-ground-map`'s text), not a file read.
+│ +- No person/pet/member/prop name appears in the two production files (`src/pm/lot.cljc`,
+│ +  `scripts/blueprint_draft.clj`) — grepped for Michael, Hal, Pip, Wren, Flora, Phoenix and
+│ +  specific prop ids, zero hits outside doc comments quoting the spec itself. `test/pm/lot_test.cljs`
+│ +  does use "Pip"/"Wren"/"Flora" names, but only as the architect's own §5 fixture data (literally
+│ +  copied from `spec.md`'s own E2 estate) — that's test data exercising the "both mirrors" case,
+│ +  not production code naming a real crew member.
+│ +- `git diff --stat -- package.json package-lock.json` is empty: no npm deps added.
+│ +
+│ +## Findings
+│ +None rise above a style nit. The implementation is a faithful, hand-traceable port of the
+│ +spec's formulas (feet, turn, spot's check order, refusal tie-break, fmt, the world-anchored
+│ +candidate grid), the gate is genuinely green on a fresh run, and every boundary-table/purity/
+│ +naming constraint in the quest holds.
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/blueprint-draft-v0-20261124-1208/review.md. 0 findings — re-ran the gate myself (PASS, 0 warnings, 1437 tests/7917 assertions, matches gate-note.md), confirmed pm.lot is pure cljc with rules sourced from the passed-in map, feet/turn/highest-foot-y match the spec's formulas, all refusal reasons are reachable, the command is one-writer-one-validator via blueprint_add.clj honoring both env overrides, --dry-run writes nothing, tests build their own fixtures (no state/ reads), no leaked names in the two production files, and no npm diff.
+
+done-5431
+────────────────────────────────────────
+
+─ 2m29s · edited 1 file · read 1 skill, 3 files · ran 11 commands · searched 1 path · 12:31 PM
+  💾 Self-improvement review: Skill 'crew-round-review' patched
+
+
+────────────────────────────────────────
+❯ Review the round's changes against crew/runs/view-share-v0-20261124-1401/spec.md and .crew/quests/view-share-v0.md: git diff for edited files, and read the new files (git status lists them). Check in particular: /view has the same token/origin/size guards as /hold and refuses every malformed field; successful /view posts aren't logged; state/view.edn is written atomically; the game never posts in the demo build, with the bridge off, or while a post is in flight, and throttles as the quest says; pm.view and pm.lot stay pure (now is an argument); --near here / --near <walker> refuse a stale or missing view with a readable line; tests never touch state/; no person, pet or member named in code; no npm deps. Write the review to crew/runs/view-share-v0-20261124-1401/review.md.
+
+When you have completely finished, end your reply with a line containing only this: done-1654
+────────────────────────────────────────
+
+💻 $ echo "=== git status ===" + 3 commands  1.2s
+💻 $ echo "=== quest ===" + 1 command  0.4s
+💻 $ ls crew/runs/view-share-v0-20261124-1401/ + 2 commands  0.5s
+📖 Read spec.md
+
+────────────────────────────────────────
+☤ Hermes
+Now let's look at git diffs for all edited files and read the new files.
+────────────────────────────────────────
+
+💻 $ git diff -- bb.edn src/pm/bridge.cljc scripts/crew_bridge.clj  0.6s
+💻 $ git diff -- src/pm/three.cljs src/pm/core.cljs  0.4s
+💻 $ git diff -- src/pm/lot.cljc scripts/blueprint_draft.clj  0.6s
+📖 Read lot.cljc
+📖 Read view.cljc
+📖 Read where.clj
+🔎 Grep defn.*write-edn!  0.4s
+🔎 Grep defn.*log!|:view|actions  0.4s
+📖 Read crew_bridge.clj L230-319
+🔎 Grep \[pm\.three :as t\]|\[pm\.motion :as m\]|DEMO|bridge-on\?|find-meshes|ground-name\?  0.4s
+🔎 Grep defn find-meshes|defn ground-name\?  0.4s
+📖 Read view_test.cljs
+💻 $ git diff -- test/pm/bridge_real_test.cljs test/pm/lot_test.cljs  0.3s
+💻 $ grep -c "^(deftest" test/pm/view_test.cljs + 2 commands  0.3s
+💻 $ cat crew/runs/view-share-v0-20261124-1401/builder-notes.md  0.2s
+💻 $ grep -niE "michael|\bhal\b|pip|wren|flora|phoenix|juniper|un-automate|le-testeur|crew member" src/pm/view.cljc src/pm/bridge.cljc src/pm/three.cljs src/pm/lot.cljc scripts/crew_bridge.clj scripts/blueprint_draft.clj scripts/where.clj  0.5s
+💻 $ grep -n "js/Date\|System/currentTimeMillis" src/pm/view.cljc src/pm/lot.cljc  0.4s
+💻 $ cat crew/runs/view-share-v0-20261124-1401/gate-note.md + 1 command  22.5s
+💻 $ git show 6b469db:test/pm/lot_test.cljs | grep -c "^(deftest" + 3 commands  2.4s
+💻 $ git ls-tree -r 6b469db --name-only | grep "^test/" | grep "\.cljs$" | while read f + 2 commands  2.1s
+💻 $ git show 6b469db:src/pm/lot.cljc | sed -n '280,330p'  0.4s
+
+────────────────────────────────────────
+☤ Hermes
+Confirmed — resolve-landmark already existed pre-round; this round only wrapped place into a multi-arity and added the :here/walker-id cond branches, keeping the 6-arity's observable behavior for every pre-existing call pattern (confirmed by t22–t42 in lot_test.cljs, none of which were edited — git diff shows only + lines appended at the file's end for t43–t49). Everything checks out. Writing the review now.
+────────────────────────────────────────
+
+✍️ Write /Users/hal/src/prime-meridian/crew/runs/view-share-v0-20261124-1401/review.md
+│ crew/runs/view-share-v0-20261124-1401/review.md
+│ @@ -0,0 +1,72 @@
+│ +# Review — view-share-v0 (2026-11-24 14:01)
+│ +
+│ +## Scope
+│ +Start commit `6b469db` = current `HEAD`, so `git diff` shows exactly this round's work (no
+│ +stacking). Diffed every edited file (`bb.edn`, `src/pm/bridge.cljc`, `scripts/crew_bridge.clj`,
+│ +`src/pm/core.cljs`, `src/pm/three.cljs`, `src/pm/lot.cljc`, `scripts/blueprint_draft.clj`,
+│ +`test/pm/bridge_real_test.cljs`, `test/pm/lot_test.cljs`) and read the four new files
+│ +(`src/pm/view.cljc`, `scripts/where.clj`, `test/pm/view_test.cljs`, plus the run dir) in full,
+│ +against `spec.md` (483 lines) and the quest in full.
+│ +
+│ +## Verified independently
+│ +- Re-ran `bash .crew/gate.sh` myself: **PASS, 0 warnings, 1465 tests / 8049 assertions**,
+│ +  matching `gate-note.md`. Baseline check: summed `deftest` across every `test/*.cljs` at the
+│ +  start commit `6b469db` → **1439**; this round's new tests (v01–v15 + t05–t08 bridge + t43–t49
+│ +  lot = 15+4+7 = **26**, each count confirmed by grep) → 1439+26 = 1465, exactly what the gate
+│ +  reports. No test was dropped or weakened; `t22`–`t42` of `lot_test.cljs` are untouched
+│ +  (`git diff` only appends `t43`–`t49` at the file's end).
+│ +- `/view`'s guard order and status codes match `/hold`'s exactly: method → route (uri now
+│ +  includes `view-uri`) → json → token → origin, all before the `(= uri view-uri)` branch; every
+│ +  malformed field (`action`, `camera`/pos/target, missing/invalid `center`, non-sequential/
+│ +  oversized/malformed/duplicate-id `walkers`) returns 400 with the exact reason string the spec
+│ +  gives, in the spec's own check order — confirmed by reading `pm.bridge/validate`'s `cond`
+│ +  directly and by `t06-validate-view-refusals`/`t07-validate-view-guards` passing against the
+│ +  real `validate` fn (not a mock).
+│ +- Successful `/view` posts are not logged: `scripts/crew_bridge.clj`'s `:view` success branch
+│ +  (`crew_bridge.clj:313-315`) has no `log!` call; only the 500 write-failure path logs
+│ +  (`log! nil :view 500 "view not saved"`). Refusals still go through the existing shared `log!`
+│ +  call before the action dispatch, so a bad `/view` POST does show in `crew/bridge.log` as the
+│ +  spec requires (`log-line`'s action set now includes `"view"`).
+│ +- `state/view.edn` is written through the same `write-edn!` already used for `hold-file`/
+│ +  `builds-file`: spit to `<path>.tmp` then `.renameTo` — atomic, and reused unchanged (the
+│ +  builder didn't reimplement it).
+│ +- Demo/bridge-off/in-flight/throttle all verified structurally, not just by test: `core.cljs`'s
+│ +  `view-tick!` wraps its entire body in `(when-not DEMO …)` (no raycast or post even attempted in
+│ +  the demo build); `view/post?`'s `cond` checks `:demo?`, then `(not :bridge-on?)`, then
+│ +  `:in-flight?` before anything else; `:in-flight?` is set true by `view/sent` at send time and
+│ +  cleared by `view/settled` in both the fetch's `.then` and `.catch`, so a failed POST doesn't
+│ +  wedge the flag. Two independent throttles exist exactly as the spec separates them: the
+│ +  raycast/snapshot itself runs at most every `view/post-every-ms` via `:checked-at` (so
+│ +  `bricks/spots` and the ray aren't recomputed every frame), and the actual post decision inside
+│ +  `post?` separately enforces the same interval against `:last-at`, plus the 30 s keep-alive —
+│ +  matches `v05-post?`'s worked cases (2500 ms → false, 3000 ms → true, 31000 ms keep-alive → true).
+│ +- `pm.view` and `pm.lot` stay pure: both files' docstrings and a direct grep show no `js/Date`,
+│ +  no atoms, no three.js, no I/O; every function that needs the current time takes `now` as an
+│ +  argument (`fresh`, `post?`, `sent`, `view-edn`, `where-lines`) — only the I/O-layer scripts
+│ +  (`where.clj`, `blueprint_draft.clj`, `crew_bridge.clj`) call `System/currentTimeMillis` and
+│ +  pass it in.
+│ +- `--near here` / `--near <walker>` refusals: hand-traced `place`'s 7-arity `cond` against every
+│ +  row of t48 (stale view → "the game isn't open"; missing view → "isn't sending its view"; a
+│ +  known walker id with no view → same two reasons via `(or (:reason seen) no-view)`; `:here` with
+│ +  a view whose `:center` is nil → the new `sky` reason; an unknown name → the existing
+│ +  "I don't know a place called…" listing, with view names folded in) — every one matches the
+│ +  code's actual branch, not just the test's name, and `ground` not a map still wins first
+│ +  regardless of `near` (unchanged `no-ground-map` guard at the top of `place`).
+│ +- `test/pm/view_test.cljs`, `t05-t08` bridge additions and `t43-t49` lot additions build every
+│ +  fixture inline; no file touches `state/` (confirmed by grep — no bare `state/` path outside
+│ +  expected-reason string literals). `builder-notes.md` documents three hand runs, all through
+│ +  `PM_VIEW_FILE`/`PM_BLUEPRINTS_FILE` temp files with `--dry-run`.
+│ +- No person/pet/member name appears in the new/changed production code introduced by this round
+│ +  (`src/pm/view.cljc`, the `/view` additions to `src/pm/bridge.cljc`, `rig-view`/`center-hit` in
+│ +  `src/pm/three.cljs`, the `view-tick!` hunk in `src/pm/core.cljs`, `src/pm/lot.cljc`'s §5
+│ +  additions, `scripts/where.clj`, the new lines in `scripts/blueprint_draft.clj` and
+│ +  `scripts/crew_bridge.clj`) — grepped for Michael/Hal/Pip/Wren/Flora/Phoenix/Juniper and the
+│ +  only hits are pre-existing lines outside this round's hunks (e.g. `three.cljs`'s `ghost-fill`
+│ +  comment from Nov 22, `crew_bridge.clj`'s pre-existing `hal-session`/`relay-to-hal!` machinery).
+│ +- `git diff --stat -- package.json package-lock.json` is empty: no npm deps added.
+│ +
+│ +## Findings
+│ +None rise above a style nit. The round is a faithful, hand-traceable implementation of the
+│ +spec's validation order, atomic write, logging exclusion, post-decision state machine, and the
+│ +view-as-landmarks extension to `pm.lot`, and the gate is genuinely green on a fresh run with the
+│ +exact expected test-count delta.
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/view-share-v0-20261124-1401/review.md. 0 findings — re-ran the gate myself (PASS, 0 warnings, 1465 tests/8049 assertions, matching the baseline-1439 + this round's 26 new cases exactly), confirmed /view's guard order/refusals mirror /hold, successful posts aren't logged (only the 500 path logs), state/view.edn uses the existing atomic tmp+rename writer, demo/bridge-off/in-flight/throttle are all structurally enforced in view-tick!/post?, pm.view and pm.lot take now as an argument with no js/Date/I/O, the --near here/<walker> refusal branches hand-trace correctly against every t48 case, tests never touch state/, no leaked names in this round's hunks, and no npm diff.
+
+done-1654
+────────────────────────────────────────
+
+─ 3m41s · edited 1 file · read 6 files · ran 15 commands · searched 4 paths · 2:25 PM
+────────────────────────────────────────────────────────────────────────────────────────── Introduce yourself briefly ─
+crew ❯ Draft a reply to the last email in my inbox
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☤ claude-sonnet-5 · ~149K/1M · [██░░░░░░░░] ~15% · ◎ 93.4% · ◷ 10.1s · ↑ 80 t/s · 2h 55m · ⏲ 3m 40s · ✓ 0s

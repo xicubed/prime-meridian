@@ -27,7 +27,9 @@ pane as a plain prompt. When he asks for a thing in the world ("put a bench by t
 "a lamp near the mailbox"), that is a build request: answer it with a blueprint, never by
 editing `resources/estate.edn` or any source file.
 
-1. Pick the landmark from his words: `bb blueprint-draft --landmarks` lists the names.
+1. Pick the landmark from his words: `bb blueprint-draft --landmarks` lists the names. "Here" is
+   `--near here` (the centre of his screen) and "by you / by him" is `--near <walker-id>`; both
+   need the game open (`bb where` shows what it sees). The twin may also hand you `--near x,z`.
 2. Write a draft in your scratchpad: `{:id :<new-kebab-id> :summary "proposed: <a few words>"
    :look {:parts [...]}}`, parts as documented under `:blueprints` in `resources/estate.edn`
    (shapes box/cylinder/cone/sphere; colours from the palette keys used there, e.g. `:brown`

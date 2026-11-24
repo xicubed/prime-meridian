@@ -399,3 +399,69 @@
   (is (= "[1.5 -2]" (:word (lot/resolve-landmark {} [1.5 -2]))))
   (is (= "no level open ground within 1 m of [1.5 1.5]: most of it is under trees"
          (:reason (lot/place GT9 {} [] (rules {}) stool [1.5 1.5])))))
+
+;; ---------------------------------------------------------------------------
+;; view-share-v0 (TASKS T-19): the view as a source of landmarks (:here, a
+;; walker's current position) and place's 7-arity that reads it
+
+(def EW  {:walkers [{:id :walker-a :name "Walker A"} {:id :walker-b}]})
+(def EWp (assoc EW :well {:at [0 1 0]}))
+(def VW  {:as-of 1000 :camera {:pos [2 10 -3] :target [2 1 2]} :center [2.2 1.0 1.9]
+          :walkers {:walker-a [1 1.0 1] :walker-c [3 1.0 3]}})
+(def seen-ok {:ok true :view VW})
+(def stale {:ok false :reason "I can't see where you're looking: the game isn't open"})
+
+(deftest t43-view-landmarks
+  (is (= {:here {:word "where you're looking" :xz [2.2 1.9]}
+          :walker-a {:word "Walker A" :xz [1 1]}
+          :walker-c {:word "walker c" :xz [3 3]}}
+         (lot/view-landmarks VW EW)))
+  (is (= [:here :walker-a :walker-c] (keys (lot/view-landmarks VW EW))))
+  (is (= {:walker-a {:word "Walker A" :xz [1 1]}
+          :walker-c {:word "walker c" :xz [3 3]}}
+         (lot/view-landmarks (assoc VW :center nil) EW)))
+  (is (= {} (lot/view-landmarks nil EW))))
+
+(deftest t44-landmarks-with-view
+  (is (= [:here :walker-a :walker-c :well] (keys (lot/landmarks GF9 EWp [] VW))))
+  (is (= {:word "the here" :xz [4 4]} (:here (lot/landmarks GF9 {:here {:at [4 1 4]}} [] VW))))
+  (is (= [:well] (keys (lot/landmarks GF9 EWp [])))))
+
+(deftest t45-nearest-landmark
+  (let [lms (into (sorted-map) {:a {:word "the a" :xz [0 0]} :b {:word "the b" :xz [2 0]}})]
+    (is (= {:id :a :word "the a" :distance-m 1.0} (lot/nearest-landmark lms [1 0])))
+    (is (= {:id :b :word "the b" :distance-m 0.5} (lot/nearest-landmark lms [1.5 0]))))
+  (is (= {:id :creek :word "the creek" :distance-m 2.0}
+         (lot/nearest-landmark {:creek {:word "the creek" :cells [[0 3] [1 3]]}} [1 1])))
+  (is (nil? (lot/nearest-landmark {} [1 1]))))
+
+(deftest t46-place-near-here
+  (is (approx= {:ok true :at [2.0 1.0 2.0] :yaw 0 :landmark :here :distance-m 0.22360679774997896 :spread-m 0}
+               (lot/place GF9 EW [] (rules {}) stool :here seen-ok)))
+  (is (= "where you're looking" (:word (lot/resolve-landmark (lot/landmarks GF9 EW [] VW) :here)))))
+
+(deftest t47-place-near-walkers
+  (is (= {:ok true :at [1.0 1.0 1.0] :yaw 0 :landmark :walker-a :distance-m 0 :spread-m 0}
+         (lot/place GF9 EW [] (rules {}) stool :walker-a seen-ok)))
+  (is (= {:ok true :at [3.0 1.0 3.0] :yaw 0 :landmark :walker-c :distance-m 0 :spread-m 0}
+         (lot/place GF9 EW [] (rules {}) stool :walker-c seen-ok))))
+
+(deftest t48-place-view-refusals
+  (is (= "I can't see where you're looking: the game isn't open"
+         (:reason (lot/place GF9 EWp [] (rules {}) stool :here stale))))
+  (is (= "I can't see where you're looking: the game isn't sending its view"
+         (:reason (lot/place GF9 EWp [] (rules {}) stool :here nil))))
+  (is (= "I can't see where you're looking: the game isn't open"
+         (:reason (lot/place GF9 EWp [] (rules {}) stool :walker-a stale))))
+  (is (= "I don't know a place called walker-b; I know: here, walker-a, walker-c, well"
+         (:reason (lot/place GF9 EWp [] (rules {}) stool :walker-b seen-ok))))
+  (is (= "I can't tell where you're looking: the middle of your screen is sky"
+         (:reason (lot/place GF9 EWp [] (rules {}) stool :here {:ok true :view (assoc VW :center nil)}))))
+  (is (= "I don't know a place called pond; I know: well"
+         (:reason (lot/place GF9 EWp [] (rules {}) stool :pond stale))))
+  (is (= "no ground map (state/ground.edn): the twin samples it from the kit"
+         (:reason (lot/place nil EWp [] (rules {}) stool :here stale)))))
+
+(deftest t49-landmark-lines-with-view
+  (is (= ["here: where you're looking" "walker-a: Walker A" "walker-c: walker c" "well: the well"]
+         (lot/landmark-lines (lot/landmarks GF9 EWp [] VW)))))

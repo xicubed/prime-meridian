@@ -1,0 +1,38 @@
+           ilio number: a spoken message or a TTS
+           recording); the community **Hermes Voic
+           e Gateway** plugin (two-way: the player
+            calls the twin's number and talks; nee
+           ds ElevenLabs and a tunnel); Zoom only
+           as a meeting bot that joins a meeting (
+           Meetstream / Meeting AI plugins, paid b
+           ot services); Slack is text and voice n
+           otes only (bots can't join huddles).
+      104  - [ ] T-9 v2 idea: living objects (docs
+           /ideas-living-objects.md): stateful thi
+           ngs that age, speak, and pass messages
+           through the twin; Flora's hunger in the
+            game first, a text only when she's wel
+           l overdue (replacing the 09:00/17:00 cr
+           on).
+      105
+
+  Ran 1 shell command
+
+⏺ Those other files are the builder/tester's work,
+  already present in the tree — not mine. My only change:
+
+  TASKS.md | 1 +
+  1 file changed, 1 insertion(+)
+
+  Added the T-19 row to TASKS.md after T-18, per spec §9
+  (gate had passed: 0 warnings, 1465 tests). No other
+  files touched.
+
+  done-3133
+
+✻ Crunched for 22s · done 2:26 PM
+
+─────────────────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

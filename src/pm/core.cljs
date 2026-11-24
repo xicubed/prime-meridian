@@ -32,6 +32,7 @@
             [pm.plan :as plan]
             [pm.talk :as talk]
             [pm.ui :as ui]
+            [pm.view :as view]
             [pm.world :as world]
             [shadow.resource :as rc]
             [clojure.string]))
@@ -245,6 +246,13 @@
 (defn- start-bridge-poll! []
   (when (nil? (:timer @!bridge-poll))
     (fetch-bridge!)
+    ;; A hidden tab's timers slow to about one a minute, so the last reading
+    ;; can be stale when the player comes back and clicks "Make it real"
+    ;; straight away (Michael, Nov 24: "it said start the bridge"). Re-read
+    ;; the bridge the moment the page is seen again.
+    (.addEventListener js/document "visibilitychange"
+                       (fn [] (when (= "visible" (.-visibilityState js/document)) (fetch-bridge!))))
+    (.addEventListener js/window "focus" (fn [] (fetch-bridge!)))
     (swap! !bridge-poll assoc :timer (js/setInterval fetch-bridge! bridge-poll-ms))))
 
 (def crew-log-url "/state/crew-log.edn")
@@ -602,7 +610,7 @@
   (- (.getTimezoneOffset (js/Date.))))
 
 (defonce ^:private !sky (atom nil))   ; the kit hour pm.sky last set
-(declare toggle-jack-out! crew-key-tick! twin-thinking? twin-dots walker-colours trial-card!)
+(declare toggle-jack-out! crew-key-tick! twin-thinking? twin-dots walker-colours trial-card! view-tick!)
 (defonce ^:private !gesture? (atom false))   ; browsers play nothing before one
 
 (defn- music-scene
@@ -1001,6 +1009,7 @@
     (when-let [h (kit/handle)] (bricks/tick! h dt'))
     (when (kit/handle) (creature-spike/tick! dt' now))
     (when-let [h (kit/handle)] (camera/save-tick! h now))
+    (when-let [h (kit/handle)] (view-tick! h now))
     (bricks/set-dots! (:crew @!world) (:asks-player @!world) (js/Date.now)
                       (twin-dots @!world (js/Date.now) (crew/colors @!world))
                       (:call @!world))
@@ -1555,6 +1564,49 @@
                          (clojure.string/join
                           ", " (for [[y n] (t/drop-ray (.-scene h) (.-camera h) x z 40 5)]
                                  (str y " " n))))))))))
+
+;; The view (TASKS T-19): the game's own camera, the ground spot at the
+;; screen's centre, and every walker's position, posted to the bridge's
+;; /view at most every view/post-every-ms and only when something changed
+;; (view/post?), so the twin and the crew's commands can read
+;; state/view.edn instead of a screenshot. Never in the demo build.
+(defonce ^:private !view (atom {:last nil :last-at nil :in-flight? false :checked-at 0}))
+(defonce ^:private !view-meshes (atom []))
+
+(defn- view-ground-meshes!
+  "The kit's ground meshes, found once (and cached) the first time they're
+   non-empty -- the same set blueprints are seated on."
+  [^js h]
+  (when (empty? @!view-meshes)
+    (let [prefixes (get-in @!world [:motion :ground])
+          gm (t/find-meshes (.-scene h) #(m/ground-name? % prefixes))]
+      (when (seq gm) (reset! !view-meshes gm))))
+  @!view-meshes)
+
+(defn- view-tick!
+  "Posts the game's view to the bridge (TASKS T-19) at most every
+   view/post-every-ms, and only when view/post? says to."
+  [^js h now]
+  (when-not DEMO
+    (when (>= (- now (:checked-at @!view)) view/post-every-ms)
+      (swap! !view assoc :checked-at now)
+      (let [meshes (view-ground-meshes! h)
+            snap (view/snapshot (t/rig-view h) (t/center-hit (.-camera h) meshes) (bricks/spots))]
+        (when (view/post? @!view snap now {:demo? DEMO :bridge-on? (bridge-on?)})
+          (swap! !view view/sent snap now)
+          (let [b (:bridge @!world)]
+            (-> (js/fetch (view/view-url b)
+                          #js {:method "POST" :headers #js {"Content-Type" "application/json"}
+                               :body (js/JSON.stringify (clj->js (view/body b snap)))})
+                (.then (fn [_] (swap! !view view/settled)))
+                (.catch (fn [_] (swap! !view view/settled))))))))))
+
+;; The frame loop stops while the game's tab is hidden or covered (he's in
+;; his agent's chat, asking for "a bench here"), so the view is also sent from
+;; a timer: a hidden tab still runs one about once a minute, which keeps
+;; state/view.edn fresh (the camera can't move meanwhile).
+(defonce ^:private !view-timer
+  (js/setInterval #(when-let [h (kit/handle)] (view-tick! h (js/Date.now))) view/post-every-ms))
 
 (defn- ground-at-fn
   "The kit's ground-at fn (x z -> height, pm.motion/ground-height) for

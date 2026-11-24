@@ -33,7 +33,8 @@
          '[pm.bridge :as b]
          '[pm.events :as events]
          '[pm.prompt :as pr]
-         '[pm.crew-log :as cl])
+         '[pm.crew-log :as cl]
+         '[pm.view :as view])
 
 (import '[java.security SecureRandom]
         '[java.time Instant])
@@ -43,6 +44,7 @@
 (def hold-file "state/hold.edn")
 (def builds-file "state/builds.edn")       ; builds made real (pm.bridge/add-real-build)
 (def blueprints-file "state/blueprints.edn") ; agent-proposed blueprints (pm.bridge/known-build-ids)
+(def view-file (or (System/getenv "PM_VIEW_FILE") "state/view.edn")) ; the game's camera/centre/walkers (TASKS T-19)
 (def mirrors-file "state/mirrors.edn")     ; the twin's real mirror state
 (def crew-log-file "state/crew-log.edn")
 (def log-file "crew/bridge.log")
@@ -307,6 +309,13 @@
                     {:status (if (:ok r) 200 409)
                      :headers (merge {"Content-Type" "application/json"} (b/cors-headers origin))
                      :body (json/generate-string {"ok" (:ok r) "reason" (:reason r)})})
+                (if (= :view (:action v))
+                  (if (write-edn! view-file (view/view-edn v (System/currentTimeMillis)))
+                    {:status 200 :headers (merge {"Content-Type" "application/json"} (b/cors-headers origin))
+                     :body (json/generate-string {"ok" true "result" "seen"})}
+                    (do (log! nil :view 500 "view not saved")
+                        {:status 500 :headers (merge {"Content-Type" "application/json"} (b/cors-headers origin))
+                         :body (json/generate-string {"ok" false "reason" "view not saved"})}))
                 (if (= :hold (:action v))
                   (if (write-edn! hold-file (cl/hold-edn (:on v) (System/currentTimeMillis)))
                     (let [result (if (:on v) "on" "off")]
@@ -335,7 +344,7 @@
                         (log! (:member v) (:action v) (:status r) reason)
                         (when (and (:ok ran) (contains? #{:allow :deny} (:action v)))
                           (append-crew-log! (:member v) (if (= :allow (:action v)) :allowed :declined) (:prompt live)))
-                        {:status (:status r) :headers (:headers r) :body (json/generate-string (:body r))})))))))))))))))
+                        {:status (:status r) :headers (:headers r) :body (json/generate-string (:body r))}))))))))))))))))
 
 (defn -main [& _]
   (let [token (random-token)]
