@@ -83,18 +83,55 @@
                   chain))
           hits)))
 
+(def card-pin-gap-px
+  "Px between a pinned card's top and the canvas's top edge (TASKS T-16)."
+  8)
+
 (defn screen-of
   "Where a projected point lands on screen (TASKS T-14, the trial card):
    `ndc` ([x y z], a point projected through the camera) and `size` ([w h]
    canvas px) turned into `{:x :y :visible?}` CSS px inside the canvas, the
    card's bottom-centre point. `{:x 0 :y 0 :visible? false}` when `ndc`
    isn't 3 finite numbers or `size`'s width/height isn't a finite positive
-   number. No DOM, no js/Date."
-  [ndc [w h]]
-  (if (and (vector? ndc) (= 3 (count ndc)) (every? finite? ndc)
-           (finite? w) (finite? h) (pos? w) (pos? h))
-    (let [[x y z] ndc]
-      {:x (* (/ (+ x 1) 2) w)
-       :y (* (/ (- 1 y) 2) h)
-       :visible? (and (<= -1 x 1) (<= -1 y 1) (<= z 1))})
-    {:x 0 :y 0 :visible? false}))
+   number. No DOM, no js/Date.
+
+   With a third arg `min-y` (TASKS T-16, a finite number): the top bound on
+   `:visible?` is dropped (an anchor above the top edge still counts as
+   visible), and when visible the card is pinned so its `:y` never goes
+   above `min-y`: `(max px-y min-y)`. `min-y` nil or not a finite number
+   gives exactly the 2-arity result; so does an invisible point (same `:x`
+   `:y` `false` either way)."
+  ([ndc [w h]]
+   (if (and (vector? ndc) (= 3 (count ndc)) (every? finite? ndc)
+            (finite? w) (finite? h) (pos? w) (pos? h))
+     (let [[x y z] ndc]
+       {:x (* (/ (+ x 1) 2) w)
+        :y (* (/ (- 1 y) 2) h)
+        :visible? (and (<= -1 x 1) (<= -1 y 1) (<= z 1))})
+     {:x 0 :y 0 :visible? false}))
+  ([ndc [w h :as size] min-y]
+   (let [base (screen-of ndc size)]
+     (if (and (finite? min-y)
+              (vector? ndc) (= 3 (count ndc)) (every? finite? ndc)
+              (finite? w) (finite? h) (pos? w) (pos? h))
+       (let [[x y z] ndc]
+         (if (and (<= -1 x 1) (<= -1 y) (<= z 1))
+           {:x (:x base) :y (max (:y base) min-y) :visible? true}
+           base))
+       base))))
+
+(defn pin-min-y
+  "Is the item itself on screen vertically (TASKS T-16, `screen-of`'s
+   `min-y`)? Decided from `base-ndc`, the build group's world position
+   projected: the card's anchor sits above the base, so the item reaches
+   the screen unless its base is above the top edge or behind the camera.
+   `(+ card-h card-pin-gap-px)` when `base-ndc` is `[bx by bz]`, 3 finite
+   numbers, with `(<= by 1)` and `(<= bz 1)` (`bx` isn't checked -- the
+   anchor's own x decides left/right), and `card-h` is a finite number
+   `>= 0`. Otherwise nil."
+  [base-ndc card-h]
+  (when (and (vector? base-ndc) (= 3 (count base-ndc)) (every? finite? base-ndc)
+             (finite? card-h) (>= card-h 0))
+    (let [[_ by bz] base-ndc]
+      (when (and (<= by 1) (<= bz 1))
+        (+ card-h card-pin-gap-px)))))

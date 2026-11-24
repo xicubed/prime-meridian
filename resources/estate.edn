@@ -196,13 +196,10 @@
             :colors {:body 0x1b1b1f :joints 0xf4f2ee}}]       ; south plateau by Flora; the rock at [-5 -17] is not walkable
  ;; The lobby, with your kitchen (GDD §2.4, §4.8): home base, where agents
  ;; bring their questions. It's the kit's cottage (the estate's one real
- ;; house, upstream on raised ground): just a signpost at its steps, probed
- ;; 6.18 m. (Hal; the Director chose the cottage over a new building.)
- :lobby {:at [2.7 6.18 -23.6] :yaw 0
-         :text "Lobby & kitchen — bring your questions here"
-         :look {:parts
-                [{:shape :box :size [0.1 1.4 0.1]   :at [0 0.7 0]  :color :brown}     ; post
-                 {:shape :box :size [0.9 0.4 0.06]  :at [0 1.3 0]  :color :tin}]}}    ; board
+ ;; house, upstream on raised ground), so nothing is drawn here: no sign
+ ;; (Michael, Nov 23). Only an errand spot (`bb hal-say --at lobby`), probed
+ ;; 6.18 m at the cottage's steps.
+ :lobby {:at [2.7 6.18 -23.6] :yaw 0}
  ;; The mailbox (GDD §2.4): the inbox needing attention; overflows when it
  ;; does. Backed by the sample inbox, me@acme.com (GDD §4.6), with no
  ;; accounts connected — pm.plan/mailbox-item reads its unread count from

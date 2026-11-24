@@ -178,10 +178,12 @@
   "The lobby's scene item (GDD §2.4, §4.8): home, with your kitchen, where
    agents bring their questions. Placement, look and sign text come from
    `world`'s `:lobby` only -- a plain, always-on label, not driven by any
-   mirror's state. nil when `world` has no valid `:lobby`."
+   mirror's state. nil when `world` has no valid `:lobby` or no `:look`: no
+   lobby look means nothing is drawn, and the lobby stays an errand
+   destination through its `:at` alone."
   [world]
   (let [{:keys [at yaw look text]} (:lobby world)]
-    (when (valid-at? at)
+    (when (and (valid-at? at) (some? look))
       (let [[x y z] at
             parts (look-parts look nil)
             top   (parts-top parts)

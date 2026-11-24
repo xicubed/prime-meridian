@@ -74,20 +74,41 @@
       (assoc w :hal {:event :blueprint-refused :text text :until (+ now c/hal-ms)})
       w)))
 
+(def ^:private proposed-prefix-re
+  "The summary format's own convention, dropped from a real build's sign
+   (TASKS T-16): a leading `proposed:`, case-insensitive, and any
+   whitespace right after the colon."
+  #"(?i)^proposed:\s*")
+
+(defn sign-summary
+  "`bp`'s summary as its sign shows it (TASKS T-16): a real build
+   (`:status :real`) drops one leading `proposed:` (case-insensitive, with
+   the whitespace after the colon) -- it's built now, not proposed. Any
+   other status, or a non-string `:summary`, unchanged."
+  [bp]
+  (let [summary (:summary bp)]
+    (if (and (= :real (:status bp)) (string? summary))
+      (str/replace-first summary proposed-prefix-re "")
+      summary)))
+
 (defn sign-text
-  "A ghost's sign: its one-line summary, then on a second line how to act on it, or why its
-   approval was refused. The wording is data (`:blueprint-text` in
-   estate.edn); without it, just the summary."
+  "A ghost's sign: its one-line summary (`sign-summary`), then on a second
+   line how to act on it, or why its approval was refused. The wording is
+   data (`:blueprint-text` in estate.edn); without it, just the summary. A
+   real build (`:status :real`) has no second line -- it's not a ghost
+   asking for a click."
   [world bp]
-  (let [{:keys [hint failed trial steep removing]} (:blueprint-text world)
-        tail (cond (= :removing (:status bp)) removing
-                   (:failed? bp) failed
-                   (and (:too-steep? bp) (= :pending (:status bp)) (string? steep)) steep
-                   (= :approved (:status bp)) trial
-                   :else hint)]
-    (if (and (string? tail) (not (str/blank? tail)))
-      (str (:summary bp) "\n" tail)   ; two lines: one long line shrank the font to fit (Michael)
-      (:summary bp))))
+  (if (= :real (:status bp))
+    (sign-summary bp)
+    (let [{:keys [hint failed trial steep removing]} (:blueprint-text world)
+          tail (cond (= :removing (:status bp)) removing
+                     (:failed? bp) failed
+                     (and (:too-steep? bp) (= :pending (:status bp)) (string? steep)) steep
+                     (= :approved (:status bp)) trial
+                     :else hint)]
+      (if (and (string? tail) (not (str/blank? tail)))
+        (str (sign-summary bp) "\n" tail)   ; two lines: one long line shrank the font to fit (Michael)
+        (sign-summary bp)))))
 
 (defn make-real
   "A trial build made real (GDD §2.1, §4.6): recorded in the private

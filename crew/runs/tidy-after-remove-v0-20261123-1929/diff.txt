@@ -1,0 +1,260 @@
+diff --git a/TASKS.md b/TASKS.md
+index 09ee846..b2b0fbc 100644
+--- a/TASKS.md
++++ b/TASKS.md
+@@ -96,6 +96,7 @@ The twin on the estate (GDD §2.1). Built today: he walks (black body, white joi
+ - [ ] T-13 Demo scene (Michael, Nov 22): a bot builds something, and you finish it from the wireframe when it looks good. You ask in 💭 ("put a bench by the creek"), a member writes the `:blueprints` entry, the ghost appears, a click builds it as a trial, a second click makes it real (`state/builds.edn`). Exists today except: (a) N-3, the ghost is hard to see on grass; (b) a new blueprint shows only after a page reload (the estate is compiled in, `!world` is a defonce), so it can't appear while you watch. Candidate for S6 in `docs/demo-script.md` beside the rock; the unbuilt bench by the mailbox can stand in meanwhile. Nov 22: blueprints are now seated on the ground before they're drawn (`pm.blueprint/seat`: level at the highest foot, lower feet stretched down; more than 25 cm of drop is refused as too steep, sign + twin say so), and the bench moved off the creek bank to level grass by the mailbox. Nov 23: (b) done: a crew member proposes with `bb blueprint-add <member> <blueprint.edn>` (kept in the private `state/blueprints.edn`; `--remove <id>` takes one out), and within one 5-second poll its ghost appears in the estate, seated, with no reload, and the member says "drew a blueprint: … Click it to try it." in 💭. Two clicks still make it a trial, then real.
+ - [x] Nov 23 (crew round trial-buttons-v0) T-14 A trial build gets labelled buttons (Michael, Nov 23: "i didnt realize u needed to click it twice"; his rule: every action is a labelled button). Click a blue ghost and it builds as a trial with a small card above it: **Make it real** (records it through the bridge; reads "Saving…" while it does, so it can't post twice) and **Undo** (back to the blue ghost, to try again later; not a reject). The card follows the item as the camera moves and hides when it's off screen; the trial's sign now just says "trial: try it out". Right-click still dismisses.
+ - [x] Nov 23 (crew round remove-build-v0) T-15 Remove a real build, try-first (Michael, Nov 23: "once its made real its there for good … should we have the undo or delete come up"). Click a real build and the same card shows **Remove…** and **Close**; Remove… previews the loss (the item turns into a see-through red removal ghost, its sign reads "will be removed") and offers **Remove it** and **Keep it**. Keep it puts it back as it was; Remove it records the removal through the bridge (`state/builds.edn` `:removed`, reads "Removing…" while it does), and the build is gone on every reload. No bridge: nothing changes and the twin says why. A removed id can't be reused (`bb blueprint-add` refuses it; pick a new id).
++- [x] Nov 23 (crew round tidy-after-remove-v0) T-16 Tidy-ups after removal (Michael, Nov 23: "ya just remove the sign"). The lobby's signpost by the cottage is gone; the lobby is still where errands go (`bb hal-say --at lobby`). Up close to a tall build, its card stays pinned at the top of the screen instead of vanishing. A real build's sign drops "proposed:" from its summary.
+ - [ ] T-12 Call the player's real phone (after T-11; the GDD's jack-out hook, §2.3): Twilio voice from the bot number to his cell when something real is due (Flora's chore, a "!" waiting past closing) or when he taps 📞 away from the laptop; the twin reads the lines, speech-to-text comes back down the bridge; a crew member who takes a minute "calls back". Costs per minute; FaceTime/Teams have no agent end and are out. Ready-made ways to add it (Nov 22, nothing installed): Hermes's official `telephony` skill (one-way calls on the existing Twilio number: a spoken message or a TTS recording); the community **Hermes Voice Gateway** plugin (two-way: the player calls the twin's number and talks; needs ElevenLabs and a tunnel); Zoom only as a meeting bot that joins a meeting (Meetstream / Meeting AI plugins, paid bot services); Slack is text and voice notes only (bots can't join huddles).
+ - [ ] T-9 v2 idea: living objects (docs/ideas-living-objects.md): stateful things that age, speak, and pass messages through the twin; Flora's hunger in the game first, a text only when she's well overdue (replacing the 09:00/17:00 cron).
+ 
+diff --git a/docs/GDD.md b/docs/GDD.md
+index 740a8d8..6e48286 100644
+--- a/docs/GDD.md
++++ b/docs/GDD.md
+@@ -145,7 +145,7 @@ A single estate on one screen with zoom, medium-poly, floating on a dark grid.
+ 
+ | Place | What it represents | Truth comes from |
+ |---|---|---|
+-| **Lobby** and **your kitchen** | home; where agents bring their questions | — |
++| **Lobby** and **your kitchen** | home; where agents bring their questions. It's the kit's cottage, with no sign (Nov 23): an errand spot, not a drawn item | — |
+ | **Workshops** (one per project) | a code repo. Desks are open tasks; shelves fill as work lands. | GitHub |
+ | **The canal** | Flora's home, styled after the Xochimilco canals (slow water, a dock, a worm jar) | Flora's state file |
+ | **Porch** | Biscuit's spot; the leash hangs by the door | Biscuit's chores |
+diff --git a/resources/estate.edn b/resources/estate.edn
+index 8fb0a23..c0f5394 100644
+--- a/resources/estate.edn
++++ b/resources/estate.edn
+@@ -196,13 +196,10 @@
+             :colors {:body 0x1b1b1f :joints 0xf4f2ee}}]       ; south plateau by Flora; the rock at [-5 -17] is not walkable
+  ;; The lobby, with your kitchen (GDD §2.4, §4.8): home base, where agents
+  ;; bring their questions. It's the kit's cottage (the estate's one real
+- ;; house, upstream on raised ground): just a signpost at its steps, probed
+- ;; 6.18 m. (Hal; the Director chose the cottage over a new building.)
+- :lobby {:at [2.7 6.18 -23.6] :yaw 0
+-         :text "Lobby & kitchen — bring your questions here"
+-         :look {:parts
+-                [{:shape :box :size [0.1 1.4 0.1]   :at [0 0.7 0]  :color :brown}     ; post
+-                 {:shape :box :size [0.9 0.4 0.06]  :at [0 1.3 0]  :color :tin}]}}    ; board
++ ;; house, upstream on raised ground), so nothing is drawn here: no sign
++ ;; (Michael, Nov 23). Only an errand spot (`bb hal-say --at lobby`), probed
++ ;; 6.18 m at the cottage's steps.
++ :lobby {:at [2.7 6.18 -23.6] :yaw 0}
+  ;; The mailbox (GDD §2.4): the inbox needing attention; overflows when it
+  ;; does. Backed by the sample inbox, me@acme.com (GDD §4.6), with no
+  ;; accounts connected — pm.plan/mailbox-item reads its unread count from
+diff --git a/src/pm/blueprint.cljs b/src/pm/blueprint.cljs
+index 99bf874..c0f81a6 100644
+--- a/src/pm/blueprint.cljs
++++ b/src/pm/blueprint.cljs
+@@ -74,20 +74,41 @@
+       (assoc w :hal {:event :blueprint-refused :text text :until (+ now c/hal-ms)})
+       w)))
+ 
++(def ^:private proposed-prefix-re
++  "The summary format's own convention, dropped from a real build's sign
++   (TASKS T-16): a leading `proposed:`, case-insensitive, and any
++   whitespace right after the colon."
++  #"(?i)^proposed:\s*")
++
++(defn sign-summary
++  "`bp`'s summary as its sign shows it (TASKS T-16): a real build
++   (`:status :real`) drops one leading `proposed:` (case-insensitive, with
++   the whitespace after the colon) -- it's built now, not proposed. Any
++   other status, or a non-string `:summary`, unchanged."
++  [bp]
++  (let [summary (:summary bp)]
++    (if (and (= :real (:status bp)) (string? summary))
++      (str/replace-first summary proposed-prefix-re "")
++      summary)))
++
+ (defn sign-text
+-  "A ghost's sign: its one-line summary, then on a second line how to act on it, or why its
+-   approval was refused. The wording is data (`:blueprint-text` in
+-   estate.edn); without it, just the summary."
++  "A ghost's sign: its one-line summary (`sign-summary`), then on a second
++   line how to act on it, or why its approval was refused. The wording is
++   data (`:blueprint-text` in estate.edn); without it, just the summary. A
++   real build (`:status :real`) has no second line -- it's not a ghost
++   asking for a click."
+   [world bp]
+-  (let [{:keys [hint failed trial steep removing]} (:blueprint-text world)
+-        tail (cond (= :removing (:status bp)) removing
+-                   (:failed? bp) failed
+-                   (and (:too-steep? bp) (= :pending (:status bp)) (string? steep)) steep
+-                   (= :approved (:status bp)) trial
+-                   :else hint)]
+-    (if (and (string? tail) (not (str/blank? tail)))
+-      (str (:summary bp) "\n" tail)   ; two lines: one long line shrank the font to fit (Michael)
+-      (:summary bp))))
++  (if (= :real (:status bp))
++    (sign-summary bp)
++    (let [{:keys [hint failed trial steep removing]} (:blueprint-text world)
++          tail (cond (= :removing (:status bp)) removing
++                     (:failed? bp) failed
++                     (and (:too-steep? bp) (= :pending (:status bp)) (string? steep)) steep
++                     (= :approved (:status bp)) trial
++                     :else hint)]
++      (if (and (string? tail) (not (str/blank? tail)))
++        (str (sign-summary bp) "\n" tail)   ; two lines: one long line shrank the font to fit (Michael)
++        (sign-summary bp)))))
+ 
+ (defn make-real
+   "A trial build made real (GDD §2.1, §4.6): recorded in the private
+diff --git a/src/pm/core.cljs b/src/pm/core.cljs
+index d96f204..d8a7302 100644
+--- a/src/pm/core.cljs
++++ b/src/pm/core.cljs
+@@ -1635,7 +1635,10 @@
+             ndc        (when anchor (t/project-ndc (.-camera h) anchor))
+             ^js canvas (.. h -renderer -domElement)
+             ^js rect   (.getBoundingClientRect canvas)
+-            p          (pick/screen-of ndc [(.-width rect) (.-height rect)])]
++            size       [(.-width rect) (.-height rect)]
++            base       (when g (t/project-ndc (.-camera h) (t/world-pos g)))
++            min-y      (pick/pin-min-y base (ui/trial-card-height))
++            p          (pick/screen-of ndc size min-y)]
+         (ui/set-trial-card! card
+                             {:left (+ (.-left rect) (:x p)) :top (+ (.-top rect) (:y p)) :visible? (:visible? p)}
+                             colors on-action))
+diff --git a/src/pm/pick.cljs b/src/pm/pick.cljs
+index 3073916..c9c7254 100644
+--- a/src/pm/pick.cljs
++++ b/src/pm/pick.cljs
+@@ -83,18 +83,55 @@
+                   chain))
+           hits)))
+ 
++(def card-pin-gap-px
++  "Px between a pinned card's top and the canvas's top edge (TASKS T-16)."
++  8)
++
+ (defn screen-of
+   "Where a projected point lands on screen (TASKS T-14, the trial card):
+    `ndc` ([x y z], a point projected through the camera) and `size` ([w h]
+    canvas px) turned into `{:x :y :visible?}` CSS px inside the canvas, the
+    card's bottom-centre point. `{:x 0 :y 0 :visible? false}` when `ndc`
+    isn't 3 finite numbers or `size`'s width/height isn't a finite positive
+-   number. No DOM, no js/Date."
+-  [ndc [w h]]
+-  (if (and (vector? ndc) (= 3 (count ndc)) (every? finite? ndc)
+-           (finite? w) (finite? h) (pos? w) (pos? h))
+-    (let [[x y z] ndc]
+-      {:x (* (/ (+ x 1) 2) w)
+-       :y (* (/ (- 1 y) 2) h)
+-       :visible? (and (<= -1 x 1) (<= -1 y 1) (<= z 1))})
+-    {:x 0 :y 0 :visible? false}))
++   number. No DOM, no js/Date.
++
++   With a third arg `min-y` (TASKS T-16, a finite number): the top bound on
++   `:visible?` is dropped (an anchor above the top edge still counts as
++   visible), and when visible the card is pinned so its `:y` never goes
++   above `min-y`: `(max px-y min-y)`. `min-y` nil or not a finite number
++   gives exactly the 2-arity result; so does an invisible point (same `:x`
++   `:y` `false` either way)."
++  ([ndc [w h]]
++   (if (and (vector? ndc) (= 3 (count ndc)) (every? finite? ndc)
++            (finite? w) (finite? h) (pos? w) (pos? h))
++     (let [[x y z] ndc]
++       {:x (* (/ (+ x 1) 2) w)
++        :y (* (/ (- 1 y) 2) h)
++        :visible? (and (<= -1 x 1) (<= -1 y 1) (<= z 1))})
++     {:x 0 :y 0 :visible? false}))
++  ([ndc [w h :as size] min-y]
++   (let [base (screen-of ndc size)]
++     (if (and (finite? min-y)
++              (vector? ndc) (= 3 (count ndc)) (every? finite? ndc)
++              (finite? w) (finite? h) (pos? w) (pos? h))
++       (let [[x y z] ndc]
++         (if (and (<= -1 x 1) (<= -1 y) (<= z 1))
++           {:x (:x base) :y (max (:y base) min-y) :visible? true}
++           base))
++       base))))
++
++(defn pin-min-y
++  "Is the item itself on screen vertically (TASKS T-16, `screen-of`'s
++   `min-y`)? Decided from `base-ndc`, the build group's world position
++   projected: the card's anchor sits above the base, so the item reaches
++   the screen unless its base is above the top edge or behind the camera.
++   `(+ card-h card-pin-gap-px)` when `base-ndc` is `[bx by bz]`, 3 finite
++   numbers, with `(<= by 1)` and `(<= bz 1)` (`bx` isn't checked -- the
++   anchor's own x decides left/right), and `card-h` is a finite number
++   `>= 0`. Otherwise nil."
++  [base-ndc card-h]
++  (when (and (vector? base-ndc) (= 3 (count base-ndc)) (every? finite? base-ndc)
++             (finite? card-h) (>= card-h 0))
++    (let [[_ by bz] base-ndc]
++      (when (and (<= by 1) (<= bz 1))
++        (+ card-h card-pin-gap-px)))))
+diff --git a/src/pm/plan.cljs b/src/pm/plan.cljs
+index 299bcf9..a19e4f4 100644
+--- a/src/pm/plan.cljs
++++ b/src/pm/plan.cljs
+@@ -178,10 +178,12 @@
+   "The lobby's scene item (GDD §2.4, §4.8): home, with your kitchen, where
+    agents bring their questions. Placement, look and sign text come from
+    `world`'s `:lobby` only -- a plain, always-on label, not driven by any
+-   mirror's state. nil when `world` has no valid `:lobby`."
++   mirror's state. nil when `world` has no valid `:lobby` or no `:look`: no
++   lobby look means nothing is drawn, and the lobby stays an errand
++   destination through its `:at` alone."
+   [world]
+   (let [{:keys [at yaw look text]} (:lobby world)]
+-    (when (valid-at? at)
++    (when (and (valid-at? at) (some? look))
+       (let [[x y z] at
+             parts (look-parts look nil)
+             top   (parts-top parts)
+diff --git a/src/pm/ui.cljs b/src/pm/ui.cljs
+index 82037a9..e043178 100644
+--- a/src/pm/ui.cljs
++++ b/src/pm/ui.cljs
+@@ -1198,6 +1198,12 @@
+         (.appendChild js/document.body box)
+         box)))
+ 
++(defn trial-card-height
++  "The trial card's current height in px (TASKS T-16, `pm.pick/pin-min-y`),
++   0 while it's hidden or not yet created."
++  []
++  (.-offsetHeight (trial-card-el)))
++
+ (defn set-trial-card!
+   "The trial card (TASKS T-14): `card` from `pm.blueprint/trial-card`, or
+    nil; `pos` {:left :top :visible?} in page px; `colors` {:paper :ink}, the
+diff --git a/test/pm/plan_test.cljs b/test/pm/plan_test.cljs
+index 2f24b8c..553d831 100644
+--- a/test/pm/plan_test.cljs
++++ b/test/pm/plan_test.cljs
+@@ -407,19 +407,19 @@
+   (is (nil? (p/lobby-item {:lobby {:at [1 2]}})))
+   (is (nil? (p/lobby-item {:lobby {:at "x"}}))))
+ 
++(def lobby-LOOK {:parts [{:shape :box :size [0.1 1.4 0.1]  :at [0 0.7 0] :color :brown}
++                         {:shape :box :size [0.9 0.4 0.06] :at [0 1.3 0] :color :tin}]})
++
+ (deftest t42-lobby-real-estate
+-  (let [item (p/lobby-item W)]
+-    (is (= [:lobby :box] (:key item)))
+-    (is (= (get-in W [:lobby :at]) (:at item)))
+-    (is (= 0 (:yaw item)))
+-    (is (= :sign (:label item)))
+-    (is (string? (:text item)))
+-    (is (seq (:text item)))
+-    (is (= (count (get-in W [:lobby :look :parts])) (count (:parts item))))))
++  (is (nil? (p/lobby-item W)))
++  (is (= [2.7 6.18 -23.6] (get-in W [:lobby :at])))
++  (is (= 0 (get-in W [:lobby :yaw])))
++  (is (nil? (get-in W [:lobby :look])))
++  (is (nil? (get-in W [:lobby :text]))))
+ 
+ (deftest t43-lobby-text-falls-back-when-missing-or-not-a-string
+-  (is (= "" (:text (p/lobby-item {:lobby {:at [0 0 0]}}))))
+-  (is (= "" (:text (p/lobby-item {:lobby {:at [0 0 0] :text 7}})))))
++  (is (= "" (:text (p/lobby-item {:lobby {:at [0 0 0] :look lobby-LOOK}}))))
++  (is (= "" (:text (p/lobby-item {:lobby {:at [0 0 0] :look lobby-LOOK :text 7}})))))
+ 
+ ;; workshop-item: one per project, standing for a code repo (GDD §2.4,
+ ;; §4.8). A plain, always-on sign -- not driven by any mirror's state.

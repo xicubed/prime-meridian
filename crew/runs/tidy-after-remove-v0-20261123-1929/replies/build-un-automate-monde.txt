@@ -1,0 +1,400 @@
+          -? w) (pos? h))
+       96 -    (let [[x y z] ndc]
+       97 -      {:x (* (/ (+ x 1) 2) w)
+       98 -       :y (* (/ (- 1 y) 2) h)
+       99 -       :visible? (and (<= -1 x 1) (<= -
+          -1 y 1) (<= z 1))})
+      100 -    {:x 0 :y 0 :visible? false}))
+       96 +   number. No DOM, no js/Date.
+       97 +
+       98 +   With a third arg `min-y` (TASKS T-16
+          +, a finite number): the top bound on
+       99 +   `:visible?` is dropped (an anchor ab
+          +ove the top edge still counts as
+      100 +   visible), and when visible the card
+          +is pinned so its `:y` never goes
+      101 +   above `min-y`: `(max px-y min-y)`. `
+          +min-y` nil or not a finite number
+      102 +   gives exactly the 2-arity result; so
+          + does an invisible point (same `:x`
+      103 +   `:y` `false` either way)."
+      104 +  ([ndc [w h]]
+      105 +   (if (and (vector? ndc) (= 3 (count n
+          +dc)) (every? finite? ndc)
+      106 +            (finite? w) (finite? h) (po
+          +s? w) (pos? h))
+      107 +     (let [[x y z] ndc]
+      108 +       {:x (* (/ (+ x 1) 2) w)
+      109 +        :y (* (/ (- 1 y) 2) h)
+      110 +        :visible? (and (<= -1 x 1) (<=
+          +-1 y 1) (<= z 1))})
+      111 +     {:x 0 :y 0 :visible? false}))
+      112 +  ([ndc size min-y]
+      113 +   (let [base (screen-of ndc size)]
+      114 +     (if-not (finite? min-y)
+      115 +       base
+      116 +       (if (and (vector? ndc) (= 3 (cou
+          +nt ndc)) (every? finite? ndc))
+      117 +         (let [[x y z] ndc]
+      118 +           (if (and (<= -1 x 1) (<= -1
+          +y) (<= z 1))
+      119 +             {:x (:x base) :y (max (:y
+          +base) min-y) :visible? true}
+      120 +             base))
+      121 +         base)))))
+
+⏺ Update(src/pm/pick.cljs)
+  ⎿  Added 9 lines, removed 9 lines
+      109          :y (* (/ (- 1 y) 2) h)
+      110          :visible? (and (<= -1 x 1) (<=
+           -1 y 1) (<= z 1))})
+      111       {:x 0 :y 0 :visible? false}))
+      112 -  ([ndc size min-y]
+      112 +  ([ndc [w h :as size] min-y]
+      113     (let [base (screen-of ndc size)]
+      114 -     (if-not (finite? min-y)
+      115 -       base
+      116 -       (if (and (vector? ndc) (= 3 (cou
+          -nt ndc)) (every? finite? ndc))
+      117 -         (let [[x y z] ndc]
+      118 -           (if (and (<= -1 x 1) (<= -1
+          -y) (<= z 1))
+      119 -             {:x (:x base) :y (max (:y
+          -base) min-y) :visible? true}
+      120 -             base))
+      121 -         base)))))
+      114 +     (if (and (finite? min-y)
+      115 +              (vector? ndc) (= 3 (count
+          + ndc)) (every? finite? ndc)
+      116 +              (finite? w) (finite? h) (
+          +pos? w) (pos? h))
+      117 +       (let [[x y z] ndc]
+      118 +         (if (and (<= -1 x 1) (<= -1 y)
+          + (<= z 1))
+      119 +           {:x (:x base) :y (max (:y ba
+          +se) min-y) :visible? true}
+      120 +           base))
+      121 +       base))))
+
+⏺ Now pin-min-y:
+
+⏺ Update(src/pm/pick.cljs)
+  ⎿  Added 16 lines
+      71        (let [id (subs s (count walker-nam
+          e-prefix))]
+      72          (when (seq id) (keyword id))))))
+      73
+      74 +(defn pin-min-y
+      75 +  "Is the item itself on screen vertical
+         +ly (TASKS T-16, `screen-of`'s
+      76 +   `min-y`)? Decided from `base-ndc`, th
+         +e build group's world position
+      77 +   projected: the card's anchor sits abo
+         +ve the base, so the item reaches
+      78 +   the screen unless its base is above t
+         +he top edge or behind the camera.
+      79 +   `(+ card-h card-pin-gap-px)` when `ba
+         +se-ndc` is `[bx by bz]`, 3 finite
+      80 +   numbers, with `(<= by 1)` and `(<= bz
+         + 1)` (`bx` isn't checked -- the
+      81 +   anchor's own x decides left/right), a
+         +nd `card-h` is a finite number
+      82 +   `>= 0`. Otherwise nil."
+      83 +  [base-ndc card-h]
+      84 +  (when (and (vector? base-ndc) (= 3 (co
+         +unt base-ndc)) (every? finite? base-ndc)
+      85 +             (finite? card-h) (>= card-h
+         + 0))
+      86 +    (let [[_ by bz] base-ndc]
+      87 +      (when (and (<= by 1) (<= bz 1))
+      88 +        (+ card-h card-pin-gap-px)))))
+      89 +
+      90  (defn pick-agent
+      91    "The crew agent id (GDD §2.1 Talk) for
+           the nearest hit that belongs to a
+      92     walker, looked up through `walkers` (
+          pm.motion/walkers) for that
+
+⏺ Now B.4 — pm.ui/trial-card-height:
+
+⏺ Update(src/pm/ui.cljs)
+  ⎿  Added 6 lines
+      1198          (.appendChild js/document.body
+             box)
+      1199          box)))
+      1200
+      1201 +(defn trial-card-height
+      1202 +  "The trial card's current height in
+           +px (TASKS T-16, `pm.pick/pin-min-y`),
+      1203 +   0 while it's hidden or not yet crea
+           +ted."
+      1204 +  []
+      1205 +  (.-offsetHeight (trial-card-el)))
+      1206 +
+      1207  (defn set-trial-card!
+      1208    "The trial card (TASKS T-14): `card`
+             from `pm.blueprint/trial-card`, or
+      1209     nil; `pos` {:left :top :visible?} i
+            n page px; `colors` {:paper :ink}, the
+
+⏺ Now B.5 — pm.core/trial-card!:
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 4 lines, removed 1 line
+      1635              ndc        (when anchor (t
+            /project-ndc (.-camera h) anchor))
+      1636              ^js canvas (.. h -renderer
+             -domElement)
+      1637              ^js rect   (.getBoundingCl
+            ientRect canvas)
+      1638 -            p          (pick/screen-of
+           - ndc [(.-width rect) (.-height rect)])
+           -]
+      1638 +            size       [(.-width rect)
+           + (.-height rect)]
+      1639 +            base       (when g (t/proj
+           +ect-ndc (.-camera h) (t/world-pos g)))
+      1640 +            min-y      (pick/pin-min-y
+           + base (ui/trial-card-height))
+      1641 +            p          (pick/screen-of
+           + ndc size min-y)]
+      1642          (ui/set-trial-card! card
+      1643                              {:left (+
+            (.-left rect) (:x p)) :top (+ (.-top r
+            ect) (:y p)) :visible? (:visible? p)}
+      1644                              colors on-
+            action))
+
+⏺ Now C — pm.blueprint/sign-summary and sign-text:
+
+⏺ Update(src/pm/blueprint.cljs)
+  ⎿  Added 33 lines, removed 12 lines
+       74        (assoc w :hal {:event :blueprint-
+           refused :text text :until (+ now c/hal-
+           ms)})
+       75        w)))
+       76
+       77 +(def ^:private proposed-prefix-re
+       78 +  "The summary format's own convention,
+          + dropped from a real build's sign
+       79 +   (TASKS T-16): a leading `proposed:`,
+          + case-insensitive, and any
+       80 +   whitespace right after the colon."
+       81 +  #"(?i)^proposed:\s*")
+       82 +
+       83 +(defn sign-summary
+       84 +  "`bp`'s summary as its sign shows it
+          +(TASKS T-16): a real build
+       85 +   (`:status :real`) drops one leading
+          +`proposed:` (case-insensitive, with
+       86 +   the whitespace after the colon) -- i
+          +t's built now, not proposed. Any
+       87 +   other status, or a non-string `:summ
+          +ary`, unchanged."
+       88 +  [bp]
+       89 +  (let [summary (:summary bp)]
+       90 +    (if (and (= :real (:status bp)) (st
+          +ring? summary))
+       91 +      (str/replace-first summary propos
+          +ed-prefix-re "")
+       92 +      summary)))
+       93 +
+       94  (defn sign-text
+       78 -  "A ghost's sign: its one-line summary
+          -, then on a second line how to act on i
+          -t, or why its
+       79 -   approval was refused. The wording is
+          - data (`:blueprint-text` in
+       80 -   estate.edn); without it, just the su
+          -mmary."
+       95 +  "A ghost's sign: its one-line summary
+          + (`sign-summary`), then on a second
+       96 +   line how to act on it, or why its ap
+          +proval was refused. The wording is
+       97 +   data (`:blueprint-text` in estate.ed
+          +n); without it, just the summary. A
+       98 +   real build (`:status :real`) has no
+          +second line -- it's not a ghost
+       99 +   asking for a click."
+      100    [world bp]
+       82 -  (let [{:keys [hint failed trial steep
+          - removing]} (:blueprint-text world)
+       83 -        tail (cond (= :removing (:statu
+          -s bp)) removing
+       84 -                   (:failed? bp) failed
+       85 -                   (and (:too-steep? bp
+          -) (= :pending (:status bp)) (string? st
+          -eep)) steep
+       86 -                   (= :approved (:statu
+          -s bp)) trial
+       87 -                   :else hint)]
+       88 -    (if (and (string? tail) (not (str/b
+          -lank? tail)))
+       89 -      (str (:summary bp) "\n" tail)   ;
+          - two lines: one long line shrank the fo
+          -nt to fit (Michael)
+       90 -      (:summary bp))))
+      101 +  (if (= :real (:status bp))
+      102 +    (sign-summary bp)
+      103 +    (let [{:keys [hint failed trial ste
+          +ep removing]} (:blueprint-text world)
+      104 +          tail (cond (= :removing (:sta
+          +tus bp)) removing
+      105 +                     (:failed? bp) fail
+          +ed
+      106 +                     (and (:too-steep?
+          +bp) (= :pending (:status bp)) (string?
+          +steep)) steep
+      107 +                     (= :approved (:sta
+          +tus bp)) trial
+      108 +                     :else hint)]
+      109 +      (if (and (string? tail) (not (str
+          +/blank? tail)))
+      110 +        (str (sign-summary bp) "\n" tai
+          +l)   ; two lines: one long line shrank
+          +the font to fit (Michael)
+      111 +        (sign-summary bp)))))
+      112
+      113  (defn make-real
+      114    "A trial build made real (GDD §2.1, §
+           4.6): recorded in the private
+
+⏺ Now let's run the build gate.
+
+  Searched for 1 pattern, read 1 file, ran 1 shell
+  command
+
+⏺ I'll move pin-min-y to after screen-of.
+
+⏺ Update(src/pm/pick.cljs)
+  ⎿  Removed 16 lines
+      71        (let [id (subs s (count walker-nam
+          e-prefix))]
+      72          (when (seq id) (keyword id))))))
+      73
+      74 -(defn pin-min-y
+      75 -  "Is the item itself on screen vertical
+         -ly (TASKS T-16, `screen-of`'s
+      76 -   `min-y`)? Decided from `base-ndc`, th
+         -e build group's world position
+      77 -   projected: the card's anchor sits abo
+         -ve the base, so the item reaches
+      78 -   the screen unless its base is above t
+         -he top edge or behind the camera.
+      79 -   `(+ card-h card-pin-gap-px)` when `ba
+         -se-ndc` is `[bx by bz]`, 3 finite
+      80 -   numbers, with `(<= by 1)` and `(<= bz
+         - 1)` (`bx` isn't checked -- the
+      81 -   anchor's own x decides left/right), a
+         -nd `card-h` is a finite number
+      82 -   `>= 0`. Otherwise nil."
+      83 -  [base-ndc card-h]
+      84 -  (when (and (vector? base-ndc) (= 3 (co
+         -unt base-ndc)) (every? finite? base-ndc)
+      85 -             (finite? card-h) (>= card-h
+         - 0))
+      86 -    (let [[_ by bz] base-ndc]
+      87 -      (when (and (<= by 1) (<= bz 1))
+      88 -        (+ card-h card-pin-gap-px)))))
+      89 -
+      74  (defn pick-agent
+      75    "The crew agent id (GDD §2.1 Talk) for
+           the nearest hit that belongs to a
+      76     walker, looked up through `walkers` (
+          pm.motion/walkers) for that
+
+⏺ Update(src/pm/pick.cljs)
+  ⎿  Added 16 lines
+      119             {:x (:x base) :y (max (:y ba
+           se) min-y) :visible? true}
+      120             base))
+      121         base))))
+      122 +
+      123 +(defn pin-min-y
+      124 +  "Is the item itself on screen vertica
+          +lly (TASKS T-16, `screen-of`'s
+      125 +   `min-y`)? Decided from `base-ndc`, t
+          +he build group's world position
+      126 +   projected: the card's anchor sits ab
+          +ove the base, so the item reaches
+      127 +   the screen unless its base is above
+          +the top edge or behind the camera.
+      128 +   `(+ card-h card-pin-gap-px)` when `b
+          +ase-ndc` is `[bx by bz]`, 3 finite
+      129 +   numbers, with `(<= by 1)` and `(<= b
+          +z 1)` (`bx` isn't checked -- the
+      130 +   anchor's own x decides left/right),
+          +and `card-h` is a finite number
+      131 +   `>= 0`. Otherwise nil."
+      132 +  [base-ndc card-h]
+      133 +  (when (and (vector? base-ndc) (= 3 (c
+          +ount base-ndc)) (every? finite? base-nd
+          +c)
+      134 +             (finite? card-h) (>= card-
+          +h 0))
+      135 +    (let [[_ by bz] base-ndc]
+      136 +      (when (and (<= by 1) (<= bz 1))
+      137 +        (+ card-h card-pin-gap-px)))))
+
+  Ran 1 shell command
+
+⏺ Gate passes with the tester's new tests included. Now
+  let me write the builder notes file and check the
+  scene.cljs docstring (optional, skipping since not
+  required).
+
+  Listed 1 directory
+
+⏺ Write(crew/runs/tidy-after-remove-v0…/builder-notes.md)
+  ⎿  Wrote 12 lines to crew/runs/tidy-after-remove-v
+     0-20261123-1929/builder-notes.md
+      1 # Builder notes — tidy-after-remove-v0 (T-
+        16)
+      2
+      3 What to look at headless:
+      4
+      5 - No lobby post/board/label at the cottage
+         steps (`[:lobby :box]` absent from the sc
+        ene);
+      6   the crew key's Lobby row still flies to
+        the cottage; `bb hal-say --at lobby` still
+     … +7 lines
+
+  Ran 1 shell command
+
+⏺ Implemented all three changes: (A) resources/estate.edn
+  lobby loses :text/:look; pm.plan/lobby-item now
+  returns nil when :look is absent. (B) pm.pick gets
+  card-pin-gap-px, a 3-arity screen-of with pinning, and
+  pin-min-y; pm.ui/trial-card-height added;
+  pm.core/trial-card! wired to use them. (C)
+  pm.blueprint/sign-summary drops a leading "proposed:"
+  for :real builds, and sign-text uses it with no second
+  line for :real. Also wrote builder-notes.md.
+
+  Gate: GATE: PASS — 0 warnings; Ran 1300 tests
+  containing 7585 assertions.
+
+  git diff --stat:
+   resources/estate.edn   | 11 ++++------
+   src/pm/blueprint.cljs  | 45
+  ++++++++++++++++++++++++++++++-----------
+   src/pm/core.cljs       |  5 ++++-
+   src/pm/pick.cljs       | 55
+  +++++++++++++++++++++++++++++++++++++++++---------
+   src/pm/plan.cljs       |  6 ++++--
+   src/pm/ui.cljs         |  6 ++++++
+   test/pm/plan_test.cljs | 20 +++++++++---------
+   7 files changed, 107 insertions(+), 41 deletions(-)
+  (plus new crew/runs/.../builder-notes.md, 12 lines —
+  tester owns test/pm/plan_test.cljs's rewrite, already
+  landed before I ran the gate)
+
+  done-4225
+
+✻ Cogitated for 2m 34s · done 7:41 PM
+
+─────────────────────────────────────────────────────────
+❯
+─────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

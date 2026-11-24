@@ -145,7 +145,7 @@ A single estate on one screen with zoom, medium-poly, floating on a dark grid.
 
 | Place | What it represents | Truth comes from |
 |---|---|---|
-| **Lobby** and **your kitchen** | home; where agents bring their questions | — |
+| **Lobby** and **your kitchen** | home; where agents bring their questions. It's the kit's cottage, with no sign (Nov 23): an errand spot, not a drawn item | — |
 | **Workshops** (one per project) | a code repo. Desks are open tasks; shelves fill as work lands. | GitHub |
 | **The canal** | Flora's home, styled after the Xochimilco canals (slow water, a dock, a worm jar) | Flora's state file |
 | **Porch** | Biscuit's spot; the leash hangs by the door | Biscuit's chores |

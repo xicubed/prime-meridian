@@ -1,0 +1,98 @@
+
+ ▐▛███▛█   Claude Code v2.1.331
+▝▜██████▀  Sonnet 5 · Claude Max
+ ▝▝   ▝▝   ~/src/prime-meridian
+
+
+❯ Say hi in ONE line: your name, your job, and the model you're running on. Don't use any tools.
+
+⏺ Hi, I'm Le Testeur, the tester on the Prime Meridian crew, running on Claude Sonnet 5.
+
+✻ Cooked for 2s · done 7:29 PM
+
+❯ Spec: crew/runs/tidy-after-remove-v0-20261123-1929/spec.md (quest: .crew/quests/tidy-after-remove-v0.md). Write its
+  test cases in the test file the spec assigns the tester, and nothing else. The builder is coding in parallel.
+
+  When you have completely finished, end your reply with a line containing only this: done-5726
+
+  Searched for 3 patterns, read 9 files
+
+⏺ Update(test/pm/plan_test.cljs)
+  ⎿  Added 10 lines, removed 10 lines
+      407    (is (nil? (p/lobby-item {:lobby {:at [1 2]}})))
+      408    (is (nil? (p/lobby-item {:lobby {:at "x"}}))))
+      409
+      410 +(def lobby-LOOK {:parts [{:shape :box :size [0.1 1.4 0.1]  :at [0 0.7 0] :color :brown}
+      411 +                         {:shape :box :size [0.9 0.4 0.06] :at [0 1.3 0] :color :tin}]})
+      412 +
+      413  (deftest t42-lobby-real-estate
+      411 -  (let [item (p/lobby-item W)]
+      412 -    (is (= [:lobby :box] (:key item)))
+      413 -    (is (= (get-in W [:lobby :at]) (:at item)))
+      414 -    (is (= 0 (:yaw item)))
+      415 -    (is (= :sign (:label item)))
+      416 -    (is (string? (:text item)))
+      417 -    (is (seq (:text item)))
+      418 -    (is (= (count (get-in W [:lobby :look :parts])) (count (:parts item))))))
+      414 +  (is (nil? (p/lobby-item W)))
+      415 +  (is (= [2.7 6.18 -23.6] (get-in W [:lobby :at])))
+      416 +  (is (= 0 (get-in W [:lobby :yaw])))
+      417 +  (is (nil? (get-in W [:lobby :look])))
+      418 +  (is (nil? (get-in W [:lobby :text]))))
+      419
+      420  (deftest t43-lobby-text-falls-back-when-missing-or-not-a-string
+      421 -  (is (= "" (:text (p/lobby-item {:lobby {:at [0 0 0]}}))))
+      422 -  (is (= "" (:text (p/lobby-item {:lobby {:at [0 0 0] :text 7}})))))
+      421 +  (is (= "" (:text (p/lobby-item {:lobby {:at [0 0 0] :look lobby-LOOK}}))))
+      422 +  (is (= "" (:text (p/lobby-item {:lobby {:at [0 0 0] :look lobby-LOOK :text 7}})))))
+      423
+      424  ;; workshop-item: one per project, standing for a code repo (GDD §2.4,
+      425  ;; §4.8). A plain, always-on sign -- not driven by any mirror's state.
+
+  Searched for 1 pattern
+
+⏺ No clash — good, no prior LOOK binding existed, but lobby-LOOK is fine and clearer anyway. Now let's write the new
+  test file.
+
+⏺ Write(test/pm/tidy_after_remove_test.cljs)
+  ⎿  Wrote 231 lines to test/pm/tidy_after_remove_test.cljs
+       1 (ns pm.tidy-after-remove-test
+       2   "Tests for TASKS T-16 (crew round tidy-after-remove-v0): the lobby signpost
+       3    goes while the lobby stays an errand spot (A), the trial card stays
+       4    pinned on screen up close (B), and a real build's sign drops
+       5    \"proposed: \" from its summary (C)."
+       6   (:require [cljs.test :refer [deftest is]]
+       7             [pm.plan :as p]
+       8             [pm.pick :as pk]
+       9             [pm.blueprint :as bp]
+      10             [pm.world :as w]
+     … +221 lines
+
+  Ran 3 shell commands
+
+⏺ All tests pass (1300 tests, 0 failures) — the builder's implementation has already landed enough to match. Here's the
+  diff.
+
+  Ran 1 shell command
+
+⏺ test/pm/plan_test.cljs — rewrote t42-lobby-real-estate (now asserts nil? and the bare :at/:yaw with no :look/:text)
+  and t43-lobby-text-falls-back-when-missing-or-not-a-string (now gives each lobby fixture a :look via a new local
+  lobby-LOOK).
+
+  test/pm/tidy_after_remove_test.cljs (new) — added:
+  - Lobby (4.2): L1–L8
+  - screen-of with min-y (4.3): P1–P12
+  - pin-min-y (4.4): M1–M11
+  - Real-build summary (4.5): R1–R9
+  - Signs (4.6): G1–G10
+
+  Ran the full suite (node out/test.js): 1300 tests, 7585 assertions, 0 failures, 0 errors.
+
+  done-5726
+
+✻ Cooked for 1m 57s · done 7:38 PM
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

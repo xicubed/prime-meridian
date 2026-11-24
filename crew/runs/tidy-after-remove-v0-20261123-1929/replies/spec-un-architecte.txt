@@ -1,0 +1,94 @@
+
+ ▐▛███▛█   Claude Code v2.1.331
+▝▜██████▀  Opus 5.5 with high effort · Claude Max
+ ▝▝   ▝▝   ~/src/prime-meridian
+
+
+❯ Say hi in ONE line: your name, your job, and the model you're running on. Don't use any tools.
+
+⏺ Hi, I'm Un Architecte, the Lead Architect for Prime Meridian: I turn each quest into a spec the builder and tester
+  can work from in parallel. I'm running on Claude Opus 5.5 (claude-opus-5-5).
+
+✻ Cooked for 6s · done 7:29 PM
+
+❯ New quest: read .crew/quests/tidy-after-remove-v0.md (and the code and earlier runs it cites). Write the spec to
+  crew/runs/tidy-after-remove-v0-20261123-1929/spec.md following your role card, with numbered test cases and
+  hand-checked expected values, and a who-touches-what table (builder: src + resources/estate.edn's :lobby entry only;
+  tester: test files only, including updating existing tests that counted the lobby's item or label; give le-docteur
+  a new TASKS.md row T-16 and a GDD §2.4 note that the lobby has no sign). Reply when it's written.
+
+  When you have completely finished, end your reply with a line containing only this: done-5472
+
+  Listed 2 directories, ran 3 shell commands
+
+⏺ Reading the lobby code is done. Next: pm.pick/screen-of, trial-card!, and the blueprint sign text.
+
+  Searched for 2 patterns, ran 4 shell commands
+
+⏺ Checking how a real build ends up with a sign in pm.scene; the built-plan gives it none.
+
+  Searched for 1 pattern, ran 3 shell commands
+
+⏺ Now the TASKS and GDD rows le-docteur will touch, plus the existing test fixtures I'll cite.
+
+  Searched for 1 pattern, listed 1 directory, ran 7 shell commands
+
+⏺ Writing the spec now.
+
+⏺ Write(crew/runs/tidy-after-remove-v0-20261123-1929/spec.md)
+  ⎿  Wrote 308 lines to crew/runs/tidy-after-remove-v0-20261123-1929/spec.md
+      1 # Spec: tidy-after-remove-v0 (TASKS T-16)
+      2
+      3 Quest: `.crew/quests/tidy-after-remove-v0.md`. Three small changes, one round, all pure
+      4 where they can be: (A) the lobby signpost goes and the lobby stays an errand spot,
+      5 (B) the build card stays on screen up close, (C) a real build's sign drops "proposed: ".
+      6 Nothing here names a person, pet, member or blueprint in `src/`. No `::k` across
+      7 namespaces. No npm deps. No writes to `state/` from tests.
+      8
+      9 ## 0. Who touches what
+     … +299 lines
+
+  Searched for 1 pattern, ran 1 shell command
+
+⏺ Update(crew/runs/tidy-after-remove-v0-20261123-1929/spec.md)
+  ⎿  Added 2 lines, removed 2 lines
+      84  - `min-y` nil or not a finite number (NaN, ±Infinity, a string) → **identical to the
+      85    2-arity result**.
+      86  - `min-y` finite: px as today, `px-x = (x+1)/2·w`, `px-y = (1−y)/2·h`.
+      87 -  - `visible?` = `(<= -1 x 1)` and `(<= y-ndc ... )`: precisely
+      88 -    `(and (<= -1 x 1) (<= -1 y) (<= z 1))`. The **top bound is dropped**: an anchor above the
+      87 +  - `visible?` = `(and (<= -1 x 1) (<= -1 y) (<= z 1))` on the ndc values.
+      88 +    The **top bound is dropped**: an anchor above the
+      89      top edge is still visible. Off the left/right, below the bottom, or behind the camera
+      90      stays hidden.
+      91    - When visible: `:y` = `(max px-y min-y)` (pinned, so the card's bottom edge is never
+
+⏺ Update(crew/runs/tidy-after-remove-v0-20261123-1929/spec.md)
+  ⎿  Added 1 line, removed 1 line
+      212  8. **L8 the errand event to the lobby is recorded:**
+      213     `(get-in (w/apply-event WE {:type :agent-event :agent "hal" :kind :errand :where "lobby" :text "Te
+           a's on." :source SRC} 1800000000000) [:errands "hal"])`
+      214     → `{:where "lobby" :text "Tea's on." :since 1800000000000 :state :pending}`. Use the same
+      215 -   `SRC` shape `world_test.cljs` uses (copy its def).
+      215 +   `SRC` `world_test.cljs` uses: `(def SRC {:agent "hal-say" :session "t" :machine "local"})`.
+      216
+      217  ### 4.3 `screen-of` with min-y (new file; size `[800 600]` unless said)
+      218
+
+⏺ I wrote the spec to crew/runs/tidy-after-remove-v0-20261123-1929/spec.md.
+  Public functions: pm.plan/lobby-item [world] (nil when the lobby has no :look), pm.pick/screen-of [ndc size min-y]
+  (new 3-arity), pm.pick/pin-min-y [base-ndc card-h], pm.pick/card-pin-gap-px, pm.ui/trial-card-height [],
+  pm.blueprint/sign-summary [bp] and pm.blueprint/sign-text [world bp] (a :real build loses the "proposed:" prefix and
+  the hint line); pm.core/trial-card! is glue only.
+  It has 50 numbered test cases plus rewrites of plan_test t42 and t43, with the who-touches-what table and
+  le-docteur's T-16 row and GDD §2.4 text. One flag for Hal, also in §C.2: real builds draw no sign today, so the
+  "proposed:" Hal saw was probably the red removal preview, which the quest keeps unchanged.
+
+  done-5472
+
+✻ Sautéed for 5m 31s · done 7:34 PM
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

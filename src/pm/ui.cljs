@@ -1198,6 +1198,12 @@
         (.appendChild js/document.body box)
         box)))
 
+(defn trial-card-height
+  "The trial card's current height in px (TASKS T-16, `pm.pick/pin-min-y`),
+   0 while it's hidden or not yet created."
+  []
+  (.-offsetHeight (trial-card-el)))
+
 (defn set-trial-card!
   "The trial card (TASKS T-14): `card` from `pm.blueprint/trial-card`, or
    nil; `pos` {:left :top :visible?} in page px; `colors` {:paper :ink}, the

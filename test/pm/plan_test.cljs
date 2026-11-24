@@ -407,19 +407,19 @@
   (is (nil? (p/lobby-item {:lobby {:at [1 2]}})))
   (is (nil? (p/lobby-item {:lobby {:at "x"}}))))
 
+(def lobby-LOOK {:parts [{:shape :box :size [0.1 1.4 0.1]  :at [0 0.7 0] :color :brown}
+                         {:shape :box :size [0.9 0.4 0.06] :at [0 1.3 0] :color :tin}]})
+
 (deftest t42-lobby-real-estate
-  (let [item (p/lobby-item W)]
-    (is (= [:lobby :box] (:key item)))
-    (is (= (get-in W [:lobby :at]) (:at item)))
-    (is (= 0 (:yaw item)))
-    (is (= :sign (:label item)))
-    (is (string? (:text item)))
-    (is (seq (:text item)))
-    (is (= (count (get-in W [:lobby :look :parts])) (count (:parts item))))))
+  (is (nil? (p/lobby-item W)))
+  (is (= [2.7 6.18 -23.6] (get-in W [:lobby :at])))
+  (is (= 0 (get-in W [:lobby :yaw])))
+  (is (nil? (get-in W [:lobby :look])))
+  (is (nil? (get-in W [:lobby :text]))))
 
 (deftest t43-lobby-text-falls-back-when-missing-or-not-a-string
-  (is (= "" (:text (p/lobby-item {:lobby {:at [0 0 0]}}))))
-  (is (= "" (:text (p/lobby-item {:lobby {:at [0 0 0] :text 7}})))))
+  (is (= "" (:text (p/lobby-item {:lobby {:at [0 0 0] :look lobby-LOOK}}))))
+  (is (= "" (:text (p/lobby-item {:lobby {:at [0 0 0] :look lobby-LOOK :text 7}})))))
 
 ;; workshop-item: one per project, standing for a code repo (GDD §2.4,
 ;; §4.8). A plain, always-on sign -- not driven by any mirror's state.

@@ -1635,7 +1635,10 @@
             ndc        (when anchor (t/project-ndc (.-camera h) anchor))
             ^js canvas (.. h -renderer -domElement)
             ^js rect   (.getBoundingClientRect canvas)
-            p          (pick/screen-of ndc [(.-width rect) (.-height rect)])]
+            size       [(.-width rect) (.-height rect)]
+            base       (when g (t/project-ndc (.-camera h) (t/world-pos g)))
+            min-y      (pick/pin-min-y base (ui/trial-card-height))
+            p          (pick/screen-of ndc size min-y)]
         (ui/set-trial-card! card
                             {:left (+ (.-left rect) (:x p)) :top (+ (.-top rect) (:y p)) :visible? (:visible? p)}
                             colors on-action))
