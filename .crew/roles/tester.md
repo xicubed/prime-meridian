@@ -16,3 +16,7 @@ Project: **Prime Meridian**, a cozy 3D management game where the characters are 
 - Never stage or commit (no `git add`, not even `-N`). For a new file's stat use
   `git diff --no-index --stat /dev/null <file>`.
 - Never commit.
+- Run shell commands bare: `.crew/gate.sh` sets its own PATH and JAVA_HOME, and
+  `npx`/`node`/`bb` are already on PATH. Never prefix a command with
+  `export PATH=... &&` (or JAVA_HOME): that prefix triggers a permission prompt
+  every time and stalls the round.
