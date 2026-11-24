@@ -1,0 +1,67 @@
+{
+  "round": "view-share-v0",
+  "quest": ".crew/quests/view-share-v0.md",
+  "runDir": "crew/runs",
+  "gate": "bash .crew/gate.sh",
+  "fix": {
+    "who": "un-automate-monde",
+    "max": 2
+  },
+  "timeoutMinutes": 60,
+  "steps": [
+    {
+      "id": "spec",
+      "who": [
+        "un-architecte"
+      ],
+      "prompt": "New quest: read {quest} (and the code it cites). Write the spec to {run}/spec.md following your role card: exact signatures (new src/pm/view.cljc, the pm.bridge /view validation, the pm.three centre ray, the pm.lot additions), numbered test cases with hand-checked expected values, and a who-touches-what table (builder: src/pm/view.cljc, src/pm/bridge.cljc, src/pm/three.cljs, src/pm/core.cljs, src/pm/lot.cljc, scripts/crew_bridge.clj, scripts/blueprint_draft.clj, new scripts/where.clj, bb.edn's new task; tester: new test/pm/view_test.cljs plus additions to test/pm/lot_test.cljs and the existing bridge test file, only adding tests; le-docteur: a TASKS.md row T-19 only; Hal updates the role cards himself). Reply when it's written.",
+      "expect": [
+        "{run}/spec.md"
+      ]
+    },
+    {
+      "id": "build",
+      "who": [
+        "un-automate-monde",
+        "le-testeur"
+      ],
+      "prompt": {
+        "un-automate-monde": "Spec: {run}/spec.md (quest: {quest}). Implement it in the source files the spec assigns the builder, and nothing else. Run .crew/gate.sh before replying, then write {run}/builder-notes.md as the quest's Done-when says (hand tests only with PM_BLUEPRINTS_FILE on a temp copy and --dry-run; never write state/).",
+        "le-testeur": "Spec: {run}/spec.md (quest: {quest}). Write its test cases in the test file the spec assigns the tester, and nothing else. The builder is coding in parallel."
+      },
+      "expect": [
+        "{run}/builder-notes.md"
+      ]
+    },
+    {
+      "id": "gate",
+      "who": [
+        "le-coureur"
+      ],
+      "verify": true,
+      "prompt": "Run the gate (.crew/gate.sh) and write the gate note to {run}/gate-note.md as your role card says.",
+      "expect": [
+        "{run}/gate-note.md"
+      ]
+    },
+    {
+      "id": "review",
+      "who": [
+        "le-critique"
+      ],
+      "prompt": "Review the round's changes against {run}/spec.md and {quest}: git diff for edited files, and read the new files (git status lists them). Check in particular: /view has the same token/origin/size guards as /hold and refuses every malformed field; successful /view posts aren't logged; state/view.edn is written atomically; the game never posts in the demo build, with the bridge off, or while a post is in flight, and throttles as the quest says; pm.view and pm.lot stay pure (now is an argument); --near here / --near <walker> refuse a stale or missing view with a readable line; tests never touch state/; no person, pet or member named in code; no npm deps. Write the review to {run}/review.md.",
+      "expect": [
+        "{run}/review.md"
+      ]
+    },
+    {
+      "id": "docs",
+      "who": [
+        "le-docteur"
+      ],
+      "prompt": "Spec: {run}/spec.md (quest: {quest}). Make only the documentation edits the spec's who-touches-what table gives le-docteur (if none, change nothing). Reply with git diff --stat of what you changed.",
+      "expect": []
+    }
+  ],
+  "onBlocked": "wait"
+}
