@@ -1,0 +1,397 @@
+diff --git a/TASKS.md b/TASKS.md
+index e87fcb8..17b38d1 100644
+--- a/TASKS.md
++++ b/TASKS.md
+@@ -94,6 +94,7 @@ The twin on the estate (GDD §2.1). Built today: he walks (black body, white joi
+ - [ ] T-8 v1.1 from the finish list: jack-out priority, the Construct as a Hermes onboarding skill.
+ - [x] Nov 22 (crew round calls-v0) T-11 Call a contact, in the room (Michael, Nov 21: "because I can talk to you and there are bots that can speak"): a 📞 on a contact's row opens a call; the walker's plate shows "on a call", their lines are spoken aloud as they arrive (the voice the twin already has), and the player's mic goes through the browser's speech recognition (Web Speech API, no server, no cost) down the bridge as if typed. First for the twin: "Do you read me, Hal?" made literal. Works in the demo build with SAMPLE voices. Follow-up fixed Nov 22: the 📞/End button shifted 1 px between states (the composer grew 39 → 40 px when the 🎙 joined it; the input is now 40 px), and 🎙 Talk in an embedded window with no speech service (Electron answers `network`) now goes disabled, "No mic here", with the twin's line, instead of snapping back.
+ - [ ] T-13 Demo scene (Michael, Nov 22): a bot builds something, and you finish it from the wireframe when it looks good. You ask in 💭 ("put a bench by the creek"), a member writes the `:blueprints` entry, the ghost appears, a click builds it as a trial, a second click makes it real (`state/builds.edn`). Exists today except: (a) N-3, the ghost is hard to see on grass; (b) a new blueprint shows only after a page reload (the estate is compiled in, `!world` is a defonce), so it can't appear while you watch. Candidate for S6 in `docs/demo-script.md` beside the rock; the unbuilt bench by the mailbox can stand in meanwhile. Nov 22: blueprints are now seated on the ground before they're drawn (`pm.blueprint/seat`: level at the highest foot, lower feet stretched down; more than 25 cm of drop is refused as too steep, sign + twin say so), and the bench moved off the creek bank to level grass by the mailbox. Nov 23: (b) done: a crew member proposes with `bb blueprint-add <member> <blueprint.edn>` (kept in the private `state/blueprints.edn`; `--remove <id>` takes one out), and within one 5-second poll its ghost appears in the estate, seated, with no reload, and the member says "drew a blueprint: … Click it to try it." in 💭. Two clicks still make it a trial, then real.
++- [x] Nov 23 (crew round trial-buttons-v0) T-14 A trial build gets labelled buttons (Michael, Nov 23: "i didnt realize u needed to click it twice"; his rule: every action is a labelled button). Click a blue ghost and it builds as a trial with a small card above it: **Make it real** (records it through the bridge; reads "Saving…" while it does, so it can't post twice) and **Undo** (back to the blue ghost, to try again later; not a reject). The card follows the item as the camera moves and hides when it's off screen; the trial's sign now just says "trial: try it out". Right-click still dismisses.
+ - [ ] T-12 Call the player's real phone (after T-11; the GDD's jack-out hook, §2.3): Twilio voice from the bot number to his cell when something real is due (Flora's chore, a "!" waiting past closing) or when he taps 📞 away from the laptop; the twin reads the lines, speech-to-text comes back down the bridge; a crew member who takes a minute "calls back". Costs per minute; FaceTime/Teams have no agent end and are out. Ready-made ways to add it (Nov 22, nothing installed): Hermes's official `telephony` skill (one-way calls on the existing Twilio number: a spoken message or a TTS recording); the community **Hermes Voice Gateway** plugin (two-way: the player calls the twin's number and talks; needs ElevenLabs and a tunnel); Zoom only as a meeting bot that joins a meeting (Meetstream / Meeting AI plugins, paid bot services); Slack is text and voice notes only (bots can't join huddles).
+ - [ ] T-9 v2 idea: living objects (docs/ideas-living-objects.md): stateful things that age, speak, and pass messages through the twin; Flora's hunger in the game first, a text only when she's well overdue (replacing the 09:00/17:00 cron).
+ 
+diff --git a/docs/GDD.md b/docs/GDD.md
+index 585ebe9..30c75ba 100644
+--- a/docs/GDD.md
++++ b/docs/GDD.md
+@@ -70,7 +70,7 @@
+ | **Talk** | Click an agent and a speech bubble opens. Ask what it's doing, give it a task, answer its question. Replies stream in as the agent writes them. *Built (Nov 20): your twin's answers come back as a speech plate over his walker, his caption and the 💭 history (`bb hal-say`); with `--at` he walks to the place first and says it there (an errand). Without a bridge he says so himself.* |
+ | **Assign** | Say it in conversation ("make all the rocks procedural"). The agent confirms in one line, takes a desk, and gets to work. |
+ | **Answer** | An agent that needs a decision stops, raises "!", and walks to you wherever you are. You answer in-world; it resumes. |
+-| **Approve** | Agent-made changes first appear as a **blueprint**, a ghosted version of the change. Approve it and it becomes real; reject it and it vanishes. A bad change can never take down the running game: it reverts to the last working build. Approvals come **grouped**, not one at a time: the morning card holds last night's blueprints as one tray, each with a one-line summary and a before/after you can see, and reads never ask. *Built (Nov 23): a crew member's blueprint arrives while you watch: `bb blueprint-add` writes it to the private `state/blueprints.edn`, the estate's ghost appears within seconds without a reload, and whoever drew it says so in 💭. The public sample estate never changes when an agent proposes something.* |
++| **Approve** | Agent-made changes first appear as a **blueprint**, a ghosted version of the change. Approve it and it becomes real; reject it and it vanishes. A bad change can never take down the running game: it reverts to the last working build. Approvals come **grouped**, not one at a time: the morning card holds last night's blueprints as one tray, each with a one-line summary and a before/after you can see, and reads never ask. *Built (Nov 23): a crew member's blueprint arrives while you watch: `bb blueprint-add` writes it to the private `state/blueprints.edn`, the estate's ghost appears within seconds without a reload, and whoever drew it says so in 💭. The public sample estate never changes when an agent proposes something.* *Built (Nov 23): a trial build shows a card above it with two labelled buttons, **Make it real** and **Undo** (back to the ghost), instead of a hidden second click.* |
+ | **Hand out a keycard** | When an agent needs a permission for a task ("write access to the river shader"), it asks you for a keycard. Every key that's out is visible, and it comes back when the task ends. |
+ | **Possess** | Toggle direct control of one agent: the camera follows it, your messages go straight to it, and you see what it sees on a desk screen, not a pop-up. |
+ | **Set autonomy** | A dial per agent: *ask before anything* · *ask before approving* · *fully autonomous*. The dial covers reads and reversible writes; money, deletion, security changes, and messages to other people need you at every setting. You set trust: no agent can start a trust change, so no "!" can ever ask for more autonomy. The notice board shows each agent's track record (tasks done, approvals, reverts); if game code thinks a dial could go up, it says so on the board in the board's own style, never as a "!". |
+diff --git a/resources/estate.edn b/resources/estate.edn
+index a79844a..4bacfa2 100644
+--- a/resources/estate.edn
++++ b/resources/estate.edn
+@@ -247,7 +247,10 @@
+  ;; agents propose these: a bench by the mailbox, east bank, clear of Un
+  ;; Architecte's route; a lamp post with a generation-gone-wrong shape.
+  :blueprint-text {:hint      "click to build · right-click to dismiss"                ; shown on every pending ghost's sign
+-                  :trial     "trial · click to make it real · right-click to undo"    ; a build is a trial: gone on reload
++                  :trial     "trial: try it out"                                      ; a build is a trial: gone on reload (TASKS T-14: the buttons say the rest now)
++                  :make-real "Make it real"                                           ; the trial card's first button (TASKS T-14)
++                  :undo      "Undo"                                                   ; the trial card's second button: back to the ghost (TASKS T-14)
++                  :saving    "Saving…"                                                ; the first button while the bridge records it, disabled (TASKS T-14)
+                   :real      "Made real. It stays."                                   ; twin's caption once it's recorded
+                   :no-bridge "Start the bridge (bb crew-bridge) to make it real."     ; no bridge, nothing real changes
+                   :steep     "the ground's too steep here, so it won't build; ask for a flatter spot"   ; pm.blueprint/seat: a foot would hang past max-seat-drop-m
+diff --git a/src/pm/blueprint.cljs b/src/pm/blueprint.cljs
+index 8d660ea..50e8fe9 100644
+--- a/src/pm/blueprint.cljs
++++ b/src/pm/blueprint.cljs
+@@ -42,9 +42,14 @@
+   "Approving a blueprint (GDD §2.1, §4.8): it stops being pending, so it
+    drops out of `ghost-plan` and the change it previewed is the one in
+    play -- `pm.scene` un-ghosts its mesh so it reads as real. No-op when
+-   `id` isn't a current blueprint's."
++   `id` isn't a current blueprint's. Also records `id` as the latest trial
++   in `:trial-order` (TASKS T-14, `card-owner`), moved to the end if it was
++   already there; no `:trial-order` key is added for an unknown `id`."
+   [world id]
+-  (set-status world id :approved))
++  (let [w (set-status world id :approved)]
++    (if (some #(= id (:id %)) (:blueprints world))
++      (assoc w :trial-order (conj (vec (remove #{id} (:trial-order world))) id))
++      w)))
+ 
+ (defn mark-failed
+   "A blueprint whose approval was refused because it would break the build
+@@ -107,6 +112,42 @@
+   [world id]
+   (:status (first (filter #(= id (:id %)) (all world)))))
+ 
++(defn unapprove
++  "Undo on a trial build (TASKS T-14): back to its blue ghost, so it can be
++   tried again later. Not a reject."
++  [world id]
++  (if (= :approved (status world id))
++    (set-status world id :pending)
++    world))
++
++(defn card-owner
++  "The id of the trial build the trial card belongs to (TASKS T-14): the
++   most recent one in `:trial-order` still `:approved`, falling back to the
++   last `:approved` blueprint for a world with no `:trial-order`. nil when
++   none is `:approved`."
++  [world]
++  (or (last (filter #(= :approved (status world %)) (:trial-order world)))
++      (:id (last (filter #(= :approved (:status %)) (all world))))))
++
++(def card-lift-m
++  "Metres above the item's bounding-box top the trial card floats (TASKS T-14)."
++  0.3)
++
++(defn trial-card
++  "The trial card for the current trial (TASKS T-14, `card-owner`), or nil
++   without one or without all its words (`:make-real`/`:undo`/`:saving` in
++   `:blueprint-text`). `saving` is the id whose make-real request is in
++   flight, or nil; while any request is in flight both buttons are
++   disabled, so nothing can post twice or undo a build being recorded."
++  [world saving]
++  (when-let [owner (card-owner world)]
++    (let [{:keys [make-real undo] saving-text :saving} (:blueprint-text world)]
++      (when (every? #(and (string? %) (not (str/blank? %))) [make-real undo saving-text])
++        (let [disabled? (some? saving)]
++          {:id owner
++           :buttons [{:action :real :label (if (= saving owner) saving-text make-real) :disabled? disabled?}
++                     {:action :undo :label undo :disabled? disabled?}]})))))
++
+ (defn reject-blueprint
+   "Rejecting a blueprint (GDD §2.1, §4.8): it vanishes -- drops out of
+    `ghost-plan`, and `pm.scene` removes its mesh, so it never becomes
+diff --git a/src/pm/core.cljs b/src/pm/core.cljs
+index 18f75b1..857a867 100644
+--- a/src/pm/core.cljs
++++ b/src/pm/core.cljs
+@@ -602,7 +602,7 @@
+   (- (.getTimezoneOffset (js/Date.))))
+ 
+ (defonce ^:private !sky (atom nil))   ; the kit hour pm.sky last set
+-(declare toggle-jack-out! crew-key-tick! twin-thinking? twin-dots walker-colours)
++(declare toggle-jack-out! crew-key-tick! twin-thinking? twin-dots walker-colours trial-card!)
+ (defonce ^:private !gesture? (atom false))   ; browsers play nothing before one
+ 
+ (defn- music-scene
+@@ -1008,6 +1008,7 @@
+     (errands-tick! (js/Date.now))
+     (crew-key-tick! (js/Date.now))
+     (scene/update! @!world (js/Date.now))
++    (when-let [h (kit/handle)] (trial-card! h))
+     ;; The Construct's first beat (GDD §2.7, §4.8): a first-time player
+     ;; lands in a silent white room before the twin steps in.
+     (construct-tick! (js/Date.now))
+@@ -1260,17 +1261,41 @@
+ 
+ (defn- make-real!
+   "Click a trial build: record it as real through the bridge (GDD §2.1,
+-   §4.6), so it's in the estate every session and can't be dismissed."
+-  [id]
++   §4.6), so it's in the estate every session and can't be dismissed. Calls
++   `(done)` exactly once in every branch (TASKS T-14: the trial card's Make
++   it real button reads \"Saving…\" and is disabled until then, so it can't
++   post twice)."
++  [id done]
+   (let [words (:blueprint-text @!world)]
+     (if-not (bridge-on?)
+-      (say! :blueprint-real (:no-bridge words))
++      (do (say! :blueprint-real (:no-bridge words)) (done))
+       (post-real! #(crew/real-build-body % id)
+                   (fn [ok? reason]
+                     (if ok?
+                       (do (swap! !world bp/make-real id)
+                           (say! :blueprint-real (:real words)))
+-                      (say! :blueprint-real (str (:no-bridge words) " (" reason ")"))))))))
++                      (say! :blueprint-real (str (:no-bridge words) " (" reason ")")))
++                    (done))))))
++
++;; The id whose make-real request is in flight (TASKS T-14): both trial-card
++;; buttons disable while it's set, so a double click can't post twice.
++(defonce ^:private !saving (atom nil))
++
++(defn- real-click!
++  "Click the trial card's Make it real button, or the trial build itself
++   (TASKS T-14: one path for both). No-op unless `id` is `:approved` and no
++   other make-real request is already in flight."
++  [id]
++  (when (and (nil? @!saving) (= :approved (bp/status @!world id)))
++    (reset! !saving id)
++    (make-real! id #(reset! !saving nil))))
++
++(defn- undo-trial!
++  "Click the trial card's Undo button (TASKS T-14): the trial goes back to
++   its blue ghost. No-op while a make-real request is in flight."
++  [id]
++  (when (nil? @!saving)
++    (swap! !world bp/unapprove id)))
+ 
+ (defn- real-mirror? [m]
+   (= :hal (get-in @!world [:mirrors m :state :source])))
+@@ -1299,7 +1324,7 @@
+   [id]
+   (case (bp/status @!world id)
+     :pending  (apply-approved! id)
+-    :approved (make-real! id)
++    :approved (real-click! id)
+     nil))
+ 
+ (defn- blueprint-id-of [k]
+@@ -1552,6 +1577,24 @@
+         (reset! !world w3)
+         (js/console.info "Prime Meridian: blueprints added" (:added r) "removed" (:removed r))))))
+ 
++(defn- trial-card! [^js h]
++  (let [card      (bp/trial-card @!world @!saving)
++        colors    {:paper (scene/css-color :sign-paper) :ink (scene/css-color :sign-ink)}
++        on-action (fn [action id] (case action :real (real-click! id) :undo (undo-trial! id) nil))]
++    (if-let [{:keys [id]} card]
++      (let [^js g      (t/by-name (scene/mounted-root) (pr-str [:blueprint id]))
++            top        (and g (t/top-center g))
++            ndc        (when top
++                         (let [[x y z] top]
++                           (t/project-ndc (.-camera h) [x (+ y bp/card-lift-m) z])))
++            ^js canvas (.. h -renderer -domElement)
++            ^js rect   (.getBoundingClientRect canvas)
++            p          (pick/screen-of ndc [(.-width rect) (.-height rect)])]
++        (ui/set-trial-card! card
++                            {:left (+ (.-left rect) (:x p)) :top (+ (.-top rect) (:y p)) :visible? (:visible? p)}
++                            colors on-action))
++      (ui/set-trial-card! nil nil colors on-action))))
++
+ (defn start-kit!
+   "The kit's scene is live: show the game's layer on top of it."
+   [^js h]
+diff --git a/src/pm/pick.cljs b/src/pm/pick.cljs
+index ed16dfa..3073916 100644
+--- a/src/pm/pick.cljs
++++ b/src/pm/pick.cljs
+@@ -82,3 +82,19 @@
+             (some (fn [n] (when-let [id (walker-id-of-name n)] (get id->agent id)))
+                   chain))
+           hits)))
++
++(defn screen-of
++  "Where a projected point lands on screen (TASKS T-14, the trial card):
++   `ndc` ([x y z], a point projected through the camera) and `size` ([w h]
++   canvas px) turned into `{:x :y :visible?}` CSS px inside the canvas, the
++   card's bottom-centre point. `{:x 0 :y 0 :visible? false}` when `ndc`
++   isn't 3 finite numbers or `size`'s width/height isn't a finite positive
++   number. No DOM, no js/Date."
++  [ndc [w h]]
++  (if (and (vector? ndc) (= 3 (count ndc)) (every? finite? ndc)
++           (finite? w) (finite? h) (pos? w) (pos? h))
++    (let [[x y z] ndc]
++      {:x (* (/ (+ x 1) 2) w)
++       :y (* (/ (- 1 y) 2) h)
++       :visible? (and (<= -1 x 1) (<= -1 y 1) (<= z 1))})
++    {:x 0 :y 0 :visible? false}))
+diff --git a/src/pm/scene.cljs b/src/pm/scene.cljs
+index 19590a9..4dbea32 100644
+--- a/src/pm/scene.cljs
++++ b/src/pm/scene.cljs
+@@ -46,6 +46,12 @@
+ (defn- color [kw]
+   (get palette kw (:stand-in palette)))
+ 
++(defn css-color
++  "A palette key as a CSS colour (TASKS T-14, the trial card: the in-world
++   plate's own colours, no hex literals in feature code)."
++  [kw]
++  (str "#" (.padStart (.toString (color kw) 16) 6 "0")))
++
+ (defonce ^:private !mounted (atom nil))
+ 
+ (defn- label-opts [label-kind pos text]
+@@ -292,6 +298,13 @@
+                         (when-let [sprite (get labels k)] (t/set-visible! sprite false)))
+           :rejected (do (when-let [^js g (t/by-name root (pr-str k))] (t/remove! root g))
+                         (when-let [sprite (get labels k)] (t/remove! root sprite)))
++          ;; Undo (TASKS T-14): only a real step back from :approved -- a
++          ;; freshly-drawn :pending (no previous status, or previously
++          ;; :rejected/:real) is already a ghost, or isn't drawn at all
++          :pending  (when (= :approved (get prev k))
++                      (when-let [^js g (t/by-name root (pr-str k))]
++                        (t/unlight-glows! g)
++                        (t/ghost! g)))
+           nil))
+       (swap! !mounted assoc :bp-status now)))
+   nil)
+diff --git a/src/pm/three.cljs b/src/pm/three.cljs
+index bd086b4..acdf903 100644
+--- a/src/pm/three.cljs
++++ b/src/pm/three.cljs
+@@ -437,6 +437,34 @@
+       (when (js/isFinite y) y))
+     (catch :default _ nil)))
+ 
++(defn top-center
++  "[cx max-y cz] of obj's world-space bounding box (TASKS T-14, the trial
++   card), or nil (never throws)."
++  [^js obj]
++  (try
++    (.updateMatrixWorld obj true)
++    (let [^js T (three)
++          ^js Box3 (.-Box3 T)
++          ^js box (.setFromObject (Box3.) obj)
++          ^js mn (.-min box) ^js mx (.-max box)
++          cx (/ (+ (.-x mn) (.-x mx)) 2)
++          cz (/ (+ (.-z mn) (.-z mx)) 2)
++          y  (.-y mx)]
++      (when (every? js/isFinite [cx y cz])
++        [cx y cz]))
++    (catch :default _ nil)))
++
++(defn project-ndc
++  "`[x y z]` (a world point) projected through `camera` into NDC space
++   (`Vector3.project`), or nil (never throws; TASKS T-14, the trial card)."
++  [^js camera [x y z]]
++  (try
++    (let [^js v (vec3 [x y z])]
++      (.project v camera)
++      (when (every? js/isFinite [(.-x v) (.-y v) (.-z v)])
++        [(.-x v) (.-y v) (.-z v)]))
++    (catch :default _ nil)))
++
+ (defn find-meshes
+   "Every mesh under `root` whose name satisfies `pred`, as a vector. A nil
+    root -> []."
+@@ -610,6 +638,21 @@
+           (set! (.. o -userData -light) l)))))
+   obj)
+ 
++(defn unlight-glows!
++  "Reverses `light-glows!` (TASKS T-14: an undone lamp stops shining): every
++   descendant of `obj` with a `userData.light` has that light removed from
++   its parent, disposed if it can be, and `userData.light` deleted, so a
++   later trial can `light-glows!` it again. Returns obj."
++  [^js obj]
++  (let [lit #js []]
++    (.traverse obj (fn [^js o] (when (.. o -userData -light) (.push lit o))))
++    (doseq [^js o lit]
++      (let [^js l (.. o -userData -light)]
++        (.removeFromParent l)
++        (when (.-dispose l) (.dispose l))
++        (js-delete (.-userData o) "light"))))
++  obj)
++
+ (defn sync-glows!
+   "Every lit glow under `root` follows the kit's own night lights each
+    frame: its light as bright as the kit's lamp, its bulb glowing like the
+diff --git a/src/pm/ui.cljs b/src/pm/ui.cljs
+index 9b3563b..07a0653 100644
+--- a/src/pm/ui.cljs
++++ b/src/pm/ui.cljs
+@@ -1163,6 +1163,70 @@
+   (when-let [^js box (el "brain-ui")]
+     (.removeAttribute box "hidden")))
+ 
++;; -- The trial card (TASKS T-14) --------------------------------------------
++;; A trial build (:approved) gets a small card above it with two labelled
++;; buttons, Make it real and Undo, instead of the sign's hidden second click.
++;; pm.core computes its screen position each frame; this namespace only
++;; shows it.
++
++(defn- trial-card-style! []
++  (when-not (el "pm-trial-card-style")
++    (construct-css!)
++    (let [^js st (js/document.createElement "style")]
++      (set! (.-id st) "pm-trial-card-style")
++      (set! (.-textContent st)
++            (str "#pm-trial-card{position:fixed;z-index:150;transform:translate(-50%,-100%);display:flex;gap:8px;"
++                 "padding:8px;border-radius:12px;border-style:solid;border-width:2px}"
++                 "#pm-trial-card .pm-btn{box-sizing:border-box;height:40px;padding:0 14px;border-radius:10px;"
++                 "font:600 14px/1 system-ui,sans-serif;white-space:nowrap;animation:none}"
++                 "#pm-trial-card .pm-btn:disabled{opacity:.5;cursor:default}"))
++      (.appendChild (.-head js/document) st))))
++
++(defn- trial-card-el []
++  (or (el "pm-trial-card")
++      (let [^js box (js/document.createElement "div")]
++        (set! (.-id box) "pm-trial-card")
++        (set! (.. box -style -display) "none")
++        ;; clicks on the card never reach the canvas: no pan, no pick on
++        ;; the item behind it
++        (doseq [ev ["pointerdown" "pointerup" "mousedown" "mouseup" "click" "dblclick" "contextmenu" "wheel"]]
++          (.addEventListener box ev (fn [^js e] (.stopPropagation e))))
++        (.appendChild js/document.body box)
++        box)))
++
++(defn set-trial-card!
++  "The trial card (TASKS T-14): `card` from `pm.blueprint/trial-card`, or
++   nil; `pos` {:left :top :visible?} in page px; `colors` {:paper :ink}, the
++   in-world plate's own colours; `on-action` is `(fn [action id])`. Its two
++   buttons (Make it real, Undo) are rebuilt only when `card` changes (this
++   runs every frame); position and colours are set every call. Hidden
++   (`display:none`) when `card` is nil or `pos`'s `:visible?` is false."
++  [card pos colors on-action]
++  (trial-card-style!)
++  (let [^js box (trial-card-el)
++        key     (pr-str card)]
++    (when (not= key (.. box -dataset -key))
++      (set! (.. box -dataset -key) key)
++      (set! (.-innerHTML box) "")
++      (when card
++        (doseq [{:keys [action label disabled?]} (:buttons card)]
++          (let [^js b (js/document.createElement "button")]
++            (set! (.-className b) (str "pm-btn trial-" (name action)))
++            (.setAttribute b "data-action" (name action))
++            (set! (.-textContent b) label)
++            (set! (.-disabled b) (boolean disabled?))
++            (.addEventListener b "click"
++              (fn [^js e] (.stopPropagation e) (when-not disabled? (on-action action (:id card)))))
++            (.appendChild box b)))))
++    (when colors
++      (set! (.. box -style -borderColor) (:ink colors))
++      (set! (.. box -style -background) (:paper colors)))
++    (if (and card (:visible? pos))
++      (do (set! (.. box -style -left) (str (:left pos) "px"))
++          (set! (.. box -style -top) (str (:top pos) "px"))
++          (set! (.. box -style -display) "flex"))
++      (set! (.. box -style -display) "none"))))
++
+ (defn remove-sources!
+   "The SAMPLE/REAL switch used to be a row of buttons in the ⓘ panel; it
+    lives on the creatures' crew-key rows now (render-crew-key!). Drops the

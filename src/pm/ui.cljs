@@ -1163,6 +1163,72 @@
   (when-let [^js box (el "brain-ui")]
     (.removeAttribute box "hidden")))
 
+;; -- The trial card (TASKS T-14) --------------------------------------------
+;; A trial build (:approved) gets a small card above it with two labelled
+;; buttons, Make it real and Undo, instead of the sign's hidden second click.
+;; pm.core computes its screen position each frame; this namespace only
+;; shows it.
+
+(defn- trial-card-style! []
+  (when-not (el "pm-trial-card-style")
+    (construct-css!)
+    (let [^js st (js/document.createElement "style")]
+      (set! (.-id st) "pm-trial-card-style")
+      (set! (.-textContent st)
+            (str "#pm-trial-card{position:fixed;z-index:150;transform:translate(-50%,-100%);display:flex;gap:8px;"
+                 "padding:8px;border-radius:12px;border-style:solid;border-width:2px}"
+                 "#pm-trial-card .pm-btn{box-sizing:border-box;height:40px;padding:0 14px;border-radius:10px;"
+                 "font:600 14px/1 system-ui,sans-serif;white-space:nowrap;animation:none}"
+                 "#pm-trial-card .pm-btn:disabled{opacity:.5;cursor:default}"
+                 ;; Saving… is narrower than Make it real: keep Undo from sliding
+                 "#pm-trial-card .trial-real{min-width:118px}"))
+      (.appendChild (.-head js/document) st))))
+
+(defn- trial-card-el []
+  (or (el "pm-trial-card")
+      (let [^js box (js/document.createElement "div")]
+        (set! (.-id box) "pm-trial-card")
+        (set! (.. box -style -display) "none")
+        ;; clicks on the card never reach the canvas: no pan, no pick on
+        ;; the item behind it
+        (doseq [ev ["pointerdown" "pointerup" "mousedown" "mouseup" "click" "dblclick" "contextmenu" "wheel"]]
+          (.addEventListener box ev (fn [^js e] (.stopPropagation e))))
+        (.appendChild js/document.body box)
+        box)))
+
+(defn set-trial-card!
+  "The trial card (TASKS T-14): `card` from `pm.blueprint/trial-card`, or
+   nil; `pos` {:left :top :visible?} in page px; `colors` {:paper :ink}, the
+   in-world plate's own colours; `on-action` is `(fn [action id])`. Its two
+   buttons (Make it real, Undo) are rebuilt only when `card` changes (this
+   runs every frame); position and colours are set every call. Hidden
+   (`display:none`) when `card` is nil or `pos`'s `:visible?` is false."
+  [card pos colors on-action]
+  (trial-card-style!)
+  (let [^js box (trial-card-el)
+        key     (pr-str card)]
+    (when (not= key (.. box -dataset -key))
+      (set! (.. box -dataset -key) key)
+      (set! (.-innerHTML box) "")
+      (when card
+        (doseq [{:keys [action label disabled?]} (:buttons card)]
+          (let [^js b (js/document.createElement "button")]
+            (set! (.-className b) (str "pm-btn trial-" (name action)))
+            (.setAttribute b "data-action" (name action))
+            (set! (.-textContent b) label)
+            (set! (.-disabled b) (boolean disabled?))
+            (.addEventListener b "click"
+              (fn [^js e] (.stopPropagation e) (when-not disabled? (on-action action (:id card)))))
+            (.appendChild box b)))))
+    (when colors
+      (set! (.. box -style -borderColor) (:ink colors))
+      (set! (.. box -style -background) (:paper colors)))
+    (if (and card (:visible? pos))
+      (do (set! (.. box -style -left) (str (:left pos) "px"))
+          (set! (.. box -style -top) (str (:top pos) "px"))
+          (set! (.. box -style -display) "flex"))
+      (set! (.. box -style -display) "none"))))
+
 (defn remove-sources!
   "The SAMPLE/REAL switch used to be a row of buttons in the ⓘ panel; it
    lives on the creatures' crew-key rows now (render-crew-key!). Drops the

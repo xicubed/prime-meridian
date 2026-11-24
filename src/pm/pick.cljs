@@ -82,3 +82,19 @@
             (some (fn [n] (when-let [id (walker-id-of-name n)] (get id->agent id)))
                   chain))
           hits)))
+
+(defn screen-of
+  "Where a projected point lands on screen (TASKS T-14, the trial card):
+   `ndc` ([x y z], a point projected through the camera) and `size` ([w h]
+   canvas px) turned into `{:x :y :visible?}` CSS px inside the canvas, the
+   card's bottom-centre point. `{:x 0 :y 0 :visible? false}` when `ndc`
+   isn't 3 finite numbers or `size`'s width/height isn't a finite positive
+   number. No DOM, no js/Date."
+  [ndc [w h]]
+  (if (and (vector? ndc) (= 3 (count ndc)) (every? finite? ndc)
+           (finite? w) (finite? h) (pos? w) (pos? h))
+    (let [[x y z] ndc]
+      {:x (* (/ (+ x 1) 2) w)
+       :y (* (/ (- 1 y) 2) h)
+       :visible? (and (<= -1 x 1) (<= -1 y 1) (<= z 1))})
+    {:x 0 :y 0 :visible? false}))

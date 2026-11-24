@@ -1,0 +1,400 @@
+           +n action (:id card)))))
+      1220 +            (.appendChild box b)))))
+      1221 +    (when colors
+      1222 +      (set! (.. box -style -borderColo
+           +r) (:ink colors))
+      1223 +      (set! (.. box -style -background
+           +) (:paper colors)))
+      1224 +    (if (and card (:visible? pos))
+      1225 +      (do (set! (.. box -style -left)
+           +(str (:left pos) "px"))
+      1226 +          (set! (.. box -style -top) (
+           +str (:top pos) "px"))
+      1227 +          (set! (.. box -style -displa
+           +y) "flex"))
+      1228 +      (set! (.. box -style -display) "
+           +none"))))
+      1229 +
+      1230  (defn remove-sources!
+      1231    "The SAMPLE/REAL switch used to be a
+             row of buttons in the ⓘ panel; it
+      1232     lives on the creatures' crew-key ro
+            ws now (render-crew-key!). Drops the
+
+  Searched for 1 pattern
+
+⏺ Good, only one call site which we're replacing. Let's
+  make the edits.
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 1 line, removed 1 line
+      602    (- (.getTimezoneOffset (js/Date.))))
+      603
+      604  (defonce ^:private !sky (atom nil))   ;
+            the kit hour pm.sky last set
+      605 -(declare toggle-jack-out! crew-key-tick
+          -! twin-thinking? twin-dots walker-colou
+          -rs)
+      605 +(declare toggle-jack-out! crew-key-tick
+          +! twin-thinking? twin-dots walker-colou
+          +rs trial-card!)
+      606  (defonce ^:private !gesture? (atom fals
+           e))   ; browsers play nothing before on
+           e
+      607
+      608  (defn- music-scene
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 1 line
+      1008      (errands-tick! (js/Date.now))
+      1009      (crew-key-tick! (js/Date.now))
+      1010      (scene/update! @!world (js/Date.no
+            w))
+      1011 +    (when-let [h (kit/handle)] (trial-
+           +card! h))
+      1012      ;; The Construct's first beat (GDD
+             §2.7, §4.8): a first-time player
+      1013      ;; lands in a silent white room be
+            fore the twin steps in.
+      1014      (construct-tick! (js/Date.now))
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 28 lines, removed 4 lines
+      1261
+      1262  (defn- make-real!
+      1263    "Click a trial build: record it as r
+            eal through the bridge (GDD §2.1,
+      1264 -   §4.6), so it's in the estate every
+           -session and can't be dismissed."
+      1265 -  [id]
+      1264 +   §4.6), so it's in the estate every
+           +session and can't be dismissed. Calls
+      1265 +   `(done)` exactly once in every bran
+           +ch (TASKS T-14: the trial card's Make
+      1266 +   it real button reads \"Saving…\" an
+           +d is disabled until then, so it can't
+      1267 +   post twice)."
+      1268 +  [id done]
+      1269    (let [words (:blueprint-text @!world
+            )]
+      1270      (if-not (bridge-on?)
+      1268 -      (say! :blueprint-real (:no-bridg
+           -e words))
+      1271 +      (do (say! :blueprint-real (:no-b
+           +ridge words)) (done))
+      1272        (post-real! #(crew/real-build-bo
+            dy % id)
+      1273                    (fn [ok? reason]
+      1274                      (if ok?
+      1275                        (do (swap! !worl
+            d bp/make-real id)
+      1276                            (say! :bluep
+            rint-real (:real words)))
+      1274 -                      (say! :blueprint
+           --real (str (:no-bridge words) " (" rea
+           -son ")"))))))))
+      1277 +                      (say! :blueprint
+           +-real (str (:no-bridge words) " (" rea
+           +son ")")))
+      1278 +                    (done))))))
+      1279
+      1280 +;; The id whose make-real request is i
+           +n flight (TASKS T-14): both trial-card
+      1281 +;; buttons disable while it's set, so
+           +a double click can't post twice.
+      1282 +(defonce ^:private !saving (atom nil))
+      1283 +
+      1284 +(defn- real-click!
+      1285 +  "Click the trial card's Make it real
+           + button, or the trial build itself
+      1286 +   (TASKS T-14: one path for both). No
+           +-op unless `id` is `:approved` and no
+      1287 +   other make-real request is already
+           +in flight."
+      1288 +  [id]
+      1289 +  (when (and (nil? @!saving) (= :appro
+           +ved (bp/status @!world id)))
+      1290 +    (reset! !saving id)
+      1291 +    (make-real! id #(reset! !saving ni
+           +l))))
+      1292 +
+      1293 +(defn- undo-trial!
+      1294 +  "Click the trial card's Undo button
+           +(TASKS T-14): the trial goes back to
+      1295 +   its blue ghost. No-op while a make-
+           +real request is in flight."
+      1296 +  [id]
+      1297 +  (when (nil? @!saving)
+      1298 +    (swap! !world bp/unapprove id)))
+      1299 +
+      1300  (defn- real-mirror? [m]
+      1301    (= :hal (get-in @!world [:mirrors m
+            :state :source])))
+      1302
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 1 line, removed 1 line
+      1324    [id]
+      1325    (case (bp/status @!world id)
+      1326      :pending  (apply-approved! id)
+      1327 -    :approved (make-real! id)
+      1327 +    :approved (real-click! id)
+      1328      nil))
+      1329
+      1330  (defn- blueprint-id-of [k]
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 18 lines
+      1577          (reset! !world w3)
+      1578          (js/console.info "Prime Meridi
+            an: blueprints added" (:added r) "remo
+            ved" (:removed r))))))
+      1579
+      1580 +(defn- trial-card! [^js h]
+      1581 +  (let [card      (bp/trial-card @!wor
+           +ld @!saving)
+      1582 +        colors    {:paper (scene/css-c
+           +olor :sign-paper) :ink (scene/css-colo
+           +r :sign-ink)}
+      1583 +        on-action (fn [action id] (cas
+           +e action :real (real-click! id) :undo
+           +(undo-trial! id) nil))]
+      1584 +    (if-let [{:keys [id]} card]
+      1585 +      (let [^js g      (t/by-name (sce
+           +ne/mounted-root) (pr-str [:blueprint i
+           +d]))
+      1586 +            top        (and g (t/top-c
+           +enter g))
+      1587 +            ndc        (when top
+      1588 +                         (let [[x y z]
+           + top]
+      1589 +                           (t/project-
+           +ndc (.-camera h) [x (+ y bp/card-lift-
+           +m) z])))
+      1590 +            ^js canvas (.. h -renderer
+           + -domElement)
+      1591 +            ^js rect   (.getBoundingCl
+           +ientRect canvas)
+      1592 +            p          (pick/screen-of
+           + ndc [(.-width rect) (.-height rect)])
+           +]
+      1593 +        (ui/set-trial-card! card
+      1594 +                            {:left (+
+           +(.-left rect) (:x p)) :top (+ (.-top r
+           +ect) (:y p)) :visible? (:visible? p)}
+      1595 +                            colors on-
+           +action))
+      1596 +      (ui/set-trial-card! nil nil colo
+           +rs on-action))))
+      1597 +
+      1598  (defn start-kit!
+      1599    "The kit's scene is live: show the g
+            ame's layer on top of it."
+      1600    [^js h]
+
+  Read 1 file, ran 1 shell command
+
+⏺ I'll move the new block (unapprove through trial-card)
+  to right after status is defined (line 149).
+
+⏺ Update(src/pm/blueprint.cljs)
+  ⎿  Removed 36 lines
+      51        (assoc w :trial-order (conj (vec (
+          remove #{id} (:trial-order world))) id))
+      52        w)))
+      53
+      54 -(defn unapprove
+      55 -  "Undo on a trial build (TASKS T-14): b
+         -ack to its blue ghost, so it can be
+      56 -   tried again later. Not a reject."
+      57 -  [world id]
+      58 -  (if (= :approved (status world id))
+      59 -    (set-status world id :pending)
+      60 -    world))
+      61 -
+      62 -(defn card-owner
+      63 -  "The id of the trial build the trial c
+         -ard belongs to (TASKS T-14): the
+      64 -   most recent one in `:trial-order` sti
+         -ll `:approved`, falling back to the
+      65 -   last `:approved` blueprint for a worl
+         -d with no `:trial-order`. nil when
+      66 -   none is `:approved`."
+      67 -  [world]
+      68 -  (or (last (filter #(= :approved (statu
+         -s world %)) (:trial-order world)))
+      69 -      (:id (last (filter #(= :approved (
+         -:status %)) (all world))))))
+      70 -
+      71 -(def card-lift-m
+      72 -  "Metres above the item's bounding-box
+         -top the trial card floats (TASKS T-14)."
+      73 -  0.3)
+      74 -
+      75 -(defn trial-card
+      76 -  "The trial card for the current trial
+         -(TASKS T-14, `card-owner`), or nil
+      77 -   without one or without all its words
+         -(`:make-real`/`:undo`/`:saving` in
+      78 -   `:blueprint-text`). `saving` is the i
+         -d whose make-real request is in
+      79 -   flight, or nil; while any request is
+         -in flight both buttons are
+      80 -   disabled, so nothing can post twice o
+         -r undo a build being recorded."
+      81 -  [world saving]
+      82 -  (when-let [owner (card-owner world)]
+      83 -    (let [{:keys [make-real undo] saving
+         --text :saving} (:blueprint-text world)]
+      84 -      (when (every? #(and (string? %) (n
+         -ot (str/blank? %))) [make-real undo savi
+         -ng-text])
+      85 -        (let [disabled? (some? saving)]
+      86 -          {:id owner
+      87 -           :buttons [{:action :real :lab
+         -el (if (= saving owner) saving-text make
+         --real) :disabled? disabled?}
+      88 -                     {:action :undo :lab
+         -el undo :disabled? disabled?}]})))))
+      89 -
+      54  (defn mark-failed
+      55    "A blueprint whose approval was refuse
+          d because it would break the build
+      56     (`breaks-build?`): it stays a ghost,
+          and its sign says why. No-op when
+
+⏺ Update(src/pm/blueprint.cljs)
+  ⎿  Added 36 lines
+      112    [world id]
+      113    (:status (first (filter #(= id (:id %
+           )) (all world)))))
+      114
+      115 +(defn unapprove
+      116 +  "Undo on a trial build (TASKS T-14):
+          +back to its blue ghost, so it can be
+      117 +   tried again later. Not a reject."
+      118 +  [world id]
+      119 +  (if (= :approved (status world id))
+      120 +    (set-status world id :pending)
+      121 +    world))
+      122 +
+      123 +(defn card-owner
+      124 +  "The id of the trial build the trial
+          +card belongs to (TASKS T-14): the
+      125 +   most recent one in `:trial-order` st
+          +ill `:approved`, falling back to the
+      126 +   last `:approved` blueprint for a wor
+          +ld with no `:trial-order`. nil when
+      127 +   none is `:approved`."
+      128 +  [world]
+      129 +  (or (last (filter #(= :approved (stat
+          +us world %)) (:trial-order world)))
+      130 +      (:id (last (filter #(= :approved
+          +(:status %)) (all world))))))
+      131 +
+      132 +(def card-lift-m
+      133 +  "Metres above the item's bounding-box
+          + top the trial card floats (TASKS T-14)
+          +."
+      134 +  0.3)
+      135 +
+      136 +(defn trial-card
+      137 +  "The trial card for the current trial
+          + (TASKS T-14, `card-owner`), or nil
+      138 +   without one or without all its words
+          + (`:make-real`/`:undo`/`:saving` in
+      139 +   `:blueprint-text`). `saving` is the
+          +id whose make-real request is in
+      140 +   flight, or nil; while any request is
+          + in flight both buttons are
+      141 +   disabled, so nothing can post twice
+          +or undo a build being recorded."
+      142 +  [world saving]
+      143 +  (when-let [owner (card-owner world)]
+      144 +    (let [{:keys [make-real undo] savin
+          +g-text :saving} (:blueprint-text world)
+          +]
+      145 +      (when (every? #(and (string? %) (
+          +not (str/blank? %))) [make-real undo sa
+          +ving-text])
+      146 +        (let [disabled? (some? saving)]
+      147 +          {:id owner
+      148 +           :buttons [{:action :real :la
+          +bel (if (= saving owner) saving-text ma
+          +ke-real) :disabled? disabled?}
+      149 +                     {:action :undo :la
+          +bel undo :disabled? disabled?}]})))))
+      150 +
+      151  (defn reject-blueprint
+      152    "Rejecting a blueprint (GDD §2.1, §4.
+           8): it vanishes -- drops out of
+      153     `ghost-plan`, and `pm.scene` removes
+            its mesh, so it never becomes
+
+⏺ Now rerun the gate.
+
+  Ran 1 shell command
+
+⏺ Gate passes, including the tester's pm.trial-card-test.
+  Now let me write the builder notes.
+
+  Ran 1 shell command
+
+⏺ Now I'll write builder-notes.md, the deliverable the
+  spec requires.
+
+⏺ Write(crew/runs/trial-buttons-v0-202…/builder-notes.md)
+  ⎿  Wrote 52 lines to crew/runs/trial-buttons-v0-20
+     261123-1638/builder-notes.md
+      1 # Builder notes — trial buttons v0 (TASKS
+        T-14)
+      2
+      3 ## What was built
+      4
+      5 - `resources/estate.edn`: `:blueprint-text
+        ` only — `:trial` reworded (the buttons sa
+        y the rest
+      6   now), new `:make-real` "Make it real", `
+        :undo` "Undo", `:saving` "Saving…".
+     … +46 lines
+
+  Ran 1 shell command
+
+⏺ Changed: resources/estate.edn (:blueprint-text only),
+  src/pm/blueprint.cljs (unapprove, card-owner,
+  trial-card, card-lift-m, approve-blueprint's
+  :trial-order), src/pm/pick.cljs (screen-of),
+  src/pm/three.cljs (top-center, project-ndc,
+  unlight-glows!), src/pm/scene.cljs (css-color, the
+  :pending/Undo branch), src/pm/ui.cljs
+  (set-trial-card!), src/pm/core.cljs (!saving,
+  make-real!'s done, real-click!, undo-trial!,
+  trial-card! wired into frame). Wrote builder-notes.md
+  in the run dir. test/pm/trial_card_test.cljs is the
+  tester's file, untouched by me.
+
+  Gate's last line: GATE: PASS — 0 warnings; Ran 1191
+  tests containing 7385 assertions.
+
+   resources/estate.edn  |  5 +++-
+   src/pm/blueprint.cljs | 45
+  ++++++++++++++++++++++++++++++++++--
+   src/pm/core.cljs      | 55
+  ++++++++++++++++++++++++++++++++++++++-----
+   src/pm/pick.cljs      | 16 +++++++++++++
+   src/pm/scene.cljs     | 13 +++++++++++
+   src/pm/three.cljs     | 43
+  ++++++++++++++++++++++++++++++++++
+   src/pm/ui.cljs        | 64
+  +++++++++++++++++++++++++++++++++++++++++++++++++++
+   7 files changed, 232 insertions(+), 9 deletions(-)
+   (new) crew/runs/.../builder-notes.md | 52 ++++
+
+  done-4029
+
+✻ Brewed for 6m 47s · done 4:49 PM
+                 ✔ Update installed · /restart to apply
+─────────────────────────────────────────────────────────
+❯
+─────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

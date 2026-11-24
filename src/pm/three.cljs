@@ -437,6 +437,34 @@
       (when (js/isFinite y) y))
     (catch :default _ nil)))
 
+(defn top-center
+  "[cx max-y cz] of obj's world-space bounding box (TASKS T-14, the trial
+   card), or nil (never throws)."
+  [^js obj]
+  (try
+    (.updateMatrixWorld obj true)
+    (let [^js T (three)
+          ^js Box3 (.-Box3 T)
+          ^js box (.setFromObject (Box3.) obj)
+          ^js mn (.-min box) ^js mx (.-max box)
+          cx (/ (+ (.-x mn) (.-x mx)) 2)
+          cz (/ (+ (.-z mn) (.-z mx)) 2)
+          y  (.-y mx)]
+      (when (every? js/isFinite [cx y cz])
+        [cx y cz]))
+    (catch :default _ nil)))
+
+(defn project-ndc
+  "`[x y z]` (a world point) projected through `camera` into NDC space
+   (`Vector3.project`), or nil (never throws; TASKS T-14, the trial card)."
+  [^js camera [x y z]]
+  (try
+    (let [^js v (vec3 [x y z])]
+      (.project v camera)
+      (when (every? js/isFinite [(.-x v) (.-y v) (.-z v)])
+        [(.-x v) (.-y v) (.-z v)]))
+    (catch :default _ nil)))
+
 (defn find-meshes
   "Every mesh under `root` whose name satisfies `pred`, as a vector. A nil
    root -> []."
@@ -610,6 +638,21 @@
           (set! (.. o -userData -light) l)))))
   obj)
 
+(defn unlight-glows!
+  "Reverses `light-glows!` (TASKS T-14: an undone lamp stops shining): every
+   descendant of `obj` with a `userData.light` has that light removed from
+   its parent, disposed if it can be, and `userData.light` deleted, so a
+   later trial can `light-glows!` it again. Returns obj."
+  [^js obj]
+  (let [lit #js []]
+    (.traverse obj (fn [^js o] (when (.. o -userData -light) (.push lit o))))
+    (doseq [^js o lit]
+      (let [^js l (.. o -userData -light)]
+        (.removeFromParent l)
+        (when (.-dispose l) (.dispose l))
+        (js-delete (.-userData o) "light"))))
+  obj)
+
 (defn sync-glows!
   "Every lit glow under `root` follows the kit's own night lights each
    frame: its light as bright as the kit's lamp, its bulb glowing like the
@@ -645,6 +688,17 @@
         ^js v (new (.-Vector3 T))]
     (.getWorldPosition obj v)
     [(.-x v) (.-y v) (.-z v)]))
+
+(defn world-scale-y
+  "The world-space y scale of obj (TASKS T-14: a sprite's own height, for
+   the trial card's anchor), or nil (never throws)."
+  [^js obj]
+  (try
+    (let [^js T (three)
+          ^js v (new (.-Vector3 T))]
+      (.getWorldScale obj v)
+      (when (js/isFinite (.-y v)) (.-y v)))
+    (catch :default _ nil)))
 
 (defn world-quat
   "A new world Quaternion (opaque to CLJS)."

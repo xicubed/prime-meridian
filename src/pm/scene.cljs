@@ -46,6 +46,12 @@
 (defn- color [kw]
   (get palette kw (:stand-in palette)))
 
+(defn css-color
+  "A palette key as a CSS colour (TASKS T-14, the trial card: the in-world
+   plate's own colours, no hex literals in feature code)."
+  [kw]
+  (str "#" (.padStart (.toString (color kw) 16) 6 "0")))
+
 (defonce ^:private !mounted (atom nil))
 
 (defn- label-opts [label-kind pos text]
@@ -292,6 +298,13 @@
                         (when-let [sprite (get labels k)] (t/set-visible! sprite false)))
           :rejected (do (when-let [^js g (t/by-name root (pr-str k))] (t/remove! root g))
                         (when-let [sprite (get labels k)] (t/remove! root sprite)))
+          ;; Undo (TASKS T-14): only a real step back from :approved -- a
+          ;; freshly-drawn :pending (no previous status, or previously
+          ;; :rejected/:real) is already a ghost, or isn't drawn at all
+          :pending  (when (= :approved (get prev k))
+                      (when-let [^js g (t/by-name root (pr-str k))]
+                        (t/unlight-glows! g)
+                        (t/ghost! g)))
           nil))
       (swap! !mounted assoc :bp-status now)))
   nil)
@@ -340,6 +353,13 @@
 
 (defn mounted-root []
   (:root @!mounted))
+
+(defn label-sprite
+  "The three.js label Sprite mounted for `key` (e.g. `[:blueprint id]`), or
+   nil (TASKS T-14: the trial card anchors above a blueprint's sign, not
+   its item, when the sign has a sprite)."
+  [key]
+  (get (:labels @!mounted) key))
 
 (defn current-plan []
   (:plan @!mounted))

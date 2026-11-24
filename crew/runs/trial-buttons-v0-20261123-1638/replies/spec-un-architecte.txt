@@ -1,0 +1,40 @@
+
+
+⏺ Write(crew/runs/trial-buttons-v0-20261123-1638/spec.md)
+  ⎿  Wrote 278 lines to crew/runs/trial-buttons-v0-20261123-1638/spec.md
+      1 # Spec: trial buttons v0 (TASKS T-14)
+      2
+      3 Quest: `.crew/quests/trial-buttons-v0.md`. Start commit `c06b0f2`.
+      4 A trial build (status `:approved`) gets a small card above it with two labelled buttons,
+      5 **Make it real** (today's second click, guarded against double posts) and **Undo** (back to the
+      6 blue ghost). The card follows the item on screen and hides when the item is off screen or behind
+      7 the camera. The quest's decisions stand; this spec fixes the names, shapes and numbers.
+      8
+      9 ---
+     … +269 lines
+
+⏺ Spec: crew/runs/trial-buttons-v0-20261123-1638/spec.md. It includes the who-touches-what table and le-docteur's
+  wording for a done T-14 row in TASKS.md and the GDD §2.1 Approve note.
+
+  Public functions:
+  - pm.blueprint: unapprove (new), card-owner (new), trial-card (new), card-lift-m = 0.3 (new). approve-blueprint now
+    also keeps a :trial-order list, so the card can belong to the most recent trial.
+  - pm.pick: screen-of (new; turns the projected point into the card's screen position).
+  - Wiring, hand-tested:
+    - pm.three: top-center, project-ndc, unlight-glows!
+    - pm.scene: css-color, and the ghost is redrawn after Undo
+    - pm.ui: set-trial-card!
+    - pm.core: real-click!, undo-trial!, trial-card!, and make-real! gains a done callback
+  - estate.edn :blueprint-text: new :make-real, :undo and :saving labels, and :trial becomes "trial: try it out".
+
+  Tests: 37 numbered cases with expected values worked out by hand, all in the new test/pm/trial_card_test.cljs. Each
+  function is tested on two blueprints, so nothing is specific to one.
+
+  done-9643
+
+✻ Crunched for 3m 59s · done 4:42 PM
+                                                                               ✔ Update installed · /restart to apply
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

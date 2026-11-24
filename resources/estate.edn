@@ -247,7 +247,10 @@
  ;; agents propose these: a bench by the mailbox, east bank, clear of Un
  ;; Architecte's route; a lamp post with a generation-gone-wrong shape.
  :blueprint-text {:hint      "click to build · right-click to dismiss"                ; shown on every pending ghost's sign
-                  :trial     "trial · click to make it real · right-click to undo"    ; a build is a trial: gone on reload
+                  :trial     "trial: try it out"                                      ; a build is a trial: gone on reload (TASKS T-14: the buttons say the rest now)
+                  :make-real "Make it real"                                           ; the trial card's first button (TASKS T-14)
+                  :undo      "Undo"                                                   ; the trial card's second button: back to the ghost (TASKS T-14)
+                  :saving    "Saving…"                                                ; the first button while the bridge records it, disabled (TASKS T-14)
                   :real      "Made real. It stays."                                   ; twin's caption once it's recorded
                   :no-bridge "Start the bridge (bb crew-bridge) to make it real."     ; no bridge, nothing real changes
                   :steep     "the ground's too steep here, so it won't build; ask for a flatter spot"   ; pm.blueprint/seat: a foot would hang past max-seat-drop-m

@@ -42,9 +42,14 @@
   "Approving a blueprint (GDD §2.1, §4.8): it stops being pending, so it
    drops out of `ghost-plan` and the change it previewed is the one in
    play -- `pm.scene` un-ghosts its mesh so it reads as real. No-op when
-   `id` isn't a current blueprint's."
+   `id` isn't a current blueprint's. Also records `id` as the latest trial
+   in `:trial-order` (TASKS T-14, `card-owner`), moved to the end if it was
+   already there; no `:trial-order` key is added for an unknown `id`."
   [world id]
-  (set-status world id :approved))
+  (let [w (set-status world id :approved)]
+    (if (some #(= id (:id %)) (:blueprints world))
+      (assoc w :trial-order (conj (vec (remove #{id} (:trial-order world))) id))
+      w)))
 
 (defn mark-failed
   "A blueprint whose approval was refused because it would break the build
@@ -106,6 +111,42 @@
   "The status of blueprint `id` in `world`, or nil."
   [world id]
   (:status (first (filter #(= id (:id %)) (all world)))))
+
+(defn unapprove
+  "Undo on a trial build (TASKS T-14): back to its blue ghost, so it can be
+   tried again later. Not a reject."
+  [world id]
+  (if (= :approved (status world id))
+    (set-status world id :pending)
+    world))
+
+(defn card-owner
+  "The id of the trial build the trial card belongs to (TASKS T-14): the
+   most recent one in `:trial-order` still `:approved`, falling back to the
+   last `:approved` blueprint for a world with no `:trial-order`. nil when
+   none is `:approved`."
+  [world]
+  (or (last (filter #(= :approved (status world %)) (:trial-order world)))
+      (:id (last (filter #(= :approved (:status %)) (all world))))))
+
+(def card-lift-m
+  "Metres above the item's bounding-box top the trial card floats (TASKS T-14)."
+  0.3)
+
+(defn trial-card
+  "The trial card for the current trial (TASKS T-14, `card-owner`), or nil
+   without one or without all its words (`:make-real`/`:undo`/`:saving` in
+   `:blueprint-text`). `saving` is the id whose make-real request is in
+   flight, or nil; while any request is in flight both buttons are
+   disabled, so nothing can post twice or undo a build being recorded."
+  [world saving]
+  (when-let [owner (card-owner world)]
+    (let [{:keys [make-real undo] saving-text :saving} (:blueprint-text world)]
+      (when (every? #(and (string? %) (not (str/blank? %))) [make-real undo saving-text])
+        (let [disabled? (some? saving)]
+          {:id owner
+           :buttons [{:action :real :label (if (= saving owner) saving-text make-real) :disabled? disabled?}
+                     {:action :undo :label undo :disabled? disabled?}]})))))
 
 (defn reject-blueprint
   "Rejecting a blueprint (GDD §2.1, §4.8): it vanishes -- drops out of

@@ -602,7 +602,7 @@
   (- (.getTimezoneOffset (js/Date.))))
 
 (defonce ^:private !sky (atom nil))   ; the kit hour pm.sky last set
-(declare toggle-jack-out! crew-key-tick! twin-thinking? twin-dots walker-colours)
+(declare toggle-jack-out! crew-key-tick! twin-thinking? twin-dots walker-colours trial-card!)
 (defonce ^:private !gesture? (atom false))   ; browsers play nothing before one
 
 (defn- music-scene
@@ -1008,6 +1008,7 @@
     (errands-tick! (js/Date.now))
     (crew-key-tick! (js/Date.now))
     (scene/update! @!world (js/Date.now))
+    (when-let [h (kit/handle)] (trial-card! h))
     ;; The Construct's first beat (GDD §2.7, §4.8): a first-time player
     ;; lands in a silent white room before the twin steps in.
     (construct-tick! (js/Date.now))
@@ -1260,17 +1261,41 @@
 
 (defn- make-real!
   "Click a trial build: record it as real through the bridge (GDD §2.1,
-   §4.6), so it's in the estate every session and can't be dismissed."
-  [id]
+   §4.6), so it's in the estate every session and can't be dismissed. Calls
+   `(done)` exactly once in every branch (TASKS T-14: the trial card's Make
+   it real button reads \"Saving…\" and is disabled until then, so it can't
+   post twice)."
+  [id done]
   (let [words (:blueprint-text @!world)]
     (if-not (bridge-on?)
-      (say! :blueprint-real (:no-bridge words))
+      (do (say! :blueprint-real (:no-bridge words)) (done))
       (post-real! #(crew/real-build-body % id)
                   (fn [ok? reason]
                     (if ok?
                       (do (swap! !world bp/make-real id)
                           (say! :blueprint-real (:real words)))
-                      (say! :blueprint-real (str (:no-bridge words) " (" reason ")"))))))))
+                      (say! :blueprint-real (str (:no-bridge words) " (" reason ")")))
+                    (done))))))
+
+;; The id whose make-real request is in flight (TASKS T-14): both trial-card
+;; buttons disable while it's set, so a double click can't post twice.
+(defonce ^:private !saving (atom nil))
+
+(defn- real-click!
+  "Click the trial card's Make it real button, or the trial build itself
+   (TASKS T-14: one path for both). No-op unless `id` is `:approved` and no
+   other make-real request is already in flight."
+  [id]
+  (when (and (nil? @!saving) (= :approved (bp/status @!world id)))
+    (reset! !saving id)
+    (make-real! id #(reset! !saving nil))))
+
+(defn- undo-trial!
+  "Click the trial card's Undo button (TASKS T-14): the trial goes back to
+   its blue ghost. No-op while a make-real request is in flight."
+  [id]
+  (when (nil? @!saving)
+    (swap! !world bp/unapprove id)))
 
 (defn- real-mirror? [m]
   (= :hal (get-in @!world [:mirrors m :state :source])))
@@ -1299,7 +1324,7 @@
   [id]
   (case (bp/status @!world id)
     :pending  (apply-approved! id)
-    :approved (make-real! id)
+    :approved (real-click! id)
     nil))
 
 (defn- blueprint-id-of [k]
@@ -1551,6 +1576,39 @@
                         w2 (:announce r))]
         (reset! !world w3)
         (js/console.info "Prime Meridian: blueprints added" (:added r) "removed" (:removed r))))))
+
+;; The card floats just clear of the sign's own plate: anchored at the
+;; item's top alone, it sat on top of the sign and hid its text.
+(def ^:private sign-gap-m 0.15)
+
+(defn- card-anchor
+  "Where the trial card floats above blueprint `id`'s group `g`: just clear
+   of its sign sprite's world top (sprite-top + sign-gap-m) when it has one,
+   else `g`'s own bounding-box top plus `card-lift-m` as before. nil when
+   neither is available."
+  [id ^js g]
+  (if-let [^js sprite (scene/label-sprite [:blueprint id])]
+    (let [[sx sy sz] (t/world-pos sprite)
+          sh         (t/world-scale-y sprite)]
+      (when sh [sx (+ sy (/ sh 2) sign-gap-m) sz]))
+    (when-let [[x y z] (and g (t/top-center g))]
+      [x (+ y bp/card-lift-m) z])))
+
+(defn- trial-card! [^js h]
+  (let [card      (bp/trial-card @!world @!saving)
+        colors    {:paper (scene/css-color :sign-paper) :ink (scene/css-color :sign-ink)}
+        on-action (fn [action id] (case action :real (real-click! id) :undo (undo-trial! id) nil))]
+    (if-let [{:keys [id]} card]
+      (let [^js g      (t/by-name (scene/mounted-root) (pr-str [:blueprint id]))
+            anchor     (card-anchor id g)
+            ndc        (when anchor (t/project-ndc (.-camera h) anchor))
+            ^js canvas (.. h -renderer -domElement)
+            ^js rect   (.getBoundingClientRect canvas)
+            p          (pick/screen-of ndc [(.-width rect) (.-height rect)])]
+        (ui/set-trial-card! card
+                            {:left (+ (.-left rect) (:x p)) :top (+ (.-top rect) (:y p)) :visible? (:visible? p)}
+                            colors on-action))
+      (ui/set-trial-card! nil nil colors on-action))))
 
 (defn start-kit!
   "The kit's scene is live: show the game's layer on top of it."
