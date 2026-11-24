@@ -28,7 +28,13 @@ and swaps the booth's boxes for it. **Led by:** Hal. Michael reviews by eye.
 ## Decided (don't reopen)
 
 - **`:model` on a prop is data:** `:phone-booth` gains `:model {:url "/assets/props/phone-booth.glb"
-  :materials {"lamp" {:glow true} "sign" {:glow true}}}`.
+  :materials {"lamp" {:glow true :light-m 3} "sign" {:glow true :light false}}}`.
+  **At night** (Michael: "a little light in there that glows at night and maybe the sign lights
+  up"): the ceiling lamp glows and carries one small warm point light inside the box, its range
+  `:light-m` (3 m, not the kit lamp's full range) so it lights the phone and spills a soft pool
+  through the glass onto the ground; the four TELEPHONE panels glow (emissive, following the
+  kit's lamps like every `:glow` part) but add **no** light of their own (`:light false`), so
+  the booth costs one point light, not five. By day neither shows.
   **The panes keep the model's own semi-translucent glass** (Michael, Nov 23: "i do like that you
   can see thru it a little"); no kit override for `glass` (the `:kit` override stays supported for
   later). The rebuilt glass material must stay transparent (opacity from the model, `transparent
