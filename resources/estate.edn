@@ -267,7 +267,7 @@
                   :removing-wait    "Removing…"                                        ; Remove it while the bridge records it, disabled (TASKS T-15)
                   :removed          "Removed. It's gone for good."                     ; twin's caption once it's recorded (TASKS T-15)
                   :no-bridge-remove "Start the bridge (bb crew-bridge) to remove it."}  ; no bridge (or refused): nothing changes (TASKS T-15)
- :blueprints [{:id :bench-by-mailbox :at [4.0 1.66 -6.5] :yaw 90   ; level terrain 1.4 m from the mailbox (6 cm across the legs; the old spot straddled the bank); the game seats it (pm.blueprint/seat)
+ :blueprints [{:id :bench-by-mailbox :at [3.5 1.82 -9.25] :yaw 0   ; south of the mailbox, 2.6 m from it and 3 m from the phone booth (Michael, Nov 23: it was crammed against the booth); 8 cm across the legs, probed every foot; a walker loop passes close by (TASKS T-7: wanderers don't avoid builds yet); the game seats it (pm.blueprint/seat)
                :summary "proposed: a bench by the mailbox"
                :look {:parts
                       [{:shape :box :size [1.1 0.1 0.4]  :at [0 0.45 0] :color :brown}    ; seat
