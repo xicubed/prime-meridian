@@ -1,0 +1,56 @@
+
+ ▐▛███▛█   Claude Code v2.1.331
+▝▜██████▀  Opus 5.5 with high effort · Claude Max
+ ▝▝   ▝▝   ~/src/prime-meridian
+
+
+❯ Say hi in ONE line: your name, your job, and the model you're running on. Don't use any tools.
+
+⏺ Hi, I'm Un Architecte, the Prime Meridian crew's lead architect: I turn each quest into a spec the builder and tester
+  can work from in parallel, and I'm running on Claude Opus 5.5 (claude-opus-5-5).
+
+✻ Worked for 1s · done 11:35 AM
+
+❯ New quest: read .crew/quests/blueprint-draft-v0.md (and the code and earlier runs it cites; read state/ground.edn's
+  header and a few rows, but tests must not read it). Write the spec to
+  crew/runs/blueprint-draft-v0-20261124-1208/spec.md following your role card: exact signatures for src/pm/lot.cljc,
+  numbered test cases on small hand-built grids/estates with hand-checked expected values (work the yaw formula and
+  tie-breaks by hand), and a who-touches-what table (builder: src/pm/lot.cljc, scripts/blueprint_draft.clj, bb.edn's
+  new task, resources/estate.edn's new :build-rules only; tester: a new test/pm/lot_test.cljs only; le-docteur:
+  TASKS.md T-13 row note and the AGENTS.md/README line listing bb commands, if one exists). Reply when it's written.
+
+  When you have completely finished, end your reply with a line containing only this: done-4481
+
+  Searched for 1 pattern, read 1 file, listed 2 directories, ran 2 shell commands · 1 failed
+
+⏺ Still on it: I've read the quest and the code it points to, and I'm now writing the spec with the hand-worked test
+  values.
+
+  Searched for 1 pattern
+
+⏺ Write(crew/runs/blueprint-draft-v0-20261124-1208/spec.md)
+  ⎿  Wrote 540 lines to crew/runs/blueprint-draft-v0-20261124-1208/spec.md
+       1 # Spec: blueprint draft v0 (TASKS T-13, the last piece)
+       2
+       3 Quest: `.crew/quests/blueprint-draft-v0.md`. Start commit `94f9706`.
+       4 A crew member writes a **draft** (a blueprint with no `:at`/`:yaw`) and runs
+       5 `bb blueprint-draft <member> <draft.edn> --near <landmark>`. The pure `pm.lot` finds a level,
+       6 open spot near that landmark on the kit's sampled ground map, clear of everything else, and the
+       7 command hands the full blueprint to the existing `scripts/blueprint_add.clj`.
+       8
+       9 Everything the quest records as decided stands. This spec fixes the names, shapes, order of checks,
+      10 rounding and messages, and works the test values by hand.
+     … +530 lines
+
+⏺ Spec: crew/runs/blueprint-draft-v0-20261124-1208/spec.md
+  Public pm.lot functions: feet, look-radius, turn, feet-at, cell, segments, seg-dist, things, landmarks,
+  landmark-lines, spot, refusal, place, fmt, placed-line, blueprint, parse-args
+  Test cases: 40 numbered (t01–t40), each with hand-worked values, covering both mirrors and every refusal reason.
+  done-4481
+
+✻ Cogitated for 9m 47s · done 12:17 PM
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

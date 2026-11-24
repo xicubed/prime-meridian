@@ -1,0 +1,205 @@
+
+ ▐▛███▛█   Claude Code v2.1.331
+▝▜██████▀  Sonnet 5 · Claude Max
+ ▝▝   ▝▝   ~/src/prime-meridian
+
+
+❯ Say hi in ONE line: your name, your job, and the model
+  you're running on. Don't use any tools.
+
+⏺ Hi — I'm Le Docteur, Prime Meridian's writer and crew
+  scribe, running on Claude Sonnet 5.
+
+✻ Crunched for 2s · done 11:35 AM
+
+❯ Spec:
+  crew/runs/blueprint-draft-v0-20261124-1208/spec.md
+  (quest: .crew/quests/blueprint-draft-v0.md). Make only
+  the documentation edits the spec's who-touches-what
+  table gives le-docteur (if none, change nothing).
+  Reply with git diff --stat of what you changed.
+
+  When you have completely finished, end your reply with
+  a line containing only this: done-1749
+
+  Searched for 1 pattern, read 3 files, listed 1
+  directory
+
+⏺ Gate passes. Now I'll append the T-13 note exactly as
+  specified.
+
+  Read 1 file
+
+⏺ Update(TASKS.md)
+  ⎿  Added 1 line, removed 1 line
+      93  - [ ] T-7 Wandering follow-ups: re-run t
+          he walkable-ground probe whenever placed
+           things move (the spots are data in `:wa
+          nder :areas`); a wanderer still walks th
+          rough a fresh build's footprint until th
+          en.
+      94  - [ ] T-8 v1.1 from the finish list: jac
+          k-out priority, the Construct as a Herme
+          s onboarding skill.
+      95  - [x] Nov 22 (crew round calls-v0) T-11
+          Call a contact, in the room (Michael, No
+          v 21: "because I can talk to you and the
+          re are bots that can speak"): a 📞 on a
+          contact's row opens a call; the walker's
+           plate shows "on a call", their lines ar
+          e spoken aloud as they arrive (the voice
+           the twin already has), and the player's
+           mic goes through the browser's speech r
+          ecognition (Web Speech API, no server, n
+          o cost) down the bridge as if typed. Fir
+          st for the twin: "Do you read me, Hal?"
+          made literal. Works in the demo build wi
+          th SAMPLE voices. Follow-up fixed Nov 22
+          : the 📞/End button shifted 1 px between
+           states (the composer grew 39 → 40 px wh
+          en the 🎙 joined it; the input is now 40
+          px), and 🎙 Talk in an embedded window wi
+          th no speech service (Electron answers `
+          network`) now goes disabled, "No mic her
+          e", with the twin's line, instead of sna
+          pping back.
+      96 -- [ ] T-13 Demo scene (Michael, Nov 22):
+         - a bot builds something, and you finish
+         -it from the wireframe when it looks good
+         -. You ask in 💭 ("put a bench by the cre
+         -ek"), a member writes the `:blueprints`
+         -entry, the ghost appears, a click builds
+         - it as a trial, a second click makes it
+         -real (`state/builds.edn`). Exists today
+         -except: (a) N-3, the ghost is hard to se
+         -e on grass; (b) a new blueprint shows on
+         -ly after a page reload (the estate is co
+         -mpiled in, `!world` is a defonce), so it
+         - can't appear while you watch. Candidate
+         - for S6 in `docs/demo-script.md` beside
+         -the rock; the unbuilt bench by the mailb
+         -ox can stand in meanwhile. Nov 22: bluep
+         -rints are now seated on the ground befor
+         -e they're drawn (`pm.blueprint/seat`: le
+         -vel at the highest foot, lower feet stre
+         -tched down; more than 25 cm of drop is r
+         -efused as too steep, sign + twin say so)
+         -, and the bench moved off the creek bank
+         - to level grass by the mailbox. Nov 23:
+         -(b) done: a crew member proposes with `b
+         -b blueprint-add <member> <blueprint.edn>
+         -` (kept in the private `state/blueprints
+         -.edn`; `--remove <id>` takes one out), a
+         -nd within one 5-second poll its ghost ap
+         -pears in the estate, seated, with no rel
+         -oad, and the member says "drew a bluepri
+         -nt: … Click it to try it." in 💭. Two cl
+         -icks still make it a trial, then real.
+      96 +- [ ] T-13 Demo scene (Michael, Nov 22):
+         + a bot builds something, and you finish
+         +it from the wireframe when it looks good
+         +. You ask in 💭 ("put a bench by the cre
+         +ek"), a member writes the `:blueprints`
+         +entry, the ghost appears, a click builds
+         + it as a trial, a second click makes it
+         +real (`state/builds.edn`). Exists today
+         +except: (a) N-3, the ghost is hard to se
+         +e on grass; (b) a new blueprint shows on
+         +ly after a page reload (the estate is co
+         +mpiled in, `!world` is a defonce), so it
+         + can't appear while you watch. Candidate
+         + for S6 in `docs/demo-script.md` beside
+         +the rock; the unbuilt bench by the mailb
+         +ox can stand in meanwhile. Nov 22: bluep
+         +rints are now seated on the ground befor
+         +e they're drawn (`pm.blueprint/seat`: le
+         +vel at the highest foot, lower feet stre
+         +tched down; more than 25 cm of drop is r
+         +efused as too steep, sign + twin say so)
+         +, and the bench moved off the creek bank
+         + to level grass by the mailbox. Nov 23:
+         +(b) done: a crew member proposes with `b
+         +b blueprint-add <member> <blueprint.edn>
+         +` (kept in the private `state/blueprints
+         +.edn`; `--remove <id>` takes one out), a
+         +nd within one 5-second poll its ghost ap
+         +pears in the estate, seated, with no rel
+         +oad, and the member says "drew a bluepri
+         +nt: … Click it to try it." in 💭. Two cl
+         +icks still make it a trial, then real. N
+         +ov 24: a member places what you ask for:
+         + bb blueprint-draft <member> <draft.edn>
+         + --near <landmark> finds a level open sp
+         +ot near the place you named on the kit's
+         + sampled ground (state/ground.edn), clea
+         +r of other things and the walkers' route
+         +s, and proposes it through bb blueprint-
+         +add; --landmarks lists the names, --dry-
+         +run only prints. The rules are :build-ru
+         +les in resources/estate.edn (pm.lot).
+      97  - [x] Nov 23 (crew round trial-buttons-v
+          0) T-14 A trial build gets labelled butt
+          ons (Michael, Nov 23: "i didnt realize u
+           needed to click it twice"; his rule: ev
+          ery action is a labelled button). Click
+          a blue ghost and it builds as a trial wi
+          th a small card above it: **Make it real
+          ** (records it through the bridge; reads
+           "Saving…" while it does, so it can't po
+          st twice) and **Undo** (back to the blue
+           ghost, to try again later; not a reject
+          ). The card follows the item as the came
+          ra moves and hides when it's off screen;
+           the trial's sign now just says "trial:
+          try it out". Right-click still dismisses
+          .
+      98  - [x] Nov 23 (crew round remove-build-v0
+          ) T-15 Remove a real build, try-first (M
+          ichael, Nov 23: "once its made real its
+          there for good … should we have the undo
+           or delete come up"). Click a real build
+           and the same card shows **Remove…** and
+           **Close**; Remove… previews the loss (t
+          he item turns into a see-through red rem
+          oval ghost, its sign reads "will be remo
+          ved") and offers **Remove it** and **Kee
+          p it**. Keep it puts it back as it was;
+          Remove it records the removal through th
+          e bridge (`state/builds.edn` `:removed`,
+           reads "Removing…" while it does), and t
+          he build is gone on every reload. No bri
+          dge: nothing changes and the twin says w
+          hy. A removed id can't be reused (`bb bl
+          ueprint-add` refuses it; pick a new id).
+      99  - [x] Nov 23 (crew round tidy-after-remo
+          ve-v0) T-16 Tidy-ups after removal (Mich
+          ael, Nov 23: "ya just remove the sign").
+           The lobby's signpost by the cottage is
+          gone; the lobby is still where errands g
+          o (`bb hal-say --at lobby`). Up close to
+           a tall build, its card stays pinned at
+          the top of the screen instead of vanishi
+          ng. A real build's sign drops "proposed:
+          " from its summary.
+
+⏺ Spec also says AGENTS.md/README.md need no edit
+  (already checked, no bb-command line there) —
+  confirming nothing else to touch.
+
+  Ran 1 shell command
+
+⏺ TASKS.md | 2 +-
+  1 file changed, 1 insertion(+), 1 deletion(-)
+
+  Appended the T-13 note to TASKS.md per spec §7 (gate
+  had passed: 0 warnings, 1437 tests). No other files
+  touched.
+
+  done-1749
+
+✻ Worked for 19s · done 12:31 PM
+
+─────────────────────────────────────────────────────────
+❯
+─────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

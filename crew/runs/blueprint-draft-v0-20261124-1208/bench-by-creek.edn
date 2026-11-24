@@ -1,0 +1,5 @@
+{:id :bench-by-creek
+ :summary "proposed: a bench by the creek"
+ :look {:parts [{:shape :box :size [1.2 0.1 0.4]  :at [0 0.45 0]     :color :brown}
+                {:shape :box :size [0.1 0.4 0.1]  :at [0.5 0.2 0]    :color :brown}
+                {:shape :box :size [0.1 0.4 0.1]  :at [-0.5 0.2 0]   :color :brown}]}}

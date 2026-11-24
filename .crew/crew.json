@@ -92,7 +92,9 @@
         "Bash(unzip -l:*)",
         "Bash(unzip -p:*)",
         "Bash(npx shadow-cljs:*)",
-        "Bash(node out/test.js)"
+        "Bash(node out/test.js)",
+        "Bash(bb blueprint-draft:*)",
+        "Bash(bb hal-say:*)"
       ],
       "note": "builder for the world rules (pm.world + the HUD hook); more builders by area later (un-automate-rochers, une-automate-arbres, ...)"
     },

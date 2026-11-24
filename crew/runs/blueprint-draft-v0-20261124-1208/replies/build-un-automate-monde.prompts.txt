@@ -1,0 +1,78 @@
+=== prompt 1 (12:25:00)
+           rdicts)]
+      322                (if (seq accepted)
+      323                  (let [[x z yaw d v]
+      324 -                      (first (sort-by (
+          -fn [[x z yaw _ v]]
+      324 +                      (first (sort-by (
+          +fn [[x z yaw d v]]
+      325
+            [(round* (* d 1e6)) (round* (* (:sprea
+           d v) 1e6)) x z yaw])
+      326                                        a
+           ccepted))]
+      327                    {:ok true :at [x (:y
+           v) z] :yaw yaw :landmark near :distance
+           -m d :spread-m (:spread v)})
+
+⏺ Listing landmarks with real estate/ground data
+  (read-only)
+  ⎿  $ bb blueprint-draft --landmarks 2>&1
+
+─────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ List landmarks with real estate/ground data (read-only)
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ bb blueprint-draft --landmarks 2>&1
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: bb blueprint-draft *
+   3. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 2 (12:25:16)
+ "switch to auto mode" below
+ Dry-run the draft near the creek against the real
+ ground map
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ mkdir -p crew/runs/blueprint-draft-v0-20261124-1208
+ │ && cp state/blueprints.edn
+ │ /tmp/pm-blueprints-dryrun.edn 2>&1; cat > crew/runs/b
+ │ lueprint-draft-v0-20261124-1208/bench-by-creek.edn
+ │ <<'EOF'
+ │ {:id :bench-by-creek
+ │  :summary "proposed: a bench by the creek"
+ │  :look {:parts [{:shape :box :size [1.2 0.1 0.4]  :at
+ │ [0 0.45 0]     :color :brown}
+ │                 {:shape :box :size [0.1 0.4 0.1]  :at
+ │ [0.5 0.2 0]    :color :brown}
+ │                 {:shape :box :size [0.1 0.4 0.1]  :at
+ │ [-0.5 0.2 0]   :color :brown}]}}
+ │ EOF
+ │ PM_BLUEPRINTS_FILE=/tmp/pm-blueprints-dryrun.edn bb
+ │ blueprint-draft un-automate-monde crew/runs/blueprint
+ │ -draft-v0-20261124-1208/bench-by-creek.edn --near
+ │ creek --dry-run 2>&1
+ │ echo "exit: $?"
+ │ diff state/blueprints.edn
+ │ /tmp/pm-blueprints-dryrun.edn && echo
+ │ "state/blueprints.edn untouched"
+ │ rm /tmp/pm-blueprints-dryrun.edn
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Contains brace with quote character (expansion
+ obfuscation)
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   3. No
+ ↑ 3 more lines
+ Esc to cancel · Tab to amend

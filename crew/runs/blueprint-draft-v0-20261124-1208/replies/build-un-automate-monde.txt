@@ -1,0 +1,400 @@
+      25 +(defn- abs* [x] (if (neg? x) (- x) x))
+      26 +
+      27  (defn- words [k]
+      28    (str/replace (name k) "-" " "))
+      29
+     ...
+      46        (if (sized-part? part)
+      47          (let [[sx sy sz] (:size part)
+      48                [ax ay az] (:at part)]
+      39 -          (if (<= (Math/abs (- ay (/ sy
+         -2))) (+ grounded-m eps))
+      49 +          (if (<= (abs* (- ay (/ sy 2)))
+         + (+ grounded-m eps))
+      50              (if (and (<= sx (+ narrow-m
+          eps)) (<= sz (+ narrow-m eps)))
+      51                [[ax az]]
+      52                (let [hx (/ sx 2) hz (/ sz
+           2)]
+     ...
+      66              zs (mapcat (fn [{[_ _ sz] :s
+          ize [_ _ az] :at}] [(- az (/ sz 2)) (+ a
+          z (/ sz 2))]) parts)
+      67              w  (- (apply max xs) (apply
+          min xs))
+      68              d  (- (apply max zs) (apply
+          min zs))]
+      59 -        (* scale 0.5 (Math/sqrt (+ (* w
+         -w) (* d d))))))))
+      69 +        (* scale 0.5 (sqrt* (+ (* w w) (
+         +* d d))))))))
+      70
+      71  (defn- round12 [v]
+      62 -  (/ (Math/round (* v 1e12)) 1e12))
+      72 +  (/ (round* (* v 1e12)) 1e12))
+      73
+      74  (defn turn
+      75    "[dx dz] turned by yaw degrees -> [wx
+          wz]. +90 turns local +x to world -z."
+      76    [[dx dz] yaw]
+      67 -  (let [c (round12 (Math/cos (Math/toRad
+         -ians yaw)))
+      68 -        s (round12 (Math/sin (Math/toRad
+         -ians yaw)))]
+      77 +  (let [c (round12 (cos* (to-radians yaw
+         +)))
+      78 +        s (round12 (sin* (to-radians yaw
+         +)))]
+      79      [(+ (* c dx) (* s dz)) (+ (* (- s) d
+          x) (* c dz))]))
+      80
+      81  (defn feet-at
+     ...
+      92    [ground [x z]]
+      93    (let [{:keys [origin step cols rows ki
+          nds y]} ground
+      94          [x0 z0] origin
+      85 -        c (Math/round (/ (- x x0) step))
+      86 -        r (Math/round (/ (- z z0) step))
+         -]
+      95 +        c (round* (/ (- x x0) step))
+      96 +        r (round* (/ (- z z0) step))]
+      97      (if (and (<= 0 c) (< c cols) (<= 0 r
+          ) (< r rows))
+      98        (let [row (nth kinds r)]
+      99          {:kind (if (< c (count row)) (st
+          r (nth row c)) " ")
+     ...
+      121
+      122  (defn- sub2 [[ax az] [bx bz]] [(- ax bx
+           ) (- az bz)])
+      123  (defn- dot2 [[ax az] [bx bz]] (+ (* ax
+           bx) (* az bz)))
+      114 -(defn- norm2 [[x z]] (Math/sqrt (+ (* x
+          - x) (* z z))))
+      124 +(defn- norm2 [[x z]] (sqrt* (+ (* x x)
+          +(* z z))))
+      125
+      126  (defn seg-dist
+      127    "Distance from p to segment a-b (all
+           [x z])."
+     ...
+      249                    {:ok true :y (apply m
+           ax ys) :spread spread})))))))))
+      250
+      251  (defn fmt [x]
+      242 -  (let [n (Math/round (* x 100))
+      243 -        sign (if (< n 0) "-" "")
+      244 -        n (Math/abs n)
+      252 +  (let [n (round* (* x 100))
+      253 +        sign (if (neg? n) "-" "")
+      254 +        n (abs* n)
+      255          q (quot n 100)
+      256          r (rem n 100)]
+      257      (str sign
+     ...
+      272          [x y z] at]
+      273      (str "placed " (name (:id draft)) "
+            " (fmt distance-m) " m from " word
+      274           " at [" (fmt x) " " (fmt y) "
+           " (fmt z) "] yaw " (fmt yaw)
+      265 -         " (feet within " (Math/round (
+          -* spread-m 100)) " cm)")))
+      275 +         " (feet within " (round* (* sp
+          +read-m 100)) " cm)")))
+      276
+      277  (defn blueprint [draft result]
+      278    {:id (:id draft) :at (:at result) :ya
+           w (:yaw result)
+     ...
+      305                      (let [xs (map first
+            (:cells lm)) zs (map second (:cells lm
+           ))]
+      306                        [(apply min xs) (
+           apply max xs) (apply min zs) (apply max
+            zs)])
+      307                      (let [[lx lz] (:xz
+           lm)] [lx lx lz lz]))
+      298 -                  kx-lo (long (Math/cei
+          -l (- (/ (- lo-x search-m) step) eps)))
+      299 -                  kx-hi (long (Math/flo
+          -or (+ (/ (+ hi-x search-m) step) eps)))
+      300 -                  kz-lo (long (Math/cei
+          -l (- (/ (- lo-z search-m) step) eps)))
+      301 -                  kz-hi (long (Math/flo
+          -or (+ (/ (+ hi-z search-m) step) eps)))
+      308 +                  kx-lo (ceil*  (- (/ (
+          +- lo-x search-m) step) eps))
+      309 +                  kx-hi (floor* (+ (/ (
+          ++ hi-x search-m) step) eps))
+      310 +                  kz-lo (ceil*  (- (/ (
+          +- lo-z search-m) step) eps))
+      311 +                  kz-hi (floor* (+ (/ (
+          ++ hi-z search-m) step) eps))
+      312                    candidates (for [kx (
+           range kx-lo (inc kx-hi))
+      313                                     kz (
+           range kz-lo (inc kz-hi))
+      314                                     :let
+            [x (* kx step) z (* kz step)
+     ...
+      322                (if (seq accepted)
+      323                  (let [[x z yaw d v]
+      324                        (first (sort-by (
+           fn [[x z yaw _ v]]
+      315 -
+          - [(Math/round (* d 1e6)) (Math/round (*
+          - (:spread v) 1e6)) x z yaw])
+      325 +
+          + [(round* (* d 1e6)) (round* (* (:sprea
+          +d v) 1e6)) x z yaw])
+      326                                        a
+           ccepted))]
+      327                    {:ok true :at [x (:y
+           v) z] :yaw yaw :landmark near :distance
+           -m d :spread-m (:spread v)})
+      328                  {:ok false :reason (ref
+           usal whys search-m (:word lm))}))))))))
+
+⏺ Now writing scripts/blueprint_draft.clj.
+
+⏺ Write(scripts/blueprint_draft.clj)
+  ⎿  Wrote 76 lines to scripts/blueprint_draft.clj
+      1 #!/usr/bin/env bb
+      2 ;; blueprint-draft (TASKS T-13): a crew me
+        mber draws a look with no :at/:yaw and ask
+        s to put it
+      3 ;; near a landmark; this finds a level, op
+        en spot on the kit's sampled ground map, c
+        lear of
+      4 ;; everything else and every walker's rout
+        e, and proposes the full blueprint through
+         the
+     … +72 lines
+
+  Searched for 3 patterns
+
+⏺ Update(scripts/blueprint_draft.clj)
+  ⎿  Added 12 lines, removed 14 lines
+      37    (when (:usage parsed)
+      38      (binding [*out* *err*] (println (:us
+          age parsed)))
+      39      (System/exit 2))
+      40 -  (let [estate (read-estate)]
+      41 -    (case (:mode parsed)
+      42 -      :landmarks
+      43 -      (let [ground (read-edn (ground-fil
+         -e))
+      44 -            file-bps (:blueprints (bf/no
+         -rmalize (read-edn (blueprints-file))))]
+      45 -        (doseq [line (lot/landmark-lines
+         - (lot/landmarks ground estate file-bps))
+         -]
+      46 -          (println line))
+      47 -        (System/exit 0))
+      40 +  (let [estate (read-estate)
+      41 +        rules (:build-rules estate)]
+      42 +    (when-not rules
+      43 +      (fail! "resources/estate.edn has n
+         +o :build-rules"))
+      44 +    (let [ground (read-edn (ground-file)
+         +)
+      45 +          file-bps (:blueprints (bf/norm
+         +alize (read-edn (blueprints-file))))]
+      46 +      (case (:mode parsed)
+      47 +        :landmarks
+      48 +        (do (doseq [line (lot/landmark-l
+         +ines (lot/landmarks ground estate file-b
+         +ps))]
+      49 +              (println line))
+      50 +            (System/exit 0))
+      51
+      49 -      :draft
+      50 -      (let [rules (:build-rules estate)]
+      51 -        (when-not rules
+      52 -          (fail! "resources/estate.edn h
+         -as no :build-rules"))
+      52 +        :draft
+      53          (let [{:keys [path member near d
+          ry-run]} parsed
+      54                draft (or (read-edn path)
+          (fail! (str "can't read " path)))
+      55 -              ground (read-edn (ground-f
+         -ile))
+      56 -              file-bps (:blueprints (bf/
+         -normalize (read-edn (blueprints-file))))
+      55                result (lot/place ground e
+          state file-bps rules draft near)]
+      56            (if-not (:ok result)
+      57              (fail! (:reason result))
+
+⏺ Now add the bb.edn task and :build-rules in
+  resources/estate.edn.
+
+⏺ Update(bb.edn)
+  ⎿  Added 3 lines
+       7    blueprint-add {:doc  "An agent propose
+          s a blueprint: its ghost appears in the
+          estate (state/blueprints.edn): bb bluepr
+          int-add <member> <blueprint.edn> | bb bl
+          ueprint-add --remove <id>"
+       8                   :task (let [r (apply sh
+          ell {:continue true} "bb" "scripts/bluep
+          rint_add.clj" *command-line-args*)]
+       9                           (System/exit (:
+          exit r)))}
+      10 +  blueprint-draft {:doc  "A member place
+         +s a draft near a landmark, on level open
+         + ground (state/ground.edn), and proposes
+         + it: bb blueprint-draft <member> <draft.
+         +edn> --near <landmark> [--dry-run] | bb
+         +blueprint-draft --landmarks"
+      11 +                   :task (let [r (apply
+         +shell {:continue true} "bb" "scripts/blu
+         +eprint_draft.clj" *command-line-args*)]
+      12 +                           (System/exit
+         +(:exit r)))}
+      13    ask-player {:doc  "ask_player: raise t
+          he estate's \"!\" over a crew member and
+           wait for the player's answer: bb ask-pl
+          ayer <member> \"question\" [--wait S]"
+      14                :task (apply shell "bb" "s
+          cripts/ask_player.clj" *command-line-arg
+          s*)}
+      15    juice      {:doc  "The real usage mete
+          r: types /usage into an idle Claude memb
+          er, writes state/juice.edn: bb juice [--
+          watch [S]] [--member NAME]"
+
+⏺ Now add :build-rules to resources/estate.edn. I'll
+  place it near the top, beside other top-level game
+  rules.
+
+⏺ Update(resources/estate.edn)
+  ⎿  Added 6 lines, removed 1 line
+      1 -{:hud {:mirrors [:flora]}
+        - ; mirrors whose status-line goes on the
+        -HUD, in order
+      1 +{;; Where bb blueprint-draft may put a me
+        +mber's draft (pm.lot, TASKS T-13): candid
+        +ates every
+      2 + ;; :step-m within :search-m of the landm
+        +ark, turned to each of :yaws (degrees); e
+        +very foot on
+      3 + ;; open ground (state/ground.edn), feet
+        +at most :max-spread-m apart in height, th
+        +e item's
+      4 + ;; circle :gap-m clear of every other th
+        +ing's and :route-m clear of every walker'
+        +s route.
+      5 + :build-rules {:step-m 0.5 :yaws [0 45 90
+        + 135] :search-m 6 :gap-m 1.2 :route-m 0.8
+        + :max-spread-m 0.12}
+      6 + :hud {:mirrors [:flora]}
+        + ; mirrors whose status-line goes on the
+        +HUD, in order
+      7   :jumeaux {:player {:name "Michael" :sex
+         :m}   ; les jumeaux: the player and their
+          twin; onboarding asks (TASKS O-1)
+      8             :twin   {:name "Hal"}}
+               ; the twin's word follows the playe
+         r's :sex (:m jumeau, :f jumelle)
+      9   :crew-talk {:surface-after-s 60   ; a pr
+         ompt the twin hasn't answered after this
+         long goes to the player
+
+⏺ Now let's run the gate.
+
+  Ran 1 shell command
+
+⏺ Update(src/pm/lot.cljc)
+  ⎿  Added 1 line, removed 1 line
+      321                    whys (keep (fn [[_ _
+           _ _ v]] (when-not (:ok v) (:why v))) ve
+           rdicts)]
+      322                (if (seq accepted)
+      323                  (let [[x z yaw d v]
+      324 -                      (first (sort-by (
+          -fn [[x z yaw _ v]]
+      324 +                      (first (sort-by (
+          +fn [[x z yaw d v]]
+      325
+            [(round* (* d 1e6)) (round* (* (:sprea
+           d v) 1e6)) x z yaw])
+      326                                        a
+           ccepted))]
+      327                    {:ok true :at [x (:y
+           v) z] :yaw yaw :landmark near :distance
+           -m d :spread-m (:spread v)})
+
+  Ran 2 shell commands
+
+⏺ Now the dry-run test, with a temp copy of
+  state/blueprints.edn for PM_BLUEPRINTS_FILE, and a
+  draft file in the run directory.
+
+  Ran 1 shell command
+
+⏺ Write(crew/runs/blueprint-draft-v0-2…/builder-notes.md)
+  ⎿  Wrote 69 lines to crew/runs/blueprint-draft-v0-
+     20261124-1208/builder-notes.md
+      1 # Builder notes — blueprint-draft-v0 (T-13
+        , the last piece)
+      2
+      3 ## What was built
+      4
+      5 - `src/pm/lot.cljc` (new, ns `pm.lot`): pu
+        re placement. `feet`, `look-radius`, `turn
+        `,
+      6   `feet-at`, `cell`, `segments`, `seg-dist
+        `, `things`, `landmarks`, `landmark-lines`
+     … +64 lines (~3 KB)
+
+  Ran 2 shell commands
+
+⏺ Everything checks out — test/pm/lot_test.cljs is the
+  tester's file (untouched by me), and I touched only my
+  assigned files.
+
+  Summary
+
+  Implemented T-13's builder half:
+  - src/pm/lot.cljc (new) — pure placement logic (feet,
+    look-radius, turn, cell, segments, seg-dist, things,
+    landmarks, spot, refusal, fmt, placed-line,
+    blueprint, place, parse-args), per the spec exactly.
+    All Math/* calls go through #?(:clj ... :cljs
+    js/Math...) wrappers, matching pm.creature.cljc's
+    existing convention.
+  - scripts/blueprint_draft.clj (new) — all I/O for bb
+    blueprint-draft, delegating every decision to pm.lot
+    and reusing scripts/blueprint_add.clj as the one
+    writer/validator.
+  - bb.edn — added the blueprint-draft task.
+  - resources/estate.edn — added the :build-rules
+    top-level key with its comment.
+
+  Gate's last line: GATE: PASS — 0 warnings; Ran 1437
+  tests containing 7917 assertions. (includes the
+  tester's pm.lot-test, already landed and green).
+
+  git diff --stat:
+   bb.edn               | 3 +++
+   resources/estate.edn | 7 ++++++-
+   2 files changed, 9 insertions(+), 1 deletion(-)
+  plus new files src/pm/lot.cljc (358 lines),
+  scripts/blueprint_draft.clj (74 lines), and crew/runs/b
+  lueprint-draft-v0-20261124-1208/builder-notes.md +
+  bench-by-creek.edn (the draft referenced in the notes).
+  No state/ writes — hand tests used PM_BLUEPRINTS_FILE
+  on a /tmp copy and --dry-run; confirmed
+  state/blueprints.edn unchanged.
+
+  done-4868
+
+✻ Brewed for 7m 56s · done 12:27 PM
+
+─────────────────────────────────────────────────────────
+❯
+─────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

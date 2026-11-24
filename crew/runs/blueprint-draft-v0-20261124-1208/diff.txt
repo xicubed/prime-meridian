@@ -1,0 +1,42 @@
+diff --git a/TASKS.md b/TASKS.md
+index de63f03..9aa8e98 100644
+--- a/TASKS.md
++++ b/TASKS.md
+@@ -93,7 +93,7 @@ The twin on the estate (GDD §2.1). Built today: he walks (black body, white joi
+ - [ ] T-7 Wandering follow-ups: re-run the walkable-ground probe whenever placed things move (the spots are data in `:wander :areas`); a wanderer still walks through a fresh build's footprint until then.
+ - [ ] T-8 v1.1 from the finish list: jack-out priority, the Construct as a Hermes onboarding skill.
+ - [x] Nov 22 (crew round calls-v0) T-11 Call a contact, in the room (Michael, Nov 21: "because I can talk to you and there are bots that can speak"): a 📞 on a contact's row opens a call; the walker's plate shows "on a call", their lines are spoken aloud as they arrive (the voice the twin already has), and the player's mic goes through the browser's speech recognition (Web Speech API, no server, no cost) down the bridge as if typed. First for the twin: "Do you read me, Hal?" made literal. Works in the demo build with SAMPLE voices. Follow-up fixed Nov 22: the 📞/End button shifted 1 px between states (the composer grew 39 → 40 px when the 🎙 joined it; the input is now 40 px), and 🎙 Talk in an embedded window with no speech service (Electron answers `network`) now goes disabled, "No mic here", with the twin's line, instead of snapping back.
+-- [ ] T-13 Demo scene (Michael, Nov 22): a bot builds something, and you finish it from the wireframe when it looks good. You ask in 💭 ("put a bench by the creek"), a member writes the `:blueprints` entry, the ghost appears, a click builds it as a trial, a second click makes it real (`state/builds.edn`). Exists today except: (a) N-3, the ghost is hard to see on grass; (b) a new blueprint shows only after a page reload (the estate is compiled in, `!world` is a defonce), so it can't appear while you watch. Candidate for S6 in `docs/demo-script.md` beside the rock; the unbuilt bench by the mailbox can stand in meanwhile. Nov 22: blueprints are now seated on the ground before they're drawn (`pm.blueprint/seat`: level at the highest foot, lower feet stretched down; more than 25 cm of drop is refused as too steep, sign + twin say so), and the bench moved off the creek bank to level grass by the mailbox. Nov 23: (b) done: a crew member proposes with `bb blueprint-add <member> <blueprint.edn>` (kept in the private `state/blueprints.edn`; `--remove <id>` takes one out), and within one 5-second poll its ghost appears in the estate, seated, with no reload, and the member says "drew a blueprint: … Click it to try it." in 💭. Two clicks still make it a trial, then real.
++- [ ] T-13 Demo scene (Michael, Nov 22): a bot builds something, and you finish it from the wireframe when it looks good. You ask in 💭 ("put a bench by the creek"), a member writes the `:blueprints` entry, the ghost appears, a click builds it as a trial, a second click makes it real (`state/builds.edn`). Exists today except: (a) N-3, the ghost is hard to see on grass; (b) a new blueprint shows only after a page reload (the estate is compiled in, `!world` is a defonce), so it can't appear while you watch. Candidate for S6 in `docs/demo-script.md` beside the rock; the unbuilt bench by the mailbox can stand in meanwhile. Nov 22: blueprints are now seated on the ground before they're drawn (`pm.blueprint/seat`: level at the highest foot, lower feet stretched down; more than 25 cm of drop is refused as too steep, sign + twin say so), and the bench moved off the creek bank to level grass by the mailbox. Nov 23: (b) done: a crew member proposes with `bb blueprint-add <member> <blueprint.edn>` (kept in the private `state/blueprints.edn`; `--remove <id>` takes one out), and within one 5-second poll its ghost appears in the estate, seated, with no reload, and the member says "drew a blueprint: … Click it to try it." in 💭. Two clicks still make it a trial, then real. Nov 24: a member places what you ask for: bb blueprint-draft <member> <draft.edn> --near <landmark> finds a level open spot near the place you named on the kit's sampled ground (state/ground.edn), clear of other things and the walkers' routes, and proposes it through bb blueprint-add; --landmarks lists the names, --dry-run only prints. The rules are :build-rules in resources/estate.edn (pm.lot).
+ - [x] Nov 23 (crew round trial-buttons-v0) T-14 A trial build gets labelled buttons (Michael, Nov 23: "i didnt realize u needed to click it twice"; his rule: every action is a labelled button). Click a blue ghost and it builds as a trial with a small card above it: **Make it real** (records it through the bridge; reads "Saving…" while it does, so it can't post twice) and **Undo** (back to the blue ghost, to try again later; not a reject). The card follows the item as the camera moves and hides when it's off screen; the trial's sign now just says "trial: try it out". Right-click still dismisses.
+ - [x] Nov 23 (crew round remove-build-v0) T-15 Remove a real build, try-first (Michael, Nov 23: "once its made real its there for good … should we have the undo or delete come up"). Click a real build and the same card shows **Remove…** and **Close**; Remove… previews the loss (the item turns into a see-through red removal ghost, its sign reads "will be removed") and offers **Remove it** and **Keep it**. Keep it puts it back as it was; Remove it records the removal through the bridge (`state/builds.edn` `:removed`, reads "Removing…" while it does), and the build is gone on every reload. No bridge: nothing changes and the twin says why. A removed id can't be reused (`bb blueprint-add` refuses it; pick a new id).
+ - [x] Nov 23 (crew round tidy-after-remove-v0) T-16 Tidy-ups after removal (Michael, Nov 23: "ya just remove the sign"). The lobby's signpost by the cottage is gone; the lobby is still where errands go (`bb hal-say --at lobby`). Up close to a tall build, its card stays pinned at the top of the screen instead of vanishing. A real build's sign drops "proposed:" from its summary.
+diff --git a/bb.edn b/bb.edn
+index f556b46..f979aad 100644
+--- a/bb.edn
++++ b/bb.edn
+@@ -7,6 +7,9 @@
+   blueprint-add {:doc  "An agent proposes a blueprint: its ghost appears in the estate (state/blueprints.edn): bb blueprint-add <member> <blueprint.edn> | bb blueprint-add --remove <id>"
+                  :task (let [r (apply shell {:continue true} "bb" "scripts/blueprint_add.clj" *command-line-args*)]
+                          (System/exit (:exit r)))}
++  blueprint-draft {:doc  "A member places a draft near a landmark, on level open ground (state/ground.edn), and proposes it: bb blueprint-draft <member> <draft.edn> --near <landmark> [--dry-run] | bb blueprint-draft --landmarks"
++                   :task (let [r (apply shell {:continue true} "bb" "scripts/blueprint_draft.clj" *command-line-args*)]
++                           (System/exit (:exit r)))}
+   ask-player {:doc  "ask_player: raise the estate's \"!\" over a crew member and wait for the player's answer: bb ask-player <member> \"question\" [--wait S]"
+               :task (apply shell "bb" "scripts/ask_player.clj" *command-line-args*)}
+   juice      {:doc  "The real usage meter: types /usage into an idle Claude member, writes state/juice.edn: bb juice [--watch [S]] [--member NAME]"
+diff --git a/resources/estate.edn b/resources/estate.edn
+index d01300c..1767667 100644
+--- a/resources/estate.edn
++++ b/resources/estate.edn
+@@ -1,4 +1,9 @@
+-{:hud {:mirrors [:flora]}                 ; mirrors whose status-line goes on the HUD, in order
++{;; Where bb blueprint-draft may put a member's draft (pm.lot, TASKS T-13): candidates every
++ ;; :step-m within :search-m of the landmark, turned to each of :yaws (degrees); every foot on
++ ;; open ground (state/ground.edn), feet at most :max-spread-m apart in height, the item's
++ ;; circle :gap-m clear of every other thing's and :route-m clear of every walker's route.
++ :build-rules {:step-m 0.5 :yaws [0 45 90 135] :search-m 6 :gap-m 1.2 :route-m 0.8 :max-spread-m 0.12}
++ :hud {:mirrors [:flora]}                 ; mirrors whose status-line goes on the HUD, in order
+  :jumeaux {:player {:name "Michael" :sex :m}   ; les jumeaux: the player and their twin; onboarding asks (TASKS O-1)
+            :twin   {:name "Hal"}}              ; the twin's word follows the player's :sex (:m jumeau, :f jumelle)
+  :crew-talk {:surface-after-s 60   ; a prompt the twin hasn't answered after this long goes to the player

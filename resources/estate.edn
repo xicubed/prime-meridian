@@ -1,4 +1,9 @@
-{:hud {:mirrors [:flora]}                 ; mirrors whose status-line goes on the HUD, in order
+{;; Where bb blueprint-draft may put a member's draft (pm.lot, TASKS T-13): candidates every
+ ;; :step-m within :search-m of the landmark, turned to each of :yaws (degrees); every foot on
+ ;; open ground (state/ground.edn), feet at most :max-spread-m apart in height, the item's
+ ;; circle :gap-m clear of every other thing's and :route-m clear of every walker's route.
+ :build-rules {:step-m 0.5 :yaws [0 45 90 135] :search-m 6 :gap-m 1.2 :route-m 0.8 :max-spread-m 0.12}
+ :hud {:mirrors [:flora]}                 ; mirrors whose status-line goes on the HUD, in order
  :jumeaux {:player {:name "Michael" :sex :m}   ; les jumeaux: the player and their twin; onboarding asks (TASKS O-1)
            :twin   {:name "Hal"}}              ; the twin's word follows the player's :sex (:m jumeau, :f jumelle)
  :crew-talk {:surface-after-s 60   ; a prompt the twin hasn't answered after this long goes to the player
