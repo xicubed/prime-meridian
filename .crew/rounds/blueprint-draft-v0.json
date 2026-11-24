@@ -1,0 +1,67 @@
+{
+  "round": "blueprint-draft-v0",
+  "quest": ".crew/quests/blueprint-draft-v0.md",
+  "runDir": "crew/runs",
+  "gate": "bash .crew/gate.sh",
+  "fix": {
+    "who": "un-automate-monde",
+    "max": 2
+  },
+  "timeoutMinutes": 60,
+  "steps": [
+    {
+      "id": "spec",
+      "who": [
+        "un-architecte"
+      ],
+      "prompt": "New quest: read {quest} (and the code and earlier runs it cites; read state/ground.edn's header and a few rows, but tests must not read it). Write the spec to {run}/spec.md following your role card: exact signatures for src/pm/lot.cljc, numbered test cases on small hand-built grids/estates with hand-checked expected values (work the yaw formula and tie-breaks by hand), and a who-touches-what table (builder: src/pm/lot.cljc, scripts/blueprint_draft.clj, bb.edn's new task, resources/estate.edn's new :build-rules only; tester: a new test/pm/lot_test.cljs only; le-docteur: TASKS.md T-13 row note and the AGENTS.md/README line listing bb commands, if one exists). Reply when it's written.",
+      "expect": [
+        "{run}/spec.md"
+      ]
+    },
+    {
+      "id": "build",
+      "who": [
+        "un-automate-monde",
+        "le-testeur"
+      ],
+      "prompt": {
+        "un-automate-monde": "Spec: {run}/spec.md (quest: {quest}). Implement it in the source files the spec assigns the builder, and nothing else. Run .crew/gate.sh before replying, then write {run}/builder-notes.md as the quest's Done-when says (hand tests only with PM_BLUEPRINTS_FILE on a temp copy and --dry-run; never write state/).",
+        "le-testeur": "Spec: {run}/spec.md (quest: {quest}). Write its test cases in the test file the spec assigns the tester, and nothing else. The builder is coding in parallel."
+      },
+      "expect": [
+        "{run}/builder-notes.md"
+      ]
+    },
+    {
+      "id": "gate",
+      "who": [
+        "le-coureur"
+      ],
+      "verify": true,
+      "prompt": "Run the gate (.crew/gate.sh) and write the gate note to {run}/gate-note.md as your role card says.",
+      "expect": [
+        "{run}/gate-note.md"
+      ]
+    },
+    {
+      "id": "review",
+      "who": [
+        "le-critique"
+      ],
+      "prompt": "Review the round's changes against {run}/spec.md and {quest}: git diff for edited files, and read the new files (git status lists them). Check in particular: pm.lot is pure cljc (no I/O, no js/Date) and its rules come from the rules map; feet, yaw rotation and the highest-foot y match the quest; every refusal reason is reachable and readable; the command hands the blueprint to the existing blueprint_add.clj (one writer, one validator) and honours PM_GROUND_FILE/PM_BLUEPRINTS_FILE; --dry-run writes nothing; tests never read state/; no person, pet, member or prop named in code; no npm deps. Write the review to {run}/review.md.",
+      "expect": [
+        "{run}/review.md"
+      ]
+    },
+    {
+      "id": "docs",
+      "who": [
+        "le-docteur"
+      ],
+      "prompt": "Spec: {run}/spec.md (quest: {quest}). Make only the documentation edits the spec's who-touches-what table gives le-docteur (if none, change nothing). Reply with git diff --stat of what you changed.",
+      "expect": []
+    }
+  ],
+  "onBlocked": "wait"
+}
