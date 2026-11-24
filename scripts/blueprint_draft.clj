@@ -4,7 +4,7 @@
 ;; everything else and every walker's route, and proposes the full blueprint through the
 ;; existing bb blueprint-add -- one writer, one validator.
 ;;
-;;   bb blueprint-draft <member> <draft.edn> --near <landmark> [--dry-run]
+;;   bb blueprint-draft <member> <draft.edn> --near <landmark|x,z> [--dry-run]
 ;;   bb blueprint-draft --landmarks
 ;;
 ;; All I/O; every decision is pm.lot's.
@@ -57,7 +57,7 @@
             (fail! (:reason result))
             (let [bp (lot/blueprint draft result)
                   problems (bf/problems bp)
-                  lm (get (lot/landmarks ground estate file-bps) near)]
+                  lm (lot/resolve-landmark (lot/landmarks ground estate file-bps) near)]
               (when (seq problems)
                 (fail! (str "invalid draft: " (clojure.string/join "; " problems))))
               (if dry-run

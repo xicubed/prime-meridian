@@ -10,7 +10,7 @@
 (def default-radius-m 0.6)
 (def grounded-m 0.02)
 (def narrow-m 0.3)
-(def usage "usage: bb blueprint-draft <member> <draft.edn> --near <landmark> [--dry-run] | bb blueprint-draft --landmarks")
+(def usage "usage: bb blueprint-draft <member> <draft.edn> --near <landmark|x,z> [--dry-run] | bb blueprint-draft --landmarks")
 (def no-ground-map "no ground map (state/ground.edn): the twin samples it from the kit")
 (def nothing-grounded "nothing touches the ground")
 
@@ -208,6 +208,24 @@
           base))
       base)))
 
+(declare fmt)
+
+;; A spot given as coordinates (`--near x,z`, the twin's pick from where the
+;; player is looking) is a landmark of its own, named by its numbers.
+(defn coord-near
+  "\"x,z\" -> [x z] (numbers), else nil."
+  [s]
+  (when-let [[_ x z] (re-matches #"(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)" (str s))]
+    [#?(:clj (Double/parseDouble x) :cljs (js/parseFloat x))
+     #?(:clj (Double/parseDouble z) :cljs (js/parseFloat z))]))
+
+(defn resolve-landmark
+  "The landmark `near` names: a keyword from `lms`, or an [x z] spot."
+  [lms near]
+  (if (vector? near)
+    {:word (str "[" (fmt (first near)) " " (fmt (second near)) "]") :xz near}
+    (get lms near)))
+
 (defn landmark-lines [lms]
   (mapv (fn [[k {:keys [word]}]] (str (name k) ": " word)) lms))
 
@@ -286,7 +304,7 @@
   (if-not (map? ground)
     {:ok false :reason no-ground-map}
     (let [lms (landmarks ground estate file-blueprints)]
-      (if-not (contains? lms near)
+      (if-not (resolve-landmark lms near)
         {:ok false :reason (str "I don't know a place called " (name near) "; I know: "
                                  (str/join ", " (map name (keys lms))))}
         (let [fs (feet (:look draft))]
@@ -296,7 +314,7 @@
                   ts (things estate file-blueprints)
                   segs (segments estate)
                   ctx {:ground ground :rules rules :feet fs :radius radius :things ts :segments segs}
-                  lm (get lms near)
+                  lm (resolve-landmark lms near)
                   step (:step-m rules)
                   search-m (:search-m rules)
                   yaws (:yaws rules)
@@ -339,17 +357,18 @@
            (not (str/starts-with? (second args) "--")))
       (let [member (first args) path (second args) rest-args (vec (drop 2 args))
             near (fn [n]
-                   (let [n' (str/replace-first n #"^:" "")]
-                     (when (re-matches bf/id-re n') n')))]
+                   (or (coord-near n)
+                       (let [n' (str/replace-first n #"^:" "")]
+                         (when (re-matches bf/id-re n') (keyword n')))))]
         (cond
           (and (= 2 (count rest-args)) (= "--near" (first rest-args)) (near (second rest-args)))
-          {:mode :draft :member (keyword member) :path path :near (keyword (near (second rest-args))) :dry-run false}
+          {:mode :draft :member (keyword member) :path path :near (near (second rest-args)) :dry-run false}
 
           (and (= 3 (count rest-args)) (= "--near" (first rest-args)) (near (second rest-args)) (= "--dry-run" (nth rest-args 2)))
-          {:mode :draft :member (keyword member) :path path :near (keyword (near (second rest-args))) :dry-run true}
+          {:mode :draft :member (keyword member) :path path :near (near (second rest-args)) :dry-run true}
 
           (and (= 3 (count rest-args)) (= "--dry-run" (first rest-args)) (= "--near" (second rest-args)) (near (nth rest-args 2)))
-          {:mode :draft :member (keyword member) :path path :near (keyword (near (nth rest-args 2))) :dry-run true}
+          {:mode :draft :member (keyword member) :path path :near (near (nth rest-args 2)) :dry-run true}
 
           :else
           {:usage usage}))

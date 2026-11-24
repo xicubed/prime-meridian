@@ -379,3 +379,23 @@
   (is (= {:usage lot/usage} (lot/parse-args ["Member" "d.edn" "--near" "creek"])))
   (is (= {:usage lot/usage} (lot/parse-args ["member-a" "d.edn" "--near" "creek" "--fast"])))
   (is (= {:usage lot/usage} (lot/parse-args ["--landmarks" "x"]))))
+
+;; ---------------------------------------------------------------------------
+;; A spot given as coordinates (--near x,z): the twin's pick from where the
+;; player is looking (Hal, Nov 24)
+
+(deftest t41-coord-near
+  (is (= [1.5 -2] (lot/coord-near "1.5,-2")))
+  (is (= [-3 4.25] (lot/coord-near "-3,4.25")))
+  (is (nil? (lot/coord-near "mailbox")))
+  (is (nil? (lot/coord-near "1.5, 2")))
+  (is (= {:mode :draft :member :m :path "d.edn" :near [1.5 -2] :dry-run true}
+         (lot/parse-args ["m" "d.edn" "--near" "1.5,-2" "--dry-run"])))
+  (is (= :mailbox (:near (lot/parse-args ["m" "d.edn" "--near" "mailbox"])))))
+
+(deftest t42-place-near-a-spot
+  (is (approx= {:ok true :at [1.5 1.0 1.5] :yaw 0 :landmark [1.5 1.5] :distance-m 0 :spread-m 0}
+               (lot/place G7 {} [] (rules {:search-m 2}) stool [1.5 1.5])))
+  (is (= "[1.5 -2]" (:word (lot/resolve-landmark {} [1.5 -2]))))
+  (is (= "no level open ground within 1 m of [1.5 1.5]: most of it is under trees"
+         (:reason (lot/place GT9 {} [] (rules {}) stool [1.5 1.5])))))
