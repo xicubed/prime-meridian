@@ -1,0 +1,38 @@
+           one agent: the camera follows it, your
+          messages go straight to it, and you see
+          what it sees on a desk screen, not a pop
+          -up. |
+      76  | **Set autonomy** | A dial per agent: *
+          ask before anything* · *ask before appro
+          ving* · *fully autonomous*. The dial cov
+          ers reads and reversible writes; money,
+          deletion, security changes, and messages
+           to other people need you at every setti
+          ng. You set trust: no agent can start a
+          trust change, so no "!" can ever ask for
+           more autonomy. The notice board shows e
+          ach agent's track record (tasks done, ap
+          provals, reverts); if game code thinks a
+           dial could go up, it says so on the boa
+          rd in the board's own style, never as a
+          "!". |
+
+  Ran 1 shell command
+
+⏺  TASKS.md    | 1 +
+   docs/GDD.md | 2 +-
+   2 files changed, 2 insertions(+), 1 deletion(-)
+
+  Added the new T-15 done row under T-14 in TASKS.md, and
+  in docs/GDD.md changed the Approve row's opening
+  sentences plus appended the new Built note — all exact
+  §8 wording, after confirming gate-note.md showed PASS.
+
+  done-4994
+
+✻ Sautéed for 23s · done 6:35 PM
+                 ✔ Update installed · /restart to apply
+─────────────────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

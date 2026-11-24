@@ -125,9 +125,10 @@
             id     (get body (if (= action "mirror") "mirror" "id"))
             state  (get body "state")]
         (cond
-          (not (contains? #{"build" "mirror"} action)) {:ok false :status 400 :reason "bad action"}
+          (not (contains? #{"build" "mirror" "remove"} action)) {:ok false :status 400 :reason "bad action"}
           (not (and (string? id) (re-matches real-id-re id))) {:ok false :status 400 :reason "bad id"}
           (= action "build") {:ok true :action :real-build :id (keyword id)}
+          (= action "remove") {:ok true :action :remove-build :id (keyword id)}
           (not (and (map? state) (seq state)
                     (every? (fn [[k v]] (and (string? k) (re-matches real-id-re k)
                                              (or (nil? v) (and (number? v) #?(:clj (Double/isFinite (double v)) :cljs (js/isFinite v))))))
@@ -186,12 +187,30 @@
 
 (defn add-real-build
   "The real-builds file (state/builds.edn) with `id` made real at `now`
-   (GDD §2.1, §4.6): a build recorded here is in the estate every session
-   and can't be dismissed. `known` is the set of blueprint ids in the
-   estate's data: anything else is refused (nil)."
+   (GDD §2.1, §4.6): a build recorded here is in the estate every session,
+   and can be removed again only through the card's try-first step (TASKS
+   T-15). `known` is the set of blueprint ids in the estate's data: anything
+   else is refused (nil), as is an id already in `:removed` (a removed
+   build can't be made real again; add it again with a new id). The output
+   keeps `:removed` when it's non-empty."
   [builds id known now]
-  (when (contains? known id)
-    {:as-of now :real (vec (sort (distinct (conj (vec (:real builds)) id))))}))
+  (let [removed (set (filter keyword? (:removed builds)))]
+    (when (and (contains? known id) (not (contains? removed id)))
+      (cond-> {:as-of now :real (vec (sort (distinct (conj (vec (:real builds)) id))))}
+        (seq removed) (assoc :removed (vec (sort removed)))))))
+
+(defn remove-real-build
+  "The real-builds file (state/builds.edn) with `id` dropped from `:real`
+   and added to `:removed` at `now` (TASKS T-15, GDD §2.1, §4.6: a real
+   build removed this way is gone on every reload). Refused (nil) unless
+   `id` is currently in `:real` and not already in `:removed`."
+  [builds id now]
+  (let [real    (set (filter keyword? (:real builds)))
+        removed (set (filter keyword? (:removed builds)))]
+    (when (and (contains? real id) (not (contains? removed id)))
+      {:as-of now
+       :real (vec (sort (remove #{id} real)))
+       :removed (vec (sort (conj removed id)))})))
 
 (defn merge-real-mirror
   "The twin's mirror file (state/mirrors.edn) with mirror's `state` written

@@ -1,0 +1,367 @@
+💻 $ echo "HEAD deftest count:" + 3 commands  1.5s
+💻 $ git worktree add /tmp/pm-base-check HEAD -f  2.6s
+💻 $ git worktree remove /tmp/pm-base-check --force  0.6s
+📖 Read gate.sh
+💻 $ ls state/ + 1 command  0.5s
+📖 Read bench-by-creek.edn
+🔎 Grep defn apply-real-builds  0.5s
+🔎 Grep defn- fetch-state!  0.4s
+🔎 Grep defn ghost-plan|defn built-plan  0.4s
+🔎 Grep ::[a-z]  1.2s
+
+────────────────────────────────────────
+☤ Hermes
+Good — no ::k keys anywhere in the new/changed blueprint files. Writing the review now.
+────────────────────────────────────────
+
+✍️ Write crew/runs/live-blueprints-v0-20261123-1331/review.md
+│ crew/runs/live-blueprints-v0-20261123-1331/review.md
+│ @@ -0,0 +1,81 @@
+│ +# Review — live-blueprints-v0 (TASKS T-13b)
+│ +
+│ +Scope: `git status`/`git diff` for the 7 modified files (`bb.edn`, `scripts/crew_bridge.clj`,
+│ +`src/pm/blueprint.cljs`, `src/pm/bridge.cljc`, `src/pm/core.cljs`, `src/pm/scene.cljs`,
+│ +`test/pm/bridge_real_test.cljs`) plus full reads of the 4 new files (`src/pm/blueprint_file.cljc`,
+│ +`scripts/blueprint_add.clj`, `test/pm/blueprint_file_test.cljs`, `test/pm/blueprint_live_test.cljs`),
+│ +against `spec.md` and the quest. `f551a10` (the quest+spec commit, code-only no-op) is the
+│ +effective baseline; nothing else is stacked under this round.
+│ +
+│ +One scope note: `replies/review-le-critique.txt` + its `.status` file in this run dir are a raw
+│ +terminal capture of a **second, parallel dispatch of this same review prompt** (same wording,
+│ +same timestamp window) — at the point captured it had only just started reading files and hadn't
+│ +written anything. I did not use it as corroboration; this review was produced independently from
+│ +the diff/spec/gate.
+│ +
+│ +## Gate — verified independently, not just read
+│ +
+│ +Re-ran `bash .crew/gate.sh` myself: `[:app]` 0 warnings, `[:test]` 0 warnings, `Ran 1154 tests
+│ +containing 7326 assertions, 0 failures, 0 errors`, `bb content-test` 5/42 clean — matches
+│ +`gate-1.txt` exactly. The gate's own `tail -40` drops the alphabetically-early
+│ +`Testing pm.blueprint-file-test` / `pm.blueprint-live-test` headers from the printed transcript
+│ +(same in my own run), so I cross-checked structurally instead: `deftest` count is 1093 at
+│ +baseline (`f551a10`) vs 1154 now, a delta of 61, exactly `31 (blueprint_file_test) + 29
+│ +(blueprint_live_test) + 1 (bridge_real_test's new t04)` — the new suites did run, not just compile.
+│ +
+│ +## Point-by-point
+│ +
+│ +- **One validator, not copied into the bb script**: `pm.blueprint-file/problems`+`valid?` is the
+│ +  only rule set. `pm.blueprint/all` now filters with `bf/valid?` (old private `valid-blueprint?`
+│ +  deleted). `scripts/blueprint_add.clj` requires `pm.blueprint-file` and calls `bf/add`/`remove-id`
+│ +  (which call `problems` internally) — no re-implementation of the rules in the script.
+│ +- **Merge is pure, tested, no-op on unchanged `:as-of`**: `merge-file` takes no `js/Date`/atoms/
+│ +  three.js; hand-traced steps 1–9 of spec §4 against the code line by line (estate-ids via
+│ +  `:from-file?` absence, incoming = valid ∧ not-estate ∧ distinct-by-id in file order, kept/removed
+│ +  via the `:real`/`:approved` keep-rule, announce gated by `first?`/`:blueprints-announced`) — all
+│ +  match. `(identical? W1 (:world r))` on an unchanged `:as-of` is both implemented (early-return of
+│ +  the original `world`) and asserted (`m3`).
+│ +- **Seated and drawn without remounting or moving anything else**: `pm.core/apply-blueprint-file!`
+│ +  only calls `bp/seat-ids` with `(:added r)` (never `seat-all`) once the kit's ground is up, and
+│ +  `pm.scene/sync-blueprint-draw!` mounts/unmounts only the ids `bp/drawable-changes` names,
+│ +  via per-group `t/by-name`/`t/remove!`/`mount-item!` — no call to `mount!` after the initial one.
+│ +  `ghost-plan`+`built-plan` together cover exactly the `#{:pending :approved :real}` status set
+│ +  `drawable-changes` computes `:add` from, so a newly-added id gets the right ghost-vs-built mesh.
+│ +  Checked the kit-not-up-yet path too: `start-state-poll!` runs before `kit/load!` in `init!`, so a
+│ +  blueprint arriving before the kit exists sits unseated in `!world` until `start-kit!`'s
+│ +  `seat-blueprints!` (now sharing `ground-at-fn`) seats everything and the first `mount!` draws it
+│ +  already seated — matches spec §7's documented fallback.
+│ +- **Author line once per new id, not for load-time ones**: `first? = (nil?
+│ +  (:blueprints-as-of world))` makes `:announce []` on the page-load merge; afterwards `announce`
+│ +  subtracts `:blueprints-announced`, and that set only ever grows. Traced against `m1/m2/m9/m12`.
+│ +- **Bridge reads the file at request time**: `crew_bridge.clj`'s `make-real!` calls `(read-edn
+│ +  blueprints-file)` inline inside the per-request handler (same function that also calls
+│ +  `(estate)` fresh each time), not at process start.
+│ +- **Writes atomic; tests never touch `state/`**: `blueprint_add.clj` writes a `.tmp` then
+│ +  `Files/move` with `ATOMIC_MOVE`+`REPLACE_EXISTING`. All three new/changed test files are 100%
+│ +  pure data in/out — no `slurp`/`spit`/`state/` reference anywhere in them. `state/` on disk has
+│ +  no `blueprints.edn`, confirming the builder never ran the command for real.
+│ +- **DEMO skips the new poll**: `fetch-blueprints!` is only ever invoked from inside
+│ +  `start-state-poll!`, which `init!` calls only in the non-`DEMO` branch (`(if DEMO (do
+│ +  start-sample-says! ...) (do (start-state-poll!) ...))`) — unchanged by this round.
+│ +- **No member/pet/person named in code, no `::k` keys, no npm deps**: grepped `src/`/`scripts/`
+│ +  for every crew codename — the only hits are pre-existing, untouched files (`crew_log.cljc`,
+│ +  `talk.cljs`, `pick.cljs`, `juice.cljs`, `crew_status.clj`); none of this round's new/changed
+│ +  files reference one. `grep '::[a-z]'` over the new blueprint files: no hits. `package.json` has
+│ +  no diff.
+│ +
+│ +## Findings
+│ +
+│ +None rise above a style nit:
+│ +
+│ +- `src/pm/blueprint.cljs:149` (`merge-file`'s `let`) binds a local named `new` — legal and
+│ +  compiles clean (0 warnings), but `new` is a special-form token elsewhere in Clojure, so it's a
+│ +  one-word rename (`added`/`new-bps`) worth doing on the next touch rather than today.
+│ +- `spec.md`'s own tally ("Total: 63 cases") undercounts by one against its own numbered rows (`P1–
+│ +  P7, N1–N4, D1–D11, R1–R5, U1–U4` = 31, `M1–M14, S1–S3, A1–A7, C1–C5` = 29, `B1–B4` = 4; 31+29+4 =
+│ +  64) — a pre-existing arithmetic slip in the architect's spec text, not a tester gap: every single
+│ +  labelled case is present and passing.
+│ +
+│ … omitted 3 diff line(s) across 1 additional file(s)/section(s)
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/live-blueprints-v0-20261123-1331/review.md.
+
+Independently re-ran the gate (matches gate-1.txt: 0 warnings, 1154 tests/7326 assertions) and cross-checked the new-test delta structurally (1093→1154 deftest forms = exactly 31+29+1 new). Hand-traced merge-file, seat-ids, author-line, drawable-changes against spec §4, confirmed the bridge reads state/blueprints.edn at request time, writes are atomic, tests touch no I/O, DEMO still skips the poll, the boundary table is respected exactly, and no member/pet name or npm dep leaked in. Found nothing above two style nits (a local named new, and a one-off miscount in the spec's own case tally) — noted both, no round-blocking issues.
+
+One scope note worth flagging to you directly: replies/review-le-critique.txt in that run dir is a live capture of a second, parallel dispatch of this exact review prompt that was mid-flight when I read it — it hadn't produced anything yet, so I ignored it and reviewed from scratch, but you may want to check whether that other pane is still running and reconcile/stop it so it doesn't overwrite review.md after this one.
+
+done-6647
+────────────────────────────────────────
+
+─ 5m55s · edited 1 file · read 1 skill, 14 files · ran 13 commands · searched 9 paths · 2:02 PM
+  💾 Self-improvement review: Skill 'crew-round-review' patched
+
+
+────────────────────────────────────────
+❯ Review the round's changes against crew/runs/trial-buttons-v0-20261123-1638/spec.md and .crew/quests/trial-buttons-v0.md: git diff for edited files, and read the new files (git status lists them). Check in particular: Make it real reuses make-real! (no second bridge path) and can't post twice; Undo is the pure unapprove, not a reject, and the ghost redraws; the placement fn is pure, tested, hides off-screen and behind the camera; one card at a time, gone after real/undo/reject/reload; clicks on the card never reach the canvas; buttons use .pm-btn; labels are data in :blueprint-text; no member, pet or blueprint named in code; no npm deps. Write the review to crew/runs/trial-buttons-v0-20261123-1638/review.md.
+
+When you have completely finished, end your reply with a line containing only this: done-3790
+────────────────────────────────────────
+
+💻 $ git status + 2 commands  1.1s
+📖 Read spec.md
+📖 Read trial-buttons-v0.md
+📖 Read log.md
+📖 Read gate-note.md
+📖 Read gate-1.txt
+📖 Read builder-notes.md
+💻 $ ls crew/runs/trial-buttons-v0-20261123-1638/replies/  0.4s
+💻 $ git diff -- resources/estate.edn src/pm/pick.cljs src/pm/three.cljs  0.5s
+💻 $ git diff -- src/pm/blueprint.cljs  0.5s
+💻 $ git diff -- src/pm/scene.cljs  0.6s
+💻 $ git diff -- src/pm/ui.cljs  0.5s
+💻 $ git diff -- src/pm/core.cljs  0.4s
+📖 Read trial_card_test.cljs
+🔎 Grep trial-order  0.9s
+🔎 Grep bench-by-mailbox|lamp-post-by-canal|bench-by-creek|un-automate-monde|le-testeur|le-docteur  0.9s
+🔎 Grep "Make it real"|"Undo"|"Saving"  0.9s
+💻 $ git diff -- package.json package-lock.json 2>/dev/null + 1 command  0.3s
+🔎 Grep restore-cache!|on-world-change!|localStorage|:mirrors}  0.5s
+🔎 Grep defn- on-world-change!  0.5s
+🔎 Grep defn ghost!|defn unghost!|defn light-glows!  0.5s
+📖 Read three.cljs L218-257
+💻 $ bash .crew/gate.sh  18.5s
+💻 $ echo "HEAD deftest:" + 2 commands  0.5s
+💻 $ git ls-tree -r HEAD --name-only -- test/ | xargs -I{} git show HEAD:{} 2>/dev/null | grep -c '^(deftest'  1.8s
+🔎 Grep :sign-paper|:sign-ink  0.4s
+✍️ Write crew/runs/trial-buttons-v0-20261123-1638/review.md
+│ crew/runs/trial-buttons-v0-20261123-1638/review.md
+│ @@ -0,0 +1,77 @@
+│ +# Review — trial-buttons-v0 (TASKS T-14)
+│ +
+│ +Scope: `git diff` for the 7 modified files (`resources/estate.edn`, `src/pm/blueprint.cljs`,
+│ +`src/pm/core.cljs`, `src/pm/pick.cljs`, `src/pm/scene.cljs`, `src/pm/three.cljs`, `src/pm/ui.cljs`)
+│ +plus a full read of the one new file (`test/pm/trial_card_test.cljs`), against `spec.md` and the
+│ +quest. `c06b0f2` (the quest+spec commit, code/tests unchanged) is the baseline; nothing else is
+│ +stacked on it.
+│ +
+│ +## Gate — verified independently
+│ +
+│ +Re-ran `bash .crew/gate.sh`: `[:app]`/`[:test]` 0 warnings, `Ran 1191 tests containing 7385
+│ +assertions, 0 failures, 0 errors`, `bb content-test` 5/42 clean — matches `gate-1.txt` exactly.
+│ +Cross-checked structurally too: committed `deftest` count at `HEAD` is 1154, working tree is
+│ +1191, a delta of 37 — exactly `test/pm/trial_card_test.cljs`'s own count (u1–u8=8, t1–t3=3,
+│ +o1–o9=9, c1–c6=6, p1–p8=8, e1–e3=3 = 37), matching the spec's own "Total: 37 cases" tally with no
+│ +discrepancy this time.
+│ +
+│ +## Point-by-point
+│ +
+│ +- **Make it real reuses `make-real!`, no second bridge path, can't post twice**: `on-blueprint-
+│ +  click!`'s `:approved` branch and the card's button both now call the one new `real-click!`,
+│ +  which is the only caller of `make-real!` in the diff — `post-real!`/`crew/real-build-body`
+│ +  aren't called from anywhere else new. `real-click!` guards at the core level (`(and (nil?
+│ +  @!saving) (= :approved (bp/status @!world id)))`) before setting `!saving` and calling
+│ +  `make-real!`, so the double-post guard is structural, not just a disabled DOM attribute — the
+│ +  UI-level `:disabled?` (both buttons, whenever *any* id is saving, confirmed by test `c4`) is a
+│ +  second, independent layer on top of it. `make-real!`'s `done` thunk fires exactly once on every
+│ +  branch (no-bridge `say!`; bridge ok; bridge not-ok) and is what clears `!saving`.
+│ +- **Undo is the pure `unapprove`, not a reject, and the ghost redraws**: `unapprove` only flips
+│ +  `:approved`→`:pending` via the existing `set-status`, `identical?` on pending/real/rejected/
+│ +  unknown ids (`u2`–`u5`); never touches `:trial-order`. `pm.scene`'s new `:pending` branch in the
+│ +  status-sync loop only fires when the *previous* status was `:approved`, calling `unlight-glows!`
+│ +  then `ghost!` on the already-mounted group (no remount) — traced `ghost!`/`unghost!`'s own
+│ +  bookkeeping (`userData.ghostWas`/`ghostEdges`) by hand: `unghost!` removes the edge lines and
+│ +  restores colours in place, so a later `ghost!` re-clones cleanly with no stacked duplicate edges
+│ +  and no lost original colour. A freshly-drawn `:pending` with no prior `:approved` still no-ops,
+│ +  as before.
+│ +- **Placement fn pure, tested, hides off-screen/behind camera**: `pm.pick/screen-of` touches no
+│ +  DOM/`js/Date`; hand-traced its NDC→px math and the `visible?` rule (`|x|>1`, `|y|>1`, or `z>1`)
+│ +  against `P1`–`P8`, including the inclusive-edge case (`P3`) and both malformed-input shapes
+│ +  (`P7` bad point, `P8` bad size) — all match.
+│ +- **One card at a time, gone after real/undo/reject/reload**: `card-owner` only ever returns an
+│ +  id still `:approved`; real/undo/reject all move it out of that status, so the next frame's
+│ +  `trial-card` call returns a different owner or `nil` for that id (`o4`–`o6`). `:trial-order` is
+│ +  a `:blueprints-text`-sibling world key never written through `on-world-change!`'s cache path
+│ +  (that still only fires on `:mirrors`/`:state-as-of` changes, unmodified by this round) or
+│ +  `localStorage` — confirmed by reading `overlay/cache-of`'s call site; a reload starts fresh.
+│ +- **Clicks on the card never reach the canvas**: `pm.ui`'s card element gets `stopPropagation` on
+│ +  exactly the spec's list (`pointerdown pointerup mousedown mouseup click dblclick contextmenu
+│ +  wheel`), which blocks the window-level `pointerup` pick listener from ever seeing a card click
+│ +  (the canvas itself is never hit-tested since the card sits visually on top); each button repeats
+│ +  `stopPropagation` on its own `click` as a second layer.
+│ +- **Buttons use `.pm-btn`; labels are data in `:blueprint-text`**: button `className` is `"pm-btn
+│ +  trial-" + action`; grepped `src/pm` for the literal strings `"Make it real"`/`"Undo"`/`"Saving"`
+│ +  — zero hits outside `resources/estate.edn` and the test file, so every label flows from
+│ +  `:make-real`/`:undo`/`:saving` through `trial-card`, never hard-coded.
+│ +- **No member/pet/blueprint named in code, no npm deps**: grepped `src/` for crew codenames and
+│ +  for specific blueprint ids (`bench-by-mailbox`, `bench-by-creek`, …) — the only hit
+│ +  (`pick.cljs`'s pre-existing `le-testeur` docstring example) predates this round's diff (outside
+│ +  the added hunk). `package.json` has no diff.
+│ +- **Boundary table**: `git status` matches the table exactly — builder's files
+│ +  (`blueprint.cljs`, `pick.cljs`, `three.cljs`, `scene.cljs`, `ui.cljs`, `core.cljs`,
+│ +  `resources/estate.edn`) plus the tester's one new file (`trial_card_test.cljs`); nothing in
+│ +  `test/` (besides that one file), `public/index.html`, `docs/`, `TASKS.md`, or `state/` touched.
+│ +  `resources/estate.edn`'s diff is confined to the `:blueprint-text` map, nothing else in that
+│ +  file moved.
+│ +
+│ +## Findings
+│ +
+│ +None. Every spec rule in §3 (`approve-blueprint`'s `:trial-order` splice, `unapprove`,
+│ +`card-owner`'s `:trial-order`-then-fallback order, `trial-card`'s word-presence and saving-label
+│ +logic, `screen-of`'s visibility rule) traces cleanly to matching code and a passing, hand-checked
+│ +test; the impure wiring in §4 (`top-center`/`project-ndc`/`unlight-glows!`, the scene's new
+│ +`:pending` branch, `pm.ui`'s card element, `pm.core`'s `!saving`/`real-click!`/`undo-trial!`/
+│ +`trial-card!`) matches its hand-tested description and introduces no second path to the bridge,
+│ +no duplicate-edge/lost-colour bug on repeated ghost/unghost cycles, and no leak of card clicks to
+│ +the canvas.
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/trial-buttons-v0-20261123-1638/review.md.
+
+Independently re-ran the gate (0 warnings, 1191 tests/7385 assertions, matches gate-1.txt) and cross-checked the deftest delta (1154→1191 = exactly the new test file's own 37 cases). Hand-traced unapprove, approve-blueprint's :trial-order splice, card-owner, trial-card, and pm.pick/screen-of against spec §3, verified the single bridge path through make-real! with a structural (not just UI) double-post guard, the ghost/unghost bookkeeping on Undo (no duplicate edges or lost colors across repeated cycles), the card's full stopPropagation list, .pm-btn usage, data-only labels, and boundary-table compliance. No findings — the round matches spec cleanly.
+
+done-3790
+────────────────────────────────────────
+
+─ 3m05s · edited 1 file · read 8 files · ran 11 commands · searched 7 paths · 4:53 PM
+  💾 Self-improvement review: Skill 'crew-round-review' patched
+
+
+────────────────────────────────────────
+❯ Review the round's changes against crew/runs/remove-build-v0-20261123-1815/spec.md and .crew/quests/remove-build-v0.md: git diff for edited files, and read the new files (git status lists them). Check in particular: one card with three modes (no second card); :removing is pure and tested, Keep it restores the item exactly (colours, lamp light); the removal ghost is a colour option on ghost!, not a copy; Remove it reuses post-real!/!saving and can't post twice; the bridge rule is pure, refuses non-real ids, :removed beats :real on load; blueprint-add refuses removed ids; tests never touch state/; words are data; no member, pet or blueprint named in code; no npm deps. Write the review to crew/runs/remove-build-v0-20261123-1815/review.md.
+
+When you have completely finished, end your reply with a line containing only this: done-3852
+────────────────────────────────────────
+
+💻 $ git status + 2 commands  1.1s
+📖 Read spec.md
+📖 Read remove-build-v0.md
+📖 Read log.md
+📖 Read gate-1.txt
+💻 $ ls crew/runs/remove-build-v0-20261123-1815/replies/  0.4s
+💻 $ git diff -- resources/estate.edn scripts/blueprint_add.clj scripts/crew_bridge.clj  0.5s
+💻 $ git diff -- src/pm/blueprint_file.cljc src/pm/bridge.cljc src/pm/crew.cljs  0.4s
+💻 $ git diff -- src/pm/blueprint.cljs  0.4s
+💻 $ git diff -- src/pm/three.cljs src/pm/ui.cljs  0.3s
+💻 $ git diff -- src/pm/scene.cljs  0.4s
+💻 $ git diff -- src/pm/core.cljs  0.5s
+🔎 Grep hal-ms  0.4s
+📖 Read remove_build_test.cljs  0.4s
+💻 $ git ls-tree -r HEAD --name-only -- test/ | xargs -I{} git show HEAD:{} 2>/dev/null | grep -c '^(deftest' + 2 commands  2.0s
+💻 $ bash .crew/gate.sh  23.8s
+📖 Read scene.cljs L270-329
+🔎 Grep "Remove…"|"Close"|"Remove it"|"Keep it"|"Removing…"|"will be removed"  1.2s
+🔎 Grep "Remove…"|"Close"|"Remove it"|"Keep it"  1.2s
+🔎 Grep bench-by-mailbox|lamp-post-by-canal|bench-by-creek|un-automate-monde|le-testeur|le-docteur|le-critique  1.2s
+🔎 Grep bench-by-mailbox|lamp-post-by-canal|bench-by-creek|un-automate-monde|le-testeur|le-docteur  1.2s
+💻 $ git diff -- package.json package-lock.json 2>/dev/null + 1 command  0.4s
+🔎 Grep ::[a-z]  1.2s
+🔎 Grep defn- post-real!  0.5s
+✍️ Write crew/runs/remove-build-v0-20261123-1815/review.md
+│ crew/runs/remove-build-v0-20261123-1815/review.md
+│ @@ -0,0 +1,84 @@
+│ +# Review — remove-build-v0 (TASKS T-15)
+│ +
+│ +Scope: `git diff` for the 11 modified files (`resources/estate.edn`, `scripts/blueprint_add.clj`,
+│ +`scripts/crew_bridge.clj`, `src/pm/blueprint.cljs`, `src/pm/blueprint_file.cljc`,
+│ +`src/pm/bridge.cljc`, `src/pm/core.cljs`, `src/pm/crew.cljs`, `src/pm/scene.cljs`,
+│ +`src/pm/three.cljs`, `src/pm/ui.cljs`) plus a full read of the one new file
+│ +(`test/pm/remove_build_test.cljs`), against `spec.md` and the quest. `bbee7b1` (the quest+spec
+│ +commit, code/tests unchanged) is the baseline; nothing else is stacked on it.
+│ +
+│ +## Gate — verified independently
+│ +
+│ +Re-ran `bash .crew/gate.sh`: `[:app]`/`[:test]` 0 warnings, `Ran 1250 tests containing 7491
+│ +assertions, 0 failures, 0 errors`, `bb content-test` 5/42 — matches `gate-1.txt` exactly.
+│ +Structural cross-check: committed `deftest` count at `HEAD` is 1191, working tree is 1250, a
+│ +delta of exactly 59 — the new file's own count (s1=1, r1–r5=5, f1–f4=4, x1–x3=3, o1–o10=10,
+│ +c1–c7=7, p1–p5=5, a1–a7=7, br1–br8=8, d1–d6=6, e1–e3=3 = 59), matching the spec's own "Total: 59
+│ +cases" exactly.
+│ +
+│ +## Point-by-point
+│ +
+│ +- **One card, three modes, no second card**: `pm.blueprint/card-of`+`card` are the single source
+│ +  of card data (`:trial`/`:real`/`:removing`); `pm.core/trial-card!` just renamed its call from
+│ +  `trial-card` to `card` and still drives the one existing `ui/set-trial-card!`/`#pm-trial-card`
+│ +  element — the `ui.cljs` diff adds only one CSS rule, no second element or id. `open-card`/
+│ +  `close-card` enforce "one at a time": opening a real card while another is mid-`:removing`
+│ +  preview puts that one back to `:real` first (`o7`), and closing a real card that was fronting a
+│ +  standing trial brings the trial's card back (`o6`).
+│ +- **`:removing` pure and tested; Keep it restores the item exactly**: `start-removal`/`keep-it`/
+│ +  `finish-removal`/`fail-removal`/`open-card`/`close-card` touch no atom/DOM/three.js, `now` is
+│ +  always an argument, and each is `identical?`/`=`-tested for its no-op cases (`r2`, `r4`, `x3`,
+│ +  `o3`, `o9`) and its happy path (`r3`: `(-> W (start-removal :lamp) (keep-it :lamp))` `=` `W`
+│ +  exactly). For the *visual* restore, hand-traced `pm.scene`'s status loop: the pre-existing
+│ +  `:real` branch (`unghost!` + `light-glows!` + hide sign) is unconditional on any status change
+│ +  into `:real`, so it already covers `:removing`→`:real` with no new case needed — and since
+│ +  `ghost! g :removal` (entering `:removing`) snapshots the then-current real colours into
+│ +  `userData.ghostWas` before tinting red, `unghost!` on Keep it restores exactly those colours;
+│ +  `light-glows!` re-adds the point light `unlight-glows!` had disposed on entry. Confirmed `ghost!`
+│ +  /`unghost!`'s edge-line bookkeeping doesn't double up across a second preview cycle, same as
+│ +  the T-14 Undo path.
+│ +- **The removal ghost is a colour option on `ghost!`, not a copy**: `ghost!` gained a `tint` arg
+│ +  (default `:proposed`) that looks up `{:fill :glow :edge}` from the new `ghost-tints` map;
+│ +  `mount-item!` threads `(:tint item)` through; `unghost!` is untouched. No second ghost fn.
+│ +- **Remove it reuses `post-real!`/`!saving`, can't post twice**: `remove-click!` is the only new
+│ +  caller of the existing generic `post-real!` (body-fn + done-callback, unchanged), using
+│ +  `crew/remove-build-body` — no second bridge-posting path. It guards at the core level (`(and
+│ +  (nil? @!saving) (= :removing (bp/status @!world id)))`) before setting `!saving`, the same
+│ +  pattern as `real-click!`; `bp/card`'s `:removing` mode disables both buttons whenever *any*
+│ +  id is saving (`c4`), a second, independent UI-level layer on top.
+│ +- **The bridge rule pure, refuses non-real ids, `:removed` beats `:real` on load**:
+│ +  `remove-real-build` takes `now` as an argument, refuses (nil) unless `id` ∈ `:real` and ∉
+│ +  `:removed` (covers unknown, never-real, and already-removed ids — `br3`). `apply-real-builds`'s
+│ +  `cond` checks `removed` before `real`, so a hand-edited file with an id in both resolves to
+│ +  `:rejected` (`a2`); the 5 s poll re-applying mid-preview still prefers `:removed` over a
+│ +  standing `:removing` (`a5`).
+│ +- **`bb blueprint-add` refuses a removed id**: `pm.blueprint-file/add`'s new 6-arity checks
+│ +  `removed-ids` after the estate-id check and before the already-in-file check, matching the
+│ +  spec's stated order exactly (`d4` estate wins, `d5` removed beats already-in-file); the 5-arity
+│ +  still calls it with `#{}` (`d3`). `scripts/blueprint_add.clj` reads `state/builds.edn` (or
+│ +  `PM_BUILDS_FILE`) and treats a missing/unreadable file as `#{}`, never blocking an add on the
+│ +  bridge's own file.
+│ +- **Tests never touch `state/`**: `test/pm/remove_build_test.cljs` is pure data in/out — no
+│ +  `slurp`/`spit`/file path anywhere in it.
+│ +- **Words are data; no member/pet/blueprint named in code; no npm deps**: grepped `src/pm` and
+│ +  `scripts` for every new label string (`"Remove…"`, `"Close"`, `"Remove it"`, `"Keep it"`,
+│ +  `"Removing…"`, `"will be removed"`) — zero hits outside `resources/estate.edn` and the test
+│ +  file. Grepped `src/` and `scripts/` for crew codenames and specific blueprint ids — the only
+│ +  hits (`pick.cljs`'s pre-existing `le-testeur` docstring, `crew_status.clj`'s pre-existing
+│ +  comment) predate this round's diff. `package.json` has no diff. No `::k` keys in the touched
+│ +  blueprint files.
+│ +- **Boundary table**: `git status` matches exactly — builder's files (the 9 `src/pm/*` files
+│ +  listed, `scripts/crew_bridge.clj`, `scripts/blueprint_add.clj`, `resources/estate.edn`'s
+│ +  `:blueprint-text` block only) plus the tester's one new file; nothing in `test/` (besides that
+│ +  file), `public/`, `docs/`, `TASKS.md`, or `state/` touched.
+│ +
+│ +## Findings
+│ +
+│ +None. Every new pure fn in spec §3 traces to matching code and a passing, hand-checked test
+│ +(including the trickier ones: `card-of`'s stale-`:card-open` fallback to the trial, `open-card`'s
+│ … omitted 6 diff line(s) across 1 additional file(s)/section(s)
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/remove-build-v0-20261123-1815/review.md.
+
+Independently re-ran the gate (0 warnings, 1250 tests/7491 assertions, matches gate-1.txt) and cross-checked the deftest delta (1191→1250 = exactly the new file's own 59 cases). Hand-traced start-removal/keep-it/finish-removal/fail-removal/open-card/close-card/card-of/card against spec §3, the three-way removed/removing/real precedence in apply-real-builds, the ghost! tint option, the shared !saving/post-real! reuse for Remove it, and the bridge's pure remove-real-build/add-real-build refusal rules. Verified no label strings, member/pet/blueprint names, or npm deps leaked into source, and boundary-table compliance is exact. One worth flagging positively rather than as a defect: the :rejected branch's new unlight-glows! call is a real fix for a case (:real→:rejected jumping straight past a locally-unseen :removing) that wasn't explicitly spelled out in the spec's wiring section but is correct and necessary. No findings.
+
+done-3852
+────────────────────────────────────────
+
+─ 3m13s · edited 1 file · read 6 files · ran 11 commands · searched 7 paths · 6:35 PM
+───────────────────────────────────────────────────────────────────────────────────── Introduce name job and model #2 ─
+crew ❯ Plan a feature, then build it step by step
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☤ claude-sonnet-5 · ~216K/1M · [██░░░░░░░░] ~22% · ◎ 89.0% · ◷ 15.6s · ↑ 92 t/s · 6h 57m · ⏲ 3m 12s · ✓ 0s

@@ -1,0 +1,730 @@
+diff --git a/TASKS.md b/TASKS.md
+index 17b38d1..09ee846 100644
+--- a/TASKS.md
++++ b/TASKS.md
+@@ -95,6 +95,7 @@ The twin on the estate (GDD §2.1). Built today: he walks (black body, white joi
+ - [x] Nov 22 (crew round calls-v0) T-11 Call a contact, in the room (Michael, Nov 21: "because I can talk to you and there are bots that can speak"): a 📞 on a contact's row opens a call; the walker's plate shows "on a call", their lines are spoken aloud as they arrive (the voice the twin already has), and the player's mic goes through the browser's speech recognition (Web Speech API, no server, no cost) down the bridge as if typed. First for the twin: "Do you read me, Hal?" made literal. Works in the demo build with SAMPLE voices. Follow-up fixed Nov 22: the 📞/End button shifted 1 px between states (the composer grew 39 → 40 px when the 🎙 joined it; the input is now 40 px), and 🎙 Talk in an embedded window with no speech service (Electron answers `network`) now goes disabled, "No mic here", with the twin's line, instead of snapping back.
+ - [ ] T-13 Demo scene (Michael, Nov 22): a bot builds something, and you finish it from the wireframe when it looks good. You ask in 💭 ("put a bench by the creek"), a member writes the `:blueprints` entry, the ghost appears, a click builds it as a trial, a second click makes it real (`state/builds.edn`). Exists today except: (a) N-3, the ghost is hard to see on grass; (b) a new blueprint shows only after a page reload (the estate is compiled in, `!world` is a defonce), so it can't appear while you watch. Candidate for S6 in `docs/demo-script.md` beside the rock; the unbuilt bench by the mailbox can stand in meanwhile. Nov 22: blueprints are now seated on the ground before they're drawn (`pm.blueprint/seat`: level at the highest foot, lower feet stretched down; more than 25 cm of drop is refused as too steep, sign + twin say so), and the bench moved off the creek bank to level grass by the mailbox. Nov 23: (b) done: a crew member proposes with `bb blueprint-add <member> <blueprint.edn>` (kept in the private `state/blueprints.edn`; `--remove <id>` takes one out), and within one 5-second poll its ghost appears in the estate, seated, with no reload, and the member says "drew a blueprint: … Click it to try it." in 💭. Two clicks still make it a trial, then real.
+ - [x] Nov 23 (crew round trial-buttons-v0) T-14 A trial build gets labelled buttons (Michael, Nov 23: "i didnt realize u needed to click it twice"; his rule: every action is a labelled button). Click a blue ghost and it builds as a trial with a small card above it: **Make it real** (records it through the bridge; reads "Saving…" while it does, so it can't post twice) and **Undo** (back to the blue ghost, to try again later; not a reject). The card follows the item as the camera moves and hides when it's off screen; the trial's sign now just says "trial: try it out". Right-click still dismisses.
++- [x] Nov 23 (crew round remove-build-v0) T-15 Remove a real build, try-first (Michael, Nov 23: "once its made real its there for good … should we have the undo or delete come up"). Click a real build and the same card shows **Remove…** and **Close**; Remove… previews the loss (the item turns into a see-through red removal ghost, its sign reads "will be removed") and offers **Remove it** and **Keep it**. Keep it puts it back as it was; Remove it records the removal through the bridge (`state/builds.edn` `:removed`, reads "Removing…" while it does), and the build is gone on every reload. No bridge: nothing changes and the twin says why. A removed id can't be reused (`bb blueprint-add` refuses it; pick a new id).
+ - [ ] T-12 Call the player's real phone (after T-11; the GDD's jack-out hook, §2.3): Twilio voice from the bot number to his cell when something real is due (Flora's chore, a "!" waiting past closing) or when he taps 📞 away from the laptop; the twin reads the lines, speech-to-text comes back down the bridge; a crew member who takes a minute "calls back". Costs per minute; FaceTime/Teams have no agent end and are out. Ready-made ways to add it (Nov 22, nothing installed): Hermes's official `telephony` skill (one-way calls on the existing Twilio number: a spoken message or a TTS recording); the community **Hermes Voice Gateway** plugin (two-way: the player calls the twin's number and talks; needs ElevenLabs and a tunnel); Zoom only as a meeting bot that joins a meeting (Meetstream / Meeting AI plugins, paid bot services); Slack is text and voice notes only (bots can't join huddles).
+ - [ ] T-9 v2 idea: living objects (docs/ideas-living-objects.md): stateful things that age, speak, and pass messages through the twin; Flora's hunger in the game first, a text only when she's well overdue (replacing the 09:00/17:00 cron).
+ 
+diff --git a/docs/GDD.md b/docs/GDD.md
+index 30c75ba..740a8d8 100644
+--- a/docs/GDD.md
++++ b/docs/GDD.md
+@@ -70,7 +70,7 @@
+ | **Talk** | Click an agent and a speech bubble opens. Ask what it's doing, give it a task, answer its question. Replies stream in as the agent writes them. *Built (Nov 20): your twin's answers come back as a speech plate over his walker, his caption and the 💭 history (`bb hal-say`); with `--at` he walks to the place first and says it there (an errand). Without a bridge he says so himself.* |
+ | **Assign** | Say it in conversation ("make all the rocks procedural"). The agent confirms in one line, takes a desk, and gets to work. |
+ | **Answer** | An agent that needs a decision stops, raises "!", and walks to you wherever you are. You answer in-world; it resumes. |
+-| **Approve** | Agent-made changes first appear as a **blueprint**, a ghosted version of the change. Approve it and it becomes real; reject it and it vanishes. A bad change can never take down the running game: it reverts to the last working build. Approvals come **grouped**, not one at a time: the morning card holds last night's blueprints as one tray, each with a one-line summary and a before/after you can see, and reads never ask. *Built (Nov 23): a crew member's blueprint arrives while you watch: `bb blueprint-add` writes it to the private `state/blueprints.edn`, the estate's ghost appears within seconds without a reload, and whoever drew it says so in 💭. The public sample estate never changes when an agent proposes something.* *Built (Nov 23): a trial build shows a card above it with two labelled buttons, **Make it real** and **Undo** (back to the ghost), instead of a hidden second click.* |
++| **Approve** | Agent-made changes first appear as a **blueprint**, a ghosted version of the change. Approve it and it becomes real; reject it and it vanishes. A real build can be removed again, the same try-first way: the removal shows as a red ghost before you confirm it. A bad change can never take down the running game: it reverts to the last working build. Approvals come **grouped**, not one at a time: the morning card holds last night's blueprints as one tray, each with a one-line summary and a before/after you can see, and reads never ask. *Built (Nov 23): a crew member's blueprint arrives while you watch: `bb blueprint-add` writes it to the private `state/blueprints.edn`, the estate's ghost appears within seconds without a reload, and whoever drew it says so in 💭. The public sample estate never changes when an agent proposes something.* *Built (Nov 23): a trial build shows a card above it with two labelled buttons, **Make it real** and **Undo** (back to the ghost), instead of a hidden second click.* *Built (Nov 23): a real build can be removed. Click it for **Remove…**, see it as a red removal ghost, then **Remove it** (recorded through the bridge; gone on every reload) or **Keep it**.* |
+ | **Hand out a keycard** | When an agent needs a permission for a task ("write access to the river shader"), it asks you for a keycard. Every key that's out is visible, and it comes back when the task ends. |
+ | **Possess** | Toggle direct control of one agent: the camera follows it, your messages go straight to it, and you see what it sees on a desk screen, not a pop-up. |
+ | **Set autonomy** | A dial per agent: *ask before anything* · *ask before approving* · *fully autonomous*. The dial covers reads and reversible writes; money, deletion, security changes, and messages to other people need you at every setting. You set trust: no agent can start a trust change, so no "!" can ever ask for more autonomy. The notice board shows each agent's track record (tasks done, approvals, reverts); if game code thinks a dial could go up, it says so on the board in the board's own style, never as a "!". |
+diff --git a/resources/estate.edn b/resources/estate.edn
+index 4bacfa2..8fb0a23 100644
+--- a/resources/estate.edn
++++ b/resources/estate.edn
+@@ -254,7 +254,15 @@
+                   :real      "Made real. It stays."                                   ; twin's caption once it's recorded
+                   :no-bridge "Start the bridge (bb crew-bridge) to make it real."     ; no bridge, nothing real changes
+                   :steep     "the ground's too steep here, so it won't build; ask for a flatter spot"   ; pm.blueprint/seat: a foot would hang past max-seat-drop-m
+-                  :failed    "that one won't build, so the estate stays as it was"}  ; after a refused approval
++                  :failed    "that one won't build, so the estate stays as it was"    ; after a refused approval
++                  :remove           "Remove…"                                          ; a real build's card: preview the removal (TASKS T-15)
++                  :close            "Close"                                            ; a real build's card: close it, nothing changes (TASKS T-15)
++                  :remove-it        "Remove it"                                        ; the removal preview's card: record it (TASKS T-15)
++                  :keep             "Keep it"                                          ; the removal preview's card: back as it was (TASKS T-15)
++                  :removing         "will be removed"                                  ; the removal ghost's sign, second line (TASKS T-15)
++                  :removing-wait    "Removing…"                                        ; Remove it while the bridge records it, disabled (TASKS T-15)
++                  :removed          "Removed. It's gone for good."                     ; twin's caption once it's recorded (TASKS T-15)
++                  :no-bridge-remove "Start the bridge (bb crew-bridge) to remove it."}  ; no bridge (or refused): nothing changes (TASKS T-15)
+  :blueprints [{:id :bench-by-mailbox :at [4.0 1.66 -6.5] :yaw 90   ; level terrain 1.4 m from the mailbox (6 cm across the legs; the old spot straddled the bank); the game seats it (pm.blueprint/seat)
+                :summary "proposed: a bench by the mailbox"
+                :look {:parts
+diff --git a/scripts/blueprint_add.clj b/scripts/blueprint_add.clj
+index f66a668..c6bca6b 100644
+--- a/scripts/blueprint_add.clj
++++ b/scripts/blueprint_add.clj
+@@ -28,6 +28,19 @@
+ (defn- target-file []
+   (or (System/getenv "PM_BLUEPRINTS_FILE") bf/state-path))
+ 
++(defn- builds-file []
++  (or (System/getenv "PM_BUILDS_FILE") "state/builds.edn"))
++
++(defn- removed-ids
++  "The ids a real build was removed from (TASKS T-15, bf/removed-ids):
++   `#{}` when state/builds.edn is missing or unreadable, so an add is
++   never blocked on the bridge's own file."
++  []
++  (let [f (io/file (builds-file))]
++    (if-not (.exists f)
++      #{}
++      (bf/removed-ids (try (edn/read-string (slurp f)) (catch Exception _ nil))))))
++
+ (defn- read-target [path]
+   (let [f (io/file path)]
+     (if-not (.exists f)
+@@ -60,7 +73,7 @@
+         now  (System/currentTimeMillis)
+         ids  (estate-ids)
+         r    (case (:mode parsed)
+-               :add    (bf/add file ids (:member parsed) (read-blueprint (:path parsed)) now)
++               :add    (bf/add file ids (:member parsed) (read-blueprint (:path parsed)) now (removed-ids))
+                :remove (bf/remove-id file ids (:id parsed) now))]
+     (cond
+       (:refused r) (fail! (:refused r))
+diff --git a/scripts/crew_bridge.clj b/scripts/crew_bridge.clj
+index 1ea4d06..82bc69d 100644
+--- a/scripts/crew_bridge.clj
++++ b/scripts/crew_bridge.clj
+@@ -109,8 +109,10 @@
+   (read-edn "resources/estate.edn"))
+ 
+ (defn- make-real!
+-  "A /real request (GDD §4.6): record a build, or a REAL mirror's new state,
+-   in the private state files the game reads. Returns {:ok :reason}."
++  "A /real request (GDD §4.6): record a build, remove a real build again
++   (TASKS T-15), or a REAL mirror's new state, in the private state files
++   the game reads. Returns {:ok :reason}. Removing a build never touches
++   state/blueprints.edn (its proposal is left as it is)."
+   [v]
+   (let [now (System/currentTimeMillis)
+         e   (estate)]
+@@ -119,6 +121,10 @@
+       (if-let [b (b/add-real-build (read-edn builds-file) (:id v) (b/known-build-ids e (read-edn blueprints-file)) now)]
+         (if (write-edn! builds-file b) {:ok true :reason "made real"} {:ok false :reason "not saved"})
+         {:ok false :reason "unknown build"})
++      :remove-build
++      (if-let [b (b/remove-real-build (read-edn builds-file) (:id v) now)]
++        (if (write-edn! builds-file b) {:ok true :reason "removed"} {:ok false :reason "not saved"})
++        {:ok false :reason "not a real build"})
+       :real-mirror
+       (let [m      (first (filter #(= (:mirror v) (:id %)) (:mirrors e)))   ; estate.edn: a vector of mirrors
+             fields (set (keys (:state m)))]
+@@ -295,7 +301,7 @@
+                 (let [r (b/reply v origin)]
+                   (log! (member-from-uri (:uri req)) (get body "action") (:status r) (:reason v))
+                   {:status (:status r) :headers (:headers r) :body (json/generate-string (:body r))})
+-                (if (contains? #{:real-build :real-mirror} (:action v))
++                (if (contains? #{:real-build :real-mirror :remove-build} (:action v))
+                   (let [r (make-real! v)]
+                     (log! nil (:action v) (if (:ok r) 200 409) (:reason r))
+                     {:status (if (:ok r) 200 409)
+diff --git a/src/pm/blueprint.cljs b/src/pm/blueprint.cljs
+index 50e8fe9..99bf874 100644
+--- a/src/pm/blueprint.cljs
++++ b/src/pm/blueprint.cljs
+@@ -10,8 +10,10 @@
+             [pm.plan :as p]))
+ 
+ (def statuses
+-  "Every status a blueprint can be in."
+-  #{:pending :approved :real :rejected})
++  "Every status a blueprint can be in. `:removing` (TASKS T-15) is a real
++   build being previewed for removal: only reachable from `:real`, only
++   leaves to `:real` or `:rejected`."
++  #{:pending :approved :real :removing :rejected})
+ 
+ (defn- valid-at? [at]
+   (and (vector? at) (= 3 (count at)) (every? number? at)))
+@@ -77,8 +79,9 @@
+    approval was refused. The wording is data (`:blueprint-text` in
+    estate.edn); without it, just the summary."
+   [world bp]
+-  (let [{:keys [hint failed trial steep]} (:blueprint-text world)
+-        tail (cond (:failed? bp) failed
++  (let [{:keys [hint failed trial steep removing]} (:blueprint-text world)
++        tail (cond (= :removing (:status bp)) removing
++                   (:failed? bp) failed
+                    (and (:too-steep? bp) (= :pending (:status bp)) (string? steep)) steep
+                    (= :approved (:status bp)) trial
+                    :else hint)]
+@@ -88,8 +91,9 @@
+ 
+ (defn make-real
+   "A trial build made real (GDD §2.1, §4.6): recorded in the private
+-   real-builds file, it's in the estate every session and can't be
+-   dismissed. Only a built (:approved) or already-real blueprint; no-op
++   real-builds file, it's in the estate every session, and can be removed
++   again only through the card's try-first step (TASKS T-15, `start-
++   removal`). Only a built (:approved) or already-real blueprint; no-op
+    otherwise."
+   [world id]
+   (let [bp (first (filter #(= id (:id %)) (all world)))]
+@@ -98,14 +102,25 @@
+       world)))
+ 
+ (defn apply-real-builds
+-  "The real-builds file (`{:real [id ...]}`, state/builds.edn) laid over a
+-   freshly loaded world: those blueprints are :real, whatever they were."
++  "The real-builds file (`{:real [id ...] :removed [id ...]}`,
++   state/builds.edn) laid over a freshly loaded world: those blueprints are
++   :real (a build recorded here can be removed again only through the
++   card's try-first step, TASKS T-15), except a removed one, which is
++   :rejected -- :removed wins over :real. A build currently :removing (the
++   5 s poll re-applying this file mid-preview) stays :removing. `builds` not
++   a map -> both empty; both empty -> `world` identical."
+   [world builds]
+-  (let [ids (set (when (map? builds) (filter keyword? (:real builds))))]
+-    (if (empty? ids)
++  (let [real    (set (when (map? builds) (filter keyword? (:real builds))))
++        removed (set (when (map? builds) (filter keyword? (:removed builds))))]
++    (if (and (empty? real) (empty? removed))
+       world
+       (update world :blueprints
+-              (fn [bps] (mapv #(if (contains? ids (:id %)) (assoc % :status :real) %) (or bps [])))))))
++              (fn [bps] (mapv (fn [bp]
++                                (cond
++                                  (contains? removed (:id bp)) (assoc bp :status :rejected)
++                                  (and (contains? real (:id bp)) (not= :removing (:status bp))) (assoc bp :status :real)
++                                  :else bp))
++                              (or bps [])))))))
+ 
+ (defn status
+   "The status of blueprint `id` in `world`, or nil."
+@@ -148,6 +163,122 @@
+            :buttons [{:action :real :label (if (= saving owner) saving-text make-real) :disabled? disabled?}
+                      {:action :undo :label undo :disabled? disabled?}]})))))
+ 
++(defn start-removal
++  "Preview removing a real build (TASKS T-15): status `:real` -> `:removing`,
++   and opens its card (`:card-open`). No-op unless `id` is currently `:real`."
++  [world id]
++  (if (= :real (status world id))
++    (assoc (set-status world id :removing) :card-open id)
++    world))
++
++(defn keep-it
++  "Keep it, on a removal preview (TASKS T-15): status `:removing` -> `:real`,
++   exactly as it was before the preview; closes the card if it was `id`'s.
++   No-op unless `id` is currently `:removing`."
++  [world id]
++  (if (= :removing (status world id))
++    (let [w (set-status world id :real)]
++      (if (= id (:card-open world)) (dissoc w :card-open) w))
++    world))
++
++(defn finish-removal
++  "Remove it succeeded (TASKS T-15): status `:removing` -> `:rejected` (it
++   vanishes, the existing rejected path); closes the card if it was `id`'s;
++   the twin says `:removed`, if it's a non-blank string. No-op unless `id`
++   is currently `:removing`."
++  [world id now]
++  (if (= :removing (status world id))
++    (let [w    (let [w' (set-status world id :rejected)]
++                 (if (= id (:card-open world)) (dissoc w' :card-open) w'))
++          text (get-in world [:blueprint-text :removed])]
++      (if (and (string? text) (not (str/blank? text)))
++        (assoc w :hal {:event :blueprint-removed :text text :until (+ now c/hal-ms)})
++        w))
++    world))
++
++(defn fail-removal
++  "Remove it was refused, or there's no bridge (TASKS T-15): status
++   `:removing` -> `:real`; `:card-open` is left as it is, so the card shows
++   Remove… · Close again, to retry; the twin says why, `:no-bridge-remove`
++   plus `reason` in parens when given, if it's a non-blank string. No-op
++   unless `id` is currently `:removing`."
++  [world id reason now]
++  (if (= :removing (status world id))
++    (let [w    (set-status world id :real)
++          text (get-in world [:blueprint-text :no-bridge-remove])]
++      (if (and (string? text) (not (str/blank? text)))
++        (assoc w :hal {:event :blueprint-remove-refused
++                        :text (if reason (str text " (" reason ")") text)
++                        :until (+ now c/hal-ms)})
++        w))
++    world))
++
++(defn open-card
++  "Click a real build (TASKS T-15): opens its card (`:card-open`); a
++   removal preview standing on another build is put back to `:real` first
++   (one card at a time). No-op unless `id` is currently `:real`."
++  [world id]
++  (if (= :real (status world id))
++    (let [o (:card-open world)
++          w (if (and o (not= o id) (= :removing (status world o)))
++              (set-status world o :real)
++              world)]
++      (assoc w :card-open id))
++    world))
++
++(defn close-card
++  "Close the open card (TASKS T-15): a removal preview is put back to
++   `:real` first; then `:card-open` is dropped. No-op without one open."
++  [world]
++  (if-let [o (:card-open world)]
++    (let [w (if (= :removing (status world o)) (set-status world o :real) world)]
++      (dissoc w :card-open))
++    world))
++
++(defn card-of
++  "The open card's id and mode (TASKS T-15): `{:id :mode}`, or nil. The real
++   or removal-preview build `:card-open` names, else the standing trial's
++   (`card-owner`), else nil -- a stale `:card-open` (naming a build that's
++   neither now) falls through to the trial, the same as none open."
++  [world]
++  (let [o (:card-open world)
++        s (status world o)]
++    (cond
++      (= :removing s) {:id o :mode :removing}
++      (= :real s)      {:id o :mode :real}
++      :else (when-let [t (card-owner world)] {:id t :mode :trial}))))
++
++(defn card
++  "The one card for the open build (TASKS T-15, generalises the T-14 trial
++   card, `card-of`), or nil: a trial build's (:trial, unchanged `trial-
++   card`), a real build's (:real, Remove…/Close), or a removal preview's
++   (:removing, Remove it/Keep it). nil without `card-of` or without all of
++   its mode's words in `:blueprint-text`. `saving` is the id whose bridge
++   request is in flight, or nil; while one is, every button is disabled,
++   and a `:removing` card's first button reads `:removing-wait`."
++  [world saving]
++  (when-let [{:keys [id mode]} (card-of world)]
++    (case mode
++      :trial (some-> (trial-card world saving) (assoc :mode :trial))
++
++      :real
++      (let [{:keys [remove close]} (:blueprint-text world)]
++        (when (every? #(and (string? %) (not (str/blank? %))) [remove close])
++          (let [d (some? saving)]
++            {:id id :mode :real
++             :buttons [{:action :remove :label remove :disabled? d}
++                       {:action :close :label close :disabled? d}]})))
++
++      :removing
++      (let [{:keys [remove-it keep removing-wait]} (:blueprint-text world)]
++        (when (every? #(and (string? %) (not (str/blank? %))) [remove-it keep removing-wait])
++          (let [d (some? saving)]
++            {:id id :mode :removing
++             :buttons [{:action :remove-it :label (if (= saving id) removing-wait remove-it) :disabled? d}
++                       {:action :keep :label keep :disabled? d}]})))
++
++      nil)))
++
+ (defn reject-blueprint
+   "Rejecting a blueprint (GDD §2.1, §4.8): it vanishes -- drops out of
+    `ghost-plan`, and `pm.scene` removes its mesh, so it never becomes
+@@ -194,7 +325,7 @@
+             incoming-ids (set (map :id incoming))
+             drop?        (fn [bp] (and (:from-file? bp)
+                                         (not (contains? incoming-ids (:id bp)))
+-                                        (not (contains? #{:real :approved} (status-of bp)))))
++                                        (not (contains? #{:real :approved :removing} (status-of bp)))))
+             kept         (vec (remove drop? bps))
+             removed      (mapv :id (filter drop? bps))
+             kept-ids     (set (map :id kept))
+@@ -241,7 +372,7 @@
+   (let [drawn (or drawn #{})
+         bps   (all world)
+         ids   (set (map :id bps))]
+-    {:add    (mapv :id (filter #(and (contains? #{:pending :approved :real} (:status %))
++    {:add    (mapv :id (filter #(and (contains? #{:pending :approved :real :removing} (:status %))
+                                       (not (contains? drawn (:id %))))
+                                 bps))
+      :remove (set (remove ids drawn))}))
+@@ -365,11 +496,12 @@
+ (defn built-plan
+   "Scene items for every built blueprint, drawn solid: a trial build
+    (:approved) with a sign saying how to make it real, a real one
+-   (state/builds.edn, loaded every session) with none. Same shape as
+-   `ghost-plan`'s items, no ghost."
++   (state/builds.edn, loaded every session) with none, a removal preview
++   (:removing, TASKS T-15) like a real one but a see-through removal ghost
++   with a sign of its own saying so. Same shape as `ghost-plan`'s items."
+   [world]
+   (vec
+-    (for [bp (all world) :when (contains? #{:approved :real} (:status bp))]
++    (for [bp (all world) :when (contains? #{:approved :real :removing} (:status bp))]
+       (let [{:keys [id at yaw look]} bp
+             [x y z] at
+             parts (p/look-parts look nil)
+@@ -380,7 +512,10 @@
+                  :parts  parts
+                  :center [x (+ y (/ top 2)) z]}
+           (= :approved (:status bp))
+-          (assoc :label :sign :label-at [x (+ y top p/label-lift) z] :text (sign-text world bp)))))))
++          (assoc :label :sign :label-at [x (+ y top p/label-lift) z] :text (sign-text world bp))
++          (= :removing (:status bp))
++          (assoc :ghost? true :tint :removal
++                 :label :sign :label-at [x (+ y top p/label-lift) z] :text (sign-text world bp)))))))
+ 
+ (defn ghost-plan
+   "Scene items for every pending blueprint, shaped like `pm.plan/scene-plan`
+diff --git a/src/pm/blueprint_file.cljc b/src/pm/blueprint_file.cljc
+index 507ebdf..5085c23 100644
+--- a/src/pm/blueprint_file.cljc
++++ b/src/pm/blueprint_file.cljc
+@@ -43,33 +43,47 @@
+                    (vec (filter map? (:blueprints file)))
+                    [])}))
+ 
++(defn removed-ids
++  "The set of keyword ids in `builds`'s `:removed` (state/builds.edn, TASKS
++   T-15: an id a real build was removed from can't be reused): `#{}` for
++   nil, a non-map, or anything with no `:removed`."
++  [builds]
++  (set (filter keyword? (:removed builds))))
++
+ (defn add
+   "`file` with `bp` added by `member` at `now` ms:
+    `{:ok file' :id id} | {:refused reason}`. `estate-ids` is a set of
+-   keywords; `now` ms. Checks in order, first failure wins: `bp` invalid,
+-   its id badly-formed, its id already in the estate, its id already in the
+-   file. `:as-of` always changes (`(max now (inc as-of))`), so the game
+-   never misses a write."
+-  [file estate-ids member bp now]
+-  (let [{:keys [as-of blueprints]} (normalize file)
+-        probs (problems bp)
+-        id    (:id bp)]
+-    (cond
+-      (seq probs)
+-      {:refused (str "invalid blueprint: " (str/join "; " probs))}
+-
+-      (not (re-matches id-re (subs (str id) 1)))
+-      {:refused (str "id " id " must be lowercase letters, digits and dashes")}
+-
+-      (contains? estate-ids id)
+-      {:refused (str "id " id " is already in the estate")}
+-
+-      (some #(= id (:id %)) blueprints)
+-      {:refused (str "id " id " is already in state/blueprints.edn")}
+-
+-      :else
+-      (let [entry (assoc (select-keys bp [:id :at :yaw :summary :look]) :by member)]
+-        {:ok {:as-of (max now (inc as-of)) :blueprints (conj blueprints entry)} :id id}))))
++   keywords; `now` ms. `removed-ids` (TASKS T-15, default/nil `#{}`) is the
++   set of ids state/builds.edn's `:removed` names: a removed build's id
++   can't be reused. Checks in order, first failure wins: `bp` invalid, its
++   id badly-formed, its id already in the estate, its id removed, its id
++   already in the file. `:as-of` always changes (`(max now (inc as-of))`),
++   so the game never misses a write."
++  ([file estate-ids member bp now] (add file estate-ids member bp now #{}))
++  ([file estate-ids member bp now removed-ids]
++   (let [{:keys [as-of blueprints]} (normalize file)
++         probs   (problems bp)
++         id      (:id bp)
++         removed (or removed-ids #{})]
++     (cond
++       (seq probs)
++       {:refused (str "invalid blueprint: " (str/join "; " probs))}
++
++       (not (re-matches id-re (subs (str id) 1)))
++       {:refused (str "id " id " must be lowercase letters, digits and dashes")}
++
++       (contains? estate-ids id)
++       {:refused (str "id " id " is already in the estate")}
++
++       (contains? removed id)
++       {:refused (str "id " id " was removed; pick a new id")}
++
++       (some #(= id (:id %)) blueprints)
++       {:refused (str "id " id " is already in state/blueprints.edn")}
++
++       :else
++       (let [entry (assoc (select-keys bp [:id :at :yaw :summary :look]) :by member)]
++         {:ok {:as-of (max now (inc as-of)) :blueprints (conj blueprints entry)} :id id})))))
+ 
+ (defn remove-id
+   "`file` with blueprint `id` removed: `{:ok file' :id id} | {:refused
+diff --git a/src/pm/bridge.cljc b/src/pm/bridge.cljc
+index b512f86..58e0280 100644
+--- a/src/pm/bridge.cljc
++++ b/src/pm/bridge.cljc
+@@ -125,9 +125,10 @@
+             id     (get body (if (= action "mirror") "mirror" "id"))
+             state  (get body "state")]
+         (cond
+-          (not (contains? #{"build" "mirror"} action)) {:ok false :status 400 :reason "bad action"}
++          (not (contains? #{"build" "mirror" "remove"} action)) {:ok false :status 400 :reason "bad action"}
+           (not (and (string? id) (re-matches real-id-re id))) {:ok false :status 400 :reason "bad id"}
+           (= action "build") {:ok true :action :real-build :id (keyword id)}
++          (= action "remove") {:ok true :action :remove-build :id (keyword id)}
+           (not (and (map? state) (seq state)
+                     (every? (fn [[k v]] (and (string? k) (re-matches real-id-re k)
+                                              (or (nil? v) (and (number? v) #?(:clj (Double/isFinite (double v)) :cljs (js/isFinite v))))))
+@@ -186,12 +187,30 @@
+ 
+ (defn add-real-build
+   "The real-builds file (state/builds.edn) with `id` made real at `now`
+-   (GDD §2.1, §4.6): a build recorded here is in the estate every session
+-   and can't be dismissed. `known` is the set of blueprint ids in the
+-   estate's data: anything else is refused (nil)."
++   (GDD §2.1, §4.6): a build recorded here is in the estate every session,
++   and can be removed again only through the card's try-first step (TASKS
++   T-15). `known` is the set of blueprint ids in the estate's data: anything
++   else is refused (nil), as is an id already in `:removed` (a removed
++   build can't be made real again; add it again with a new id). The output
++   keeps `:removed` when it's non-empty."
+   [builds id known now]
+-  (when (contains? known id)
+-    {:as-of now :real (vec (sort (distinct (conj (vec (:real builds)) id))))}))
++  (let [removed (set (filter keyword? (:removed builds)))]
++    (when (and (contains? known id) (not (contains? removed id)))
++      (cond-> {:as-of now :real (vec (sort (distinct (conj (vec (:real builds)) id))))}
++        (seq removed) (assoc :removed (vec (sort removed)))))))
++
++(defn remove-real-build
++  "The real-builds file (state/builds.edn) with `id` dropped from `:real`
++   and added to `:removed` at `now` (TASKS T-15, GDD §2.1, §4.6: a real
++   build removed this way is gone on every reload). Refused (nil) unless
++   `id` is currently in `:real` and not already in `:removed`."
++  [builds id now]
++  (let [real    (set (filter keyword? (:real builds)))
++        removed (set (filter keyword? (:removed builds)))]
++    (when (and (contains? real id) (not (contains? removed id)))
++      {:as-of now
++       :real (vec (sort (remove #{id} real)))
++       :removed (vec (sort (conj removed id)))})))
+ 
+ (defn merge-real-mirror
+   "The twin's mirror file (state/mirrors.edn) with mirror's `state` written
+diff --git a/src/pm/core.cljs b/src/pm/core.cljs
+index 817e6b9..d96f204 100644
+--- a/src/pm/core.cljs
++++ b/src/pm/core.cljs
+@@ -1297,6 +1297,24 @@
+   (when (nil? @!saving)
+     (swap! !world bp/unapprove id)))
+ 
++(defn- remove-click!
++  "Click the removal preview card's Remove it button (TASKS T-15, GDD §2.1,
++   §4.6): records the removal through the bridge, so the build vanishes and
++   stays gone on every reload. No bridge, or a refusal: back to :real, the
++   card open to retry, and the twin says why. No-op unless `id` is
++   `:removing` and no other bridge request is already in flight."
++  [id]
++  (when (and (nil? @!saving) (= :removing (bp/status @!world id)))
++    (reset! !saving id)
++    (if-not (bridge-on?)
++      (do (swap! !world bp/fail-removal id nil (js/Date.now))
++          (reset! !saving nil))
++      (post-real! #(crew/remove-build-body % id)
++                  (fn [ok? reason]
++                    (let [now (js/Date.now)]
++                      (swap! !world (if ok? #(bp/finish-removal % id now) #(bp/fail-removal % id reason now)))
++                      (reset! !saving nil)))))))
++
+ (defn- real-mirror? [m]
+   (= :hal (get-in @!world [:mirrors m :state :source])))
+ 
+@@ -1320,12 +1338,17 @@
+ 
+ (defn- on-blueprint-click!
+   "A pending ghost builds (a trial); a trial build is made real; a real one
+-   stays as it is."
++   opens its card (TASKS T-15, `bp/open-card`); a removal preview does
++   nothing (its own card's buttons are the only way to act on it). Ignored
++   entirely while a bridge request (make-real or remove) is in flight."
+   [id]
+-  (case (bp/status @!world id)
+-    :pending  (apply-approved! id)
+-    :approved (real-click! id)
+-    nil))
++  (when (nil? @!saving)
++    (case (bp/status @!world id)
++      :pending  (do (swap! !world bp/close-card) (apply-approved! id))
++      :approved (do (swap! !world bp/close-card) (real-click! id))
++      :real     (swap! !world bp/open-card id)
++      :removing nil
++      nil)))
+ 
+ (defn- blueprint-id-of [k]
+   (when (and (vector? k) (= :blueprint (first k))) (second k)))
+@@ -1595,9 +1618,17 @@
+       [x (+ y bp/card-lift-m) z])))
+ 
+ (defn- trial-card! [^js h]
+-  (let [card      (bp/trial-card @!world @!saving)
++  (let [card      (bp/card @!world @!saving)
+         colors    {:paper (scene/css-color :sign-paper) :ink (scene/css-color :sign-ink)}
+-        on-action (fn [action id] (case action :real (real-click! id) :undo (undo-trial! id) nil))]
++        on-action (fn [action id]
++                    (case action
++                      :real      (real-click! id)
++                      :undo      (undo-trial! id)
++                      :remove    (when (nil? @!saving) (swap! !world bp/start-removal id))
++                      :close     (when (nil? @!saving) (swap! !world bp/close-card))
++                      :remove-it (remove-click! id)
++                      :keep      (when (nil? @!saving) (swap! !world bp/keep-it id))
++                      nil))]
+     (if-let [{:keys [id]} card]
+       (let [^js g      (t/by-name (scene/mounted-root) (pr-str [:blueprint id]))
+             anchor     (card-anchor id g)
+diff --git a/src/pm/crew.cljs b/src/pm/crew.cljs
+index 123ee5d..bb44a84 100644
+--- a/src/pm/crew.cljs
++++ b/src/pm/crew.cljs
+@@ -192,6 +192,11 @@
+ (defn real-build-body [bridge id]
+   {"token" (:token bridge) "action" "build" "id" (name id)})
+ 
++(defn remove-build-body
++  "Body for /real removing a real build again (TASKS T-15, GDD §2.1, §4.6)."
++  [bridge id]
++  {"token" (:token bridge) "action" "remove" "id" (name id)})
++
+ (defn real-mirror-body
+   "A REAL mirror's new state for the bridge to write to the twin's file
+    (GDD §4.6): numbers and times only, never :source."
+diff --git a/src/pm/scene.cljs b/src/pm/scene.cljs
+index 0a791fc..05b88c5 100644
+--- a/src/pm/scene.cljs
++++ b/src/pm/scene.cljs
+@@ -76,7 +76,7 @@
+              :pos    (if pos [x (+ y (/ (- height' (:height plate)) 2)) z] pos)))))
+ 
+ (defn- mount-item! [root item]
+-  (let [{:keys [key at yaw parts label label-at text ghost?]} item
++  (let [{:keys [key at yaw parts label label-at text ghost? tint]} item
+         ^js item-group (t/group {:name (pr-str key) :pos at :rot [0 (p/radians yaw) 0]})]
+     (doseq [[i part] (map-indexed vector parts)]
+       (let [^js mesh (t/stand-in {:shape (:shape part)
+@@ -87,7 +87,7 @@
+         (set! (.-name mesh) (str (pr-str key) "/" i))
+         (when (:glow part) (set! (.. mesh -userData -glow) true))
+         (t/add! item-group mesh)))
+-    (when ghost? (t/ghost! item-group))
++    (when ghost? (t/ghost! item-group tint))
+     (t/add! root item-group)
+     (when label
+       (let [sprite (t/label (label-opts label label-at text))]
+@@ -296,7 +296,27 @@
+                           (t/unghost! g)
+                           (t/light-glows! g (:kit-lights @!mounted)))
+                         (when-let [sprite (get labels k)] (t/set-visible! sprite false)))
+-          :rejected (do (when-let [^js g (t/by-name root (pr-str k))] (t/remove! root g))
++          ;; A removal preview (TASKS T-15, from :real): a warm-red removal
++          ;; ghost, its light off, and a sign saying so -- built fresh when
++          ;; the build was mounted real and never had one (a real build
++          ;; loaded straight from state/builds.edn), reused (just shown and
++          ;; retexted) when it does (one approved, then made real, whose
++          ;; sign the :real branch above only hid).
++          :removing (when-let [^js g (t/by-name root (pr-str k))]
++                      (t/unlight-glows! g)
++                      (t/ghost! g :removal)
++                      (let [item   (first (filter #(= k (:key %)) (bp/built-plan world)))
++                            sprite (or (get labels k)
++                                       (let [^js s (t/label (label-opts :sign (:label-at item) (:text item)))]
++                                         (t/add! root s)
++                                         (swap! !mounted update :labels assoc k s)
++                                         (swap! !mounted update :texts assoc k (:text item))
++                                         s))]
++                        (t/set-visible! sprite true)
++                        (t/set-label-text! sprite (:text item))))
++          :rejected (do (when-let [^js g (t/by-name root (pr-str k))]
++                          (t/unlight-glows! g)
++                          (t/remove! root g))
+                         (when-let [sprite (get labels k)] (t/remove! root sprite)))
+           ;; Undo (TASKS T-14): only a real step back from :approved -- a
+           ;; freshly-drawn :pending (no previous status, or previously
+diff --git a/src/pm/three.cljs b/src/pm/three.cljs
+index fbb7ce5..aa0c698 100644
+--- a/src/pm/three.cljs
++++ b/src/pm/three.cljs
+@@ -176,6 +176,13 @@
+ (def ghost-glow 0x0a5cff)
+ (def ghost-edge 0x7ff3ff)  ; the neon outline
+ 
++(def ghost-tints
++  "Named looks for `ghost!` (TASKS T-15, the removal preview): :proposed is
++   the original blueprint blue; :removal a warm red, clearly not the blue
++   'proposed' ghost. An unknown tint falls back to :proposed."
++  {:proposed {:fill ghost-fill :glow ghost-glow :edge ghost-edge}
++   :removal  {:fill 0xff5a4a :glow 0xff5a4a :edge 0xffb0a0}})
++
+ (defn- meshes-under [^js obj]
+   (let [acc #js []]
+     (.traverse obj (fn [^js o] (when (.-isMesh o) (.push acc o))))
+@@ -183,37 +190,41 @@
+ 
+ (defn ghost!
+   "Makes every mesh under `obj` look like a pending blueprint (GDD §2.1,
+-   §4.8): a translucent, glowing blueprint-blue fill with neon cyan edges,
+-   so it reads as proposed, not real, and stays visible on grass (the old
+-   thin wireframe vanished there, TASKS N-3). Clones each mesh's material
+-   first (shared stand-in materials are never mutated in place) and keeps
+-   its real colours in userData for `unghost!`. Returns obj."
+-  [^js obj]
+-  (let [^js T (three)]
+-    (doseq [^js o (meshes-under obj)]
+-      (let [^js mat (.clone (.-material o))
+-            ^js em  (.-emissive mat)]
+-        (set! (.. o -userData -ghostWas)
+-              #js {:color (when (.-color mat) (.getHex (.-color mat)))
+-                   :emissive (when em (.getHex em))
+-                   :ei (.-emissiveIntensity mat)})
+-        (when (.-color mat) (.setHex (.-color mat) ghost-fill))
+-        (when em
+-          (.setHex em ghost-glow)
+-          (set! (.-emissiveIntensity mat) 0.9))
+-        (set! (.-transparent mat) true)
+-        (set! (.-opacity mat) 0.3)
+-        (set! (.-wireframe mat) false)
+-        (set! (.-depthWrite mat) false)
+-        (set! (.-material o) mat)
+-        (let [^js edges (new (.-EdgesGeometry T) (.-geometry o) 15)
+-              ^js lmat  (new (.-LineBasicMaterial T) #js {:color ghost-edge :transparent true :opacity 0.95 :depthWrite false})
+-              ^js lines (new (.-LineSegments T) edges lmat)]
+-          (set! (.-name lines) "pm-ghost-edges")
+-          (set! (.. lines -userData -ghostEdges) true)
+-          (set! (.-raycast lines) (fn [] nil))   ; clicks hit the fill, never the outline
+-          (.add o lines)))))
+-  obj)
++   §4.8): a translucent, glowing fill with neon edges, so it reads as
++   proposed, not real, and stays visible on grass (the old thin wireframe
++   vanished there, TASKS N-3). `tint` (default `:proposed`, TASKS T-15)
++   picks the look from `ghost-tints`: `:removal` for a removal preview.
++   Clones each mesh's material first (shared stand-in materials are never
++   mutated in place) and keeps its real colours in userData for `unghost!`.
++   Same opacity (0.3) either way. Returns obj."
++  ([obj] (ghost! obj :proposed))
++  ([^js obj tint]
++   (let [^js T (three)
++         {:keys [fill glow edge]} (get ghost-tints tint (:proposed ghost-tints))]
++     (doseq [^js o (meshes-under obj)]
++       (let [^js mat (.clone (.-material o))
++             ^js em  (.-emissive mat)]
++         (set! (.. o -userData -ghostWas)
++               #js {:color (when (.-color mat) (.getHex (.-color mat)))
++                    :emissive (when em (.getHex em))
++                    :ei (.-emissiveIntensity mat)})
++         (when (.-color mat) (.setHex (.-color mat) fill))
++         (when em
++           (.setHex em glow)
++           (set! (.-emissiveIntensity mat) 0.9))
++         (set! (.-transparent mat) true)
++         (set! (.-opacity mat) 0.3)
++         (set! (.-wireframe mat) false)
++         (set! (.-depthWrite mat) false)
++         (set! (.-material o) mat)
++         (let [^js edges (new (.-EdgesGeometry T) (.-geometry o) 15)
++               ^js lmat  (new (.-LineBasicMaterial T) #js {:color edge :transparent true :opacity 0.95 :depthWrite false})
++               ^js lines (new (.-LineSegments T) edges lmat)]
++           (set! (.-name lines) "pm-ghost-edges")
++           (set! (.. lines -userData -ghostEdges) true)
++           (set! (.-raycast lines) (fn [] nil))   ; clicks hit the fill, never the outline
++           (.add o lines))))
++     obj)))
+ 
+ (defn unghost!
+   "Reverses `ghost!` (GDD §2.1, §4.8): once a blueprint is approved, its
+diff --git a/src/pm/ui.cljs b/src/pm/ui.cljs
+index 1c409ab..82037a9 100644
+--- a/src/pm/ui.cljs
++++ b/src/pm/ui.cljs
+@@ -1181,7 +1181,9 @@
+                  "font:600 14px/1 system-ui,sans-serif;white-space:nowrap;animation:none}"
+                  "#pm-trial-card .pm-btn:disabled{opacity:.5;cursor:default}"
+                  ;; Saving… is narrower than Make it real: keep Undo from sliding
+-                 "#pm-trial-card .trial-real{min-width:118px}"))
++                 "#pm-trial-card .trial-real{min-width:118px}"
++                 ;; Removing… is narrower than Remove it: keep Keep it from sliding (TASKS T-15)
++                 "#pm-trial-card .trial-remove-it{min-width:118px}"))
+       (.appendChild (.-head js/document) st))))
+ 
+ (defn- trial-card-el []

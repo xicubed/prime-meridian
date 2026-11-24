@@ -28,6 +28,19 @@
 (defn- target-file []
   (or (System/getenv "PM_BLUEPRINTS_FILE") bf/state-path))
 
+(defn- builds-file []
+  (or (System/getenv "PM_BUILDS_FILE") "state/builds.edn"))
+
+(defn- removed-ids
+  "The ids a real build was removed from (TASKS T-15, bf/removed-ids):
+   `#{}` when state/builds.edn is missing or unreadable, so an add is
+   never blocked on the bridge's own file."
+  []
+  (let [f (io/file (builds-file))]
+    (if-not (.exists f)
+      #{}
+      (bf/removed-ids (try (edn/read-string (slurp f)) (catch Exception _ nil))))))
+
 (defn- read-target [path]
   (let [f (io/file path)]
     (if-not (.exists f)
@@ -60,7 +73,7 @@
         now  (System/currentTimeMillis)
         ids  (estate-ids)
         r    (case (:mode parsed)
-               :add    (bf/add file ids (:member parsed) (read-blueprint (:path parsed)) now)
+               :add    (bf/add file ids (:member parsed) (read-blueprint (:path parsed)) now (removed-ids))
                :remove (bf/remove-id file ids (:id parsed) now))]
     (cond
       (:refused r) (fail! (:refused r))

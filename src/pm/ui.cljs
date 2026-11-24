@@ -1181,7 +1181,9 @@
                  "font:600 14px/1 system-ui,sans-serif;white-space:nowrap;animation:none}"
                  "#pm-trial-card .pm-btn:disabled{opacity:.5;cursor:default}"
                  ;; Saving… is narrower than Make it real: keep Undo from sliding
-                 "#pm-trial-card .trial-real{min-width:118px}"))
+                 "#pm-trial-card .trial-real{min-width:118px}"
+                 ;; Removing… is narrower than Remove it: keep Keep it from sliding (TASKS T-15)
+                 "#pm-trial-card .trial-remove-it{min-width:118px}"))
       (.appendChild (.-head js/document) st))))
 
 (defn- trial-card-el []

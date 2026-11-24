@@ -1,0 +1,156 @@
+=== prompt 1 (18:27:53)
+           +t-removal id))
+      1628 +                      :close     (when
+           + (nil? @!saving) (swap! !world bp/clos
+           +e-card))
+      1629 +                      :remove-it (remo
+           +ve-click! id)
+      1630 +                      :keep      (when
+           + (nil? @!saving) (swap! !world bp/keep
+           +-it id))
+      1631 +                      nil))]
+      1632      (if-let [{:keys [id]} card]
+      1633        (let [^js g      (t/by-name (sce
+            ne/mounted-root) (pr-str [:blueprint i
+            d]))
+      1634              anchor     (card-anchor id
+             g)
+
+  Running 1 shell command…
+  ⎿  $ sed -n '1280,1360' src/pm/core.cljs
+
+─────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ sed -n '1280,1360' src/pm/core.cljs
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ sed command contains operations that require explicit
+ │ approval (e.g., write commands, execute commands)
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 2 (18:29:16)
+
+
+  Searched for 1 pattern, read 1 file, ran 1 shell
+  command · 1 failed
+
+⏺ Good. Now let's run the gate.
+
+⏺ Running bb -e ' (require (quote [pm.bridge :as b]))
+  (prn (b…
+  ⎿  $ bb -e '
+     (require (quote [pm.bridge :as b]))
+     (prn (b/remove-real-build {:as-of 5 :real [:bench
+     :lamp]} :lamp 9))
+     '
+
+─────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ bb -e '
+ │ (require (quote [pm.bridge :as b]))
+ │ (prn (b/remove-real-build {:as-of 5 :real [:bench
+ │ :lamp]} :lamp 9))
+ │ '
+ │
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: bb *
+   3. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 3 (18:29:31)
+
+
+⏺ Good. Now let's run the gate.
+
+⏺ Running bb -e '(prn (distinct (conj #{:lamp} :bench)))'
+  e…
+  ⎿  $ bb -e '(prn (distinct (conj #{:lamp} :bench)))'
+     echo ---
+     bb -e '(prn (sort (conj #{:lamp} :bench)))'
+     echo ---
+     bb -e '(prn (sort #{:a :b}))'
+
+─────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ bb -e '(prn (distinct (conj #{:lamp} :bench)))'
+ │ echo ---
+ │ bb -e '(prn (sort (conj #{:lamp} :bench)))'
+ │ echo ---
+ │ bb -e '(prn (sort #{:a :b}))'
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don't ask again for bb -e '(prn (distinct
+      (conj #{:lamp} :bench)))', bb -e '(prn (sort
+      (conj #{:lamp} :bench)))', and bb -e '(prn (sort
+      #{:a :b}))' commands in
+      /Users/hal/src/prime-meridian
+   3. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 4 (18:29:47)
+      1633        (let [^js g      (t/by-name (sce
+            ne/mounted-root) (pr-str [:blueprint i
+            d]))
+      1634              anchor     (card-anchor id
+             g)
+
+  Searched for 1 pattern, read 1 file, ran 1 shell
+  command · 1 failed
+
+⏺ Good. Now let's run the gate.
+
+⏺ Running bb -e '(prn (distinct [:a :b :a]))' bb -e '(prn
+  (d…
+  ⎿  $ bb -e '(prn (distinct [:a :b :a]))'
+     bb -e '(prn (distinct (conj [:a :b] :c)))'
+
+─────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ bb -e '(prn (distinct [:a :b :a]))'
+ │ bb -e '(prn (distinct (conj [:a :b] :c)))'
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don't ask again for bb -e '(prn (distinct
+      [:a :b :a]))' and bb -e '(prn (distinct (conj [:a
+      :b] :c)))' commands in
+      /Users/hal/src/prime-meridian
+   3. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend

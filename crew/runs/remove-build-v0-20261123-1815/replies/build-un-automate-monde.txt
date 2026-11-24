@@ -1,0 +1,400 @@
+      199 +   Same opacity (0.3) either way. Retur
+          +ns obj."
+      200 +  ([obj] (ghost! obj :proposed))
+      201 +  ([^js obj tint]
+      202 +   (let [^js T (three)
+      203 +         {:keys [fill glow edge]} (get
+          +ghost-tints tint (:proposed ghost-tints
+          +))]
+      204 +     (doseq [^js o (meshes-under obj)]
+      205 +       (let [^js mat (.clone (.-materia
+          +l o))
+      206 +             ^js em  (.-emissive mat)]
+      207 +         (set! (.. o -userData -ghostWa
+          +s)
+      208 +               #js {:color (when (.-col
+          +or mat) (.getHex (.-color mat)))
+      209 +                    :emissive (when em
+          +(.getHex em))
+      210 +                    :ei (.-emissiveInte
+          +nsity mat)})
+      211 +         (when (.-color mat) (.setHex (
+          +.-color mat) fill))
+      212 +         (when em
+      213 +           (.setHex em glow)
+      214 +           (set! (.-emissiveIntensity m
+          +at) 0.9))
+      215 +         (set! (.-transparent mat) true
+          +)
+      216 +         (set! (.-opacity mat) 0.3)
+      217 +         (set! (.-wireframe mat) false)
+      218 +         (set! (.-depthWrite mat) false
+          +)
+      219 +         (set! (.-material o) mat)
+      220 +         (let [^js edges (new (.-EdgesG
+          +eometry T) (.-geometry o) 15)
+      221 +               ^js lmat  (new (.-LineBa
+          +sicMaterial T) #js {:color edge :transp
+          +arent true :opacity 0.95 :depthWrite fa
+          +lse})
+      222 +               ^js lines (new (.-LineSe
+          +gments T) edges lmat)]
+      223 +           (set! (.-name lines) "pm-gho
+          +st-edges")
+      224 +           (set! (.. lines -userData -g
+          +hostEdges) true)
+      225 +           (set! (.-raycast lines) (fn
+          +[] nil))   ; clicks hit the fill, never
+          + the outline
+      226 +           (.add o lines))))
+      227 +     obj)))
+      228
+      229  (defn unghost!
+      230    "Reverses `ghost!` (GDD §2.1, §4.8):
+           once a blueprint is approved, its
+
+⏺ Update(src/pm/scene.cljs)
+  ⎿  Added 2 lines, removed 2 lines
+      76               :pos    (if pos [x (+ y (/
+          (- height' (:height plate)) 2)) z] pos))
+          )))
+      77
+      78  (defn- mount-item! [root item]
+      79 -  (let [{:keys [key at yaw parts label l
+         -abel-at text ghost?]} item
+      79 +  (let [{:keys [key at yaw parts label l
+         +abel-at text ghost? tint]} item
+      80          ^js item-group (t/group {:name (
+          pr-str key) :pos at :rot [0 (p/radians y
+          aw) 0]})]
+      81      (doseq [[i part] (map-indexed vector
+           parts)]
+      82        (let [^js mesh (t/stand-in {:shape
+           (:shape part)
+     ...
+      87          (set! (.-name mesh) (str (pr-str
+           key) "/" i))
+      88          (when (:glow part) (set! (.. mes
+          h -userData -glow) true))
+      89          (t/add! item-group mesh)))
+      90 -    (when ghost? (t/ghost! item-group))
+      90 +    (when ghost? (t/ghost! item-group ti
+         +nt))
+      91      (t/add! root item-group)
+      92      (when label
+      93        (let [sprite (t/label (label-opts
+          label label-at text))]
+
+⏺ Update(src/pm/scene.cljs)
+  ⎿  Added 21 lines, removed 1 line
+      296                            (t/unghost! g
+           )
+      297                            (t/light-glow
+           s! g (:kit-lights @!mounted)))
+      298                          (when-let [spri
+           te (get labels k)] (t/set-visible! spri
+           te false)))
+      299 -          :rejected (do (when-let [^js
+          -g (t/by-name root (pr-str k))] (t/remov
+          -e! root g))
+      299 +          ;; A removal preview (TASKS T
+          +-15, from :real): a warm-red removal
+      300 +          ;; ghost, its light off, and
+          +a sign saying so -- built fresh when
+      301 +          ;; the build was mounted real
+          + and never had one (a real build
+      302 +          ;; loaded straight from state
+          +/builds.edn), reused (just shown and
+      303 +          ;; retexted) when it does (on
+          +e approved, then made real, whose
+      304 +          ;; sign the :real branch abov
+          +e only hid).
+      305 +          :removing (when-let [^js g (t
+          +/by-name root (pr-str k))]
+      306 +                      (t/unlight-glows!
+          + g)
+      307 +                      (t/ghost! g :remo
+          +val)
+      308 +                      (let [item   (fir
+          +st (filter #(= k (:key %)) (bp/built-pl
+          +an world)))
+      309 +                            sprite (or
+          +(get labels k)
+      310 +
+          +(let [^js s (t/label (label-opts :sign
+          +(:label-at item) (:text item)))]
+      311 +
+          +  (t/add! root s)
+      312 +
+          +  (swap! !mounted update :labels assoc
+          +k s)
+      313 +
+          +  (swap! !mounted update :texts assoc k
+          + (:text item))
+      314 +
+          +  s))]
+      315 +                        (t/set-visible!
+          + sprite true)
+      316 +                        (t/set-label-te
+          +xt! sprite (:text item))))
+      317 +          :rejected (do (when-let [^js
+          +g (t/by-name root (pr-str k))]
+      318 +                          (t/unlight-gl
+          +ows! g)
+      319 +                          (t/remove! ro
+          +ot g))
+      320                          (when-let [spri
+           te (get labels k)] (t/remove! root spri
+           te)))
+      321            ;; Undo (TASKS T-14): only a
+           real step back from :approved -- a
+      322            ;; freshly-drawn :pending (no
+            previous status, or previously
+
+⏺ Update(src/pm/ui.cljs)
+  ⎿  Added 3 lines, removed 1 line
+      1181                   "font:600 14px/1 syst
+            em-ui,sans-serif;white-space:nowrap;an
+            imation:none}"
+      1182                   "#pm-trial-card .pm-b
+            tn:disabled{opacity:.5;cursor:default}
+            "
+      1183                   ;; Saving… is narrowe
+            r than Make it real: keep Undo from sl
+            iding
+      1184 -                 "#pm-trial-card .tria
+           -l-real{min-width:118px}"))
+      1184 +                 "#pm-trial-card .tria
+           +l-real{min-width:118px}"
+      1185 +                 ;; Removing… is narro
+           +wer than Remove it: keep Keep it from
+           +sliding (TASKS T-15)
+      1186 +                 "#pm-trial-card .tria
+           +l-remove-it{min-width:118px}"))
+      1187        (.appendChild (.-head js/documen
+            t) st))))
+      1188
+      1189  (defn- trial-card-el []
+
+  Read 1 file
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 18 lines
+      1297    (when (nil? @!saving)
+      1298      (swap! !world bp/unapprove id)))
+      1299
+      1300 +(defn- remove-click!
+      1301 +  "Click the removal preview card's Re
+           +move it button (TASKS T-15, GDD §2.1,
+      1302 +   §4.6): records the removal through
+           +the bridge, so the build vanishes and
+      1303 +   stays gone on every reload. No brid
+           +ge, or a refusal: back to :real, the
+      1304 +   card open to retry, and the twin sa
+           +ys why. No-op unless `id` is
+      1305 +   `:removing` and no other bridge req
+           +uest is already in flight."
+      1306 +  [id]
+      1307 +  (when (and (nil? @!saving) (= :remov
+           +ing (bp/status @!world id)))
+      1308 +    (reset! !saving id)
+      1309 +    (if-not (bridge-on?)
+      1310 +      (do (swap! !world bp/fail-remova
+           +l id nil (js/Date.now))
+      1311 +          (reset! !saving nil))
+      1312 +      (post-real! #(crew/remove-build-
+           +body % id)
+      1313 +                  (fn [ok? reason]
+      1314 +                    (let [now (js/Date
+           +.now)]
+      1315 +                      (swap! !world (i
+           +f ok? #(bp/finish-removal % id now) #(
+           +bp/fail-removal % id reason now)))
+      1316 +                      (reset! !saving
+           +nil)))))))
+      1317 +
+      1318  (defn- real-mirror? [m]
+      1319    (= :hal (get-in @!world [:mirrors m
+            :state :source])))
+      1320
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 10 lines, removed 5 lines
+      1338
+      1339  (defn- on-blueprint-click!
+      1340    "A pending ghost builds (a trial); a
+             trial build is made real; a real one
+      1341 -   stays as it is."
+      1341 +   opens its card (TASKS T-15, `bp/ope
+           +n-card`); a removal preview does
+      1342 +   nothing (its own card's buttons are
+           + the only way to act on it). Ignored
+      1343 +   entirely while a bridge request (ma
+           +ke-real or remove) is in flight."
+      1344    [id]
+      1343 -  (case (bp/status @!world id)
+      1344 -    :pending  (apply-approved! id)
+      1345 -    :approved (real-click! id)
+      1346 -    nil))
+      1345 +  (when (nil? @!saving)
+      1346 +    (case (bp/status @!world id)
+      1347 +      :pending  (do (swap! !world bp/c
+           +lose-card) (apply-approved! id))
+      1348 +      :approved (do (swap! !world bp/c
+           +lose-card) (real-click! id))
+      1349 +      :real     (swap! !world bp/open-
+           +card id)
+      1350 +      :removing nil
+      1351 +      nil)))
+      1352
+      1353  (defn- blueprint-id-of [k]
+      1354    (when (and (vector? k) (= :blueprint
+             (first k))) (second k)))
+
+⏺ Now update trial-card! to use bp/card and the expanded
+  on-action:
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 10 lines, removed 2 lines
+      1618        [x (+ y bp/card-lift-m) z])))
+      1619
+      1620  (defn- trial-card! [^js h]
+      1621 -  (let [card      (bp/trial-card @!wor
+           -ld @!saving)
+      1621 +  (let [card      (bp/card @!world @!s
+           +aving)
+      1622          colors    {:paper (scene/css-c
+            olor :sign-paper) :ink (scene/css-colo
+            r :sign-ink)}
+      1623 -        on-action (fn [action id] (cas
+           -e action :real (real-click! id) :undo
+           -(undo-trial! id) nil))]
+      1623 +        on-action (fn [action id]
+      1624 +                    (case action
+      1625 +                      :real      (real
+           +-click! id)
+      1626 +                      :undo      (undo
+           +-trial! id)
+      1627 +                      :remove    (when
+           + (nil? @!saving) (swap! !world bp/star
+           +t-removal id))
+      1628 +                      :close     (when
+           + (nil? @!saving) (swap! !world bp/clos
+           +e-card))
+      1629 +                      :remove-it (remo
+           +ve-click! id)
+      1630 +                      :keep      (when
+           + (nil? @!saving) (swap! !world bp/keep
+           +-it id))
+      1631 +                      nil))]
+      1632      (if-let [{:keys [id]} card]
+      1633        (let [^js g      (t/by-name (sce
+            ne/mounted-root) (pr-str [:blueprint i
+            d]))
+      1634              anchor     (card-anchor id
+             g)
+
+  Searched for 1 pattern, read 1 file, ran 1 shell
+  command · 1 failed
+
+⏺ Good. Now let's run the gate.
+
+  Ran 5 shell commands · 1 failed
+
+⏺ Update(src/pm/bridge.cljc)
+  ⎿  Added 2 lines, removed 2 lines
+      209          removed (set (filter keyword? (
+           :removed builds)))]
+      210      (when (and (contains? real id) (not
+            (contains? removed id)))
+      211        {:as-of now
+      212 -       :real (vec (sort (distinct (remo
+          -ve #{id} real))))
+      213 -       :removed (vec (sort (distinct (c
+          -onj removed id))))})))
+      212 +       :real (vec (sort (remove #{id} r
+          +eal)))
+      213 +       :removed (vec (sort (conj remove
+          +d id)))})))
+      214
+      215  (defn merge-real-mirror
+      216    "The twin's mirror file (state/mirror
+           s.edn) with mirror's `state` written
+
+⏺ Update(src/pm/bridge.cljc)
+  ⎿  Added 1 line, removed 1 line
+      197    (let [removed (set (filter keyword? (
+           :removed builds)))]
+      198      (when (and (contains? known id) (no
+           t (contains? removed id)))
+      199        (cond-> {:as-of now :real (vec (s
+           ort (distinct (conj (vec (:real builds)
+           ) id))))}
+      200 -        (seq removed) (assoc :removed (
+          -vec (sort (distinct removed))))))))
+      200 +        (seq removed) (assoc :removed (
+          +vec (sort removed)))))))
+      201
+      202  (defn remove-real-build
+      203    "The real-builds file (state/builds.e
+           dn) with `id` dropped from `:real`
+
+  Listed 1 directory, ran 1 shell command
+
+⏺ Write(crew/runs/remove-build-v0-2026…/builder-notes.md)
+  ⎿  Wrote 84 lines to crew/runs/remove-build-v0-202
+     61123-1815/builder-notes.md
+       1 # Builder notes — remove a real build, tr
+         y-first v0 (TASKS T-15)
+       2
+       3 ## What was built
+       4
+       5 - `resources/estate.edn`: `:blueprint-tex
+         t` only — eight new keys (`:remove` `:clo
+         se`
+       6   `:remove-it` `:keep` `:removing` `:remo
+         ving-wait` `:removed` `:no-bridge-remove`
+     … +79 lines (~5 KB)
+
+⏺ Now let's get the final diff stat.
+
+  Ran 1 shell command
+
+⏺ Implemented TASKS T-15 (remove a real build, try-first)
+  per spec, in the builder's assigned files only. Gate:
+  GATE: PASS — 0 warnings; Ran 1250 tests containing 7491
+  assertions. (le-testeur's pm.remove-build-test already
+  landed and is green).
+
+   resources/estate.edn       |  10 ++-
+   scripts/blueprint_add.clj  |  15 +++-
+   scripts/crew_bridge.clj    |  12 +++-
+   src/pm/blueprint.cljs      | 169
+  ++++++++++++++++++++++++++++++++++++++++-----
+   src/pm/blueprint_file.cljc |  62 ++++++++++-------
+   src/pm/bridge.cljc         |  31 +++++++--
+   src/pm/core.cljs           |  45 ++++++++++--
+   src/pm/crew.cljs           |   5 ++
+   src/pm/scene.cljs          |  26 ++++++-
+   src/pm/three.cljs          |  73 +++++++++++---------
+   src/pm/ui.cljs             |   4 +-
+   11 files changed, 358 insertions(+), 94 deletions(-)
+  (builder-notes.md is new, 84 lines, not shown in that
+  stat.)
+
+  One bug caught by the gate, not a logic error: distinct
+  on a PersistentHashSet throws (nth not supported) in
+  both the cljs test build and babashka — it hit
+  pm.bridge/remove-real-build and add-real-build's
+  :removed output, which were calling distinct on sets
+  already distinct by construction. Dropped those two
+  distinct calls; sort alone on a set is fine.
+
+  done-1218
+
+✻ Churned for 10m 22s · done 6:31 PM
+                 ✔ Update installed · /restart to apply
+─────────────────────────────────────────────────────────
+❯ ready for the next spec
+─────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

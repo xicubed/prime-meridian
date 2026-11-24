@@ -43,33 +43,47 @@
                    (vec (filter map? (:blueprints file)))
                    [])}))
 
+(defn removed-ids
+  "The set of keyword ids in `builds`'s `:removed` (state/builds.edn, TASKS
+   T-15: an id a real build was removed from can't be reused): `#{}` for
+   nil, a non-map, or anything with no `:removed`."
+  [builds]
+  (set (filter keyword? (:removed builds))))
+
 (defn add
   "`file` with `bp` added by `member` at `now` ms:
    `{:ok file' :id id} | {:refused reason}`. `estate-ids` is a set of
-   keywords; `now` ms. Checks in order, first failure wins: `bp` invalid,
-   its id badly-formed, its id already in the estate, its id already in the
-   file. `:as-of` always changes (`(max now (inc as-of))`), so the game
-   never misses a write."
-  [file estate-ids member bp now]
-  (let [{:keys [as-of blueprints]} (normalize file)
-        probs (problems bp)
-        id    (:id bp)]
-    (cond
-      (seq probs)
-      {:refused (str "invalid blueprint: " (str/join "; " probs))}
+   keywords; `now` ms. `removed-ids` (TASKS T-15, default/nil `#{}`) is the
+   set of ids state/builds.edn's `:removed` names: a removed build's id
+   can't be reused. Checks in order, first failure wins: `bp` invalid, its
+   id badly-formed, its id already in the estate, its id removed, its id
+   already in the file. `:as-of` always changes (`(max now (inc as-of))`),
+   so the game never misses a write."
+  ([file estate-ids member bp now] (add file estate-ids member bp now #{}))
+  ([file estate-ids member bp now removed-ids]
+   (let [{:keys [as-of blueprints]} (normalize file)
+         probs   (problems bp)
+         id      (:id bp)
+         removed (or removed-ids #{})]
+     (cond
+       (seq probs)
+       {:refused (str "invalid blueprint: " (str/join "; " probs))}
 
-      (not (re-matches id-re (subs (str id) 1)))
-      {:refused (str "id " id " must be lowercase letters, digits and dashes")}
+       (not (re-matches id-re (subs (str id) 1)))
+       {:refused (str "id " id " must be lowercase letters, digits and dashes")}
 
-      (contains? estate-ids id)
-      {:refused (str "id " id " is already in the estate")}
+       (contains? estate-ids id)
+       {:refused (str "id " id " is already in the estate")}
 
-      (some #(= id (:id %)) blueprints)
-      {:refused (str "id " id " is already in state/blueprints.edn")}
+       (contains? removed id)
+       {:refused (str "id " id " was removed; pick a new id")}
 
-      :else
-      (let [entry (assoc (select-keys bp [:id :at :yaw :summary :look]) :by member)]
-        {:ok {:as-of (max now (inc as-of)) :blueprints (conj blueprints entry)} :id id}))))
+       (some #(= id (:id %)) blueprints)
+       {:refused (str "id " id " is already in state/blueprints.edn")}
+
+       :else
+       (let [entry (assoc (select-keys bp [:id :at :yaw :summary :look]) :by member)]
+         {:ok {:as-of (max now (inc as-of)) :blueprints (conj blueprints entry)} :id id})))))
 
 (defn remove-id
   "`file` with blueprint `id` removed: `{:ok file' :id id} | {:refused

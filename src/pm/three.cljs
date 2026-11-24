@@ -176,6 +176,13 @@
 (def ghost-glow 0x0a5cff)
 (def ghost-edge 0x7ff3ff)  ; the neon outline
 
+(def ghost-tints
+  "Named looks for `ghost!` (TASKS T-15, the removal preview): :proposed is
+   the original blueprint blue; :removal a warm red, clearly not the blue
+   'proposed' ghost. An unknown tint falls back to :proposed."
+  {:proposed {:fill ghost-fill :glow ghost-glow :edge ghost-edge}
+   :removal  {:fill 0xff5a4a :glow 0xff5a4a :edge 0xffb0a0}})
+
 (defn- meshes-under [^js obj]
   (let [acc #js []]
     (.traverse obj (fn [^js o] (when (.-isMesh o) (.push acc o))))
@@ -183,37 +190,41 @@
 
 (defn ghost!
   "Makes every mesh under `obj` look like a pending blueprint (GDD §2.1,
-   §4.8): a translucent, glowing blueprint-blue fill with neon cyan edges,
-   so it reads as proposed, not real, and stays visible on grass (the old
-   thin wireframe vanished there, TASKS N-3). Clones each mesh's material
-   first (shared stand-in materials are never mutated in place) and keeps
-   its real colours in userData for `unghost!`. Returns obj."
-  [^js obj]
-  (let [^js T (three)]
-    (doseq [^js o (meshes-under obj)]
-      (let [^js mat (.clone (.-material o))
-            ^js em  (.-emissive mat)]
-        (set! (.. o -userData -ghostWas)
-              #js {:color (when (.-color mat) (.getHex (.-color mat)))
-                   :emissive (when em (.getHex em))
-                   :ei (.-emissiveIntensity mat)})
-        (when (.-color mat) (.setHex (.-color mat) ghost-fill))
-        (when em
-          (.setHex em ghost-glow)
-          (set! (.-emissiveIntensity mat) 0.9))
-        (set! (.-transparent mat) true)
-        (set! (.-opacity mat) 0.3)
-        (set! (.-wireframe mat) false)
-        (set! (.-depthWrite mat) false)
-        (set! (.-material o) mat)
-        (let [^js edges (new (.-EdgesGeometry T) (.-geometry o) 15)
-              ^js lmat  (new (.-LineBasicMaterial T) #js {:color ghost-edge :transparent true :opacity 0.95 :depthWrite false})
-              ^js lines (new (.-LineSegments T) edges lmat)]
-          (set! (.-name lines) "pm-ghost-edges")
-          (set! (.. lines -userData -ghostEdges) true)
-          (set! (.-raycast lines) (fn [] nil))   ; clicks hit the fill, never the outline
-          (.add o lines)))))
-  obj)
+   §4.8): a translucent, glowing fill with neon edges, so it reads as
+   proposed, not real, and stays visible on grass (the old thin wireframe
+   vanished there, TASKS N-3). `tint` (default `:proposed`, TASKS T-15)
+   picks the look from `ghost-tints`: `:removal` for a removal preview.
+   Clones each mesh's material first (shared stand-in materials are never
+   mutated in place) and keeps its real colours in userData for `unghost!`.
+   Same opacity (0.3) either way. Returns obj."
+  ([obj] (ghost! obj :proposed))
+  ([^js obj tint]
+   (let [^js T (three)
+         {:keys [fill glow edge]} (get ghost-tints tint (:proposed ghost-tints))]
+     (doseq [^js o (meshes-under obj)]
+       (let [^js mat (.clone (.-material o))
+             ^js em  (.-emissive mat)]
+         (set! (.. o -userData -ghostWas)
+               #js {:color (when (.-color mat) (.getHex (.-color mat)))
+                    :emissive (when em (.getHex em))
+                    :ei (.-emissiveIntensity mat)})
+         (when (.-color mat) (.setHex (.-color mat) fill))
+         (when em
+           (.setHex em glow)
+           (set! (.-emissiveIntensity mat) 0.9))
+         (set! (.-transparent mat) true)
+         (set! (.-opacity mat) 0.3)
+         (set! (.-wireframe mat) false)
+         (set! (.-depthWrite mat) false)
+         (set! (.-material o) mat)
+         (let [^js edges (new (.-EdgesGeometry T) (.-geometry o) 15)
+               ^js lmat  (new (.-LineBasicMaterial T) #js {:color edge :transparent true :opacity 0.95 :depthWrite false})
+               ^js lines (new (.-LineSegments T) edges lmat)]
+           (set! (.-name lines) "pm-ghost-edges")
+           (set! (.. lines -userData -ghostEdges) true)
+           (set! (.-raycast lines) (fn [] nil))   ; clicks hit the fill, never the outline
+           (.add o lines))))
+     obj)))
 
 (defn unghost!
   "Reverses `ghost!` (GDD §2.1, §4.8): once a blueprint is approved, its

@@ -254,7 +254,15 @@
                   :real      "Made real. It stays."                                   ; twin's caption once it's recorded
                   :no-bridge "Start the bridge (bb crew-bridge) to make it real."     ; no bridge, nothing real changes
                   :steep     "the ground's too steep here, so it won't build; ask for a flatter spot"   ; pm.blueprint/seat: a foot would hang past max-seat-drop-m
-                  :failed    "that one won't build, so the estate stays as it was"}  ; after a refused approval
+                  :failed    "that one won't build, so the estate stays as it was"    ; after a refused approval
+                  :remove           "Remove…"                                          ; a real build's card: preview the removal (TASKS T-15)
+                  :close            "Close"                                            ; a real build's card: close it, nothing changes (TASKS T-15)
+                  :remove-it        "Remove it"                                        ; the removal preview's card: record it (TASKS T-15)
+                  :keep             "Keep it"                                          ; the removal preview's card: back as it was (TASKS T-15)
+                  :removing         "will be removed"                                  ; the removal ghost's sign, second line (TASKS T-15)
+                  :removing-wait    "Removing…"                                        ; Remove it while the bridge records it, disabled (TASKS T-15)
+                  :removed          "Removed. It's gone for good."                     ; twin's caption once it's recorded (TASKS T-15)
+                  :no-bridge-remove "Start the bridge (bb crew-bridge) to remove it."}  ; no bridge (or refused): nothing changes (TASKS T-15)
  :blueprints [{:id :bench-by-mailbox :at [4.0 1.66 -6.5] :yaw 90   ; level terrain 1.4 m from the mailbox (6 cm across the legs; the old spot straddled the bank); the game seats it (pm.blueprint/seat)
                :summary "proposed: a bench by the mailbox"
                :look {:parts

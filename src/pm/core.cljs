@@ -1297,6 +1297,24 @@
   (when (nil? @!saving)
     (swap! !world bp/unapprove id)))
 
+(defn- remove-click!
+  "Click the removal preview card's Remove it button (TASKS T-15, GDD §2.1,
+   §4.6): records the removal through the bridge, so the build vanishes and
+   stays gone on every reload. No bridge, or a refusal: back to :real, the
+   card open to retry, and the twin says why. No-op unless `id` is
+   `:removing` and no other bridge request is already in flight."
+  [id]
+  (when (and (nil? @!saving) (= :removing (bp/status @!world id)))
+    (reset! !saving id)
+    (if-not (bridge-on?)
+      (do (swap! !world bp/fail-removal id nil (js/Date.now))
+          (reset! !saving nil))
+      (post-real! #(crew/remove-build-body % id)
+                  (fn [ok? reason]
+                    (let [now (js/Date.now)]
+                      (swap! !world (if ok? #(bp/finish-removal % id now) #(bp/fail-removal % id reason now)))
+                      (reset! !saving nil)))))))
+
 (defn- real-mirror? [m]
   (= :hal (get-in @!world [:mirrors m :state :source])))
 
@@ -1320,12 +1338,17 @@
 
 (defn- on-blueprint-click!
   "A pending ghost builds (a trial); a trial build is made real; a real one
-   stays as it is."
+   opens its card (TASKS T-15, `bp/open-card`); a removal preview does
+   nothing (its own card's buttons are the only way to act on it). Ignored
+   entirely while a bridge request (make-real or remove) is in flight."
   [id]
-  (case (bp/status @!world id)
-    :pending  (apply-approved! id)
-    :approved (real-click! id)
-    nil))
+  (when (nil? @!saving)
+    (case (bp/status @!world id)
+      :pending  (do (swap! !world bp/close-card) (apply-approved! id))
+      :approved (do (swap! !world bp/close-card) (real-click! id))
+      :real     (swap! !world bp/open-card id)
+      :removing nil
+      nil)))
 
 (defn- blueprint-id-of [k]
   (when (and (vector? k) (= :blueprint (first k))) (second k)))
@@ -1595,9 +1618,17 @@
       [x (+ y bp/card-lift-m) z])))
 
 (defn- trial-card! [^js h]
-  (let [card      (bp/trial-card @!world @!saving)
+  (let [card      (bp/card @!world @!saving)
         colors    {:paper (scene/css-color :sign-paper) :ink (scene/css-color :sign-ink)}
-        on-action (fn [action id] (case action :real (real-click! id) :undo (undo-trial! id) nil))]
+        on-action (fn [action id]
+                    (case action
+                      :real      (real-click! id)
+                      :undo      (undo-trial! id)
+                      :remove    (when (nil? @!saving) (swap! !world bp/start-removal id))
+                      :close     (when (nil? @!saving) (swap! !world bp/close-card))
+                      :remove-it (remove-click! id)
+                      :keep      (when (nil? @!saving) (swap! !world bp/keep-it id))
+                      nil))]
     (if-let [{:keys [id]} card]
       (let [^js g      (t/by-name (scene/mounted-root) (pr-str [:blueprint id]))
             anchor     (card-anchor id g)

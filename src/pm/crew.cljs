@@ -192,6 +192,11 @@
 (defn real-build-body [bridge id]
   {"token" (:token bridge) "action" "build" "id" (name id)})
 
+(defn remove-build-body
+  "Body for /real removing a real build again (TASKS T-15, GDD §2.1, §4.6)."
+  [bridge id]
+  {"token" (:token bridge) "action" "remove" "id" (name id)})
+
 (defn real-mirror-body
   "A REAL mirror's new state for the bridge to write to the twin's file
    (GDD §4.6): numbers and times only, never :source."

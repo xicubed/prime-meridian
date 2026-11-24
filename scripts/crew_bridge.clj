@@ -109,8 +109,10 @@
   (read-edn "resources/estate.edn"))
 
 (defn- make-real!
-  "A /real request (GDD §4.6): record a build, or a REAL mirror's new state,
-   in the private state files the game reads. Returns {:ok :reason}."
+  "A /real request (GDD §4.6): record a build, remove a real build again
+   (TASKS T-15), or a REAL mirror's new state, in the private state files
+   the game reads. Returns {:ok :reason}. Removing a build never touches
+   state/blueprints.edn (its proposal is left as it is)."
   [v]
   (let [now (System/currentTimeMillis)
         e   (estate)]
@@ -119,6 +121,10 @@
       (if-let [b (b/add-real-build (read-edn builds-file) (:id v) (b/known-build-ids e (read-edn blueprints-file)) now)]
         (if (write-edn! builds-file b) {:ok true :reason "made real"} {:ok false :reason "not saved"})
         {:ok false :reason "unknown build"})
+      :remove-build
+      (if-let [b (b/remove-real-build (read-edn builds-file) (:id v) now)]
+        (if (write-edn! builds-file b) {:ok true :reason "removed"} {:ok false :reason "not saved"})
+        {:ok false :reason "not a real build"})
       :real-mirror
       (let [m      (first (filter #(= (:mirror v) (:id %)) (:mirrors e)))   ; estate.edn: a vector of mirrors
             fields (set (keys (:state m)))]
@@ -295,7 +301,7 @@
                 (let [r (b/reply v origin)]
                   (log! (member-from-uri (:uri req)) (get body "action") (:status r) (:reason v))
                   {:status (:status r) :headers (:headers r) :body (json/generate-string (:body r))})
-                (if (contains? #{:real-build :real-mirror} (:action v))
+                (if (contains? #{:real-build :real-mirror :remove-build} (:action v))
                   (let [r (make-real! v)]
                     (log! nil (:action v) (if (:ok r) 200 409) (:reason r))
                     {:status (if (:ok r) 200 409)

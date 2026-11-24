@@ -76,7 +76,7 @@
              :pos    (if pos [x (+ y (/ (- height' (:height plate)) 2)) z] pos)))))
 
 (defn- mount-item! [root item]
-  (let [{:keys [key at yaw parts label label-at text ghost?]} item
+  (let [{:keys [key at yaw parts label label-at text ghost? tint]} item
         ^js item-group (t/group {:name (pr-str key) :pos at :rot [0 (p/radians yaw) 0]})]
     (doseq [[i part] (map-indexed vector parts)]
       (let [^js mesh (t/stand-in {:shape (:shape part)
@@ -87,7 +87,7 @@
         (set! (.-name mesh) (str (pr-str key) "/" i))
         (when (:glow part) (set! (.. mesh -userData -glow) true))
         (t/add! item-group mesh)))
-    (when ghost? (t/ghost! item-group))
+    (when ghost? (t/ghost! item-group tint))
     (t/add! root item-group)
     (when label
       (let [sprite (t/label (label-opts label label-at text))]
@@ -296,7 +296,27 @@
                           (t/unghost! g)
                           (t/light-glows! g (:kit-lights @!mounted)))
                         (when-let [sprite (get labels k)] (t/set-visible! sprite false)))
-          :rejected (do (when-let [^js g (t/by-name root (pr-str k))] (t/remove! root g))
+          ;; A removal preview (TASKS T-15, from :real): a warm-red removal
+          ;; ghost, its light off, and a sign saying so -- built fresh when
+          ;; the build was mounted real and never had one (a real build
+          ;; loaded straight from state/builds.edn), reused (just shown and
+          ;; retexted) when it does (one approved, then made real, whose
+          ;; sign the :real branch above only hid).
+          :removing (when-let [^js g (t/by-name root (pr-str k))]
+                      (t/unlight-glows! g)
+                      (t/ghost! g :removal)
+                      (let [item   (first (filter #(= k (:key %)) (bp/built-plan world)))
+                            sprite (or (get labels k)
+                                       (let [^js s (t/label (label-opts :sign (:label-at item) (:text item)))]
+                                         (t/add! root s)
+                                         (swap! !mounted update :labels assoc k s)
+                                         (swap! !mounted update :texts assoc k (:text item))
+                                         s))]
+                        (t/set-visible! sprite true)
+                        (t/set-label-text! sprite (:text item))))
+          :rejected (do (when-let [^js g (t/by-name root (pr-str k))]
+                          (t/unlight-glows! g)
+                          (t/remove! root g))
                         (when-let [sprite (get labels k)] (t/remove! root sprite)))
           ;; Undo (TASKS T-14): only a real step back from :approved -- a
           ;; freshly-drawn :pending (no previous status, or previously

@@ -10,8 +10,10 @@
             [pm.plan :as p]))
 
 (def statuses
-  "Every status a blueprint can be in."
-  #{:pending :approved :real :rejected})
+  "Every status a blueprint can be in. `:removing` (TASKS T-15) is a real
+   build being previewed for removal: only reachable from `:real`, only
+   leaves to `:real` or `:rejected`."
+  #{:pending :approved :real :removing :rejected})
 
 (defn- valid-at? [at]
   (and (vector? at) (= 3 (count at)) (every? number? at)))
@@ -77,8 +79,9 @@
    approval was refused. The wording is data (`:blueprint-text` in
    estate.edn); without it, just the summary."
   [world bp]
-  (let [{:keys [hint failed trial steep]} (:blueprint-text world)
-        tail (cond (:failed? bp) failed
+  (let [{:keys [hint failed trial steep removing]} (:blueprint-text world)
+        tail (cond (= :removing (:status bp)) removing
+                   (:failed? bp) failed
                    (and (:too-steep? bp) (= :pending (:status bp)) (string? steep)) steep
                    (= :approved (:status bp)) trial
                    :else hint)]
@@ -88,8 +91,9 @@
 
 (defn make-real
   "A trial build made real (GDD §2.1, §4.6): recorded in the private
-   real-builds file, it's in the estate every session and can't be
-   dismissed. Only a built (:approved) or already-real blueprint; no-op
+   real-builds file, it's in the estate every session, and can be removed
+   again only through the card's try-first step (TASKS T-15, `start-
+   removal`). Only a built (:approved) or already-real blueprint; no-op
    otherwise."
   [world id]
   (let [bp (first (filter #(= id (:id %)) (all world)))]
@@ -98,14 +102,25 @@
       world)))
 
 (defn apply-real-builds
-  "The real-builds file (`{:real [id ...]}`, state/builds.edn) laid over a
-   freshly loaded world: those blueprints are :real, whatever they were."
+  "The real-builds file (`{:real [id ...] :removed [id ...]}`,
+   state/builds.edn) laid over a freshly loaded world: those blueprints are
+   :real (a build recorded here can be removed again only through the
+   card's try-first step, TASKS T-15), except a removed one, which is
+   :rejected -- :removed wins over :real. A build currently :removing (the
+   5 s poll re-applying this file mid-preview) stays :removing. `builds` not
+   a map -> both empty; both empty -> `world` identical."
   [world builds]
-  (let [ids (set (when (map? builds) (filter keyword? (:real builds))))]
-    (if (empty? ids)
+  (let [real    (set (when (map? builds) (filter keyword? (:real builds))))
+        removed (set (when (map? builds) (filter keyword? (:removed builds))))]
+    (if (and (empty? real) (empty? removed))
       world
       (update world :blueprints
-              (fn [bps] (mapv #(if (contains? ids (:id %)) (assoc % :status :real) %) (or bps [])))))))
+              (fn [bps] (mapv (fn [bp]
+                                (cond
+                                  (contains? removed (:id bp)) (assoc bp :status :rejected)
+                                  (and (contains? real (:id bp)) (not= :removing (:status bp))) (assoc bp :status :real)
+                                  :else bp))
+                              (or bps [])))))))
 
 (defn status
   "The status of blueprint `id` in `world`, or nil."
@@ -147,6 +162,122 @@
           {:id owner
            :buttons [{:action :real :label (if (= saving owner) saving-text make-real) :disabled? disabled?}
                      {:action :undo :label undo :disabled? disabled?}]})))))
+
+(defn start-removal
+  "Preview removing a real build (TASKS T-15): status `:real` -> `:removing`,
+   and opens its card (`:card-open`). No-op unless `id` is currently `:real`."
+  [world id]
+  (if (= :real (status world id))
+    (assoc (set-status world id :removing) :card-open id)
+    world))
+
+(defn keep-it
+  "Keep it, on a removal preview (TASKS T-15): status `:removing` -> `:real`,
+   exactly as it was before the preview; closes the card if it was `id`'s.
+   No-op unless `id` is currently `:removing`."
+  [world id]
+  (if (= :removing (status world id))
+    (let [w (set-status world id :real)]
+      (if (= id (:card-open world)) (dissoc w :card-open) w))
+    world))
+
+(defn finish-removal
+  "Remove it succeeded (TASKS T-15): status `:removing` -> `:rejected` (it
+   vanishes, the existing rejected path); closes the card if it was `id`'s;
+   the twin says `:removed`, if it's a non-blank string. No-op unless `id`
+   is currently `:removing`."
+  [world id now]
+  (if (= :removing (status world id))
+    (let [w    (let [w' (set-status world id :rejected)]
+                 (if (= id (:card-open world)) (dissoc w' :card-open) w'))
+          text (get-in world [:blueprint-text :removed])]
+      (if (and (string? text) (not (str/blank? text)))
+        (assoc w :hal {:event :blueprint-removed :text text :until (+ now c/hal-ms)})
+        w))
+    world))
+
+(defn fail-removal
+  "Remove it was refused, or there's no bridge (TASKS T-15): status
+   `:removing` -> `:real`; `:card-open` is left as it is, so the card shows
+   Remove… · Close again, to retry; the twin says why, `:no-bridge-remove`
+   plus `reason` in parens when given, if it's a non-blank string. No-op
+   unless `id` is currently `:removing`."
+  [world id reason now]
+  (if (= :removing (status world id))
+    (let [w    (set-status world id :real)
+          text (get-in world [:blueprint-text :no-bridge-remove])]
+      (if (and (string? text) (not (str/blank? text)))
+        (assoc w :hal {:event :blueprint-remove-refused
+                        :text (if reason (str text " (" reason ")") text)
+                        :until (+ now c/hal-ms)})
+        w))
+    world))
+
+(defn open-card
+  "Click a real build (TASKS T-15): opens its card (`:card-open`); a
+   removal preview standing on another build is put back to `:real` first
+   (one card at a time). No-op unless `id` is currently `:real`."
+  [world id]
+  (if (= :real (status world id))
+    (let [o (:card-open world)
+          w (if (and o (not= o id) (= :removing (status world o)))
+              (set-status world o :real)
+              world)]
+      (assoc w :card-open id))
+    world))
+
+(defn close-card
+  "Close the open card (TASKS T-15): a removal preview is put back to
+   `:real` first; then `:card-open` is dropped. No-op without one open."
+  [world]
+  (if-let [o (:card-open world)]
+    (let [w (if (= :removing (status world o)) (set-status world o :real) world)]
+      (dissoc w :card-open))
+    world))
+
+(defn card-of
+  "The open card's id and mode (TASKS T-15): `{:id :mode}`, or nil. The real
+   or removal-preview build `:card-open` names, else the standing trial's
+   (`card-owner`), else nil -- a stale `:card-open` (naming a build that's
+   neither now) falls through to the trial, the same as none open."
+  [world]
+  (let [o (:card-open world)
+        s (status world o)]
+    (cond
+      (= :removing s) {:id o :mode :removing}
+      (= :real s)      {:id o :mode :real}
+      :else (when-let [t (card-owner world)] {:id t :mode :trial}))))
+
+(defn card
+  "The one card for the open build (TASKS T-15, generalises the T-14 trial
+   card, `card-of`), or nil: a trial build's (:trial, unchanged `trial-
+   card`), a real build's (:real, Remove…/Close), or a removal preview's
+   (:removing, Remove it/Keep it). nil without `card-of` or without all of
+   its mode's words in `:blueprint-text`. `saving` is the id whose bridge
+   request is in flight, or nil; while one is, every button is disabled,
+   and a `:removing` card's first button reads `:removing-wait`."
+  [world saving]
+  (when-let [{:keys [id mode]} (card-of world)]
+    (case mode
+      :trial (some-> (trial-card world saving) (assoc :mode :trial))
+
+      :real
+      (let [{:keys [remove close]} (:blueprint-text world)]
+        (when (every? #(and (string? %) (not (str/blank? %))) [remove close])
+          (let [d (some? saving)]
+            {:id id :mode :real
+             :buttons [{:action :remove :label remove :disabled? d}
+                       {:action :close :label close :disabled? d}]})))
+
+      :removing
+      (let [{:keys [remove-it keep removing-wait]} (:blueprint-text world)]
+        (when (every? #(and (string? %) (not (str/blank? %))) [remove-it keep removing-wait])
+          (let [d (some? saving)]
+            {:id id :mode :removing
+             :buttons [{:action :remove-it :label (if (= saving id) removing-wait remove-it) :disabled? d}
+                       {:action :keep :label keep :disabled? d}]})))
+
+      nil)))
 
 (defn reject-blueprint
   "Rejecting a blueprint (GDD §2.1, §4.8): it vanishes -- drops out of
@@ -194,7 +325,7 @@
             incoming-ids (set (map :id incoming))
             drop?        (fn [bp] (and (:from-file? bp)
                                         (not (contains? incoming-ids (:id bp)))
-                                        (not (contains? #{:real :approved} (status-of bp)))))
+                                        (not (contains? #{:real :approved :removing} (status-of bp)))))
             kept         (vec (remove drop? bps))
             removed      (mapv :id (filter drop? bps))
             kept-ids     (set (map :id kept))
@@ -241,7 +372,7 @@
   (let [drawn (or drawn #{})
         bps   (all world)
         ids   (set (map :id bps))]
-    {:add    (mapv :id (filter #(and (contains? #{:pending :approved :real} (:status %))
+    {:add    (mapv :id (filter #(and (contains? #{:pending :approved :real :removing} (:status %))
                                       (not (contains? drawn (:id %))))
                                 bps))
      :remove (set (remove ids drawn))}))
@@ -365,11 +496,12 @@
 (defn built-plan
   "Scene items for every built blueprint, drawn solid: a trial build
    (:approved) with a sign saying how to make it real, a real one
-   (state/builds.edn, loaded every session) with none. Same shape as
-   `ghost-plan`'s items, no ghost."
+   (state/builds.edn, loaded every session) with none, a removal preview
+   (:removing, TASKS T-15) like a real one but a see-through removal ghost
+   with a sign of its own saying so. Same shape as `ghost-plan`'s items."
   [world]
   (vec
-    (for [bp (all world) :when (contains? #{:approved :real} (:status bp))]
+    (for [bp (all world) :when (contains? #{:approved :real :removing} (:status bp))]
       (let [{:keys [id at yaw look]} bp
             [x y z] at
             parts (p/look-parts look nil)
@@ -380,7 +512,10 @@
                  :parts  parts
                  :center [x (+ y (/ top 2)) z]}
           (= :approved (:status bp))
-          (assoc :label :sign :label-at [x (+ y top p/label-lift) z] :text (sign-text world bp)))))))
+          (assoc :label :sign :label-at [x (+ y top p/label-lift) z] :text (sign-text world bp))
+          (= :removing (:status bp))
+          (assoc :ghost? true :tint :removal
+                 :label :sign :label-at [x (+ y top p/label-lift) z] :text (sign-text world bp)))))))
 
 (defn ghost-plan
   "Scene items for every pending blueprint, shaped like `pm.plan/scene-plan`
