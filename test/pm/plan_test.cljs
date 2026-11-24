@@ -456,15 +456,17 @@
   (is (nil? (p/mailbox-item {:mailbox {:at "x"}} TOY-INBOX))))
 
 (deftest t36-mailbox-toy-inbox
-  (let [item (p/mailbox-item W TOY-INBOX)]
+  ;; positions derive from the estate's :mailbox :at (moved by hand, Nov 23)
+  (let [item     (p/mailbox-item W TOY-INBOX)
+        [x y z]  (get-in W [:mailbox :at])]
     (is (= [:mailbox :box] (:key item)))
-    (is (= [5.2 1.79 -7.3] (:at item)))
+    (is (= [x y z] (:at item)))
     (is (= 0 (:yaw item)))
     (is (= :sign (:label item)))
     (is (= "mail 2 · 1 flagged" (:text item)))
     (is (= 3 (count (:parts item))))
-    (is (near? [5.2 2.33 -7.3] (:center item)))
-    (is (near? [5.2 3.17 -7.3] (:label-at item)))))
+    (is (near? [x (+ y 0.54) z] (:center item)))
+    (is (near? [x (+ y 1.38) z] (:label-at item)))))
 
 (deftest t37-mailbox-real-inbox-and-no-accounts
   ;; the sample inbox stands in for Gmail with no accounts connected

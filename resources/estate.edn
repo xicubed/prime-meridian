@@ -210,9 +210,11 @@
  ;; The mailbox (GDD §2.4): the inbox needing attention; overflows when it
  ;; does. Backed by the sample inbox, me@acme.com (GDD §4.6), with no
  ;; accounts connected — pm.plan/mailbox-item reads its unread count from
- ;; there, never from :state here. East bank, near the creature-spike's
- ;; probed terrain height (1.79 m).
- :mailbox {:at [5.2 1.79 -7.3] :yaw 0
+ ;; there, never from :state here. East bank, on open ground between the
+ ;; booth and its bench: 1.7 m from the phone booth (Michael, Nov 23: more
+ ;; space; the old spot sat 0.8 m from it, under the tree canopy), probed
+ ;; 1.75 m, 5 cm across its footing.
+ :mailbox {:at [4.0 1.75 -8.0] :yaw 0
            :look {:parts
                   [{:shape :cylinder :size [0.08 0.9 0.08]  :at [0 0.45 0]      :color :brown}      ; post
                    {:shape :box      :size [0.16 0.18 0.34] :at [0 0.99 0]      :color :stand-in}   ; the box
