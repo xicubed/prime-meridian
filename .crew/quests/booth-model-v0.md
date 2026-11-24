@@ -28,7 +28,11 @@ and swaps the booth's boxes for it. **Led by:** Hal. Michael reviews by eye.
 ## Decided (don't reopen)
 
 - **`:model` on a prop is data:** `:phone-booth` gains `:model {:url "/assets/props/phone-booth.glb"
-  :materials {"glass" {:kit "MAT_Hiroshi_Glass"} "lamp" {:glow true} "sign" {:glow true}}}`.
+  :materials {"lamp" {:glow true} "sign" {:glow true}}}`.
+  **The panes keep the model's own semi-translucent glass** (Michael, Nov 23: "i do like that you
+  can see thru it a little"); no kit override for `glass` (the `:kit` override stays supported for
+  later). The rebuilt glass material must stay transparent (opacity from the model, `transparent
+  true`, `depthWrite false`) so you see the phone inside.
   URLs are absolute (the page has `<base href="/kit/">`). Keep the booth's `:look` as the
   fallback. The loader is general (any item with `:model`), but only the booth gets one now.
 - **Parse with npm GLTFLoader, rebuild with the active THREE:** load the GLB once per URL
@@ -61,5 +65,5 @@ Gate passes with tests for: the material-override fn (kit, glow, none, unknown n
 `:model` validation (url string starting with "/", optional materials map; bad shapes ignored →
 `:look` used); the item still carries `[:phone-booth :box]` and its label position with a
 model. The builder leaves a note in the run dir: what was built and what Hal should check
-headless (the booth in the kit, its panes using the cottage glass, a click on it while jacked
+headless (the booth in the kit, see-through panes with the phone visible inside, a click on it while jacked
 out, its lamp at night).
