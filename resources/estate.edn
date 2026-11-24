@@ -228,7 +228,14 @@
  ;; rings it, its sign (pm.plan/phone-booth-item) shows the reason while the
  ;; estate is frozen (pm.world/jack-out-text); empty otherwise. East bank,
  ;; near the mailbox, terrain probed at 1.71 m, clear of Un Architecte's route (Hal).
+ ;; Drawn from its :model, the red phone box (TASKS T-18, made by
+ ;; tools/blender/phone_booth.py); :look is the fallback until it loads, or if it can't.
+ ;; At night its ceiling lamp glows with one small light (3 m) and the TELEPHONE
+ ;; panels glow with none; the panes keep the model's own see-through glass.
  :phone-booth {:at [4.9 1.71 -6.6] :yaw 0
+               :model {:url "/assets/props/phone-booth.glb"
+                       :materials {"lamp" {:glow true :light-m 3}
+                                   "sign" {:glow true :light false}}}
                :look {:parts
                       [{:shape :box :size [0.9 2.0 0.9]   :at [0 1.0   0]    :color :booth-red}   ; body
                        {:shape :box :size [1.0 0.15 1.0]  :at [0 2.075 0]    :color :booth-red}   ; roof

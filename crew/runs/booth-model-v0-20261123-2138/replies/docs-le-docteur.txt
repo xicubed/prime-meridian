@@ -1,0 +1,400 @@
+   docs/GDD.md | 2 +-
+   2 files changed, 2 insertions(+), 1 deletion(-)
+
+  Added the new T-16 done row under T-15 in TASKS.md, and
+  updated the Lobby row's note in docs/GDD.md §2.4, both
+  the exact §5 wording, after confirming gate-note.md
+  showed PASS.
+
+  done-7238
+
+✻ Baked for 20s · done 7:45 PM
+
+❯ Spec: crew/runs/kit-materials-v0-20261123-2005/spec.md
+  (quest: .crew/quests/kit-materials-v0.md). Make only
+  the documentation edits the spec's who-touches-what
+  table gives le-docteur (if none, change nothing).
+  Reply with git diff --stat of what you changed.
+
+  When you have completely finished, end your reply with
+  a line containing only this: done-1749
+
+  Read 1 file
+
+⏺ Checking gate status before applying.
+
+  Listed 1 directory
+
+⏺ Gate passed. Now let's check current TASKS.md and
+  GDD.md §5 Art Direction.
+
+  Searched for 1 pattern, read 1 file
+
+⏺ Now I'll make both edits.
+
+⏺ Update(TASKS.md)
+  ⎿  Added 1 line
+       97  - [x] Nov 23 (crew round trial-buttons-
+           v0) T-14 A trial build gets labelled bu
+           ttons (Michael, Nov 23: "i didnt realiz
+           e u needed to click it twice"; his rule
+           : every action is a labelled button). C
+           lick a blue ghost and it builds as a tr
+           ial with a small card above it: **Make
+           it real** (records it through the bridg
+           e; reads "Saving…" while it does, so it
+            can't post twice) and **Undo** (back t
+           o the blue ghost, to try again later; n
+           ot a reject). The card follows the item
+            as the camera moves and hides when it'
+           s off screen; the trial's sign now just
+            says "trial: try it out". Right-click
+           still dismisses.
+       98  - [x] Nov 23 (crew round remove-build-v
+           0) T-15 Remove a real build, try-first
+           (Michael, Nov 23: "once its made real i
+           ts there for good … should we have the
+           undo or delete come up"). Click a real
+           build and the same card shows **Remove…
+           ** and **Close**; Remove… previews the
+           loss (the item turns into a see-through
+            red removal ghost, its sign reads "wil
+           l be removed") and offers **Remove it**
+            and **Keep it**. Keep it puts it back
+           as it was; Remove it records the remova
+           l through the bridge (`state/builds.edn
+           ` `:removed`, reads "Removing…" while i
+           t does), and the build is gone on every
+            reload. No bridge: nothing changes and
+            the twin says why. A removed id can't
+           be reused (`bb blueprint-add` refuses i
+           t; pick a new id).
+       99  - [x] Nov 23 (crew round tidy-after-rem
+           ove-v0) T-16 Tidy-ups after removal (Mi
+           chael, Nov 23: "ya just remove the sign
+           "). The lobby's signpost by the cottage
+            is gone; the lobby is still where erra
+           nds go (`bb hal-say --at lobby`). Up cl
+           ose to a tall build, its card stays pin
+           ned at the top of the screen instead of
+            vanishing. A real build's sign drops "
+           proposed:" from its summary.
+      100 +- [x] Nov 23 (crew round kit-materials-
+          +v0) T-17 Our things wear the kit's mate
+          +rials (Michael, Nov 23: "can we texture
+          + these items? they're kinda plain"). Be
+          +nches, the lamp post, and the workshop
+          +and mailbox use the kit's own timber an
+          +d metal (estate.edn `:kit-materials`: p
+          +alette key → kit material), the grain t
+          +iled by each part's size so a thin leg
+          +isn't stretched, and box edges are slig
+          +htly rounded. Ghosts look as before; Un
+          +do brings the wood back. Without the ki
+          +t (a public clone) everything keeps its
+          + flat colour.
+      101  - [ ] T-12 Call the player's real phone
+            (after T-11; the GDD's jack-out hook,
+           §2.3): Twilio voice from the bot number
+            to his cell when something real is due
+            (Flora's chore, a "!" waiting past clo
+           sing) or when he taps 📞 away from the
+           laptop; the twin reads the lines, speec
+           h-to-text comes back down the bridge; a
+            crew member who takes a minute "calls
+           back". Costs per minute; FaceTime/Teams
+            have no agent end and are out. Ready-m
+           ade ways to add it (Nov 22, nothing ins
+           talled): Hermes's official `telephony`
+           skill (one-way calls on the existing Tw
+           ilio number: a spoken message or a TTS
+           recording); the community **Hermes Voic
+           e Gateway** plugin (two-way: the player
+            calls the twin's number and talks; nee
+           ds ElevenLabs and a tunnel); Zoom only
+           as a meeting bot that joins a meeting (
+           Meetstream / Meeting AI plugins, paid b
+           ot services); Slack is text and voice n
+           otes only (bots can't join huddles).
+      102  - [ ] T-9 v2 idea: living objects (docs
+           /ideas-living-objects.md): stateful thi
+           ngs that age, speak, and pass messages
+           through the twin; Flora's hunger in the
+            game first, a text only when she's wel
+           l overdue (replacing the 09:00/17:00 cr
+           on).
+      103
+
+⏺ Update(docs/GDD.md)
+  ⎿  Added 1 line, removed 1 line
+      437
+      438  ## 5. Art Direction
+      439
+      440 -Medium-poly, flat-shaded, warm palette,
+          - soft shadows: a diorama you'd keep on
+          -a desk, floating on a dark grid. An ele
+          -vated 3/4 camera looks over cutaway roo
+          -ms (after Ralv.ai's estate view). Chara
+          -cters are KayKit (CC0) figures with a h
+          -at or color per crew role, and they mov
+          -e physically rather than through canned
+          - animation loops (§4.1): a stylized loo
+          -k with real weight and balance. Flora's
+          - canal is styled after Xochimilco (slow
+          - water, chinampas, a moored trajinera);
+          - its lush water and foliage come from o
+          -ne licensed scene kit, kept to one corn
+          -er so it sits well next to the medium-p
+          -oly figures. Time of day (afternoon, go
+          -lden hour, blue hour, night) drives the
+          - lighting, and night arrives at closing
+          - time.
+      440 +Medium-poly, flat-shaded, warm palette,
+          + soft shadows: a diorama you'd keep on
+          +a desk, floating on a dark grid. An ele
+          +vated 3/4 camera looks over cutaway roo
+          +ms (after Ralv.ai's estate view). Chara
+          +cters are KayKit (CC0) figures with a h
+          +at or color per crew role, and they mov
+          +e physically rather than through canned
+          + animation loops (§4.1): a stylized loo
+          +k with real weight and balance. Flora's
+          + canal is styled after Xochimilco (slow
+          + water, chinampas, a moored trajinera);
+          + its lush water and foliage come from o
+          +ne licensed scene kit, kept to one corn
+          +er so it sits well next to the medium-p
+          +oly figures. Time of day (afternoon, go
+          +lden hour, blue hour, night) drives the
+          + lighting, and night arrives at closing
+          + time. Our own props (blueprints and th
+          +e estate's fixtures) wear the scene kit
+          +'s materials (its timber and metal, til
+          +ed to each part's size, with softly rou
+          +nded box edges) so they sit with the co
+          +ttage and its steps; characters, creatu
+          +res and the phone booth stay painted, a
+          +nd without the kit everything falls bac
+          +k to the flat palette.
+      441
+      442  ## 6. Risks
+      443
+
+  Ran 1 shell command
+
+⏺  TASKS.md    | 1 +
+   docs/GDD.md | 2 +-
+   2 files changed, 2 insertions(+), 1 deletion(-)
+
+  Added the new T-17 done row under T-16 in TASKS.md, and
+  appended the one sentence to §5 Art Direction in
+  docs/GDD.md, both the exact §5 wording, after
+  confirming gate-note.md showed PASS.
+
+  done-1749
+
+✻ Churned for 19s · done 8:20 PM
+
+❯ Spec: crew/runs/booth-model-v0-20261123-2138/spec.md
+  (quest: .crew/quests/booth-model-v0.md). Make only the
+  documentation edits the spec's who-touches-what table
+  gives le-docteur (if none, change nothing). Reply
+  with git diff --stat of what you changed.
+
+  When you have completely finished, end your reply with
+  a line containing only this: done-1690
+
+  Read 1 file
+
+⏺ Checking gate status before applying.
+
+  Listed 1 directory
+
+⏺ Gate passed. Checking current TASKS.md (T-17 row) and
+  GDD.md §5 Art Direction state.
+
+  Searched for 1 pattern, read 1 file
+
+⏺ Now I'll make both edits.
+
+⏺ Update(TASKS.md)
+  ⎿  Added 1 line
+       98  - [x] Nov 23 (crew round remove-build-v
+           0) T-15 Remove a real build, try-first
+           (Michael, Nov 23: "once its made real i
+           ts there for good … should we have the
+           undo or delete come up"). Click a real
+           build and the same card shows **Remove…
+           ** and **Close**; Remove… previews the
+           loss (the item turns into a see-through
+            red removal ghost, its sign reads "wil
+           l be removed") and offers **Remove it**
+            and **Keep it**. Keep it puts it back
+           as it was; Remove it records the remova
+           l through the bridge (`state/builds.edn
+           ` `:removed`, reads "Removing…" while i
+           t does), and the build is gone on every
+            reload. No bridge: nothing changes and
+            the twin says why. A removed id can't
+           be reused (`bb blueprint-add` refuses i
+           t; pick a new id).
+       99  - [x] Nov 23 (crew round tidy-after-rem
+           ove-v0) T-16 Tidy-ups after removal (Mi
+           chael, Nov 23: "ya just remove the sign
+           "). The lobby's signpost by the cottage
+            is gone; the lobby is still where erra
+           nds go (`bb hal-say --at lobby`). Up cl
+           ose to a tall build, its card stays pin
+           ned at the top of the screen instead of
+            vanishing. A real build's sign drops "
+           proposed:" from its summary.
+      100  - [x] Nov 23 (crew round kit-materials-
+           v0) T-17 Our things wear the kit's mate
+           rials (Michael, Nov 23: "can we texture
+            these items? they're kinda plain"). Be
+           nches, the lamp post, and the workshop
+           and mailbox use the kit's own timber an
+           d metal (estate.edn `:kit-materials`: p
+           alette key → kit material), the grain t
+           iled by each part's size so a thin leg
+           isn't stretched, and box edges are slig
+           htly rounded. Ghosts look as before; Un
+           do brings the wood back. Without the ki
+           t (a public clone) everything keeps its
+            flat colour.
+      101 +- [x] Nov 23 (crew round booth-model-v0
+          +) T-18 Props can be models; the red pho
+          +ne box goes in (Michael, Nov 23: "make
+          +the phone booth look more like a real l
+          +ondon phone booth … keep with the theme
+          +"). The booth is now Hal's weathered re
+          +d phone box (a Blender model, `tools/bl
+          +ender/phone_booth.py`), loaded from `pu
+          +blic/assets/props/phone-booth.glb` thro
+          +ugh a prop's `:model`; its old boxes sh
+          +ow until it loads, or if it can't. You
+          +can see the phone through its glass; at
+          + night its ceiling lamp glows and light
+          +s the box with one small light, and the
+          + TELEPHONE signs glow. Clicking it stil
+          +l jacks you back in.
+      102  - [ ] T-12 Call the player's real phone
+            (after T-11; the GDD's jack-out hook,
+           §2.3): Twilio voice from the bot number
+            to his cell when something real is due
+            (Flora's chore, a "!" waiting past clo
+           sing) or when he taps 📞 away from the
+           laptop; the twin reads the lines, speec
+           h-to-text comes back down the bridge; a
+            crew member who takes a minute "calls
+           back". Costs per minute; FaceTime/Teams
+            have no agent end and are out. Ready-m
+           ade ways to add it (Nov 22, nothing ins
+           talled): Hermes's official `telephony`
+           skill (one-way calls on the existing Tw
+           ilio number: a spoken message or a TTS
+           recording); the community **Hermes Voic
+           e Gateway** plugin (two-way: the player
+            calls the twin's number and talks; nee
+           ds ElevenLabs and a tunnel); Zoom only
+           as a meeting bot that joins a meeting (
+           Meetstream / Meeting AI plugins, paid b
+           ot services); Slack is text and voice n
+           otes only (bots can't join huddles).
+      103  - [ ] T-9 v2 idea: living objects (docs
+           /ideas-living-objects.md): stateful thi
+           ngs that age, speak, and pass messages
+           through the twin; Flora's hunger in the
+            game first, a text only when she's wel
+           l overdue (replacing the 09:00/17:00 cr
+           on).
+      104
+
+⏺ Update(docs/GDD.md)
+  ⎿  Added 1 line, removed 1 line
+      437
+      438  ## 5. Art Direction
+      439
+      440 -Medium-poly, flat-shaded, warm palette,
+          - soft shadows: a diorama you'd keep on
+          -a desk, floating on a dark grid. An ele
+          -vated 3/4 camera looks over cutaway roo
+          -ms (after Ralv.ai's estate view). Chara
+          -cters are KayKit (CC0) figures with a h
+          -at or color per crew role, and they mov
+          -e physically rather than through canned
+          - animation loops (§4.1): a stylized loo
+          -k with real weight and balance. Flora's
+          - canal is styled after Xochimilco (slow
+          - water, chinampas, a moored trajinera);
+          - its lush water and foliage come from o
+          -ne licensed scene kit, kept to one corn
+          -er so it sits well next to the medium-p
+          -oly figures. Time of day (afternoon, go
+          -lden hour, blue hour, night) drives the
+          - lighting, and night arrives at closing
+          - time. Our own props (blueprints and th
+          -e estate's fixtures) wear the scene kit
+          -'s materials (its timber and metal, til
+          -ed to each part's size, with softly rou
+          -nded box edges) so they sit with the co
+          -ttage and its steps; characters, creatu
+          -res and the phone booth stay painted, a
+          -nd without the kit everything falls bac
+          -k to the flat palette.
+      440 +Medium-poly, flat-shaded, warm palette,
+          + soft shadows: a diorama you'd keep on
+          +a desk, floating on a dark grid. An ele
+          +vated 3/4 camera looks over cutaway roo
+          +ms (after Ralv.ai's estate view). Chara
+          +cters are KayKit (CC0) figures with a h
+          +at or color per crew role, and they mov
+          +e physically rather than through canned
+          + animation loops (§4.1): a stylized loo
+          +k with real weight and balance. Flora's
+          + canal is styled after Xochimilco (slow
+          + water, chinampas, a moored trajinera);
+          + its lush water and foliage come from o
+          +ne licensed scene kit, kept to one corn
+          +er so it sits well next to the medium-p
+          +oly figures. Time of day (afternoon, go
+          +lden hour, blue hour, night) drives the
+          + lighting, and night arrives at closing
+          + time. Our own props (blueprints and th
+          +e estate's fixtures) wear the scene kit
+          +'s materials (its timber and metal, til
+          +ed to each part's size, with softly rou
+          +nded box edges) so they sit with the co
+          +ttage and its steps; characters, creatu
+          +res and the phone booth stay painted, a
+          +nd without the kit everything falls bac
+          +k to the flat palette. Props can also b
+          +e Blender models (a prop's `:model`, a
+          +GLB drawn with the kit's own three.js,
+          +its primitive `:look` as the fallback);
+          + the red phone box is the first, with i
+          +ts own see-through glass and a lamp and
+          + signs that glow at night.
+      441
+      442  ## 6. Risks
+      443
+
+  Ran 1 shell command
+
+⏺  TASKS.md    | 1 +
+   docs/GDD.md | 2 +-
+   2 files changed, 2 insertions(+), 1 deletion(-)
+
+  Added the new T-18 done row under T-17 in TASKS.md, and
+  appended the one sentence to §5 Art Direction in
+  docs/GDD.md, both the exact §6 wording, after
+  confirming gate-note.md showed PASS.
+
+  done-1690
+
+✻ Sautéed for 20s · done 10:00 PM
+                 ✔ Update installed · /restart to apply
+─────────────────────────────────────────────────────────
+❯
+─────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

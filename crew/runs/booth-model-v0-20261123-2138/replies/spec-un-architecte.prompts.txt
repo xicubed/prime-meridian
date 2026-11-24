@@ -1,0 +1,82 @@
+=== prompt 1 (21:39:07)
+  round-box-vertex [p size r n] and missing-names [kit-materials index]; in pm.three: material-pairs,
+  rounded-box-geometry, kit-part-material, new :bevel/:kit opts on stand-in, and ghost!/unghost! now save and restore
+  the whole material.
+  It has 51 numbered test cases in test/pm/materials_test.cljs and no existing test changes; the table also gives
+  le-docteur the T-17 row and the GDD §5 sentence. Two calls Hal may want to check: creatures (mirror items) and glow
+  parts never get kit materials, and the workshop shelves and mailbox post change too because they use the same
+  :brown/:tin keys.
+
+  done-7054
+
+✻ Baked for 4m 54s · done 8:09 PM
+
+❯ New quest: read .crew/quests/booth-model-v0.md (and the code and earlier runs it cites). Write the spec to
+  crew/runs/booth-model-v0-20261123-2138/spec.md following your role card, with numbered test cases and hand-checked
+  expected values, and a who-touches-what table (builder: src + resources/estate.edn's :phone-booth entry only;
+  tester: test files only; give le-docteur a new TASKS.md row T-18 and a GDD note that props can be Blender models,
+  the booth first). Reply when it's written.
+
+  When you have completely finished, end your reply with a line containing only this: done-4535
+
+  Reading pick-names and current mount code
+  ⎿  $ sed -n /dev/null; grep -n "defn pick-names" -A22 src/pm/three.cljs; grep -n "defn- mount-item!" -A30
+     src/pm/scene.cljs; grep -n "defn mount!" -A28 src/pm/scene.cljs
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose "switch to auto mode" below
+ Read pick-names and current mount code
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ sed -n /dev/null; grep -n "defn pick-names" -A22 src/pm/three.cljs; grep -n "defn- mount-item!" -A30
+ │ src/pm/scene.cljs; grep -n "defn mount!" -A28 src/pm/scene.cljs
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ sed command contains operations that require explicit approval (e.g., write commands, execute commands)
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 2 (21:40:34)
+
+
+  Searched for 1 pattern, listed 1 directory, ran 3 shell commands
+
+❯ Manager note, quest amended a minute ago (re-read .crew/quests/booth-model-v0.md, Decided first bullet): Michael
+  wants the panes to keep the model's own semi-translucent glass so you can see the phone inside. So :materials has
+  only lamp and sign glow, no glass kit override; the rebuilt glass must stay transparent (model opacity, transparent
+  true, depthWrite false). Keep the :kit override supported and tested for later.
+
+❯ Second manager note (quest amended again, same bullet): at night the booth's ceiling lamp glows AND carries one
+  small warm point light inside (:light-m 3, a 3 m range, not the kit lamp's full range) so the phone is lit and a
+  soft pool spills through the glass; the four TELEPHONE sign panels glow (emissive, following the kit's lamps) but
+  add no light of their own (:light false). So :materials {"lamp" {:glow true :light-m 3} "sign" {:glow true :light
+  false}}; light-glows! needs those two options; test them in the pure override fn.
+
+⏺ Both amendments noted: the glass keeps the model's own, the lamp gets a 3 m light and the signs no light. Re-reading
+  the amended quest and checking which tests load pm.three.
+
+  Running 1 shell command…
+  ⎿  $ sed -n '/## Decided/,/## Out of scope/p' .crew/quests/booth-model-v0.md; grep -n "pm.three\|pm.scene\|pm.core"
+     test/pm/plan_test.cljs test/pm/world_test.cljs test/pm/crew_talk_test.cljs | head; sed -n 1,10p src/pm/scene.cljs
+     | grep require -A6
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose "switch to auto mode" below
+ Re-read amended decisions and test requires
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ sed -n '/## Decided/,/## Out of scope/p' .crew/quests/booth-model-v0.md; grep -n "pm.three\|pm.scene\|pm.core"
+ │ test/pm/plan_test.cljs test/pm/world_test.cljs test/pm/crew_talk_test.cljs | head; sed -n 1,10p src/pm/scene.cljs |
+ │ grep require -A6
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ sed command contains operations that require explicit approval (e.g., write commands, execute commands)
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend

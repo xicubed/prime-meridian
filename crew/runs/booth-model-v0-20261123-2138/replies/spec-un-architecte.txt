@@ -1,0 +1,205 @@
+
+ ▐▛███▛█   Claude Code v2.1.331
+▝▜██████▀  Opus 5.5 with high effort · Claude Max
+ ▝▝   ▝▝   ~/src/prime-meridian
+
+
+❯ Say hi in ONE line: your name, your job, and the model you're running on. Don't use any tools.
+
+⏺ Hi, I'm Un Architecte, the Lead Architect for Prime Meridian: I turn each quest into a spec the builder and tester
+  can work from in parallel. I'm running on Claude Opus 5.5 (claude-opus-5-5).
+
+✻ Cooked for 6s · done 7:29 PM
+
+❯ New quest: read .crew/quests/tidy-after-remove-v0.md (and the code and earlier runs it cites). Write the spec to
+  crew/runs/tidy-after-remove-v0-20261123-1929/spec.md following your role card, with numbered test cases and
+  hand-checked expected values, and a who-touches-what table (builder: src + resources/estate.edn's :lobby entry only;
+  tester: test files only, including updating existing tests that counted the lobby's item or label; give le-docteur
+  a new TASKS.md row T-16 and a GDD §2.4 note that the lobby has no sign). Reply when it's written.
+
+  When you have completely finished, end your reply with a line containing only this: done-5472
+
+  Listed 2 directories, ran 3 shell commands
+
+⏺ Reading the lobby code is done. Next: pm.pick/screen-of, trial-card!, and the blueprint sign text.
+
+  Searched for 2 patterns, ran 4 shell commands
+
+⏺ Checking how a real build ends up with a sign in pm.scene; the built-plan gives it none.
+
+  Searched for 1 pattern, ran 3 shell commands
+
+⏺ Now the TASKS and GDD rows le-docteur will touch, plus the existing test fixtures I'll cite.
+
+  Searched for 1 pattern, listed 1 directory, ran 7 shell commands
+
+⏺ Writing the spec now.
+
+⏺ Write(crew/runs/tidy-after-remove-v0-20261123-1929/spec.md)
+  ⎿  Wrote 308 lines to crew/runs/tidy-after-remove-v0-20261123-1929/spec.md
+      1 # Spec: tidy-after-remove-v0 (TASKS T-16)
+      2
+      3 Quest: `.crew/quests/tidy-after-remove-v0.md`. Three small changes, one round, all pure
+      4 where they can be: (A) the lobby signpost goes and the lobby stays an errand spot,
+      5 (B) the build card stays on screen up close, (C) a real build's sign drops "proposed: ".
+      6 Nothing here names a person, pet, member or blueprint in `src/`. No `::k` across
+      7 namespaces. No npm deps. No writes to `state/` from tests.
+      8
+      9 ## 0. Who touches what
+     … +299 lines
+
+  Searched for 1 pattern, ran 1 shell command
+
+⏺ Update(crew/runs/tidy-after-remove-v0-20261123-1929/spec.md)
+  ⎿  Added 2 lines, removed 2 lines
+      84  - `min-y` nil or not a finite number (NaN, ±Infinity, a string) → **identical to the
+      85    2-arity result**.
+      86  - `min-y` finite: px as today, `px-x = (x+1)/2·w`, `px-y = (1−y)/2·h`.
+      87 -  - `visible?` = `(<= -1 x 1)` and `(<= y-ndc ... )`: precisely
+      88 -    `(and (<= -1 x 1) (<= -1 y) (<= z 1))`. The **top bound is dropped**: an anchor above the
+      87 +  - `visible?` = `(and (<= -1 x 1) (<= -1 y) (<= z 1))` on the ndc values.
+      88 +    The **top bound is dropped**: an anchor above the
+      89      top edge is still visible. Off the left/right, below the bottom, or behind the camera
+      90      stays hidden.
+      91    - When visible: `:y` = `(max px-y min-y)` (pinned, so the card's bottom edge is never
+
+⏺ Update(crew/runs/tidy-after-remove-v0-20261123-1929/spec.md)
+  ⎿  Added 1 line, removed 1 line
+      212  8. **L8 the errand event to the lobby is recorded:**
+      213     `(get-in (w/apply-event WE {:type :agent-event :agent "hal" :kind :errand :where "lobby" :text "Te
+           a's on." :source SRC} 1800000000000) [:errands "hal"])`
+      214     → `{:where "lobby" :text "Tea's on." :since 1800000000000 :state :pending}`. Use the same
+      215 -   `SRC` shape `world_test.cljs` uses (copy its def).
+      215 +   `SRC` `world_test.cljs` uses: `(def SRC {:agent "hal-say" :session "t" :machine "local"})`.
+      216
+      217  ### 4.3 `screen-of` with min-y (new file; size `[800 600]` unless said)
+      218
+
+⏺ I wrote the spec to crew/runs/tidy-after-remove-v0-20261123-1929/spec.md.
+  Public functions: pm.plan/lobby-item [world] (nil when the lobby has no :look), pm.pick/screen-of [ndc size min-y]
+  (new 3-arity), pm.pick/pin-min-y [base-ndc card-h], pm.pick/card-pin-gap-px, pm.ui/trial-card-height [],
+  pm.blueprint/sign-summary [bp] and pm.blueprint/sign-text [world bp] (a :real build loses the "proposed:" prefix and
+  the hint line); pm.core/trial-card! is glue only.
+  It has 50 numbered test cases plus rewrites of plan_test t42 and t43, with the who-touches-what table and
+  le-docteur's T-16 row and GDD §2.4 text. One flag for Hal, also in §C.2: real builds draw no sign today, so the
+  "proposed:" Hal saw was probably the red removal preview, which the quest keeps unchanged.
+
+  done-5472
+
+✻ Sautéed for 5m 31s · done 7:34 PM
+
+❯ New quest: read .crew/quests/kit-materials-v0.md (and the code it cites). Write the spec to
+  crew/runs/kit-materials-v0-20261123-2005/spec.md following your role card, with numbered test cases and hand-checked
+  expected values, and a who-touches-what table (builder: src + resources/estate.edn's new :kit-materials entry only;
+  tester: test files only; give le-docteur a new TASKS.md row T-17 and a GDD art-direction note that our props wear
+  the kit's materials). Reply when it's written.
+
+  When you have completely finished, end your reply with a line containing only this: done-7054
+
+  Searched for 1 pattern, ran 5 shell commands
+
+⏺ I've read the kit-material, ghost and mount code and worked out the numbers by hand; writing the spec now.
+
+⏺ Write(crew/runs/kit-materials-v0-20261123-2005/spec.md)
+  ⎿  Wrote 280 lines to crew/runs/kit-materials-v0-20261123-2005/spec.md
+      1 # Spec: kit-materials-v0 (TASKS T-17)
+      2
+      3 Quest: `.crew/quests/kit-materials-v0.md`. Our props (blueprints and the estate fixtures)
+      4 wear the kit's own textured materials, tiled by part size, with rounded `:box` edges.
+      5 Everything that can be pure lives in a **new pure namespace `pm.materials`** (no three.js,
+      6 no DOM, no js/Date, no atoms) so the tester can test it in node; `pm.three` does the
+      7 interop, `pm.scene` wires it in. Nothing names a blueprint, person, pet or member in `src/`.
+      8 No npm deps; no `three/examples`; only the current THREE from `(t/three)` (the kit's,
+      9 after `use-three!`).
+     … +271 lines
+
+⏺ Update(crew/runs/kit-materials-v0-20261123-2005/spec.md)
+  ⎿  Added 1 line, removed 1 line
+      233  42. Exact third: `p [0.3 0.5 0.5]` → `:normal [0.3333333 0.6666667 0.6666667]`, `:pos [0.4866667 0.24
+           33333 0.1933333]`.
+      234  43. Same extents as today's box: over every surface vertex of the n = 5 unit grid (each coord in `[-0
+           .5 -0.3 -0.1 0.1 0.3 0.5]`, at least one at ±0.5), max |x| = 0.5, max |y| = 0.25, max |z| = 0.2 (with
+           in 1e-9), and none exceeds them.
+      235  44. r = 0: `(m/round-box-vertex [0.5 0.3 0.1] [1 0.5 0.4] 0 5)` → `:pos [0.5 0.25 0.2]`, `:normal [0.
+           8944272 0.4472136 0]`.
+      236 -45. The second size (a leg) with its own radius: `(m/round-box-vertex [0.5 0.5 0.5] [0.08 0.45 0.08]
+          -0.02 5)` → `:pos [0.0315470 0.2215470 0.0315470]` (box `[0.02 0.205 0.02]` + 0.0115470).
+      236 +45. The second size (a leg) with its own radius: `(m/round-box-vertex [0.5 0.5 0.5] [0.08 0.45 0.08]
+          +0.02 5)` → `:pos [0.0315470 0.2165470 0.0315470]` (box `[0.02 0.205 0.02]` + 0.0115470).
+      237
+      238  ### 4.8 `missing-names`
+      239  46. All found: `(m/missing-names KM IDX)` → `[]`.
+
+⏺ I wrote the spec to crew/runs/kit-materials-v0-20261123-2005/spec.md.
+  Public functions, in a new pure pm.materials: index-materials [pairs], props-item? [item], material-for [part
+  kit-materials index], box-face-repeats [size tile-m], shape-repeat [shape size tile-m], bevel-radius [size],
+  round-box-vertex [p size r n] and missing-names [kit-materials index]; in pm.three: material-pairs,
+  rounded-box-geometry, kit-part-material, new :bevel/:kit opts on stand-in, and ghost!/unghost! now save and restore
+  the whole material.
+  It has 51 numbered test cases in test/pm/materials_test.cljs and no existing test changes; the table also gives
+  le-docteur the T-17 row and the GDD §5 sentence. Two calls Hal may want to check: creatures (mirror items) and glow
+  parts never get kit materials, and the workshop shelves and mailbox post change too because they use the same
+  :brown/:tin keys.
+
+  done-7054
+
+✻ Baked for 4m 54s · done 8:09 PM
+
+❯ New quest: read .crew/quests/booth-model-v0.md (and the code and earlier runs it cites). Write the spec to
+  crew/runs/booth-model-v0-20261123-2138/spec.md following your role card, with numbered test cases and hand-checked
+  expected values, and a who-touches-what table (builder: src + resources/estate.edn's :phone-booth entry only;
+  tester: test files only; give le-docteur a new TASKS.md row T-18 and a GDD note that props can be Blender models,
+  the booth first). Reply when it's written.
+
+  When you have completely finished, end your reply with a line containing only this: done-4535
+
+  Searched for 1 pattern, listed 1 directory, ran 3 shell commands
+
+❯ Manager note, quest amended a minute ago (re-read .crew/quests/booth-model-v0.md, Decided first bullet): Michael
+  wants the panes to keep the model's own semi-translucent glass so you can see the phone inside. So :materials has
+  only lamp and sign glow, no glass kit override; the rebuilt glass must stay transparent (model opacity, transparent
+  true, depthWrite false). Keep the :kit override supported and tested for later.
+
+❯ Second manager note (quest amended again, same bullet): at night the booth's ceiling lamp glows AND carries one
+  small warm point light inside (:light-m 3, a 3 m range, not the kit lamp's full range) so the phone is lit and a
+  soft pool spills through the glass; the four TELEPHONE sign panels glow (emissive, following the kit's lamps) but
+  add no light of their own (:light false). So :materials {"lamp" {:glow true :light-m 3} "sign" {:glow true :light
+  false}}; light-glows! needs those two options; test them in the pure override fn.
+
+⏺ Both amendments noted: the glass keeps the model's own, the lamp gets a 3 m light and the signs no light. Re-reading
+  the amended quest and checking which tests load pm.three.
+
+  Searched for 2 patterns, ran 3 shell commands
+
+⏺ I have everything I need; writing the spec with both amendments folded in.
+
+⏺ Write(crew/runs/booth-model-v0-20261123-2138/spec.md)
+  ⎿  Wrote 268 lines to crew/runs/booth-model-v0-20261123-2138/spec.md
+       1 # Spec: booth-model-v0 (TASKS T-18)
+       2
+       3 Quest: `.crew/quests/booth-model-v0.md` (**as amended twice**: no glass kit override, the
+       4 panes keep the model's own see-through glass; the lamp glows with one small 3 m light, the
+       5 signs glow with no light). A prop can carry a `:model` (a GLB): it's drawn from its `:look`
+       6 at mount, then swapped in place for the model's meshes once they load. The booth is first.
+       7
+       8 Pure logic goes in a **new pure namespace `pm.models`** plus two small changes in
+       9 `pm.plan`; `pm.three` does the loading/rebuilding (the only place that requires the npm
+      10 `GLTFLoader`); `pm.scene` swaps. No test loads `pm.three`/`pm.scene` (none does today), so
+     … +258 lines
+
+⏺ I wrote the spec to crew/runs/booth-model-v0-20261123-2138/spec.md, with both of Hal's amendments folded in.
+  Public functions: new pure pm.models (model-spec, material-override, material-props); in pm.plan, phone-booth-item
+  now carries :model and there's a new model-label-at; in pm.three, load-model (cached per URL), model-meshes, add-y!,
+  and light-glows!/unlight-glows!/sync-glows! gain the no-light and range options; the swap itself is in pm.scene.
+  It has 46 numbered test cases in test/pm/booth_model_test.cljs and no existing test changes. Glass gets no override
+  and stays transparent with depth-write off; the lamp gets one 3 m light and the signs glow without one; the :kit
+  override is still supported and tested.
+
+  done-4535
+
+✻ Crunched for 4m 3s · done 9:43 PM
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

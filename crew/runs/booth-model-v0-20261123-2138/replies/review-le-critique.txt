@@ -1,0 +1,363 @@
+
+💻 $ git status + 2 commands  1.0s
+📖 Read spec.md
+📖 Read tidy-after-remove-v0.md
+📖 Read log.md
+📖 Read gate-1.txt
+📖 Read builder-notes.md
+💻 $ ls crew/runs/tidy-after-remove-v0-20261123-1929/replies/  0.4s
+
+────────────────────────────────────────
+☤ Hermes
+Now let's get all the diffs and read the new test file.
+────────────────────────────────────────
+
+💻 $ git diff -- resources/estate.edn src/pm/plan.cljs test/pm/plan_test.cljs  0.4s
+💻 $ git diff -- src/pm/pick.cljs src/pm/ui.cljs  0.5s
+💻 $ git diff -- src/pm/blueprint.cljs src/pm/core.cljs  0.6s
+🔎 Grep defn world-pos  0.4s
+📖 Read tidy_after_remove_test.cljs
+💻 $ git ls-tree -r HEAD --name-only -- test/ | xargs -I{} git show HEAD:{} 2>/dev/null | grep -c '^(deftest' + 2 commands  2.2s
+💻 $ bash .crew/gate.sh  22.7s
+🔎 Grep bench-by-mailbox|lamp-post-by-canal|bench-by-creek|un-automate-monde|le-testeur|le-docteur|le-critique  0.4s
+💻 $ git diff -- package.json package-lock.json 2>/dev/null + 1 command  0.4s
+🔎 Grep :lobby  0.4s
+🔎 Grep defn errand-target  0.4s
+✍️ Write crew/runs/tidy-after-remove-v0-20261123-1929/review.md
+│ crew/runs/tidy-after-remove-v0-20261123-1929/review.md
+│ @@ -0,0 +1,72 @@
+│ +# Review — tidy-after-remove-v0 (TASKS T-16)
+│ +
+│ +Scope: `git diff` for the 7 modified files (`resources/estate.edn`, `src/pm/blueprint.cljs`,
+│ +`src/pm/core.cljs`, `src/pm/pick.cljs`, `src/pm/plan.cljs`, `src/pm/ui.cljs`,
+│ +`test/pm/plan_test.cljs`) plus a full read of the one new file (`test/pm/tidy_after_remove_test.cljs`),
+│ +against `spec.md` and the quest. `6600d97` (the quest+spec commit, code/tests unchanged) is the
+│ +baseline; nothing else is stacked on it.
+│ +
+│ +## Gate — verified independently
+│ +
+│ +Re-ran `bash .crew/gate.sh`: `[:app]`/`[:test]` 0 warnings, `Ran 1300 tests containing 7585
+│ +assertions, 0 failures, 0 errors`, `bb content-test` 5/42 — matches `gate-1.txt` exactly.
+│ +Structural cross-check: committed `deftest` count at `HEAD` is 1250, working tree is 1300, a
+│ +delta of exactly 50 — the new file's own count (L1–L8=8, P1–P12=12, M1–M11=11, R1–R9=9,
+│ +G1–G10=10 = 50), matching the spec's own "50 numbered cases" exactly; `t42`/`t43` are rewrites of
+│ +existing `deftest`s so correctly add zero to the delta.
+│ +
+│ +## Point-by-point
+│ +
+│ +- **The lobby draws nothing, still works as an errand spot**: `pm.plan/lobby-item` now requires
+│ +  `(and (valid-at? at) (some? look))`, so the shipped estate's look-less `:lobby` returns nil
+│ +  (`L4`, `t42`) — `pm.scene/with-lobby` (untouched) already conjs only a non-nil item, so no empty
+│ +  sign/mesh is drawn. `pm.world/errand-target` (not in this round's diff, confirmed by `git
+│ +  status`) still reads `(get-in world [:lobby :at])`, and `:lobby`'s `:at`/`:yaw` are
+│ +  byte-identical to before — `L6`/`L7`/`L8` (errand target, already-close, the recorded errand
+│ +  event) hand-trace correctly and are untouched logic paths, only exercised against the new data
+│ +  shape.
+│ +- **Only `:look`/`:text` left `estate.edn`'s `:lobby`**: diffed the one hunk — `:at [2.7 6.18
+│ +  -23.6] :yaw 0` are the same literal values as before; only the `:text` line and the `:look`
+│ +  map (post + board parts) were removed, plus the comment rewritten to say why. `L4` confirms the
+│ +  shipped entry's keys are now exactly `#{:at :yaw}`.
+│ +- **Old tests changed only where they counted the lobby item/label**: the `plan_test.cljs` diff
+│ +  is confined to `t42`/`t43` (plus the new shared `lobby-LOOK` fixture both use) — no other
+│ +  assertion in that file moved, `t41` is untouched, and grepping `test/` for `:lobby` turns up
+│ +  nothing outside these two files, so no other suite silently relied on a drawn lobby item.
+│ +- **`screen-of`'s `min-y` is pure, tested, and doesn't change the hidden cases**: the 3-arity
+│ +  touches no DOM/`js/Date`; hand-traced its branching against `P1`–`P11` — invalid `ndc`/`size`
+│ +  or a non-finite `min-y` always returns `base` (literally `(screen-of ndc size)`, the 2-arity's
+│ +  own value) unmodified, and when `ndc`/`min-y` are valid but the point fails the new (top-bound-
+│ +  dropped) visibility test `(and (<= -1 x 1) (<= -1 y) (<= z 1))`, it *also* returns `base`
+│ +  verbatim — so every hidden case (off left/right `P7`, below bottom `P8`, behind camera `P9`) is
+│ +  provably identical to the unpinned 2-arity result, not just numerically equal by coincidence.
+│ +  `pin-min-y` matches §B.3's rule by hand-trace (`bx` genuinely unchecked in `M6`; `card-h` must
+│ +  be finite and `>= 0`; `(<= by 1)`/`(<= bz 1)` gate it to nil otherwise) and its composition with
+│ +  `screen-of` (`M10`/`M11`) checks out.
+│ +- **The real-sign prefix drop applies to `:real` only and is data-agnostic**: `sign-summary` is
+│ +  gated on `(= :real (:status bp))` exclusively (`R8` sweeps every other status plus `nil`,
+│ +  unchanged); it reads only `bp`'s own `:summary`/`:status`, never `world`'s `:blueprint-text`
+│ +  (`G4`'s `(bp/sign-text {} (assoc BL :status :real))` confirms it works with an empty world).
+│ +  `proposed-prefix-re` is `^:private` and generic (no blueprint id or member name baked in).
+│ +  `sign-text` now routes every status's first line through `sign-summary` (a no-op for
+│ +  non-`:real`), and for `:real` specifically drops the whole second-line/tail logic, matching
+│ +  `:pending`/`:approved`/`:removing` signs staying byte-for-byte (`G5`–`G8`). `built-plan` itself
+│ +  is untouched — a `:real` item still carries no `:label`/`:text` (`G9`), consistent with the
+│ +  spec's explicit note that a real build still draws no sign at all.
+│ +- **No member/pet/blueprint named in code; no npm deps**: grepped `src/` for crew codenames and
+│ +  specific blueprint ids — the only hit (`pick.cljs`'s pre-existing `le-testeur` docstring)
+│ +  predates this round's diff. `package.json` has no diff.
+│ +- **Boundary table**: `git status` matches exactly — builder's files (`plan.cljs`'s `lobby-item`,
+│ +  `pick.cljs`'s new 3-arity/`pin-min-y`/`card-pin-gap-px`, `ui.cljs`'s `trial-card-height`,
+│ +  `core.cljs`'s `trial-card!` only, `blueprint.cljs`'s `sign-summary`/`sign-text`,
+│ +  `estate.edn`'s `:lobby` entry only) plus the tester's `plan_test.cljs` (`t42`/`t43` only) and
+│ +  new file; nothing in `docs/`, `TASKS.md`, any other `estate.edn` key, or `state/` touched.
+│ +  `core.cljs`'s reuse of the pre-existing `t/world-pos` (unmodified `three.cljs`, not in this
+│ +  round's diff) stays within the `trial-card!`-only boundary.
+│ +
+│ +## Findings
+│ +
+│ +None. Every new/changed pure fn (`lobby-item`'s look-gate, `screen-of`'s 3-arity, `pin-min-y`,
+│ +`sign-summary`, `sign-text`'s real-branch) traces to matching code and a passing, hand-checked
+│ +test, including the subtler "hidden case must be byte-identical to the 2-arity result" and
+│ +"prefix drop is data-agnostic" requirements this review specifically probed for.
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/tidy-after-remove-v0-20261123-1929/review.md.
+
+Independently re-ran the gate (0 warnings, 1300 tests/7585 assertions, matches gate-1.txt) and cross-checked the deftest delta (1250→1300 = exactly the new file's own 50 cases, with t42/t43 correctly adding zero since they're rewrites). Hand-traced lobby-item's look-gate, screen-of's 3-arity against every P-case (confirming hidden cases return the literal base 2-arity value, not just an equal one), pin-min-y, and sign-summary/sign-text's real-only, data-agnostic prefix drop. Verified estate.edn's :lobby kept :at/:yaw byte-identical, no other test file leaned on a drawn lobby item, no names/npm deps leaked in, and boundary-table compliance is exact. No findings.
+
+done-6722
+────────────────────────────────────────
+
+─ 2m46s · edited 1 file · read 6 files · ran 8 commands · searched 4 paths · 7:44 PM
+
+
+────────────────────────────────────────
+❯ Review the round's changes against crew/runs/kit-materials-v0-20261123-2005/spec.md and .crew/quests/kit-materials-v0.md: git diff for edited files, and read the new files (git status lists them). Check in particular: only the kit's THREE is used (no npm three or three/examples objects in the kit scene); each part gets its own cloned material and texture clones (the kit's shared materials are never mutated); the repeat and bevel fns are pure and tested; ghost!/unghost! save and restore textured materials exactly; flat-colour fallback with no kit or a missing name, warned once; ' / wind' materials never used; raycasts unchanged; no blueprint, person or pet named in code; no npm deps. Write the review to crew/runs/kit-materials-v0-20261123-2005/review.md.
+
+When you have completely finished, end your reply with a line containing only this: done-7792
+────────────────────────────────────────
+
+💻 $ git status + 2 commands  1.1s
+📖 Read spec.md
+📖 Read kit-materials-v0.md
+📖 Read log.md
+📖 Read gate-1.txt
+📖 Read builder-notes.md
+💻 $ ls crew/runs/kit-materials-v0-20261123-2005/replies/  0.3s
+
+────────────────────────────────────────
+☤ Hermes
+Now let's get the full diffs and read the new files.
+────────────────────────────────────────
+
+💻 $ git diff -- resources/estate.edn  0.5s
+📖 Read materials.cljs
+📖 Read materials_test.cljs
+💻 $ git diff -- src/pm/three.cljs  0.5s
+🔎 Grep require|examples|^import|from \"three  0.3s
+💻 $ git diff -- src/pm/scene.cljs  0.3s
+🔎 Grep bench-by-mailbox|lamp-post-by-canal|bench-by-creek|un-automate-monde|le-testeur|le-docteur|le-critique  0.4s
+💻 $ git diff -- package.json package-lock.json 2>/dev/null + 1 command  0.4s
+💻 $ bash .crew/gate.sh  22.9s
+💻 $ git ls-tree -r HEAD --name-only -- test/ | xargs -I{} git show HEAD:{} 2>/dev/null | grep -c '^(deftest' + 2 commands  2.1s
+🔎 Grep :mirror   0.4s
+✍️ Write crew/runs/kit-materials-v0-20261123-2005/review.md
+│ crew/runs/kit-materials-v0-20261123-2005/review.md
+│ @@ -0,0 +1,89 @@
+│ +# Review — kit-materials-v0 (TASKS T-17)
+│ +
+│ +Scope: `git diff` for the 3 modified files (`resources/estate.edn`, `src/pm/scene.cljs`,
+│ +`src/pm/three.cljs`) plus a full read of the two new files (`src/pm/materials.cljs`,
+│ +`test/pm/materials_test.cljs`), against `spec.md` and the quest. `49ef370` (the quest+spec
+│ +commit, code/tests unchanged) is the baseline; nothing else is stacked on it.
+│ +
+│ +## Gate — verified independently
+│ +
+│ +Re-ran `bash .crew/gate.sh`: `[:app]`/`[:test]` 0 warnings, `Ran 1351 tests containing 7690
+│ +assertions, 0 failures, 0 errors`, `bb content-test` 5/42 — matches `gate-1.txt` exactly.
+│ +Structural cross-check: committed `deftest` count at `HEAD` is 1300, working tree is 1351, a
+│ +delta of exactly 51 — `materials_test.cljs`'s own case-1..case-51, matching the spec's own "51
+│ +numbered cases" exactly.
+│ +
+│ +## Point-by-point
+│ +
+│ +- **Only the kit's THREE; no npm `three`/`three/examples` objects in the kit scene**:
+│ +  `three.cljs`'s `:require` is unchanged (`"three/webgpu"`, `clojure.string`, now also
+│ +  `pm.materials` — a pure namespace, no three.js import of its own). Every new class
+│ +  (`BoxGeometry`, `EdgesGeometry`, `LineBasicMaterial`, `LineSegments`, `MeshStandardMaterial`)
+│ +  is pulled off `(three)` — the same `@!three` atom `use-three!` points at the kit's own THREE —
+│ +  exactly the existing pattern, never a separately-imported module. Grepped the whole file for
+│ +  `examples`/a second `require`: none.
+│ +- **Each part gets its own cloned material and texture clones; the kit's shared materials are
+│ +  never mutated**: `kit-part-material` and its helpers (`clone-with-repeat`, `clone-tex!`) only
+│ +  ever call `set!`/`.set` on the *local* clone bindings (`m`, `t`, `mx`, `my`, `mz`) — never on
+│ +  the `material`/`tex` parameters that reference the kit's own objects. `.clone()` is called
+│ +  first in every path before anything is touched; for `:box`, three independent clones (`mx` `my`
+│ +  `mz`) back the six-slot material-index array `[mx mx my my mz mz]`, matching `BoxGeometry`'s
+│ +  face-group order. The palette colour is never set on the clone, so the kit material's own
+│ +  colour survives untouched (confirmed by reading every line of `kit-part-material`/
+│ +  `clone-with-repeat`: no `.color`/`.setHex` call anywhere in them).
+│ +- **`box-face-repeats`/`shape-repeat`/`bevel-radius`/`round-box-vertex` are pure and tested**:
+│ +  `pm.materials.cljs` requires only `clojure.string` — no three.js/DOM/`js/Date`/atoms anywhere
+│ +  in the file. Hand-traced `box-face-repeats`'s seat/leg numbers, `shape-repeat`'s cylinder/cone
+│ +  formula, `bevel-radius`'s `min(0.02, smallest/4)`, and `round-box-vertex`'s face-middle/edge/
+│ +  corner cases (including the "same extents as today's box" property: face-middle vertices land
+│ +  exactly on `±size/2 ∓ 0` after `box_i + normal_i·r` collapses to `box_i + r` on the one
+│ +  non-middle axis) against the spec's §2.4–2.7 formulas and the test file's case-19..case-45 —
+│ +  all match, including the sign-agnostic corner case (`case-41`).
+│ +- **`ghost!`/`unghost!` save and restore textured materials exactly**: `ghost!` now stores the
+│ +  mesh's *actual* current material (single object or array, textured or flat) in
+│ +  `userData.ghostMat` — only on first ghosting (`if (some? ghostMat) dispose-the-old-ghost-
+│ +  material : save-the-real-one`), so a double-ghost doesn't clobber the originally-saved
+│ +  reference. `unghost!` disposes the ghost material and reassigns `.material` to the exact saved
+│ +  reference (`(set! (.-material o) saved)`, not a re-clone), then deletes `ghostMat`; a mesh
+│ +  never ghosted is left completely untouched. Edge lines are built from a plain `BoxGeometry
+│ +  (userData.boxSize)` when the mesh was bevelled, so the outline stays a crisp box rather than
+│ +  tracing every bevel segment — exactly the spec's stated rationale.
+│ +- **Flat-colour fallback with no kit or a missing name, warned once**: `mount!` builds the
+│ +  material index from `(t/material-pairs scene)` *before* adding our own root (so our clones,
+│ +  which inherit the kit material's `.name`, are never indexed), and only calls
+│ +  `mats/missing-names` (and warns) when that index is non-empty — a scaffold build (no kit) has
+│ +  an empty index and never warns. `mount!`'s own `(when-not @!mounted ...)` guard means this runs
+│ +  at most once per page load, so a genuinely-missing name warns exactly once, not per frame.
+│ +  `material-for` returns nil (flat colour via `stand-in`'s unset `:kit` opt) for any unmapped
+│ +  key, a missing name, or a kit that isn't up (`index` empty/nil) — confirmed by the pure-fn
+│ +  tests (`case-12`–`case-14`).
+│ +- **`" / wind"` materials never used**: `index-materials` drops any pair whose name contains
+│ +  `wind-marker`; `material-for` independently re-checks the *kit-materials entry's own* name for
+│ +  the marker too (`case-15` forces a wind name directly into the index to prove this second,
+│ +  independent guard — not just relying on `index-materials` having already filtered it);
+│ +  `missing-names` always reports a wind name as missing (never satisfiable), matching "never
+│ +  used" with two layers rather than one.
+│ +- **Raycasts unchanged**: mesh names are set exactly as before regardless of the new opts; no
+│ +  raycast-related code changed in `scene.cljs`/`three.cljs` (array materials raycast using
+│ +  three.js's own native per-face behaviour, needing no special-casing here); ghost edge lines
+│ +  keep their `(set! (.-raycast lines) (fn [] nil))` no-op, unchanged.
+│ +- **No blueprint/person/pet named in code; no npm deps**: grepped `src/pm` for crew codenames and
+│ +  blueprint ids — the only hit (`pick.cljs`'s pre-existing `le-testeur` docstring) predates this
+│ +  round's diff. `package.json` has no diff.
+│ +- **Boundary table**: `git status` matches exactly — builder's files (new `materials.cljs`,
+│ +  `three.cljs`'s listed functions, `scene.cljs`'s `mount-item!`/`mount!`/`sync-blueprint-draw!`,
+│ +  `estate.edn`'s `:kit-materials` entry only) plus the tester's one new file; `pm.bricks` and
+│ +  `pm.creature-spike` (which also call `t/stand-in`) are untouched and don't need to be — the new
+│ +  `:bevel`/`:kit` opts default to nil, leaving their calls byte-for-byte unchanged, matching the
+│ +  spec's explicit design goal.
+│ … omitted 11 diff line(s) across 1 additional file(s)/section(s)
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/kit-materials-v0-20261123-2005/review.md.
+
+Independently re-ran the gate (0 warnings, 1351 tests/7690 assertions, matches gate-1.txt) and cross-checked the deftest delta (1300→1351 = exactly the new file's own 51 cases). Hand-traced every pure fn in pm.materials against the spec's formulas (box-face-repeats, shape-repeat, bevel-radius, and the trickier round-box-vertex face/edge/corner geometry), confirmed three.cljs only ever pulls classes off the kit's own (three) with no three/examples import, verified kit-part-material's clones never mutate the originals, traced ghost!/unghost!'s save/restore of the exact material reference (including the array case), confirmed the index-before-mount ordering and once-only warning logic, the two independent wind-marker guards, and that pm.bricks/pm.creature-spike need no changes since the new stand-in opts default to a no-op. Boundary-table compliance is exact, no names/npm deps leaked in. No findings — one worth noting for the record rather than flagging: the phone booth also picks up rounded box edges (bevel is independent of the colour/texture mapping), which matches the spec's own wording since "stays painted" is specifically about colour.
+
+done-7792
+────────────────────────────────────────
+
+─ 4m00s · edited 1 file · read 7 files · ran 8 commands · searched 3 paths · 8:20 PM
+  💾 Self-improvement review: Skill 'crew-round-review' patched
+
+
+────────────────────────────────────────
+❯ Review the round's changes against crew/runs/booth-model-v0-20261123-2138/spec.md and .crew/quests/booth-model-v0.md: git diff for edited files, and read the new files (git status lists them). Check in particular: npm GLTFLoader only parses, and every object added to the scene is rebuilt with the active (kit's) THREE; the GLB loads once per URL; textures keep flipY false and sRGB; material overrides are a pure, tested fn of data; the kit's shared materials are cloned, never mutated; the :look stays as fallback and failures warn once; the booth keeps its click key and sign; no new npm deps; nothing names a person, pet or member in code. Write the review to crew/runs/booth-model-v0-20261123-2138/review.md.
+
+When you have completely finished, end your reply with a line containing only this: done-1475
+────────────────────────────────────────
+
+💻 $ git status + 2 commands  0.8s
+📖 Read spec.md
+📖 Read booth-model-v0.md
+📖 Read log.md
+📖 Read gate-1.txt
+📖 Read builder-notes.md
+💻 $ find assets -maxdepth 3 + 1 command  0.4s
+💻 $ git check-ignore -v assets assets/private assets/blender + 1 command  0.4s
+💻 $ git log --oneline --all -- assets/blender + 1 command  0.5s
+💻 $ git ls-files public/assets/props/ + 1 command  0.3s
+💻 $ git diff -- resources/estate.edn src/pm/plan.cljs  0.4s
+📖 Read models.cljs
+💻 $ git diff -- src/pm/three.cljs  0.3s
+📖 Read three.cljs L870-909
+💻 $ git diff -- src/pm/scene.cljs  0.4s
+📖 Read booth_model_test.cljs
+💻 $ bash .crew/gate.sh  25.9s
+💻 $ git ls-tree -r HEAD --name-only -- test/ | xargs -I{} git show HEAD:{} 2>/dev/null | grep -c '^(deftest' + 2 commands  2.4s
+💻 $ git diff -- package.json package-lock.json 2>/dev/null + 1 command  0.4s
+🔎 Grep bench-by-mailbox|lamp-post-by-canal|bench-by-creek|un-automate-monde|le-testeur|le-docteur|le-critique  0.3s
+💻 $ grep -n '"three"' package.json + 2 commands  0.4s
+✍️ Write crew/runs/booth-model-v0-20261123-2138/review.md
+│ crew/runs/booth-model-v0-20261123-2138/review.md
+│ @@ -0,0 +1,97 @@
+│ +# Review — booth-model-v0 (TASKS T-18)
+│ +
+│ +Scope: `git diff` for the 4 modified files (`resources/estate.edn`, `src/pm/plan.cljs`,
+│ +`src/pm/scene.cljs`, `src/pm/three.cljs`) plus a full read of the two new files
+│ +(`src/pm/models.cljs`, `test/pm/booth_model_test.cljs`), against `spec.md` and the quest
+│ +(amended twice: no glass kit override, and the lamp/sign glow split). `87b9dcd` (the quest's
+│ +own start commit, before the two in-tree amendment commits `24e06f1`/`a7c27ff` and this round's
+│ +own spec commit) is the baseline; nothing else of this round's own work is stacked on it.
+│ +
+│ +Scope note: `git status` also shows an untracked top-level `assets/` (it holds `assets/private/`,
+│ +gitignored, plus `assets/blender/phone-booth.blend(1)`, which is **not** covered by `.gitignore`'s
+│ +`assets/private/` rule and so shows as untracked clutter). Both `assets/blender/phone-booth.blend`
+│ +and `.blend1` have mtimes of 21:14–21:15, a full 23 minutes before this round's own `spec` step
+│ +started (21:38:51 per `log.md`) — they predate the round and are Hal's own raw Blender source
+│ +files from building the asset, not something this round's builder touched (the boundary table
+│ +forbids `tools/blender/` and `public/assets/props/` anyway, and `public/assets/props/phone-booth.glb`
+│ +is already committed with an mtime of 21:15, also pre-round). Excluded from this review's findings.
+│ +
+│ +## Gate — verified independently
+│ +
+│ +Re-ran `bash .crew/gate.sh`: `[:app]`/`[:test]` 0 warnings, `Ran 1397 tests containing 7804
+│ +assertions, 0 failures, 0 errors`, `bb content-test` 5/42 — matches `gate-1.txt` exactly.
+│ +Structural cross-check: committed `deftest` count at `HEAD` is 1351, working tree is 1397, a
+│ +delta of exactly 46 — `booth_model_test.cljs`'s own case-1..case-46, matching the spec's "46
+│ +numbered cases" (it alone also covers `pm.models`; no separate `models_test.cljs` was wanted).
+│ +
+│ +## Point-by-point
+│ +
+│ +- **npm `GLTFLoader` only parses; every scene-bound object is rebuilt with the active THREE**:
+│ +  `three.cljs`'s new `:require` adds `"three/examples/jsm/loaders/GLTFLoader.js"` *only there*;
+│ +  `load-model` calls `.loadAsync` on it and returns the raw parsed `gltf` — nothing from that
+│ +  call is ever added to a scene. `model-meshes` is the sole consumer: `rebuild-geometry` creates
+│ +  a brand-new `BufferGeometry`/`BufferAttribute`/`Matrix4` off `(three)` (the active, kit's-when-
+│ +  up THREE) and only copies plain numeric data (`.-array`, `.-elements`) from the parsed side,
+│ +  never storing an npm object; `rebuild-material` likewise constructs an active-THREE
+│ +  `MeshStandardMaterial`/`Texture`, reading only plain props (`read-material`) and the raw decoded
+│ +  `.-image` off the source. `pm.scene` never imports three.js at all and only calls through
+│ +  `t/load-model`/`t/model-meshes`/`t/add-y!`/`t/ghost!`/`t/light-glows!` — confirmed by its
+│ +  `:require` list, unchanged except for the new `pm.models`.
+│ +- **The GLB loads once per URL**: `load-model`'s `defonce` atom caches the *promise itself*
+│ +  keyed by URL (`(or (get @!model-cache url) (let [p ...] (swap! ...) p))`), so a second call
+│ +  for the same URL — even a rejected one — returns the identical promise object rather than
+│ +  re-fetching; matches the spec's explicit "a rejected promise stays cached, so a bad file is
+│ +  tried once."
+│ +- **Textures keep `flipY false` and sRGB**: `rebuild-material` sets `(.-flipY tex) false` and
+│ +  `(.-colorSpace tex) (.-SRGBColorSpace T)` (active THREE's own enum) unconditionally whenever a
+│ +  source `map` exists, alongside carrying over the source's `wrapS`/`wrapT` and `needsUpdate
+│ +  true` — matches spec §3.1 exactly.
+│ +- **Material overrides: a pure, tested fn of data**: `pm.models/material-override` touches no
+│ +  three.js/DOM/`js/Date`/atoms (confirmed reading the whole file: only `clojure.string` and
+│ +  `pm.materials` for `wind-marker`). Hand-traced every branch (kit-name validity incl. the wind
+│ +  marker, `:glow`'s `true?`/`false?` literal gating, `:light-m`'s `finite-pos?` guard against
+│ +  `0`/`-1`/a string/`NaN`/`Infinity`) against cases 1–15 — all match, including the two-layer
+│ +  wind defence (`material-override` re-checks a kit name's own string even when the caller might
+│ +  already have filtered the index, case 14).
+│ +- **The kit's shared materials are cloned, never mutated**: `swap-in-model!`'s `:kit` branch does
+│ +  `(set! (.-material m) (.clone km))` — `km` (`(get (:index kit-mats) k)`, the kit's own object)
+│ +  is only ever read and cloned, never assigned-into; grepped `swap-in-model!` for any `set!`/`.set`
+│ +  call whose target is `km` directly: none.
+│ +- **`:look` stays the fallback; failures warn once**: `mount-item!` draws the `:look` parts
+│ +  unconditionally, *then* kicks off the model load; `swap-in-model!` only removes a look mesh
+│ +  (matched precisely by `look-mesh-name?`'s `"<key>/<i>"` regex, so it never touches an unrelated
+│ +  sibling like a ghost-edges line) once real model meshes are in hand, so an empty/`nil`
+│ +  `model-meshes` result or a rejected `load-model` promise both leave the look completely
+│ +  untouched. All three warn paths (`:load-failed` on a rejected promise, `:model-empty` when
+│ +  meshes come back nil/empty, `:kit-missing` per missing kit name) share one `model-warn!`
+│ +  helper backed by a `defonce` token set, so each distinct cause warns exactly once per page
+│ +  session, never once per frame/poll.
+│ +- **The booth keeps its click key and sign**: every model mesh is named `(str (pr-str key) "/"
+│ +  i)` — the same convention `pm.pick/key-of-name`/`pick-key` already strip to recover the item's
+│ +  key (cases 45–46 exercise this directly against a model-mesh-shaped name) — and the swap never
+│ +  renames/repositions/reyaws the outer group `g` itself. The label sprite is only ever nudged up
+│ +  (`add-y!`, `pos?`-gated so it never moves on a dy ≤ 0) via `pm.plan/model-label-at`, which is
+│ +  pure, tested (cases 39–44, including "never lowered" and every bad-input branch), and leaves
+│ +  `:label-at` itself unchanged when its own guards fail.
+│ +- **No new npm deps; nothing names a person/pet/member in code**: `package.json` has no diff —
+│ +  `GLTFLoader.js` ships inside the already-present `three` 0.186.1 dependency. Grepped `src/` for
+│ +  crew codenames and blueprint ids: the only hit (`pick.cljs`'s pre-existing `le-testeur`
+│ … omitted 19 diff line(s) across 1 additional file(s)/section(s)
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/booth-model-v0-20261123-2138/review.md.
+
+Independently re-ran the gate (0 warnings, 1397 tests/7804 assertions, matches gate-1.txt) and cross-checked the deftest delta (1351→1397 = exactly the new file's own 46 cases). Hand-traced model-spec/material-override/material-props against every numbered case, confirmed model-meshes/rebuild-geometry/rebuild-material only ever construct active-THREE objects (never adding an npm-three instance to the kit scene), verified the per-URL promise cache, flipY/sRGB texture handling, the kit-material clone-never-mutate pattern, the once-per-cause warning tokens, and the userData.lit-vs-.light split that lets the TELEPHONE signs glow without their own point light. Also traced an untracked top-level assets/ directory to pre-round Blender source files (mtimes ~23 minutes before this round's own start) — noted as out of scope rather than a boundary violation. Boundary-table compliance is exact, no npm deps added, no names leaked beyond the booth's own permitted asset-file string. No findings.
+
+done-1475
+────────────────────────────────────────
+
+─ 6m44s · edited 1 file · read 8 files · ran 12 commands · searched 1 path · 10:00 PM
+───────────────────────────────────────────────────────────────────────────────────── Introduce name job and model #2 ─
+crew ❯ Plan a feature, then build it step by step
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☤ claude-sonnet-5 · ~383K/1M · [████░░░░░░] ~38% · ◎ 91.7% · ◷ 34.5s · ↑ 71 t/s · 10h 22m · ⏲ 6m 43s · ✓ 0s

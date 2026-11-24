@@ -1,0 +1,430 @@
+diff --git a/TASKS.md b/TASKS.md
+index 34ee33b..de63f03 100644
+--- a/TASKS.md
++++ b/TASKS.md
+@@ -98,6 +98,7 @@ The twin on the estate (GDD §2.1). Built today: he walks (black body, white joi
+ - [x] Nov 23 (crew round remove-build-v0) T-15 Remove a real build, try-first (Michael, Nov 23: "once its made real its there for good … should we have the undo or delete come up"). Click a real build and the same card shows **Remove…** and **Close**; Remove… previews the loss (the item turns into a see-through red removal ghost, its sign reads "will be removed") and offers **Remove it** and **Keep it**. Keep it puts it back as it was; Remove it records the removal through the bridge (`state/builds.edn` `:removed`, reads "Removing…" while it does), and the build is gone on every reload. No bridge: nothing changes and the twin says why. A removed id can't be reused (`bb blueprint-add` refuses it; pick a new id).
+ - [x] Nov 23 (crew round tidy-after-remove-v0) T-16 Tidy-ups after removal (Michael, Nov 23: "ya just remove the sign"). The lobby's signpost by the cottage is gone; the lobby is still where errands go (`bb hal-say --at lobby`). Up close to a tall build, its card stays pinned at the top of the screen instead of vanishing. A real build's sign drops "proposed:" from its summary.
+ - [x] Nov 23 (crew round kit-materials-v0) T-17 Our things wear the kit's materials (Michael, Nov 23: "can we texture these items? they're kinda plain"). Benches, the lamp post, and the workshop and mailbox use the kit's own timber and metal (estate.edn `:kit-materials`: palette key → kit material), the grain tiled by each part's size so a thin leg isn't stretched, and box edges are slightly rounded. Ghosts look as before; Undo brings the wood back. Without the kit (a public clone) everything keeps its flat colour.
++- [x] Nov 23 (crew round booth-model-v0) T-18 Props can be models; the red phone box goes in (Michael, Nov 23: "make the phone booth look more like a real london phone booth … keep with the theme"). The booth is now Hal's weathered red phone box (a Blender model, `tools/blender/phone_booth.py`), loaded from `public/assets/props/phone-booth.glb` through a prop's `:model`; its old boxes show until it loads, or if it can't. You can see the phone through its glass; at night its ceiling lamp glows and lights the box with one small light, and the TELEPHONE signs glow. Clicking it still jacks you back in.
+ - [ ] T-12 Call the player's real phone (after T-11; the GDD's jack-out hook, §2.3): Twilio voice from the bot number to his cell when something real is due (Flora's chore, a "!" waiting past closing) or when he taps 📞 away from the laptop; the twin reads the lines, speech-to-text comes back down the bridge; a crew member who takes a minute "calls back". Costs per minute; FaceTime/Teams have no agent end and are out. Ready-made ways to add it (Nov 22, nothing installed): Hermes's official `telephony` skill (one-way calls on the existing Twilio number: a spoken message or a TTS recording); the community **Hermes Voice Gateway** plugin (two-way: the player calls the twin's number and talks; needs ElevenLabs and a tunnel); Zoom only as a meeting bot that joins a meeting (Meetstream / Meeting AI plugins, paid bot services); Slack is text and voice notes only (bots can't join huddles).
+ - [ ] T-9 v2 idea: living objects (docs/ideas-living-objects.md): stateful things that age, speak, and pass messages through the twin; Flora's hunger in the game first, a text only when she's well overdue (replacing the 09:00/17:00 cron).
+ 
+diff --git a/docs/GDD.md b/docs/GDD.md
+index 0232e4a..c0f8af5 100644
+--- a/docs/GDD.md
++++ b/docs/GDD.md
+@@ -437,7 +437,7 @@ An agent can only do as much harm as its permissions allow, and these agents rea
+ 
+ ## 5. Art Direction
+ 
+-Medium-poly, flat-shaded, warm palette, soft shadows: a diorama you'd keep on a desk, floating on a dark grid. An elevated 3/4 camera looks over cutaway rooms (after Ralv.ai's estate view). Characters are KayKit (CC0) figures with a hat or color per crew role, and they move physically rather than through canned animation loops (§4.1): a stylized look with real weight and balance. Flora's canal is styled after Xochimilco (slow water, chinampas, a moored trajinera); its lush water and foliage come from one licensed scene kit, kept to one corner so it sits well next to the medium-poly figures. Time of day (afternoon, golden hour, blue hour, night) drives the lighting, and night arrives at closing time. Our own props (blueprints and the estate's fixtures) wear the scene kit's materials (its timber and metal, tiled to each part's size, with softly rounded box edges) so they sit with the cottage and its steps; characters, creatures and the phone booth stay painted, and without the kit everything falls back to the flat palette.
++Medium-poly, flat-shaded, warm palette, soft shadows: a diorama you'd keep on a desk, floating on a dark grid. An elevated 3/4 camera looks over cutaway rooms (after Ralv.ai's estate view). Characters are KayKit (CC0) figures with a hat or color per crew role, and they move physically rather than through canned animation loops (§4.1): a stylized look with real weight and balance. Flora's canal is styled after Xochimilco (slow water, chinampas, a moored trajinera); its lush water and foliage come from one licensed scene kit, kept to one corner so it sits well next to the medium-poly figures. Time of day (afternoon, golden hour, blue hour, night) drives the lighting, and night arrives at closing time. Our own props (blueprints and the estate's fixtures) wear the scene kit's materials (its timber and metal, tiled to each part's size, with softly rounded box edges) so they sit with the cottage and its steps; characters, creatures and the phone booth stay painted, and without the kit everything falls back to the flat palette. Props can also be Blender models (a prop's `:model`, a GLB drawn with the kit's own three.js, its primitive `:look` as the fallback); the red phone box is the first, with its own see-through glass and a lamp and signs that glow at night.
+ 
+ ## 6. Risks
+ 
+diff --git a/resources/estate.edn b/resources/estate.edn
+index a204703..d01300c 100644
+--- a/resources/estate.edn
++++ b/resources/estate.edn
+@@ -228,7 +228,14 @@
+  ;; rings it, its sign (pm.plan/phone-booth-item) shows the reason while the
+  ;; estate is frozen (pm.world/jack-out-text); empty otherwise. East bank,
+  ;; near the mailbox, terrain probed at 1.71 m, clear of Un Architecte's route (Hal).
++ ;; Drawn from its :model, the red phone box (TASKS T-18, made by
++ ;; tools/blender/phone_booth.py); :look is the fallback until it loads, or if it can't.
++ ;; At night its ceiling lamp glows with one small light (3 m) and the TELEPHONE
++ ;; panels glow with none; the panes keep the model's own see-through glass.
+  :phone-booth {:at [4.9 1.71 -6.6] :yaw 0
++               :model {:url "/assets/props/phone-booth.glb"
++                       :materials {"lamp" {:glow true :light-m 3}
++                                   "sign" {:glow true :light false}}}
+                :look {:parts
+                       [{:shape :box :size [0.9 2.0 0.9]   :at [0 1.0   0]    :color :booth-red}   ; body
+                        {:shape :box :size [1.0 0.15 1.0]  :at [0 2.075 0]    :color :booth-red}   ; roof
+diff --git a/src/pm/plan.cljs b/src/pm/plan.cljs
+index a19e4f4..e39ec0d 100644
+--- a/src/pm/plan.cljs
++++ b/src/pm/plan.cljs
+@@ -3,7 +3,8 @@
+    no js/Date, no atoms. Mirrors are data; this namespace never names one."
+   (:require [clojure.string :as str]
+             [pm.world :as w]
+-            [pm.content :as c]))
++            [pm.content :as c]
++            [pm.models :as md]))
+ 
+ (def label-lift
+   "Metres from the top of an item to its label's centre."
+@@ -244,22 +245,40 @@
+   "The phone booth's scene item (GDD §2.3, §4.8): placement and look come
+    from `world`'s `:phone-booth` only; its sign shows the jack-out reason
+    while the estate is frozen (`pm.world/jack-out-text`), empty otherwise.
+-   nil when `world` has no valid `:phone-booth`."
++   Carries a `:model` (TASKS T-18, `md/model-spec`) when `:phone-booth` has
++   a usable one; otherwise no `:model` key. nil when `world` has no valid
++   `:phone-booth`."
+   [world]
+-  (let [{:keys [at yaw look]} (:phone-booth world)]
++  (let [{:keys [at yaw look model]} (:phone-booth world)]
+     (when (valid-at? at)
+       (let [[x y z] at
+             parts (look-parts look nil)
+             top   (parts-top parts)
+-            yaw   (if (number? yaw) yaw 0)]
+-        {:key      [:phone-booth :box]
+-         :at       at
+-         :yaw      yaw
+-         :parts    parts
+-         :center   [x (+ y (/ top 2)) z]
+-         :label    :sign
+-         :label-at [x (+ y top label-lift) z]
+-         :text     (or (w/jack-out-text world) "")}))))
++            yaw   (if (number? yaw) yaw 0)
++            spec  (md/model-spec model)]
++        (cond-> {:key      [:phone-booth :box]
++                 :at       at
++                 :yaw      yaw
++                 :parts    parts
++                 :center   [x (+ y (/ top 2)) z]
++                 :label    :sign
++                 :label-at [x (+ y top label-lift) z]
++                 :text     (or (w/jack-out-text world) "")}
++          spec (assoc :model spec))))))
++
++(defn model-label-at
++  "Where `item`'s label should sit once its `:model` mesh (own height
++   `model-top`, metres above its base) replaces the `:look` -- raised so
++   the sign clears the model's top, never lowered. nil without a 3-vector
++   `:label-at`; a bad `model-top` or `:at` leaves `:label-at` unchanged."
++  [item model-top]
++  (let [label-at (:label-at item)]
++    (when (valid-vec3? label-at)
++      (let [[x ly z] label-at
++            at (:at item)]
++        (if (and (number? model-top) (js/isFinite model-top) (valid-vec3? at))
++          [x (max ly (+ (second at) model-top label-lift)) z]
++          label-at)))))
+ 
+ (defn label-texts
+   "{key text} for every labelled item in `plan`."
+diff --git a/src/pm/scene.cljs b/src/pm/scene.cljs
+index de966ed..0e694b0 100644
+--- a/src/pm/scene.cljs
++++ b/src/pm/scene.cljs
+@@ -7,6 +7,7 @@
+             [pm.blueprint :as bp]
+             [pm.content :as c]
+             [pm.materials :as mats]
++            [pm.models :as md]
+             [clojure.string :as str]))
+ 
+ (def palette
+@@ -76,8 +77,67 @@
+              :height height'
+              :pos    (if pos [x (+ y (/ (- height' (:height plate)) 2)) z] pos)))))
+ 
++(defonce ^:private !model-warned (atom #{}))
++
++(defn- model-warn! [token msg]
++  (when-not (contains? @!model-warned token)
++    (swap! !model-warned conj token)
++    (js/console.warn msg)))
++
++(defn- look-mesh-name?
++  "True for a mesh name this namespace gave a `key`'s look part: `\"<key>/<i>\"`."
++  [key name]
++  (let [prefix (str (pr-str key) "/")]
++    (and (string? name) (str/starts-with? name prefix)
++         (boolean (re-matches #"\d+" (subs name (count prefix)))))))
++
++(defn- swap-in-model!
++  "A prop's `:model` (TASKS T-18) arriving: replaces `item`'s look meshes,
++   still parented under its own group (same name/key, position, yaw), with
++   the loaded model's -- so clicks on it still resolve to its key -- then
++   applies any named material overrides and re-glows. Keeps the `:look`
++   (and warns once) when `g` is gone, or the model has no usable meshes."
++  [item gltf]
++  (let [key (:key item)]
++    (when-let [^js g (t/by-name (:root @!mounted) (pr-str key))]
++      (when (.-parent g)
++        (let [meshes (t/model-meshes gltf)]
++          (if (or (nil? meshes) (zero? (.-length meshes)))
++            (model-warn! [:model-empty key] (str "pm.scene: model for " (pr-str key) " had no usable meshes"))
++            (let [^js holder (t/group {})]
++              (doseq [^js m meshes] (t/add! holder m))
++              (let [top      (t/top-y holder)
++                    kit-mats (:kit-mats @!mounted)]
++                (doseq [^js old (vec (.-children g))]
++                  (when (look-mesh-name? key (.-name old))
++                    (.removeFromParent old)
++                    (when-let [^js geo (.-geometry old)] (.dispose geo))
++                    (let [^js m (.-material old)]
++                      (when m
++                        (if (array? m) (doseq [^js mm m] (.dispose mm)) (.dispose m))))))
++                (doseq [[i ^js m] (map-indexed vector (array-seq meshes))]
++                  (set! (.-name m) (str (pr-str key) "/" i))
++                  (let [^js mat  (.-material m)
++                        mat-name (when (and mat (not (array? mat))) (.-name mat))
++                        o        (md/material-override mat-name (get-in item [:model :materials]))]
++                    (when-let [k (:kit o)]
++                      (if-let [^js km (get (:index kit-mats) k)]
++                        (set! (.-material m) (.clone km))
++                        (model-warn! [:kit-missing k] (str "pm.scene: kit material not found: " k))))
++                    (when (:glow o)
++                      (set! (.. m -userData -glow) true)
++                      (when (false? (:light o)) (set! (.. m -userData -glowLight) false))
++                      (when (:light-m o) (set! (.. m -userData -glowRange) (:light-m o)))))
++                  (t/add! g m))
++                (when (:ghost? item) (t/ghost! g (:tint item)))
++                (t/light-glows! g (:kit-lights @!mounted))
++                (when-let [sprite (get (:labels @!mounted) key)]
++                  (when-let [new-at (p/model-label-at item top)]
++                    (let [dy (- (second new-at) (second (:label-at item)))]
++                      (when (pos? dy) (t/add-y! sprite dy)))))))))))))
++
+ (defn- mount-item! [root item kit-mats]
+-  (let [{:keys [key at yaw parts label label-at text ghost? tint]} item
++  (let [{:keys [key at yaw parts label label-at text ghost? tint model]} item
+         props? (mats/props-item? item)
+         ^js item-group (t/group {:name (pr-str key) :pos at :rot [0 (p/radians yaw) 0]})]
+     (doseq [[i part] (map-indexed vector parts)]
+@@ -94,6 +154,10 @@
+         (t/add! item-group mesh)))
+     (when ghost? (t/ghost! item-group tint))
+     (t/add! root item-group)
++    (when-let [{:keys [url]} model]
++      (-> (t/load-model url)
++          (.then (fn [gltf] (swap-in-model! item gltf)))
++          (.catch (fn [_] (model-warn! [:load-failed url] (str "pm.scene: model failed to load: " url))))))
+     (when label
+       (let [sprite (t/label (label-opts label label-at text))]
+         (t/add! root sprite)
+diff --git a/src/pm/three.cljs b/src/pm/three.cljs
+index 38ec52c..c9d5eeb 100644
+--- a/src/pm/three.cljs
++++ b/src/pm/three.cljs
+@@ -13,8 +13,10 @@
+    constructor below at whichever THREE is current; `defonce` keeps that choice
+    across hot reloads."
+   (:require ["three/webgpu" :as THREE]
++            ["three/examples/jsm/loaders/GLTFLoader.js" :refer [GLTFLoader]]
+             [clojure.string :as str]
+-            [pm.materials :as mats]))
++            [pm.materials :as mats]
++            [pm.models :as models]))
+ 
+ (defonce ^:private !three (atom THREE))
+ 
+@@ -260,6 +262,118 @@
+     (set! (.-receiveShadow m) true)
+     m))
+ 
++(defonce ^:private !model-cache (atom {}))
++
++(defn load-model
++  "A js/Promise of the parsed gltf for `url` (TASKS T-18, a prop's
++   `:model`), cached per URL (`defonce`): a rejected promise stays cached,
++   so a bad file is tried once. Parsed with the npm `GLTFLoader`; nothing
++   it returns is ever added to a scene -- `model-meshes` rebuilds with the
++   active THREE."
++  [url]
++  (or (get @!model-cache url)
++      (let [p (.loadAsync (GLTFLoader.) url)]
++        (swap! !model-cache assoc url p)
++        p)))
++
++(defn- rebuild-geometry
++  "A new active-THREE `BufferGeometry` copying every attribute (array,
++   itemSize, normalized) and the index from `src-geom`, its groups kept,
++   `matrix-world` baked in (`.applyMatrix4`), bounds recomputed."
++  [^js src-geom ^js matrix-world]
++  (let [^js T (three)
++        ^js Geometry (.-BufferGeometry T)
++        ^js Attr (.-BufferAttribute T)
++        ^js Matrix4 (.-Matrix4 T)
++        ^js geom (Geometry.)]
++    (doseq [name (js-keys (.-attributes src-geom))]
++      (let [^js a (.getAttribute src-geom name)]
++        (.setAttribute geom name (Attr. (.-array a) (.-itemSize a) (.-normalized a)))))
++    (when-let [^js idx (.-index src-geom)]
++      (.setIndex geom (Attr. (.-array idx) (.-itemSize idx) (.-normalized idx))))
++    (doseq [^js g (.-groups src-geom)]
++      (.addGroup geom (.-start g) (.-count g) (.-materialIndex g)))
++    (let [^js m4 (Matrix4.)]
++      (.fromArray m4 (.-elements matrix-world))
++      (.applyMatrix4 geom m4))
++    (.computeBoundingBox geom)
++    (.computeBoundingSphere geom)
++    geom))
++
++(defn- read-material
++  "The plain map `models/material-props` reads (TASKS T-18), off a parsed
++   three.js material."
++  [^js mat]
++  {:name (.-name mat)
++   :color (when (.-color mat) (.getHex (.-color mat)))
++   :roughness (.-roughness mat)
++   :metalness (.-metalness mat)
++   :emissive (when (.-emissive mat) (.getHex (.-emissive mat)))
++   :emissive-intensity (.-emissiveIntensity mat)
++   :opacity (.-opacity mat)
++   :transparent (.-transparent mat)
++   :side (.-side mat)
++   :vertex-colors (.-vertexColors mat)
++   :alpha-test (.-alphaTest mat)})
++
++(defn- rebuild-material
++  "An active-THREE `MeshStandardMaterial` for the parsed material `src-mat`
++   (TASKS T-18): `models/material-props` for everything but the base-colour
++   map, which (when present) is rebuilt as the active THREE's own `Texture`
++   from the source image (`flipY false`, sRGB, the source's wrap modes)."
++  [^js src-mat]
++  (let [^js T (three)
++        ^js StandardMaterial (.-MeshStandardMaterial T)
++        ^js mat (StandardMaterial. (clj->js (models/material-props (read-material src-mat))))]
++    (when-let [^js src-map (.-map src-mat)]
++      (let [^js Texture (.-Texture T)
++            ^js tex (Texture. (.-image src-map))]
++        (set! (.-flipY tex) false)
++        (set! (.-colorSpace tex) (.-SRGBColorSpace T))
++        (set! (.-wrapS tex) (.-wrapS src-map))
++        (set! (.-wrapT tex) (.-wrapT src-map))
++        (set! (.-needsUpdate tex) true)
++        (set! (.-map mat) tex)))
++    mat))
++
++(defn model-meshes
++  "A JS array of active-THREE `Mesh`es, flat, at the model's origin, for the
++   parsed `gltf` (TASKS T-18): every mesh under `gltf.scene`, its geometry
++   and material(s) rebuilt (`rebuild-geometry`, `rebuild-material`), node
++   transforms baked in. Any throw -> nil (the caller keeps the `:look`)."
++  [^js gltf]
++  (try
++    (let [^js scene (.-scene gltf)
++          _ (.updateMatrixWorld scene true)
++          ^js T (three)
++          ^js Mesh (.-Mesh T)
++          out #js []]
++      (.traverse scene
++        (fn [^js o]
++          (when (.-isMesh o)
++            (let [^js geom (rebuild-geometry (.-geometry o) (.-matrixWorld o))
++                  ^js src-mat (.-material o)
++                  material (if (array? src-mat)
++                             (let [arr #js []]
++                               (doseq [^js m src-mat] (.push arr (rebuild-material m)))
++                               arr)
++                             (rebuild-material src-mat))
++                  ^js mesh (Mesh. geom material)]
++              (set! (.-castShadow mesh) true)
++              (set! (.-receiveShadow mesh) true)
++              (.push out mesh)))))
++      out)
++    (catch :default e
++      (js/console.error "pm.three/model-meshes failed" e)
++      nil)))
++
++(defn add-y!
++  "obj.position.y += dy (TASKS T-18: raising a swapped-in model's label).
++   Returns obj."
++  [^js obj dy]
++  (set! (.-y (.-position obj)) (+ (.-y (.-position obj)) dy))
++  obj)
++
+ (def ghost-fill 0x1e7bff)  ; blueprint blue (Michael, Nov 22: "neon blue aka blue print")
+ (def ghost-glow 0x0a5cff)
+ (def ghost-edge 0x7ff3ff)  ; the neon outline
+@@ -723,51 +837,66 @@
+                 (some-> (find-first scene #(and (.-isMesh ^js %) (= lantern-mesh (.-name ^js %)))) .-material))}))
+ 
+ (defn light-glows!
+-  "Gives every mesh under `obj` marked as glowing (a built lamp's bulb) a
+-   point light like the kit's lamp (its colour, range and falloff), once.
+-   Returns obj."
++  "Gives every mesh under `obj` marked as glowing (a built lamp's bulb, or
++   TASKS T-18's `userData.glow`) its own material, once; unless
++   `userData.glowLight` is `false` (a no-light glow, e.g. the booth's
++   TELEPHONE signs), also a point light like the kit's lamp (its colour and
++   falloff; range `userData.glowRange` when set, else the kit lamp's
++   distance, else 10), stored in `userData.light`. Marks `userData.lit`
++   true either way, so a plain glow-no-light mesh is still found by
++   `unlight-glows!`/`sync-glows!`. A mesh without the new userData behaves
++   exactly as before. Returns obj."
+   [^js obj {:keys [^js lamp]}]
+   (.traverse obj
+     (fn [^js o]
+-      (when (and (.-isMesh o) (.. o -userData -glow) (not (.. o -userData -light)))
+-        (let [^js T  (three)
+-              ^js PL (.-PointLight T)
+-              ^js l  (PL. (if lamp (.-color lamp) 0xffd28a) 0
+-                          (if lamp (.-distance lamp) 10) (if lamp (.-decay lamp) 2))]
+-          (.add o l)
+-          ;; its own material: built from saved state it never went through
+-          ;; ghost! (which clones), and stand-in materials are shared
+-          (when-not (.. o -userData -ownMaterial)
+-            (set! (.-material o) (.clone (.-material o)))
+-            (set! (.. o -userData -ownMaterial) true))
+-          (set! (.. o -userData -light) l)))))
++      (when (and (.-isMesh o) (.. o -userData -glow) (not (.. o -userData -lit)))
++        ;; its own material: built from saved state it never went through
++        ;; ghost! (which clones), and stand-in materials are shared
++        (when-not (.. o -userData -ownMaterial)
++          (set! (.-material o) (.clone (.-material o)))
++          (set! (.. o -userData -ownMaterial) true))
++        (when-not (false? (.. o -userData -glowLight))
++          (let [^js T     (three)
++                ^js PL    (.-PointLight T)
++                range     (.. o -userData -glowRange)
++                distance  (if (and (number? range) (js/isFinite range) (> range 0))
++                            range
++                            (if lamp (.-distance lamp) 10))
++                ^js l     (PL. (if lamp (.-color lamp) 0xffd28a) 0 distance (if lamp (.-decay lamp) 2))]
++            (.add o l)
++            (set! (.. o -userData -light) l)))
++        (set! (.. o -userData -lit) true))))
+   obj)
+ 
+ (defn unlight-glows!
+-  "Reverses `light-glows!` (TASKS T-14: an undone lamp stops shining): every
+-   descendant of `obj` with a `userData.light` has that light removed from
+-   its parent, disposed if it can be, and `userData.light` deleted, so a
+-   later trial can `light-glows!` it again. Returns obj."
++  "Reverses `light-glows!` (TASKS T-14, extended T-18): every descendant of
++   `obj` with `userData.lit` or `userData.light` has its light (if any)
++   removed from its parent and disposed, and `userData.light`/`.lit`
++   deleted, so a later trial can `light-glows!` it again."
+   [^js obj]
+   (let [lit #js []]
+-    (.traverse obj (fn [^js o] (when (.. o -userData -light) (.push lit o))))
++    (.traverse obj (fn [^js o] (when (or (.. o -userData -lit) (.. o -userData -light)) (.push lit o))))
+     (doseq [^js o lit]
+-      (let [^js l (.. o -userData -light)]
++      (when-let [^js l (.. o -userData -light)]
+         (.removeFromParent l)
+         (when (.-dispose l) (.dispose l))
+-        (js-delete (.-userData o) "light"))))
++        (js-delete (.-userData o) "light"))
++      (js-delete (.-userData o) "lit")))
+   obj)
+ 
+ (defn sync-glows!
+   "Every lit glow under `root` follows the kit's own night lights each
+-   frame: its light as bright as the kit's lamp, its bulb glowing like the
+-   kit's lantern. So it fades in at dusk exactly when theirs do."
++   frame: its light (if any) as bright as the kit's lamp, its bulb glowing
++   like the kit's lantern -- always, so a no-light glow (TASKS T-18) still
++   fades in at dusk and dark by day. So it fades in at dusk exactly when
++   theirs do."
+   [^js root {:keys [^js lamp ^js lantern]}]
+   (when root
+     (.traverse root
+       (fn [^js o]
+-        (when-let [^js l (.. o -userData -light)]
+-          (when lamp (set! (.-intensity l) (.-intensity lamp)))
++        (when (.. o -userData -lit)
++          (when-let [^js l (.. o -userData -light)]
++            (when lamp (set! (.-intensity l) (.-intensity lamp))))
+           (when lantern
+             (let [^js m (.-material o)]
+               (.copy (.-emissive m) (.-emissive lantern))

@@ -14,7 +14,8 @@
    across hot reloads."
   (:require ["three/webgpu" :as THREE]
             [clojure.string :as str]
-            [pm.materials :as mats]))
+            [pm.materials :as mats]
+            [pm.models :as models]))
 
 (defonce ^:private !three (atom THREE))
 
@@ -259,6 +260,122 @@
     (set! (.-castShadow m) true)
     (set! (.-receiveShadow m) true)
     m))
+
+(defonce ^:private !model-cache (atom {}))
+
+(defn load-model
+  "A js/Promise of the parsed gltf for `url` (TASKS T-18, a prop's
+   `:model`), cached per URL (`defonce`): a rejected promise stays cached,
+   so a bad file is tried once. Parsed with three's `GLTFLoader`, loaded the
+   way pm.bricks loads it (a dynamic import through the page's import map:
+   a static require of three/examples pulled three's CJS build into the
+   browser bundle, which throws on load and took pm.three down with it);
+   nothing it returns is ever added to a scene -- `model-meshes` rebuilds
+   with the active THREE."
+  [url]
+  (or (get @!model-cache url)
+      (let [p (-> ((js/Function. "u" "return import(u)") "three/addons/loaders/GLTFLoader.js")
+                  (.then (fn [^js mod] (let [^js loader (new (.-GLTFLoader mod))] (.loadAsync loader url)))))]
+        (swap! !model-cache assoc url p)
+        p)))
+
+(defn- rebuild-geometry
+  "A new active-THREE `BufferGeometry` copying every attribute (array,
+   itemSize, normalized) and the index from `src-geom`, its groups kept,
+   `matrix-world` baked in (`.applyMatrix4`), bounds recomputed."
+  [^js src-geom ^js matrix-world]
+  (let [^js T (three)
+        ^js Geometry (.-BufferGeometry T)
+        ^js Attr (.-BufferAttribute T)
+        ^js Matrix4 (.-Matrix4 T)
+        ^js geom (Geometry.)]
+    (doseq [name (js-keys (.-attributes src-geom))]
+      (let [^js a (.getAttribute src-geom name)]
+        (.setAttribute geom name (Attr. (.-array a) (.-itemSize a) (.-normalized a)))))
+    (when-let [^js idx (.-index src-geom)]
+      (.setIndex geom (Attr. (.-array idx) (.-itemSize idx) (.-normalized idx))))
+    (doseq [^js g (.-groups src-geom)]
+      (.addGroup geom (.-start g) (.-count g) (.-materialIndex g)))
+    (let [^js m4 (Matrix4.)]
+      (.fromArray m4 (.-elements matrix-world))
+      (.applyMatrix4 geom m4))
+    (.computeBoundingBox geom)
+    (.computeBoundingSphere geom)
+    geom))
+
+(defn- read-material
+  "The plain map `models/material-props` reads (TASKS T-18), off a parsed
+   three.js material."
+  [^js mat]
+  {:name (.-name mat)
+   :color (when (.-color mat) (.getHex (.-color mat)))
+   :roughness (.-roughness mat)
+   :metalness (.-metalness mat)
+   :emissive (when (.-emissive mat) (.getHex (.-emissive mat)))
+   :emissive-intensity (.-emissiveIntensity mat)
+   :opacity (.-opacity mat)
+   :transparent (.-transparent mat)
+   :side (.-side mat)
+   :vertex-colors (.-vertexColors mat)
+   :alpha-test (.-alphaTest mat)})
+
+(defn- rebuild-material
+  "An active-THREE `MeshStandardMaterial` for the parsed material `src-mat`
+   (TASKS T-18): `models/material-props` for everything but the base-colour
+   map, which (when present) is rebuilt as the active THREE's own `Texture`
+   from the source image (`flipY false`, sRGB, the source's wrap modes)."
+  [^js src-mat]
+  (let [^js T (three)
+        ^js StandardMaterial (.-MeshStandardMaterial T)
+        ^js mat (StandardMaterial. (clj->js (models/material-props (read-material src-mat))))]
+    (when-let [^js src-map (.-map src-mat)]
+      (let [^js Texture (.-Texture T)
+            ^js tex (Texture. (.-image src-map))]
+        (set! (.-flipY tex) false)
+        (set! (.-colorSpace tex) (.-SRGBColorSpace T))
+        (set! (.-wrapS tex) (.-wrapS src-map))
+        (set! (.-wrapT tex) (.-wrapT src-map))
+        (set! (.-needsUpdate tex) true)
+        (set! (.-map mat) tex)))
+    mat))
+
+(defn model-meshes
+  "A JS array of active-THREE `Mesh`es, flat, at the model's origin, for the
+   parsed `gltf` (TASKS T-18): every mesh under `gltf.scene`, its geometry
+   and material(s) rebuilt (`rebuild-geometry`, `rebuild-material`), node
+   transforms baked in. Any throw -> nil (the caller keeps the `:look`)."
+  [^js gltf]
+  (try
+    (let [^js scene (.-scene gltf)
+          _ (.updateMatrixWorld scene true)
+          ^js T (three)
+          ^js Mesh (.-Mesh T)
+          out #js []]
+      (.traverse scene
+        (fn [^js o]
+          (when (.-isMesh o)
+            (let [^js geom (rebuild-geometry (.-geometry o) (.-matrixWorld o))
+                  ^js src-mat (.-material o)
+                  material (if (array? src-mat)
+                             (let [arr #js []]
+                               (doseq [^js m src-mat] (.push arr (rebuild-material m)))
+                               arr)
+                             (rebuild-material src-mat))
+                  ^js mesh (Mesh. geom material)]
+              (set! (.-castShadow mesh) true)
+              (set! (.-receiveShadow mesh) true)
+              (.push out mesh)))))
+      out)
+    (catch :default e
+      (js/console.error "pm.three/model-meshes failed" e)
+      nil)))
+
+(defn add-y!
+  "obj.position.y += dy (TASKS T-18: raising a swapped-in model's label).
+   Returns obj."
+  [^js obj dy]
+  (set! (.-y (.-position obj)) (+ (.-y (.-position obj)) dy))
+  obj)
 
 (def ghost-fill 0x1e7bff)  ; blueprint blue (Michael, Nov 22: "neon blue aka blue print")
 (def ghost-glow 0x0a5cff)
@@ -723,51 +840,66 @@
                 (some-> (find-first scene #(and (.-isMesh ^js %) (= lantern-mesh (.-name ^js %)))) .-material))}))
 
 (defn light-glows!
-  "Gives every mesh under `obj` marked as glowing (a built lamp's bulb) a
-   point light like the kit's lamp (its colour, range and falloff), once.
-   Returns obj."
+  "Gives every mesh under `obj` marked as glowing (a built lamp's bulb, or
+   TASKS T-18's `userData.glow`) its own material, once; unless
+   `userData.glowLight` is `false` (a no-light glow, e.g. the booth's
+   TELEPHONE signs), also a point light like the kit's lamp (its colour and
+   falloff; range `userData.glowRange` when set, else the kit lamp's
+   distance, else 10), stored in `userData.light`. Marks `userData.lit`
+   true either way, so a plain glow-no-light mesh is still found by
+   `unlight-glows!`/`sync-glows!`. A mesh without the new userData behaves
+   exactly as before. Returns obj."
   [^js obj {:keys [^js lamp]}]
   (.traverse obj
     (fn [^js o]
-      (when (and (.-isMesh o) (.. o -userData -glow) (not (.. o -userData -light)))
-        (let [^js T  (three)
-              ^js PL (.-PointLight T)
-              ^js l  (PL. (if lamp (.-color lamp) 0xffd28a) 0
-                          (if lamp (.-distance lamp) 10) (if lamp (.-decay lamp) 2))]
-          (.add o l)
-          ;; its own material: built from saved state it never went through
-          ;; ghost! (which clones), and stand-in materials are shared
-          (when-not (.. o -userData -ownMaterial)
-            (set! (.-material o) (.clone (.-material o)))
-            (set! (.. o -userData -ownMaterial) true))
-          (set! (.. o -userData -light) l)))))
+      (when (and (.-isMesh o) (.. o -userData -glow) (not (.. o -userData -lit)))
+        ;; its own material: built from saved state it never went through
+        ;; ghost! (which clones), and stand-in materials are shared
+        (when-not (.. o -userData -ownMaterial)
+          (set! (.-material o) (.clone (.-material o)))
+          (set! (.. o -userData -ownMaterial) true))
+        (when-not (false? (.. o -userData -glowLight))
+          (let [^js T     (three)
+                ^js PL    (.-PointLight T)
+                range     (.. o -userData -glowRange)
+                distance  (if (and (number? range) (js/isFinite range) (> range 0))
+                            range
+                            (if lamp (.-distance lamp) 10))
+                ^js l     (PL. (if lamp (.-color lamp) 0xffd28a) 0 distance (if lamp (.-decay lamp) 2))]
+            (.add o l)
+            (set! (.. o -userData -light) l)))
+        (set! (.. o -userData -lit) true))))
   obj)
 
 (defn unlight-glows!
-  "Reverses `light-glows!` (TASKS T-14: an undone lamp stops shining): every
-   descendant of `obj` with a `userData.light` has that light removed from
-   its parent, disposed if it can be, and `userData.light` deleted, so a
-   later trial can `light-glows!` it again. Returns obj."
+  "Reverses `light-glows!` (TASKS T-14, extended T-18): every descendant of
+   `obj` with `userData.lit` or `userData.light` has its light (if any)
+   removed from its parent and disposed, and `userData.light`/`.lit`
+   deleted, so a later trial can `light-glows!` it again."
   [^js obj]
   (let [lit #js []]
-    (.traverse obj (fn [^js o] (when (.. o -userData -light) (.push lit o))))
+    (.traverse obj (fn [^js o] (when (or (.. o -userData -lit) (.. o -userData -light)) (.push lit o))))
     (doseq [^js o lit]
-      (let [^js l (.. o -userData -light)]
+      (when-let [^js l (.. o -userData -light)]
         (.removeFromParent l)
         (when (.-dispose l) (.dispose l))
-        (js-delete (.-userData o) "light"))))
+        (js-delete (.-userData o) "light"))
+      (js-delete (.-userData o) "lit")))
   obj)
 
 (defn sync-glows!
   "Every lit glow under `root` follows the kit's own night lights each
-   frame: its light as bright as the kit's lamp, its bulb glowing like the
-   kit's lantern. So it fades in at dusk exactly when theirs do."
+   frame: its light (if any) as bright as the kit's lamp, its bulb glowing
+   like the kit's lantern -- always, so a no-light glow (TASKS T-18) still
+   fades in at dusk and dark by day. So it fades in at dusk exactly when
+   theirs do."
   [^js root {:keys [^js lamp ^js lantern]}]
   (when root
     (.traverse root
       (fn [^js o]
-        (when-let [^js l (.. o -userData -light)]
-          (when lamp (set! (.-intensity l) (.-intensity lamp)))
+        (when (.. o -userData -lit)
+          (when-let [^js l (.. o -userData -light)]
+            (when lamp (set! (.-intensity l) (.-intensity lamp))))
           (when lantern
             (let [^js m (.-material o)]
               (.copy (.-emissive m) (.-emissive lantern))

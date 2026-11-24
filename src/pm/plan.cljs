@@ -3,7 +3,8 @@
    no js/Date, no atoms. Mirrors are data; this namespace never names one."
   (:require [clojure.string :as str]
             [pm.world :as w]
-            [pm.content :as c]))
+            [pm.content :as c]
+            [pm.models :as md]))
 
 (def label-lift
   "Metres from the top of an item to its label's centre."
@@ -244,22 +245,40 @@
   "The phone booth's scene item (GDD §2.3, §4.8): placement and look come
    from `world`'s `:phone-booth` only; its sign shows the jack-out reason
    while the estate is frozen (`pm.world/jack-out-text`), empty otherwise.
-   nil when `world` has no valid `:phone-booth`."
+   Carries a `:model` (TASKS T-18, `md/model-spec`) when `:phone-booth` has
+   a usable one; otherwise no `:model` key. nil when `world` has no valid
+   `:phone-booth`."
   [world]
-  (let [{:keys [at yaw look]} (:phone-booth world)]
+  (let [{:keys [at yaw look model]} (:phone-booth world)]
     (when (valid-at? at)
       (let [[x y z] at
             parts (look-parts look nil)
             top   (parts-top parts)
-            yaw   (if (number? yaw) yaw 0)]
-        {:key      [:phone-booth :box]
-         :at       at
-         :yaw      yaw
-         :parts    parts
-         :center   [x (+ y (/ top 2)) z]
-         :label    :sign
-         :label-at [x (+ y top label-lift) z]
-         :text     (or (w/jack-out-text world) "")}))))
+            yaw   (if (number? yaw) yaw 0)
+            spec  (md/model-spec model)]
+        (cond-> {:key      [:phone-booth :box]
+                 :at       at
+                 :yaw      yaw
+                 :parts    parts
+                 :center   [x (+ y (/ top 2)) z]
+                 :label    :sign
+                 :label-at [x (+ y top label-lift) z]
+                 :text     (or (w/jack-out-text world) "")}
+          spec (assoc :model spec))))))
+
+(defn model-label-at
+  "Where `item`'s label should sit once its `:model` mesh (own height
+   `model-top`, metres above its base) replaces the `:look` -- raised so
+   the sign clears the model's top, never lowered. nil without a 3-vector
+   `:label-at`; a bad `model-top` or `:at` leaves `:label-at` unchanged."
+  [item model-top]
+  (let [label-at (:label-at item)]
+    (when (valid-vec3? label-at)
+      (let [[x ly z] label-at
+            at (:at item)]
+        (if (and (number? model-top) (js/isFinite model-top) (valid-vec3? at))
+          [x (max ly (+ (second at) model-top label-lift)) z]
+          label-at)))))
 
 (defn label-texts
   "{key text} for every labelled item in `plan`."

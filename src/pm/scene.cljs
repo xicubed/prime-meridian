@@ -7,6 +7,7 @@
             [pm.blueprint :as bp]
             [pm.content :as c]
             [pm.materials :as mats]
+            [pm.models :as md]
             [clojure.string :as str]))
 
 (def palette
@@ -76,8 +77,67 @@
              :height height'
              :pos    (if pos [x (+ y (/ (- height' (:height plate)) 2)) z] pos)))))
 
+(defonce ^:private !model-warned (atom #{}))
+
+(defn- model-warn! [token msg]
+  (when-not (contains? @!model-warned token)
+    (swap! !model-warned conj token)
+    (js/console.warn msg)))
+
+(defn- look-mesh-name?
+  "True for a mesh name this namespace gave a `key`'s look part: `\"<key>/<i>\"`."
+  [key name]
+  (let [prefix (str (pr-str key) "/")]
+    (and (string? name) (str/starts-with? name prefix)
+         (boolean (re-matches #"\d+" (subs name (count prefix)))))))
+
+(defn- swap-in-model!
+  "A prop's `:model` (TASKS T-18) arriving: replaces `item`'s look meshes,
+   still parented under its own group (same name/key, position, yaw), with
+   the loaded model's -- so clicks on it still resolve to its key -- then
+   applies any named material overrides and re-glows. Keeps the `:look`
+   (and warns once) when `g` is gone, or the model has no usable meshes."
+  [item gltf]
+  (let [key (:key item)]
+    (when-let [^js g (t/by-name (:root @!mounted) (pr-str key))]
+      (when (.-parent g)
+        (let [meshes (t/model-meshes gltf)]
+          (if (or (nil? meshes) (zero? (.-length meshes)))
+            (model-warn! [:model-empty key] (str "pm.scene: model for " (pr-str key) " had no usable meshes"))
+            (let [^js holder (t/group {})]
+              (doseq [^js m meshes] (t/add! holder m))
+              (let [top      (t/top-y holder)
+                    kit-mats (:kit-mats @!mounted)]
+                (doseq [^js old (vec (.-children g))]
+                  (when (look-mesh-name? key (.-name old))
+                    (.removeFromParent old)
+                    (when-let [^js geo (.-geometry old)] (.dispose geo))
+                    (let [^js m (.-material old)]
+                      (when m
+                        (if (array? m) (doseq [^js mm m] (.dispose mm)) (.dispose m))))))
+                (doseq [[i ^js m] (map-indexed vector (array-seq meshes))]
+                  (set! (.-name m) (str (pr-str key) "/" i))
+                  (let [^js mat  (.-material m)
+                        mat-name (when (and mat (not (array? mat))) (.-name mat))
+                        o        (md/material-override mat-name (get-in item [:model :materials]))]
+                    (when-let [k (:kit o)]
+                      (if-let [^js km (get (:index kit-mats) k)]
+                        (set! (.-material m) (.clone km))
+                        (model-warn! [:kit-missing k] (str "pm.scene: kit material not found: " k))))
+                    (when (:glow o)
+                      (set! (.. m -userData -glow) true)
+                      (when (false? (:light o)) (set! (.. m -userData -glowLight) false))
+                      (when (:light-m o) (set! (.. m -userData -glowRange) (:light-m o)))))
+                  (t/add! g m))
+                (when (:ghost? item) (t/ghost! g (:tint item)))
+                (t/light-glows! g (:kit-lights @!mounted))
+                (when-let [sprite (get (:labels @!mounted) key)]
+                  (when-let [new-at (p/model-label-at item top)]
+                    (let [dy (- (second new-at) (second (:label-at item)))]
+                      (when (pos? dy) (t/add-y! sprite dy)))))))))))))
+
 (defn- mount-item! [root item kit-mats]
-  (let [{:keys [key at yaw parts label label-at text ghost? tint]} item
+  (let [{:keys [key at yaw parts label label-at text ghost? tint model]} item
         props? (mats/props-item? item)
         ^js item-group (t/group {:name (pr-str key) :pos at :rot [0 (p/radians yaw) 0]})]
     (doseq [[i part] (map-indexed vector parts)]
@@ -94,6 +154,10 @@
         (t/add! item-group mesh)))
     (when ghost? (t/ghost! item-group tint))
     (t/add! root item-group)
+    (when-let [{:keys [url]} model]
+      (-> (t/load-model url)
+          (.then (fn [gltf] (swap-in-model! item gltf)))
+          (.catch (fn [_] (model-warn! [:load-failed url] (str "pm.scene: model failed to load: " url))))))
     (when label
       (let [sprite (t/label (label-opts label label-at text))]
         (t/add! root sprite)
