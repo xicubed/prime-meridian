@@ -1,0 +1,65 @@
+{
+  "round": "tidy-after-remove-v0",
+  "quest": ".crew/quests/tidy-after-remove-v0.md",
+  "runDir": "crew/runs",
+  "gate": "bash .crew/gate.sh",
+  "fix": {
+    "who": "un-automate-monde",
+    "max": 2
+  },
+  "timeoutMinutes": 45,
+  "steps": [
+    {
+      "id": "spec",
+      "who": [
+        "un-architecte"
+      ],
+      "prompt": "New quest: read {quest} (and the code and earlier runs it cites). Write the spec to {run}/spec.md following your role card, with numbered test cases and hand-checked expected values, and a who-touches-what table (builder: src + resources/estate.edn's :lobby entry only; tester: test files only, including updating existing tests that counted the lobby's item or label; give le-docteur a new TASKS.md row T-16 and a GDD §2.4 note that the lobby has no sign). Reply when it's written.",
+      "expect": [
+        "{run}/spec.md"
+      ]
+    },
+    {
+      "id": "build",
+      "who": [
+        "un-automate-monde",
+        "le-testeur"
+      ],
+      "prompt": {
+        "un-automate-monde": "Spec: {run}/spec.md (quest: {quest}). Implement it in the source files the spec assigns the builder, and nothing else. Run .crew/gate.sh before replying.",
+        "le-testeur": "Spec: {run}/spec.md (quest: {quest}). Write its test cases in the test file the spec assigns the tester, and nothing else. The builder is coding in parallel."
+      },
+      "expect": []
+    },
+    {
+      "id": "gate",
+      "who": [
+        "le-coureur"
+      ],
+      "verify": true,
+      "prompt": "Run the gate (.crew/gate.sh) and write the gate note to {run}/gate-note.md as your role card says.",
+      "expect": [
+        "{run}/gate-note.md"
+      ]
+    },
+    {
+      "id": "review",
+      "who": [
+        "le-critique"
+      ],
+      "prompt": "Review the round's changes against {run}/spec.md and {quest}: git diff for edited files, and read the new files (git status lists them). Check in particular: the lobby draws nothing yet still works as an errand spot; only :look/:text left estate.edn's :lobby; old tests changed only where they counted the lobby item/label; screen-of's min-y is pure, tested, and doesn't change the hidden cases; the real-sign prefix drop applies to :real only and is data-agnostic; no member, pet or blueprint named in code; no npm deps. Write the review to {run}/review.md.",
+      "expect": [
+        "{run}/review.md"
+      ]
+    },
+    {
+      "id": "docs",
+      "who": [
+        "le-docteur"
+      ],
+      "prompt": "Spec: {run}/spec.md (quest: {quest}). Make only the documentation edits the spec's who-touches-what table gives le-docteur (if none, change nothing). Reply with git diff --stat of what you changed.",
+      "expect": []
+    }
+  ],
+  "onBlocked": "wait"
+}
