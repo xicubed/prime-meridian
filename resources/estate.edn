@@ -94,6 +94,13 @@
  :real-text {:no-bridge    "That one's real: start the bridge (bb crew-bridge) to record it."
              :not-recorded "Couldn't record that for real"}
  :kit-lights {:lamp-color "#ffd28a" :lantern-mesh "SM_Hiroshi_Cottage_Lantern"}
+ ;; Our props wear the kit's own materials (TASKS T-17, Michael: "they're kinda
+ ;; plain"): palette key -> the kit material's name, and :tile-m, the metres one
+ ;; texture repeat covers (pm.materials). Any other key stays its flat colour;
+ ;; walkers, creatures and the booth's :booth-red/:glass stay painted. Without
+ ;; the kit (a public clone) everything is its flat colour.
+ :kit-materials {:brown {:name "MAT_Hiroshi_Timber" :tile-m 0.6}
+                 :tin   {:name "MAT_Hiroshi_Metal"}}
  ;; The juice meter (GDD §2.1, §4.4, §4.8): each AI login's usage window,
  ;; as the tokens the bridge has seen (:tokens-used) against the plan's
  ;; cap (:cap) -- pm.juice/estimate-juice turns the two into a 0-1 share

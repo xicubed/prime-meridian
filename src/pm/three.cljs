@@ -13,7 +13,8 @@
    constructor below at whichever THREE is current; `defonce` keeps that choice
    across hot reloads."
   (:require ["three/webgpu" :as THREE]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [pm.materials :as mats]))
 
 (defonce ^:private !three (atom THREE))
 
@@ -141,11 +142,91 @@
     (.set (.-rotation g) rx ry rz)
     g))
 
+(defn material-pairs
+  "[name material] for every mesh under `root` (traverse order; an array
+   material contributes each element). nil root -> []."
+  [^js root]
+  (if (nil? root)
+    []
+    (let [out (transient [])]
+      (.traverse root
+                 (fn [^js o]
+                   (when (.-isMesh o)
+                     (let [^js m (.-material o)]
+                       (if (array? m)
+                         (doseq [^js mm m] (conj! out [(.-name mm) mm]))
+                         (conj! out [(.-name m) m]))))))
+      (persistent! out))))
+
+(defn rounded-box-geometry
+  "BoxGeometry(1,1,1,n,n,n) (n = `mats/bevel-segments`) whose position and
+   normal attributes are rewritten per vertex with `mats/round-box-vertex`;
+   index, groups and UVs kept."
+  [[sx sy sz] r]
+  (let [^js T (three)
+        ^js BoxGeometry (.-BoxGeometry T)
+        n mats/bevel-segments
+        ^js geom (BoxGeometry. 1 1 1 n n n)
+        ^js pos-attr (.getAttribute geom "position")
+        ^js norm-attr (.getAttribute geom "normal")
+        vcount (.-count pos-attr)]
+    (dotimes [i vcount]
+      (let [v (mats/round-box-vertex [(.getX pos-attr i) (.getY pos-attr i) (.getZ pos-attr i)]
+                                      [sx sy sz] r n)
+            [px py pz] (:pos v)
+            [nx ny nz] (:normal v)]
+        (.setXYZ pos-attr i px py pz)
+        (.setXYZ norm-attr i nx ny nz)))
+    (set! (.-needsUpdate pos-attr) true)
+    (set! (.-needsUpdate norm-attr) true)
+    (.computeBoundingBox geom)
+    (.computeBoundingSphere geom)
+    geom))
+
+(defn- has-maps? [^js material]
+  (boolean (or (.-map material) (.-normalMap material) (.-roughnessMap material))))
+
+(defn- clone-tex! [^js tex [u v]]
+  (let [^js T (three)
+        ^js RepeatWrapping (.-RepeatWrapping T)
+        ^js t (.clone tex)]
+    (.set (.-repeat t) u v)
+    (set! (.-wrapS t) RepeatWrapping)
+    (set! (.-wrapT t) RepeatWrapping)
+    (set! (.-needsUpdate t) true)
+    t))
+
+(defn- clone-with-repeat [^js material [u v]]
+  (let [^js m (.clone material)]
+    (when (.-map m) (set! (.-map m) (clone-tex! (.-map m) [u v])))
+    (when (.-normalMap m) (set! (.-normalMap m) (clone-tex! (.-normalMap m) [u v])))
+    (when (.-roughnessMap m) (set! (.-roughnessMap m) (clone-tex! (.-roughnessMap m) [u v])))
+    m))
+
+(defn kit-part-material
+  "A material (or 6-element array for a `:box`) wearing `kit`'s material
+   (`{:material :tile-m}`, see `pm.materials/material-for`), tiled to
+   `shape`/`size`. Never returns or mutates the kit's own material; the
+   palette colour is never multiplied in."
+  [{:keys [^js material tile-m]} shape size]
+  (if-not (has-maps? material)
+    (.clone material)
+    (if (= :box shape)
+      (let [{:keys [x y z]} (mats/box-face-repeats size tile-m)
+            ^js mx (clone-with-repeat material x)
+            ^js my (clone-with-repeat material y)
+            ^js mz (clone-with-repeat material z)]
+        #js [mx mx my my mz mz])
+      (clone-with-repeat material (mats/shape-repeat shape size tile-m)))))
+
 (defn stand-in
   "Flat-shaded placeholder mesh. :shape in pm.plan/shapes, :size [sx sy sz]
    metres, :color an int, :pos [x y z] the mesh's centre (parent frame),
-   :rot [rx ry rz] in radians (default [0 0 0]), Euler XYZ."
-  [{:keys [shape size color pos rot] :or {rot [0 0 0]}}]
+   :rot [rx ry rz] in radians (default [0 0 0]), Euler XYZ. :bevel r rounds
+   a :box's edges (radius r metres, > 0); :kit {:material :tile-m} wears the
+   kit's own material (`kit-part-material`) instead of today's flat one.
+   Without either opt, byte-for-byte today's placeholder."
+  [{:keys [shape size color pos rot bevel kit] :or {rot [0 0 0]}}]
   (let [[sx sy sz] size [x y z] pos [rx ry rz] rot
         ^js T (three)
         ^js Mesh (.-Mesh T)
@@ -155,6 +236,7 @@
         ^js ConeGeometry (.-ConeGeometry T)
         ^js CapsuleGeometry (.-CapsuleGeometry T)
         ^js StandardMaterial (.-MeshStandardMaterial T)
+        r (when (and (= :box shape) (number? bevel) (> bevel 0)) bevel)
         ^js geom (case shape
                    :sphere   (SphereGeometry. 0.5 12 8)
                    :cylinder (CylinderGeometry. 0.5 0.5 1 12)
@@ -162,8 +244,14 @@
                    :capsule  (let [^js g (CapsuleGeometry. (/ sy 2) (max 0 (- sx sy)) 4 8)]
                                (.rotateZ g (/ js/Math.PI 2))
                                g)
-                   (BoxGeometry. sx sy sz))
-        ^js m (Mesh. geom (StandardMaterial. #js {:color color :flatShading true}))]
+                   (if r
+                     (rounded-box-geometry size r)
+                     (BoxGeometry. sx sy sz)))
+        _ (when r (set! (.. geom -userData -boxSize) #js [sx sy sz]))
+        ^js mat (if kit
+                  (kit-part-material kit shape size)
+                  (StandardMaterial. #js {:color color :flatShading true}))
+        ^js m (Mesh. geom mat)]
     (when (#{:sphere :cylinder :cone} shape)
       (.set (.-scale m) sx sy sz))
     (.set (.-position m) x y z)
@@ -188,49 +276,60 @@
     (.traverse obj (fn [^js o] (when (.-isMesh o) (.push acc o))))
     acc))
 
+(defn- dispose-mat! [m]
+  (when m
+    (if (array? m)
+      (doseq [^js mm m] (.dispose mm))
+      (.dispose ^js m))))
+
 (defn ghost!
   "Makes every mesh under `obj` look like a pending blueprint (GDD §2.1,
    §4.8): a translucent, glowing fill with neon edges, so it reads as
    proposed, not real, and stays visible on grass (the old thin wireframe
    vanished there, TASKS N-3). `tint` (default `:proposed`, TASKS T-15)
    picks the look from `ghost-tints`: `:removal` for a removal preview.
-   Clones each mesh's material first (shared stand-in materials are never
-   mutated in place) and keeps its real colours in userData for `unghost!`.
-   Same opacity (0.3) either way. Returns obj."
+   Saves each mesh's real material (single or array, textured or flat) in
+   userData.ghostMat for `unghost!` -- or, ghosting an already-ghosted mesh,
+   keeps that saved material and disposes the current ghost one -- then
+   gives it a fresh ghost material (never the real one, mutated). Same
+   opacity (0.3) either way. Returns obj."
   ([obj] (ghost! obj :proposed))
   ([^js obj tint]
    (let [^js T (three)
+         ^js BoxGeometry (.-BoxGeometry T)
+         ^js StandardMaterial (.-MeshStandardMaterial T)
          {:keys [fill glow edge]} (get ghost-tints tint (:proposed ghost-tints))]
      (doseq [^js o (meshes-under obj)]
-       (let [^js mat (.clone (.-material o))
-             ^js em  (.-emissive mat)]
-         (set! (.. o -userData -ghostWas)
-               #js {:color (when (.-color mat) (.getHex (.-color mat)))
-                    :emissive (when em (.getHex em))
-                    :ei (.-emissiveIntensity mat)})
-         (when (.-color mat) (.setHex (.-color mat) fill))
-         (when em
-           (.setHex em glow)
-           (set! (.-emissiveIntensity mat) 0.9))
-         (set! (.-transparent mat) true)
-         (set! (.-opacity mat) 0.3)
-         (set! (.-wireframe mat) false)
-         (set! (.-depthWrite mat) false)
-         (set! (.-material o) mat)
-         (let [^js edges (new (.-EdgesGeometry T) (.-geometry o) 15)
-               ^js lmat  (new (.-LineBasicMaterial T) #js {:color edge :transparent true :opacity 0.95 :depthWrite false})
-               ^js lines (new (.-LineSegments T) edges lmat)]
-           (set! (.-name lines) "pm-ghost-edges")
-           (set! (.. lines -userData -ghostEdges) true)
-           (set! (.-raycast lines) (fn [] nil))   ; clicks hit the fill, never the outline
-           (.add o lines))))
+       (let [^js data (.-userData o)]
+         (if (some? (.-ghostMat data))
+           (dispose-mat! (.-material o))
+           (set! (.-ghostMat data) (.-material o)))
+         (set! (.-material o)
+               (StandardMaterial. #js {:color fill :emissive glow :emissiveIntensity 0.9
+                                        :transparent true :opacity 0.3 :depthWrite false
+                                        :flatShading true})))
+       (when-let [^js old-edges (.getObjectByName o "pm-ghost-edges")]
+         (.removeFromParent old-edges)
+         (.dispose (.-geometry old-edges))
+         (.dispose (.-material old-edges)))
+       (let [box-size (.. o -userData -boxSize)
+             ^js edge-geom (if box-size
+                             (new (.-EdgesGeometry T) (BoxGeometry. (aget box-size 0) (aget box-size 1) (aget box-size 2)) 15)
+                             (new (.-EdgesGeometry T) (.-geometry o) 15))
+             ^js lmat  (new (.-LineBasicMaterial T) #js {:color edge :transparent true :opacity 0.95 :depthWrite false})
+             ^js lines (new (.-LineSegments T) edge-geom lmat)]
+         (set! (.-name lines) "pm-ghost-edges")
+         (set! (.. lines -userData -ghostEdges) true)
+         (set! (.-raycast lines) (fn [] nil))   ; clicks hit the fill, never the outline
+         (.add o lines)))
      obj)))
 
 (defn unghost!
   "Reverses `ghost!` (GDD §2.1, §4.8): once a blueprint is approved, its
-   meshes go back to looking solid and real -- their own colours, opaque,
-   normal depth-write -- on the materials `ghost!` already cloned per-mesh,
-   and the neon edges are removed. Returns obj."
+   meshes go back to wearing the very material (object or array) `ghost!`
+   saved -- their own real colours and textures, not a recoloured clone --
+   and the neon edges are removed. A mesh never ghosted keeps its material
+   untouched. Returns obj."
   [^js obj]
   (let [edges #js []]
     (.traverse obj (fn [^js o] (when (.. o -userData -ghostEdges) (.push edges o))))
@@ -239,17 +338,12 @@
       (.dispose (.-geometry l))
       (.dispose (.-material l))))
   (doseq [^js o (meshes-under obj)]
-    (let [^js mat (.-material o)]
-      (when-let [^js was (.. o -userData -ghostWas)]
-        (when (and (.-color mat) (some? (.-color was))) (.setHex (.-color mat) (.-color was)))
-        (when (and (.-emissive mat) (some? (.-emissive was)))
-          (.setHex (.-emissive mat) (.-emissive was))
-          (set! (.-emissiveIntensity mat) (.-ei was)))
-        (js-delete (.-userData o) "ghostWas"))
-      (set! (.-transparent mat) false)
-      (set! (.-opacity mat) 1)
-      (set! (.-wireframe mat) false)
-      (set! (.-depthWrite mat) true)))
+    (let [^js data (.-userData o)
+          saved (.-ghostMat data)]
+      (when (some? saved)
+        (dispose-mat! (.-material o))
+        (set! (.-material o) saved)
+        (js-delete data "ghostMat"))))
   obj)
 
 (defn- hex->css [n]

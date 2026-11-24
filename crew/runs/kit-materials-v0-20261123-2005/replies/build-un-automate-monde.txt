@@ -1,0 +1,400 @@
+      14     across hot reloads."
+      15    (:require ["three/webgpu" :as THREE]
+      16 -            [clojure.string :as str]))
+      16 +            [clojure.string :as str]
+      17 +            [pm.materials :as mats]))
+      18
+      19  (defonce ^:private !three (atom THREE))
+      20
+
+⏺ Update(src/pm/three.cljs)
+  ⎿  Added 93 lines, removed 4 lines
+      142      (.set (.-rotation g) rx ry rz)
+      143      g))
+      144
+      145 +(defn material-pairs
+      146 +  "[name material] for every mesh under `root` (traverse order; an array
+      147 +   material contributes each element). nil root -> []."
+      148 +  [^js root]
+      149 +  (if (nil? root)
+      150 +    []
+      151 +    (let [out (transient [])]
+      152 +      (.traverse root
+      153 +                 (fn [^js o]
+      154 +                   (when (.-isMesh o)
+      155 +                     (let [^js m (.-material o)]
+      156 +                       (if (array? m)
+      157 +                         (doseq [^js mm m] (conj! out [(.-name mm) mm]))
+      158 +                         (conj! out [(.-name m) m]))))))
+      159 +      (persistent! out))))
+      160 +
+      161 +(defn rounded-box-geometry
+      162 +  "BoxGeometry(1,1,1,n,n,n) (n = `mats/bevel-segments`) whose position and
+      163 +   normal attributes are rewritten per vertex with `mats/round-box-vertex`;
+      164 +   index, groups and UVs kept."
+      165 +  [[sx sy sz] r]
+      166 +  (let [^js T (three)
+      167 +        ^js BoxGeometry (.-BoxGeometry T)
+      168 +        n mats/bevel-segments
+      169 +        ^js geom (BoxGeometry. 1 1 1 n n n)
+      170 +        ^js pos-attr (.getAttribute geom "position")
+      171 +        ^js norm-attr (.getAttribute geom "normal")
+      172 +        vcount (.-count pos-attr)]
+      173 +    (dotimes [i vcount]
+      174 +      (let [p (:pos (mats/round-box-vertex [(.getX pos-attr i) (.getY pos-attr i) (.getZ pos-attr i)]
+      175 +                                            [sx sy sz] r n))
+      176 +            v (mats/round-box-vertex [(.getX pos-attr i) (.getY pos-attr i) (.getZ pos-attr i)]
+      177 +                                      [sx sy sz] r n)
+      178 +            [px py pz] (:pos v)
+      179 +            [nx ny nz] (:normal v)]
+      180 +        (.setXYZ pos-attr i px py pz)
+      181 +        (.setXYZ norm-attr i nx ny nz)))
+      182 +    (set! (.-needsUpdate pos-attr) true)
+      183 +    (set! (.-needsUpdate norm-attr) true)
+      184 +    (.computeBoundingBox geom)
+      185 +    (.computeBoundingSphere geom)
+      186 +    geom))
+      187 +
+      188 +(defn- has-maps? [^js material]
+      189 +  (boolean (or (.-map material) (.-normalMap material) (.-roughnessMap material))))
+      190 +
+      191 +(defn- clone-tex! [^js tex [u v]]
+      192 +  (let [^js T (three)
+      193 +        ^js RepeatWrapping (.-RepeatWrapping T)
+      194 +        ^js t (.clone tex)]
+      195 +    (.set (.-repeat t) u v)
+      196 +    (set! (.-wrapS t) RepeatWrapping)
+      197 +    (set! (.-wrapT t) RepeatWrapping)
+      198 +    (set! (.-needsUpdate t) true)
+      199 +    t))
+      200 +
+      201 +(defn- clone-with-repeat [^js material [u v]]
+      202 +  (let [^js m (.clone material)]
+      203 +    (when (.-map m) (set! (.-map m) (clone-tex! (.-map m) [u v])))
+      204 +    (when (.-normalMap m) (set! (.-normalMap m) (clone-tex! (.-normalMap m) [u v])))
+      205 +    (when (.-roughnessMap m) (set! (.-roughnessMap m) (clone-tex! (.-roughnessMap m) [u v])))
+      206 +    m))
+      207 +
+      208 +(defn kit-part-material
+      209 +  "A material (or 6-element array for a `:box`) wearing `kit`'s material
+      210 +   (`{:material :tile-m}`, see `pm.materials/material-for`), tiled to
+      211 +   `shape`/`size`. Never returns or mutates the kit's own material; the
+      212 +   palette colour is never multiplied in."
+      213 +  [{:keys [^js material tile-m]} shape size]
+      214 +  (if-not (has-maps? material)
+      215 +    (.clone material)
+      216 +    (if (= :box shape)
+      217 +      (let [{:keys [x y z]} (mats/box-face-repeats size tile-m)
+      218 +            ^js mx (clone-with-repeat material x)
+      219 +            ^js my (clone-with-repeat material y)
+      220 +            ^js mz (clone-with-repeat material z)]
+      221 +        #js [mx mx my my mz mz])
+      222 +      (clone-with-repeat material (mats/shape-repeat shape size tile-m)))))
+      223 +
+      224  (defn stand-in
+      225    "Flat-shaded placeholder mesh. :shape in pm.plan/shapes, :size [sx sy sz]
+      226     metres, :color an int, :pos [x y z] the mesh's centre (parent frame),
+      148 -   :rot [rx ry rz] in radians (default [0 0 0]), Euler XYZ."
+      149 -  [{:keys [shape size color pos rot] :or {rot [0 0 0]}}]
+      227 +   :rot [rx ry rz] in radians (default [0 0 0]), Euler XYZ. :bevel r rounds
+      228 +   a :box's edges (radius r metres, > 0); :kit {:material :tile-m} wears the
+      229 +   kit's own material (`kit-part-material`) instead of today's flat one.
+      230 +   Without either opt, byte-for-byte today's placeholder."
+      231 +  [{:keys [shape size color pos rot bevel kit] :or {rot [0 0 0]}}]
+      232    (let [[sx sy sz] size [x y z] pos [rx ry rz] rot
+      233          ^js T (three)
+      234          ^js Mesh (.-Mesh T)
+     ...
+      238          ^js ConeGeometry (.-ConeGeometry T)
+      239          ^js CapsuleGeometry (.-CapsuleGeometry T)
+      240          ^js StandardMaterial (.-MeshStandardMaterial T)
+      241 +        r (when (and (= :box shape) (number? bevel) (> bevel 0)) bevel)
+      242          ^js geom (case shape
+      243                     :sphere   (SphereGeometry. 0.5 12 8)
+      244                     :cylinder (CylinderGeometry. 0.5 0.5 1 12)
+     ...
+      246                     :capsule  (let [^js g (CapsuleGeometry. (/ sy 2) (max 0 (- sx sy)) 4 8)]
+      247                                 (.rotateZ g (/ js/Math.PI 2))
+      248                                 g)
+      166 -                   (BoxGeometry. sx sy sz))
+      167 -        ^js m (Mesh. geom (StandardMaterial. #js {:color color :flatShading true}))]
+      249 +                   (if r
+      250 +                     (rounded-box-geometry size r)
+      251 +                     (BoxGeometry. sx sy sz)))
+      252 +        _ (when r (set! (.. geom -userData -boxSize) #js [sx sy sz]))
+      253 +        ^js mat (if kit
+      254 +                  (kit-part-material kit shape size)
+      255 +                  (StandardMaterial. #js {:color color :flatShading true}))
+      256 +        ^js m (Mesh. geom mat)]
+      257      (when (#{:sphere :cylinder :cone} shape)
+      258        (.set (.-scale m) sx sy sz))
+      259      (.set (.-position m) x y z)
+
+⏺ Update(src/pm/three.cljs)
+  ⎿  Added 1 line, removed 3 lines
+      171          ^js norm-attr (.getAttribute geom "normal")
+      172          vcount (.-count pos-attr)]
+      173      (dotimes [i vcount]
+      174 -      (let [p (:pos (mats/round-box-vertex [(.getX pos-attr i) (.getY pos-attr i) (.getZ pos-attr i)]
+      175 -                                            [sx sy sz] r n))
+      176 -            v (mats/round-box-vertex [(.getX pos-attr i) (.getY pos-attr i) (.getZ pos-attr i)]
+      174 +      (let [v (mats/round-box-vertex [(.getX pos-attr i) (.getY pos-attr i) (.getZ pos-attr i)]
+      175                                        [sx sy sz] r n)
+      176              [px py pz] (:pos v)
+      177              [nx ny nz] (:normal v)]
+
+⏺ Now let's update ghost! and unghost!.
+
+⏺ Update(src/pm/three.cljs)
+  ⎿  Added 45 lines, removed 39 lines
+      276      (.traverse obj (fn [^js o] (when (.-isMesh o) (.push acc o))))
+      277      acc))
+      278
+      279 +(defn- dispose-mat! [m]
+      280 +  (when m
+      281 +    (if (array? m)
+      282 +      (doseq [^js mm m] (.dispose mm))
+      283 +      (.dispose ^js m))))
+      284 +
+      285  (defn ghost!
+      286    "Makes every mesh under `obj` look like a pending blueprint (GDD §2.1,
+      287     §4.8): a translucent, glowing fill with neon edges, so it reads as
+      288     proposed, not real, and stays visible on grass (the old thin wireframe
+      289     vanished there, TASKS N-3). `tint` (default `:proposed`, TASKS T-15)
+      290     picks the look from `ghost-tints`: `:removal` for a removal preview.
+      285 -   Clones each mesh's material first (shared stand-in materials are never
+      286 -   mutated in place) and keeps its real colours in userData for `unghost!`.
+      287 -   Same opacity (0.3) either way. Returns obj."
+      291 +   Saves each mesh's real material (single or array, textured or flat) in
+      292 +   userData.ghostMat for `unghost!` -- or, ghosting an already-ghosted mesh,
+      293 +   keeps that saved material and disposes the current ghost one -- then
+      294 +   gives it a fresh ghost material (never the real one, mutated). Same
+      295 +   opacity (0.3) either way. Returns obj."
+      296    ([obj] (ghost! obj :proposed))
+      297    ([^js obj tint]
+      298     (let [^js T (three)
+      299 +         ^js BoxGeometry (.-BoxGeometry T)
+      300 +         ^js StandardMaterial (.-MeshStandardMaterial T)
+      301           {:keys [fill glow edge]} (get ghost-tints tint (:proposed ghost-tints))]
+      302       (doseq [^js o (meshes-under obj)]
+      293 -       (let [^js mat (.clone (.-material o))
+      294 -             ^js em  (.-emissive mat)]
+      295 -         (set! (.. o -userData -ghostWas)
+      296 -               #js {:color (when (.-color mat) (.getHex (.-color mat)))
+      297 -                    :emissive (when em (.getHex em))
+      298 -                    :ei (.-emissiveIntensity mat)})
+      299 -         (when (.-color mat) (.setHex (.-color mat) fill))
+      300 -         (when em
+      301 -           (.setHex em glow)
+      302 -           (set! (.-emissiveIntensity mat) 0.9))
+      303 -         (set! (.-transparent mat) true)
+      304 -         (set! (.-opacity mat) 0.3)
+      305 -         (set! (.-wireframe mat) false)
+      306 -         (set! (.-depthWrite mat) false)
+      307 -         (set! (.-material o) mat)
+      308 -         (let [^js edges (new (.-EdgesGeometry T) (.-geometry o) 15)
+      309 -               ^js lmat  (new (.-LineBasicMaterial T) #js {:color edge :transparent true :opacity 0.9
+          -5 :depthWrite false})
+      310 -               ^js lines (new (.-LineSegments T) edges lmat)]
+      311 -           (set! (.-name lines) "pm-ghost-edges")
+      312 -           (set! (.. lines -userData -ghostEdges) true)
+      313 -           (set! (.-raycast lines) (fn [] nil))   ; clicks hit the fill, never the outline
+      314 -           (.add o lines))))
+      303 +       (let [^js data (.-userData o)]
+      304 +         (if (some? (.-ghostMat data))
+      305 +           (dispose-mat! (.-material o))
+      306 +           (set! (.-ghostMat data) (.-material o)))
+      307 +         (set! (.-material o)
+      308 +               (StandardMaterial. #js {:color fill :emissive glow :emissiveIntensity 0.9
+      309 +                                        :transparent true :opacity 0.3 :depthWrite false
+      310 +                                        :flatShading true})))
+      311 +       (when-let [^js old-edges (.getObjectByName o "pm-ghost-edges")]
+      312 +         (.removeFromParent old-edges)
+      313 +         (.dispose (.-geometry old-edges))
+      314 +         (.dispose (.-material old-edges)))
+      315 +       (let [box-size (.. o -userData -boxSize)
+      316 +             ^js edge-geom (if box-size
+      317 +                             (new (.-EdgesGeometry T) (BoxGeometry. (aget box-size 0) (aget box-size
+          +1) (aget box-size 2)) 15)
+      318 +                             (new (.-EdgesGeometry T) (.-geometry o) 15))
+      319 +             ^js lmat  (new (.-LineBasicMaterial T) #js {:color edge :transparent true :opacity 0.95
+          +:depthWrite false})
+      320 +             ^js lines (new (.-LineSegments T) edge-geom lmat)]
+      321 +         (set! (.-name lines) "pm-ghost-edges")
+      322 +         (set! (.. lines -userData -ghostEdges) true)
+      323 +         (set! (.-raycast lines) (fn [] nil))   ; clicks hit the fill, never the outline
+      324 +         (.add o lines)))
+      325       obj)))
+      326
+      327  (defn unghost!
+      328    "Reverses `ghost!` (GDD §2.1, §4.8): once a blueprint is approved, its
+      319 -   meshes go back to looking solid and real -- their own colours, opaque,
+      320 -   normal depth-write -- on the materials `ghost!` already cloned per-mesh,
+      321 -   and the neon edges are removed. Returns obj."
+      329 +   meshes go back to wearing the very material (object or array) `ghost!`
+      330 +   saved -- their own real colours and textures, not a recoloured clone --
+      331 +   and the neon edges are removed. A mesh never ghosted keeps its material
+      332 +   untouched. Returns obj."
+      333    [^js obj]
+      334    (let [edges #js []]
+      335      (.traverse obj (fn [^js o] (when (.. o -userData -ghostEdges) (.push edges o))))
+     ...
+      338        (.dispose (.-geometry l))
+      339        (.dispose (.-material l))))
+      340    (doseq [^js o (meshes-under obj)]
+      330 -    (let [^js mat (.-material o)]
+      331 -      (when-let [^js was (.. o -userData -ghostWas)]
+      332 -        (when (and (.-color mat) (some? (.-color was))) (.setHex (.-color mat) (.-color was)))
+      333 -        (when (and (.-emissive mat) (some? (.-emissive was)))
+      334 -          (.setHex (.-emissive mat) (.-emissive was))
+      335 -          (set! (.-emissiveIntensity mat) (.-ei was)))
+      336 -        (js-delete (.-userData o) "ghostWas"))
+      337 -      (set! (.-transparent mat) false)
+      338 -      (set! (.-opacity mat) 1)
+      339 -      (set! (.-wireframe mat) false)
+      340 -      (set! (.-depthWrite mat) true)))
+      341 +    (let [^js data (.-userData o)
+      342 +          saved (.-ghostMat data)]
+      343 +      (when (some? saved)
+      344 +        (dispose-mat! (.-material o))
+      345 +        (set! (.-material o) saved)
+      346 +        (js-delete data "ghostMat"))))
+      347    obj)
+      348
+      349  (defn- hex->css [n]
+
+⏺ Update(src/pm/scene.cljs)
+  ⎿  Added 1 line
+       6              [pm.plan :as p]
+       7              [pm.blueprint :as bp]
+       8              [pm.content :as c]
+       9 +            [pm.materials :as mats]
+      10              [clojure.string :as str]))
+      11
+      12  (def palette
+
+⏺ Update(src/pm/scene.cljs)
+  ⎿  Added 10 lines, removed 6 lines
+      76               :height height'
+      77               :pos    (if pos [x (+ y (/ (- height' (:height plate)) 2)) z] pos)))))
+      78
+      79 -(defn- mount-item! [root item]
+      79 +(defn- mount-item! [root item kit-mats]
+      80    (let [{:keys [key at yaw parts label label-at text ghost? tint]} item
+      81 +        props? (mats/props-item? item)
+      82          ^js item-group (t/group {:name (pr-str key) :pos at :rot [0 (p/radians yaw) 0]})]
+      83      (doseq [[i part] (map-indexed vector parts)]
+      83 -      (let [^js mesh (t/stand-in {:shape (:shape part)
+      84 -                                  :size  (:size part)
+      85 -                                  :color (color (:color part))
+      86 -                                  :pos   (:at part)
+      87 -                                  :rot   (mapv p/radians (:rot part))})]
+      84 +      (let [^js mesh (t/stand-in
+      85 +                       (cond-> {:shape (:shape part)
+      86 +                                :size  (:size part)
+      87 +                                :color (color (:color part))
+      88 +                                :pos   (:at part)
+      89 +                                :rot   (mapv p/radians (:rot part))}
+      90 +                         props? (assoc :bevel (when (= :box (:shape part)) (mats/bevel-radius (:size p
+         +art)))
+      91 +                                       :kit (mats/material-for part (:kit-materials kit-mats) (:index
+         +kit-mats)))))]
+      92          (set! (.-name mesh) (str (pr-str key) "/" i))
+      93          (when (:glow part) (set! (.. mesh -userData -glow) true))
+      94          (t/add! item-group mesh)))
+
+⏺ Now update sync-blueprint-draw! and mount!.
+
+⏺ Update(src/pm/scene.cljs)
+  ⎿  Added 2 lines, removed 2 lines
+      257     Runs before `sync-blueprints!`'s status loop, which only ever flips a
+      258     mesh already mounted here."
+      259    [world]
+      260 -  (when-let [{:keys [root labels texts bp-drawn]} @!mounted]
+      260 +  (when-let [{:keys [root labels texts bp-drawn kit-mats]} @!mounted]
+      261      (let [{:keys [add remove]} (bp/drawable-changes bp-drawn world)]
+      262        (doseq [id remove]
+      263          (when-let [^js g (t/by-name root (pr-str [:blueprint id]))] (t/remove! root g))
+     ...
+      269                                            (and (vector? k) (= :blueprint (first k)) (contains? add-id
+           s (second k)))))
+      270                               (into (bp/ghost-plan world) (bp/built-plan world)))
+      271              [labels texts] (reduce (fn [[labs txt] item]
+      272 -                                      (let [sprite (mount-item! root item)]
+      272 +                                      (let [sprite (mount-item! root item kit-mats)]
+      273                                          [(cond-> labs sprite (assoc (:key item) sprite))
+      274                                           (cond-> txt (:text item) (assoc (:key item) (:text item)))])
+           )
+      275                                      [labels texts] items)]
+
+⏺ Update(src/pm/scene.cljs)
+  ⎿  Added 8 lines, removed 2 lines
+      357     mounted."
+      358    [scene world now]
+      359    (when-not @!mounted
+      360 -    (let [plan   (with-fixtures world (p/scene-plan world now))
+      360 +    (let [index    (mats/index-materials (t/material-pairs scene))
+      361 +          _        (when (seq index)
+      362 +                     (doseq [nm (mats/missing-names (:kit-materials world) index)]
+      363 +                       (js/console.warn "pm.scene: kit material not found:" nm)))
+      364 +          kit-mats {:kit-materials (:kit-materials world) :index index}
+      365 +          plan   (with-fixtures world (p/scene-plan world now))
+      366            root   (t/group {:name "pm-mirrors"})
+      367            labels (reduce (fn [acc item]
+      363 -                            (if-let [sprite (mount-item! root item)]
+      368 +                            (if-let [sprite (mount-item! root item kit-mats)]
+      369                                (assoc acc (:key item) sprite)
+      370                                acc))
+      371                            {} plan)]
+      372        (t/add! scene root)
+      373        (reset! !mounted {:root root :labels labels :texts (p/label-texts plan) :plan plan
+      374                          :kit-lights (t/kit-light-sources scene (:kit-lights world))
+      375 +                        :kit-mats kit-mats
+      376                          :snap-worm (snap-worm! root)
+      377                          :bp-drawn (bp-ids-in plan)})
+      378        (update! world now)))
+
+⏺ Now let's run the gate.
+
+  Read 1 file, ran 2 shell commands
+
+⏺ Now let me write the builder notes file required by the spec.
+
+  Listed 1 directory
+
+⏺ Write(crew/runs/kit-materials-v0-20261123-2005/builder-notes.md)
+  ⎿  Wrote 34 lines to crew/runs/kit-materials-v0-20261123-2005/builder-notes.md
+       1 # Builder note — kit-materials-v0 (TASKS T-17)
+       2
+       3 What was built: `src/pm/materials.cljs` (new, pure: `index-materials`,
+       4 `props-item?`, `material-for`, `box-face-repeats`, `shape-repeat`,
+       5 `bevel-radius`, `round-box-vertex`, `missing-names`). `pm.three/stand-in`
+       6 got two new opts (`:bevel`, `:kit`) and stayed byte-for-byte today's
+       7 placeholder without them; new `material-pairs`, `rounded-box-geometry`
+       8 (core `BoxGeometry` whose attributes are rewritten per `round-box-vertex`
+       9 — no `three/examples` needed, so nothing was dropped to plain `BoxGeometry`)
+      10 and `kit-part-material`. `ghost!`/`unghost!` now save/restore the mesh's
+     … +24 lines
+
+⏺ Changed: new pure src/pm/materials.cljs (index-materials, props-item?, material-for, box-face-repeats, shape-repeat,
+  bevel-radius, round-box-vertex, missing-names); src/pm/three.cljs gained material-pairs, rounded-box-geometry,
+  kit-part-material, stand-in's :bevel/:kit opts, and reworked ghost!/unghost! to save/restore the real material
+  object; src/pm/scene.cljs wires the kit-material index through mount!/mount-item!/sync-blueprint-draw!;
+  resources/estate.edn gained :kit-materials. Builder notes written to the run dir.
+
+  Gate: GATE: PASS — 0 warnings; Ran 1351 tests containing 7690 assertions.
+
+   resources/estate.edn |   7 ++
+   src/pm/scene.cljs    |  31 ++++++---
+   src/pm/three.cljs    | 182 ++++++++++++++++++++++++++++++++++++++-------------
+   3 files changed, 166 insertions(+), 54 deletions(-)
+   /dev/null => src/pm/materials.cljs | 118 +++++++++++++++++++++++++++++++++++++
+
+  done-2520
+
+✻ Sautéed for 5m 34s · done 8:15 PM
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

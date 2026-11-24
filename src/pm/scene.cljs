@@ -6,6 +6,7 @@
             [pm.plan :as p]
             [pm.blueprint :as bp]
             [pm.content :as c]
+            [pm.materials :as mats]
             [clojure.string :as str]))
 
 (def palette
@@ -75,15 +76,19 @@
              :height height'
              :pos    (if pos [x (+ y (/ (- height' (:height plate)) 2)) z] pos)))))
 
-(defn- mount-item! [root item]
+(defn- mount-item! [root item kit-mats]
   (let [{:keys [key at yaw parts label label-at text ghost? tint]} item
+        props? (mats/props-item? item)
         ^js item-group (t/group {:name (pr-str key) :pos at :rot [0 (p/radians yaw) 0]})]
     (doseq [[i part] (map-indexed vector parts)]
-      (let [^js mesh (t/stand-in {:shape (:shape part)
-                                  :size  (:size part)
-                                  :color (color (:color part))
-                                  :pos   (:at part)
-                                  :rot   (mapv p/radians (:rot part))})]
+      (let [^js mesh (t/stand-in
+                       (cond-> {:shape (:shape part)
+                                :size  (:size part)
+                                :color (color (:color part))
+                                :pos   (:at part)
+                                :rot   (mapv p/radians (:rot part))}
+                         props? (assoc :bevel (when (= :box (:shape part)) (mats/bevel-radius (:size part)))
+                                       :kit (mats/material-for part (:kit-materials kit-mats) (:index kit-mats)))))]
         (set! (.-name mesh) (str (pr-str key) "/" i))
         (when (:glow part) (set! (.. mesh -userData -glow) true))
         (t/add! item-group mesh)))
@@ -252,7 +257,7 @@
    Runs before `sync-blueprints!`'s status loop, which only ever flips a
    mesh already mounted here."
   [world]
-  (when-let [{:keys [root labels texts bp-drawn]} @!mounted]
+  (when-let [{:keys [root labels texts bp-drawn kit-mats]} @!mounted]
     (let [{:keys [add remove]} (bp/drawable-changes bp-drawn world)]
       (doseq [id remove]
         (when-let [^js g (t/by-name root (pr-str [:blueprint id]))] (t/remove! root g))
@@ -264,7 +269,7 @@
                                           (and (vector? k) (= :blueprint (first k)) (contains? add-ids (second k)))))
                              (into (bp/ghost-plan world) (bp/built-plan world)))
             [labels texts] (reduce (fn [[labs txt] item]
-                                      (let [sprite (mount-item! root item)]
+                                      (let [sprite (mount-item! root item kit-mats)]
                                         [(cond-> labs sprite (assoc (:key item) sprite))
                                          (cond-> txt (:text item) (assoc (:key item) (:text item)))]))
                                     [labels texts] items)]
@@ -352,16 +357,22 @@
    mounted."
   [scene world now]
   (when-not @!mounted
-    (let [plan   (with-fixtures world (p/scene-plan world now))
+    (let [index    (mats/index-materials (t/material-pairs scene))
+          _        (when (seq index)
+                     (doseq [nm (mats/missing-names (:kit-materials world) index)]
+                       (js/console.warn "pm.scene: kit material not found:" nm)))
+          kit-mats {:kit-materials (:kit-materials world) :index index}
+          plan   (with-fixtures world (p/scene-plan world now))
           root   (t/group {:name "pm-mirrors"})
           labels (reduce (fn [acc item]
-                            (if-let [sprite (mount-item! root item)]
+                            (if-let [sprite (mount-item! root item kit-mats)]
                               (assoc acc (:key item) sprite)
                               acc))
                           {} plan)]
       (t/add! scene root)
       (reset! !mounted {:root root :labels labels :texts (p/label-texts plan) :plan plan
                         :kit-lights (t/kit-light-sources scene (:kit-lights world))
+                        :kit-mats kit-mats
                         :snap-worm (snap-worm! root)
                         :bp-drawn (bp-ids-in plan)})
       (update! world now)))
