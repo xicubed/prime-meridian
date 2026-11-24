@@ -207,8 +207,9 @@ def letters(axis, sign, oc):
     ob = bpy.context.object
     ob.name = f'letters{axis}{sign}'
     ob.data.materials.clear(); ob.data.materials.append(M['letters'])
-    # text lies in its XY plane facing +Z; stand it up facing -Y, tilted up to the arc's middle
-    mid = SIGN_ARC / 2
+    # text lies in its XY plane facing +Z; stand it up facing -Y, sitting on the lower part of
+    # the arc (Michael: move it down) and tilted to the arc there
+    mid = SIGN_ARC * 0.32
     ob.rotation_euler = (math.pi / 2 - mid, 0, 0)
     bpy.ops.object.transform_apply(rotation=True)
     ob.location = (0, -(oc + (SIGN_R + 0.004) * math.cos(mid)), SIGN_Z0 + (SIGN_R + 0.004) * math.sin(mid))
