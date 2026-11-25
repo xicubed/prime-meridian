@@ -88,7 +88,7 @@
   ;; Beat 5, free your mind (GDD §2.7, §4.8): the Construct's last beat. The
   ;; white room dissolves into the half-barren estate -- only the buildings
   ;; for the programs loaded so far -- and the twin steps back.
-  :free {:line "I can open the door. Walking through it is your part."}
+  :free {:line "I can open the browser. Walking through it is your part."}
   ;; what a click does at each interactive moment, shown under the line
   :hints {:ask "Yes, rounder" :blueprint "Approve" :ring "Jack out" :out "Jack back in"}   ; the buttons
   ;; where the camera looks as your agent's building (the workshop) lands in beat 5

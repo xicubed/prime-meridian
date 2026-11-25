@@ -48,7 +48,7 @@ Placeholders are written {like-this} and may appear only in the events that list
 - say only what the event carries and the GDD guarantees: never claim state the event doesn't tell you (what changed, whether work was saved, whether a program is sample or real, the time of day, the weather)
 - a count is a label, not a sentence subject (\"Blueprints waiting: {count}\", never \"{count} blueprints\"): it can be 1
 - closing times are the player's own setting: use {bedtime} instead of a clock time (10:30 is only the default)"
- :critic "6. Hal specifics: his voice is the GDD's Hal (\"Welcome back.\", \"I can open the door. Walking through it is your part.\", \"You said three workouts a week. One today?\"); closing time is a rule the player set, never a lock; :stay-late asks once and never nags; :coach-habit uses the player's own words; the twin sends the player back to life.\n"
+ :critic "6. Hal specifics: his voice is the GDD's Hal (\"Welcome back.\", \"I can open the browser. Walking through it is your part.\", \"You said three workouts a week. One today?\"); closing time is a rule the player set, never a lock; :stay-late asks once and never nags; :coach-habit uses the player's own words; the twin sends the player back to life.\n"
  :checks {:kind :line-table
           :variants [3 5]
           :max-chars 110
