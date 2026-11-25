@@ -1,0 +1,14 @@
+NOTICE: MotionBricks model (public/models/soma/)
+
+Licensed by NVIDIA Corporation under the NVIDIA Open Model Agreement.
+
+The model is MotionBricks-SOMA-RP-v1 (NVIDIA, https://huggingface.co/nvidia/MotionBricks,
+https://github.com/NVlabs/motionbricks). The copy this game serves is a derivative: the ONNX
+model's weights quantized to 8 bits and split into shards (pack.json, graph.onnx,
+weights.q8.*) by the three-motionbricks library's packing tool
+(https://github.com/repalash/three-motionbricks). A copy of the NVIDIA Open Model Agreement
+(release date April 2, 2026) is in nvidia-open-model-agreement-2026-04-02.pdf next to this
+file. NVIDIA does not endorse this game.
+
+The game does not load NVIDIA's sample motion clips (Smart Primitive BVH/CSV files under the
+NVIDIA Sample Data Evaluation License).

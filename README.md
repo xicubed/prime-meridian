@@ -35,3 +35,7 @@ request in 💭 is its todo; ticked when the chore's done, untick to undo, tick 
 do it again.
 
 Built by Michael Lopez with Hal Niner (bot). Course project, fall 2026.
+
+Credits and third-party licenses (the kit, NVIDIA's MotionBricks model, ONNX Runtime, MuJoCo,
+music, characters): [public/CREDITS.md](public/CREDITS.md); the license texts are in
+[public/licenses/](public/licenses/) and are served with the game.
