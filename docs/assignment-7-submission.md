@@ -26,7 +26,7 @@ link goes in the submission box only, never in this public repo.*
   is [`content/`](../content/) (`pipeline.clj`, `STYLE.md`, `requests/`, every run in `runs/`); the
   agent crew that builds the game is [`crew/`](../crew/README.md) + `.crew/`, running on
   [crew-up](https://github.com/xicubed/crew-up).
-- **Pipeline run video link:** VIDEO_LINK. A narrated screen recording of one real run
+- **Pipeline run video link:** https://pm.perstitio.us/video/pipeline-run.mp4 (same username and password as the game; 6:39, narrated). A narrated screen recording of one real run
   (`bb content mirror-lines`, Nov 22): the request, the Generator's draft, the free validator,
   the Evaluator's score, the Refiner's edit, the second score clearing the bar, the table
   installed into the game's data file, and the run's cost log.

@@ -41,3 +41,4 @@ assets/private/
 
 # a remix of another Suno creator's song: class demo only, never published (public/assets/audio/LICENSES.md)
 /public/assets/audio/music/nuclear-vision.mp3
+/public/video/
