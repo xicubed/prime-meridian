@@ -12,7 +12,7 @@ about a minute to load the first time.
 2. Click a character to talk to them; **💭** (bottom left) opens your messages.
 3. Click Flora (the axolotl, in her jar by the creek) to feed her; click a blue ghost to try a build.
 
-Pipeline run video: https://pm.perstitio.us/video/pipeline-run.mp4 (same login, 6:39) · Assignment 7 write-up: [docs/assignment-7-submission.md](docs/assignment-7-submission.md)
+Assignment 7 write-up: [docs/assignment-7-submission.md](docs/assignment-7-submission.md)
 
 A cozy 3D management game where the characters are real AI agents doing real work. Rooms are projects. Talk to the agents, possess one to steer, and watch the world change as they build it.
 
