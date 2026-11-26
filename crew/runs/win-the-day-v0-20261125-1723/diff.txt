@@ -1,0 +1,340 @@
+diff --git a/TASKS.md b/TASKS.md
+index 1893961..bc8e32e 100644
+--- a/TASKS.md
++++ b/TASKS.md
+@@ -103,6 +103,9 @@ The twin on the estate (GDD §2.1). Built today: he walks (black body, white joi
+ - [ ] T-12 Call the player's real phone (after T-11; the GDD's jack-out hook, §2.3): Twilio voice from the bot number to his cell when something real is due (Flora's chore, a "!" waiting past closing) or when he taps 📞 away from the laptop; the twin reads the lines, speech-to-text comes back down the bridge; a crew member who takes a minute "calls back". Costs per minute; FaceTime/Teams have no agent end and are out. Ready-made ways to add it (Nov 22, nothing installed): Hermes's official `telephony` skill (one-way calls on the existing Twilio number: a spoken message or a TTS recording); the community **Hermes Voice Gateway** plugin (two-way: the player calls the twin's number and talks; needs ElevenLabs and a tunnel); Zoom only as a meeting bot that joins a meeting (Meetstream / Meeting AI plugins, paid bot services); Slack is text and voice notes only (bots can't join huddles).
+ - [ ] T-9 v2 idea: living objects (docs/ideas-living-objects.md): stateful things that age, speak, and pass messages through the twin; Flora's hunger in the game first, a text only when she's well overdue (replacing the 09:00/17:00 cron).
+ 
++## Final project (due Dec 6)
++- [x] Nov 25 (crew round win-the-day-v0) F-1 Win the day (Michael, Nov 25: the final video runs "start to win"). After the Construct a Today card top-left lists three goals with read-only checkboxes: finish the tutorial, build something with your twin (a blueprint turning real after the tutorial; builds real at load and the tutorial's rock don't count), jack out and back in at the booth (in that order, not the practice jump). All three: a Day won card (the twin's :day-won line, Keep playing), once per day per browser; the card then reads "Day won ✓". Pure pm.today (localStorage pm.today.v1, ?fresh clears it), texts in estate.edn :today. Open: add :day-won to content/requests/hal-lines.edn; the demo's own build path (next round).
++
+ ## Business (Pepper)
+ Owner: Business Manager (GDD §9b, §10d). Real-world steps that need ID, bank, or a signature are the Director's; Pepper preps everything around them.
+ - [ ] B-1 Payments account: finish the provider's business verification before the first sale. Director does the identity/bank steps; Pepper first gets lotect.com review-ready (what we sell, contact info, privacy and refund policies).
+diff --git a/resources/content/hal-lines.edn b/resources/content/hal-lines.edn
+index bc6d7d8..25b7dd1 100644
+--- a/resources/content/hal-lines.edn
++++ b/resources/content/hal-lines.edn
+@@ -63,6 +63,13 @@
+   "Here you are. Anyone who needs you will come find you."
+   "Back again. Let's see who needs you first."
+   "You're jacked in. Start with the board, or just walk."],
++ ;; :day-won was added by hand for the win loop (win-the-day-v0); add it to
++ ;; content/requests/hal-lines.edn before the next `bb content hal-lines` regenerates the table.
++ :day-won
++ ["That's the day won. What you built stays built."
++  "Day won. Go live the rest of it; the estate keeps."
++  "All three done. Same again tomorrow, if you like."
++  "You built something, left, and came back. That's the whole game."],
+  :program-needed
+  ["This one needs {program}. Load it and we'll keep going."
+   "I don't have {program} yet. That's what this task is waiting on."
+diff --git a/resources/estate.edn b/resources/estate.edn
+index 7267b3f..40a2fb1 100644
+--- a/resources/estate.edn
++++ b/resources/estate.edn
+@@ -93,6 +93,19 @@
+   :hints {:ask "Yes, rounder" :blueprint "Approve" :ring "Jack out" :out "Jack back in"}   ; the buttons
+   ;; where the camera looks as your agent's building (the workshop) lands in beat 5
+   :land-camera {:target [-6.2 2.1 -3.5] :offset [3.8 2.3 4.1]}}
++ ;; The day's three goals (pm.today; the final project's win loop): the Today card in the
++ ;; top-left once the Construct is done, and the Day won card when all three are ticked.
++ :today {:title     "Today"
++         :rows      {:tutorial "Finish the tutorial"
++                     :build    "Build something with your twin"
++                     :jack     "Jack out and back in"}
++         :hints     {:build "Ask your twin in 💭 (type or 🎙 talk) for a thing, try it, make it real."
++                     :jack  "Click the phone booth to jack out, then jack back in."}
++         :pill      "{title} {done}/{total}"   ; the collapsed card
++         :won       "Day won ✓"               ; the collapsed card once the day is won
++         :collapse  "Hide"                    ; the open card's collapse button
++         :win-title "Day won"
++         :button    "Keep playing"}
+  ;; A due chore of yours is one of the day's "!"s (GDD §2.1): this mark leads the
+  ;; creature's speech until you do it (click her, tick it in 💭, or text the twin).
+  :needs-you-mark "!"
+diff --git a/src/pm/core.cljs b/src/pm/core.cljs
+index ca8c03e..35fef42 100644
+--- a/src/pm/core.cljs
++++ b/src/pm/core.cljs
+@@ -31,6 +31,7 @@
+             [pm.scene :as scene]
+             [pm.plan :as plan]
+             [pm.talk :as talk]
++            [pm.today :as today]
+             [pm.ui :as ui]
+             [pm.view :as view]
+             [pm.world :as world]
+@@ -121,7 +122,7 @@
+ (defonce ^:private !last-builds (atom nil))   ; the parsed builds.edn, for apply-blueprint-file!
+ (defonce ^:private !kit (atom nil))           ; the kit handle, once start-kit! has it
+ 
+-(declare apply-blueprint-file!)
++(declare apply-blueprint-file! today-event! !real-from-file?)
+ 
+ (defn- fetch-builds! []
+   (-> (js/fetch (str builds-url "?t=" (js/Date.now)) #js {:cache "no-store"})
+@@ -129,7 +130,9 @@
+       (.then (fn [text]
+                (when-let [b (overlay/parse-file text)]
+                  (reset! !last-builds b)
+-                 (swap! !world bp/apply-real-builds b))))
++                 (reset! !real-from-file? true)
++                 (try (swap! !world bp/apply-real-builds b)
++                      (finally (reset! !real-from-file? false))))))
+       (.catch (fn [_]))))
+ 
+ (defn- fetch-blueprints!
+@@ -426,6 +429,14 @@
+   (atom (and (not (.has (js/URLSearchParams. (.. js/window -location -search)) "construct"))
+              (try (= "1" (.getItem js/localStorage construct-key)) (catch :default _ false)))))
+ 
++;; The day's three goals (pm.today, the final project's win loop): persisted
++;; state, the player's last collapse toggle, and whether !world is mid-swap
++;; from state/builds.edn (so that status change never ticks goal 2).
++(def today-key "pm.today.v1")
++(defonce ^:private !today (atom nil))
++(defonce ^:private !today-open (atom nil))
++(defonce ^:private !real-from-file? (atom false))
++
+ (defn- fresh-start!
+   "Testing aid: `?fresh` in the URL forgets the talk history and what was done
+    to sample creatures in this browser, and lets the Construct's white room
+@@ -436,8 +447,10 @@
+     (try (.removeItem js/localStorage talk-key)
+          (.removeItem js/localStorage play-key)
+          (.removeItem js/localStorage construct-key)
++         (.removeItem js/localStorage today-key)
+          (catch :default _ nil))
+-    (reset! !construct-seen? false)))
++    (reset! !construct-seen? false)
++    (reset! !today nil)))
+ 
+ (defonce ^:private !construct-said (atom nil))
+ 
+@@ -525,7 +538,8 @@
+         (swap! !world construct/load-program (:id (:program rack)) now))
+       (when (and (nil? room) (nil? rack) (nil? spar) (nil? jump) (nil? free) (:entered-at (:construct @!world)))
+         (reset! !construct-seen? true)
+-        (try (.setItem js/localStorage construct-key "1") (catch :default _ nil))))))
++        (try (.setItem js/localStorage construct-key "1") (catch :default _ nil))
++        (today-event! today/tutorial-done)))))
+ 
+ (defn- restore-talk! []
+   (let [text (read-talk)]
+@@ -609,6 +623,58 @@
+ (defn- tz-offset-min []
+   (- (.getTimezoneOffset (js/Date.))))
+ 
++(defn- save-today! []
++  (try (.setItem js/localStorage today-key (today/save-text @!today)) (catch :default _ nil)))
++
++(declare on-day-won! say!)
++(defn- today-event!
++  "Feeds one event fn of pm.today (f today now offset-min & args); saves, and shows the win once."
++  [f & args]
++  (let [before @!today
++        after  (apply f before (js/Date.now) (tz-offset-min) args)]
++    (when (not= before after)
++      (reset! !today after)
++      (save-today!)
++      (when (today/just-won? before after) (on-day-won! (:won-at after))))))
++
++(defn- on-today-world!
++  "Watch on !world: a blueprint turning :real, and jack-out / jack-in at the booth."
++  [_ _ old new]
++  (when-not (identical? old new)
++    (let [practice? (not @!construct-seen?)]
++      (doseq [e (today/transitions old new)]
++        (case e
++          :build-real (today-event! today/build-real {:practice? practice? :at-load? @!real-from-file?})
++          :jacked-out (today-event! today/jacked-out {:practice? practice?})
++          :jacked-in  (today-event! today/jacked-in  {:practice? practice?}))))))
++
++(defn- close-day-won! [] (ui/show-day-won! nil nil))
++
++(defn- on-day-won! [now]
++  (let [line (today/win-line content/hal-lines (content/day-number now))]
++    (reset! !today-open nil)   ; back to the default: collapsed once won
++    (ui/show-day-won! (assoc (today/win-card (:today @!world) line) :who (j/twin (j/names @!world)))
++                      close-day-won!)
++    (say! :day-won line)))     ; caption + 💭, like the twin's other lines (talk/observe picks up :hal)
++
++(defn- today-tick!
++  "Every frame: the day rollover, then the Today card (hidden until the Construct is seen)."
++  [now]
++  (let [before @!today
++        after  (today/current before now (tz-offset-min))]
++    (when-not (identical? before after) (reset! !today after) (save-today!)))
++  (ui/set-today!
++    (when @!construct-seen?
++      (let [s @!today texts (:today @!world)]
++        {:layout   (today/layout {:vw (.-innerWidth js/window) :vh (.-innerHeight js/window)
++                                  :panel-open? (boolean (:open? (:talk @!world)))
++                                  :open? (today/card-open? s @!today-open)})
++         :title    (:title texts)
++         :collapse (:collapse texts)
++         :rows     (today/rows s texts)
++         :pill     (today/pill s texts)}))
++    (fn [open?] (reset! !today-open open?))))
++
+ (defonce ^:private !sky (atom nil))   ; the kit hour pm.sky last set
+ (declare toggle-jack-out! crew-key-tick! twin-thinking? twin-dots walker-colours trial-card! view-tick!)
+ (defonce ^:private !gesture? (atom false))   ; browsers play nothing before one
+@@ -1021,6 +1087,7 @@
+     ;; The Construct's first beat (GDD §2.7, §4.8): a first-time player
+     ;; lands in a silent white room before the twin steps in.
+     (construct-tick! (js/Date.now))
++    (today-tick! (js/Date.now))
+     ;; Closing time (GDD §2.3, §4.8): last call, then goodnight, by the
+     ;; player's own bedtime (declared data, pm.closing). The twin's banner
+     ;; rides the same :hal path as jack-in. Night itself is the sky's
+@@ -1649,7 +1716,8 @@
+                             (update w :talk talk/append line now)
+                             w))
+                         w2 (:announce r))]
+-        (reset! !world w3)
++        (reset! !real-from-file? true)
++        (try (reset! !world w3) (finally (reset! !real-from-file? false)))
+         (js/console.info "Prime Meridian: blueprints added" (:added r) "removed" (:removed r))))))
+ 
+ ;; The card floats just clear of the sign's own plate: anchored at the
+@@ -1740,6 +1808,7 @@
+         (ui/set-panel-open! false)))
+     true)
+   (fresh-start!)
++  (reset! !today (today/restore (try (.getItem js/localStorage today-key) (catch :default _ nil))))
+   (restore-talk!)
+   (wire-talk-ui!)
+   (add-watch !world ::talk-cache on-talk-change!)
+@@ -1747,6 +1816,8 @@
+   (restore-cache!)
+   (add-watch !world ::state-cache on-world-change!)
+   (add-watch !world ::play-cache on-play-change!)
++  (add-watch !world ::today on-today-world!)
++  (when @!construct-seen? (today-event! today/tutorial-done))
+   (if DEMO
+     (do (start-sample-says!)   ; the demo's twin has a voice with nothing real behind it
+         ;; and one worker raises its shipped sample question a little after the estate is
+diff --git a/src/pm/ui.cljs b/src/pm/ui.cljs
+index e043178..2605e32 100644
+--- a/src/pm/ui.cljs
++++ b/src/pm/ui.cljs
+@@ -1245,3 +1245,116 @@
+   (when-let [^js box (el "sources")]
+     (.remove box)))
+ 
++;; -- The Today card (the final project's win loop, pm.today) ---------------
++;; Top-left, above the bottom-left buttons (z 200), below the 💭 panel and
++;; HUD (z 220): three read-only goals, open by default until won, a pill
++;; ("Today 2/3") once collapsed or while 💭 is open.
++
++(defn- today-el []
++  (or (el "pm-today")
++      (let [^js box (js/document.createElement "div")]
++        (set! (.-id box) "pm-today")
++        (set! (.. box -style -cssText)
++              (str "position:fixed;z-index:205;background:rgba(20,24,32,.88);color:#f3efe2;"
++                   "border-radius:10px;font:15px/1.4 system-ui,sans-serif;display:none;"))
++        (.appendChild js/document.body box)
++        box)))
++
++(defn- append-today-row!
++  [^js box {:keys [text hint ticked?]}]
++  (let [^js row (js/document.createElement "div")
++        ^js lab (js/document.createElement "label")
++        ^js cb  (js/document.createElement "input")
++        ^js txt (js/document.createElement "span")]
++    (set! (.. row -style -cssText) "margin-bottom:6px")
++    (set! (.. lab -style -cssText) "display:flex;align-items:baseline;gap:8px")
++    (set! (.-type cb) "checkbox")
++    (set! (.-checked cb) (boolean ticked?))
++    (set! (.-disabled cb) true)
++    (set! (.-textContent txt) text)
++    (.appendChild lab cb)
++    (.appendChild lab txt)
++    (.appendChild row lab)
++    (when hint
++      (let [^js h (js/document.createElement "div")]
++        (set! (.. h -style -cssText) "font-size:12px;opacity:.7;margin-left:24px")
++        (set! (.-textContent h) hint)
++        (.appendChild row h)))
++    (.appendChild box row)))
++
++(defn set-today!
++  "The Today card (pm.today): `state` nil hides it (the Construct's white
++   room). `state` is {:layout :title :collapse :rows :pill}; `on-toggle`
++   gets `false` from the card's collapse button, `true` from the pill.
++   Rebuilt only when it changes (this runs every frame)."
++  [state on-toggle]
++  (let [^js box (today-el)
++        key     (pr-str state)]
++    (when (not= key (.. box -dataset -key))
++      (set! (.. box -dataset -key) key)
++      (set! (.-innerHTML box) "")
++      (set! (.. box -style -width) "")
++      (set! (.. box -style -maxHeight) "")
++      (set! (.. box -style -overflowY) "visible")
++      (set! (.. box -style -padding) "0")
++      (set! (.. box -style -boxSizing) "content-box")
++      (when state
++        (let [{:keys [layout title collapse rows pill]} state]
++          (if (= :card (:mode layout))
++            (do
++              (set! (.. box -style -width) (str (:width layout) "px"))
++              (set! (.. box -style -maxHeight) (str (:max-height layout) "px"))
++              (set! (.. box -style -overflowY) "auto")
++              (set! (.. box -style -padding) "10px 12px")
++              (set! (.. box -style -boxSizing) "border-box")
++              (let [^js head (js/document.createElement "div")
++                    ^js ttl  (js/document.createElement "span")
++                    ^js hide (js/document.createElement "button")]
++                (set! (.. head -style -cssText) "display:flex;align-items:center;justify-content:space-between;margin-bottom:8px")
++                (set! (.. ttl -style -cssText) "font:600 11px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;opacity:.9")
++                (set! (.-textContent ttl) title)
++                (set! (.. hide -style -cssText) "all:unset;cursor:pointer;color:inherit;font:13px system-ui,sans-serif;opacity:.75")
++                (set! (.-textContent hide) collapse)
++                (.addEventListener hide "click" (fn [^js e] (.stopPropagation e) (on-toggle false)))
++                (.appendChild head ttl)
++                (.appendChild head hide)
++                (.appendChild box head))
++              (doseq [row rows] (append-today-row! box row)))
++            (let [^js btn (js/document.createElement "button")]
++              (set! (.. btn -style -cssText)
++                    (str "all:unset;display:block;cursor:pointer;height:40px;padding:0 14px;"
++                         "color:inherit;font:15px system-ui,sans-serif"))
++              (set! (.-textContent btn) pill)
++              (.addEventListener btn "click" (fn [^js e] (.stopPropagation e) (on-toggle true)))
++              (.appendChild box btn))))))
++    (when-let [{:keys [left top]} (:layout state)]
++      (set! (.. box -style -left) (str left "px"))
++      (set! (.. box -style -top) (str top "px")))
++    (set! (.. box -style -display) (if state "block" "none"))))
++
++;; -- The Day won card --------------------------------------------------------
++
++(defn show-day-won!
++  "The Day won card (pm.today): once per day, centred, the game's card style.
++   `state` nil hides it; {:title :line :button :who} shows it. `on-close` is
++   the Keep playing click."
++  [state on-close]
++  (let [^js box (card-el "day-won-veil" 460 "rgba(12,14,22,.35)")
++        key     (pr-str state)]
++    (when (not= key (.. box -dataset -key))
++      (set! (.. box -dataset -key) key)
++      (set! (.-innerHTML box) "")
++      (when state
++        (construct-css!)
++        (let [^js card (js/document.createElement "div")
++              ^js ttl  (js/document.createElement "div")]
++          (set! (.. card -style -cssText) "background:#fff;border-radius:16px;padding:26px 34px;max-width:620px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3)")
++          (set! (.. ttl -style -cssText) "font:600 28px system-ui;margin-bottom:12px")
++          (set! (.-textContent ttl) (:title state))
++          (.appendChild card ttl)
++          (append-say! card (:line state) (:who state))
++          (append-hint! card (:button state))
++          (.addEventListener card "click" (fn [^js e] (.stopPropagation e) (when (button-click? e) (on-close))))
++          (.appendChild box card))))
++    (set! (.. box -style -display) (if state "flex" "none"))))
++

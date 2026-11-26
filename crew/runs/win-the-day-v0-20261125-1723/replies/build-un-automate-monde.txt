@@ -1,0 +1,400 @@
+      1813    (add-watch !world ::talk-cache on-ta
+            lk-change!)
+     ...
+      1815    (restore-cache!)
+      1816    (add-watch !world ::state-cache on-w
+            orld-change!)
+      1817    (add-watch !world ::play-cache on-pl
+            ay-change!)
+      1818 +  (add-watch !world ::today on-today-w
+           +orld!)
+      1819 +  (when @!construct-seen? (today-event
+           +! today/tutorial-done))
+      1820    (if DEMO
+      1821      (do (start-sample-says!)   ; the d
+            emo's twin has a voice with nothing re
+            al behind it
+      1822          ;; and one worker raises its s
+            hipped sample question a little after
+            the estate is
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 1 line
+      1087      ;; The Construct's first beat (GDD
+             §2.7, §4.8): a first-time player
+      1088      ;; lands in a silent white room be
+            fore the twin steps in.
+      1089      (construct-tick! (js/Date.now))
+      1090 +    (today-tick! (js/Date.now))
+      1091      ;; Closing time (GDD §2.3, §4.8):
+            last call, then goodnight, by the
+      1092      ;; player's own bedtime (declared
+            data, pm.closing). The twin's banner
+      1093      ;; rides the same :hal path as jac
+            k-in. Night itself is the sky's
+
+⏺ Now let's add set-today! and show-day-won! to pm.ui,
+  appended at the end of the file:
+
+⏺ Update(src/pm/ui.cljs)
+  ⎿  Added 113 lines
+      1245    (when-let [^js box (el "sources")]
+      1246      (.remove box)))
+      1247
+      1248 +;; -- The Today card (the final projec
+           +t's win loop, pm.today) --------------
+           +-
+      1249 +;; Top-left, above the bottom-left but
+           +tons (z 200), below the 💭 panel and
+      1250 +;; HUD (z 220): three read-only goals,
+           + open by default until won, a pill
+      1251 +;; ("Today 2/3") once collapsed or whi
+           +le 💭 is open.
+      1252 +
+      1253 +(defn- today-el []
+      1254 +  (or (el "pm-today")
+      1255 +      (let [^js box (js/document.creat
+           +eElement "div")]
+      1256 +        (set! (.-id box) "pm-today")
+      1257 +        (set! (.. box -style -cssText)
+      1258 +              (str "position:fixed;z-i
+           +ndex:205;background:rgba(20,24,32,.88)
+           +;color:#f3efe2;"
+      1259 +                   "border-radius:10px
+           +;font:15px/1.4 system-ui,sans-serif;di
+           +splay:none;"))
+      1260 +        (.appendChild js/document.body
+           + box)
+      1261 +        box)))
+      1262 +
+      1263 +(defn- append-today-row!
+      1264 +  [^js box {:keys [text hint ticked?]}
+           +]
+      1265 +  (let [^js row (js/document.createEle
+           +ment "div")
+      1266 +        ^js lab (js/document.createEle
+           +ment "label")
+      1267 +        ^js cb  (js/document.createEle
+           +ment "input")
+      1268 +        ^js txt (js/document.createEle
+           +ment "span")]
+      1269 +    (set! (.. row -style -cssText) "ma
+           +rgin-bottom:6px")
+      1270 +    (set! (.. lab -style -cssText) "di
+           +splay:flex;align-items:baseline;gap:8p
+           +x")
+      1271 +    (set! (.-type cb) "checkbox")
+      1272 +    (set! (.-checked cb) (boolean tick
+           +ed?))
+      1273 +    (set! (.-disabled cb) true)
+      1274 +    (set! (.-textContent txt) text)
+      1275 +    (.appendChild lab cb)
+      1276 +    (.appendChild lab txt)
+      1277 +    (.appendChild row lab)
+      1278 +    (when hint
+      1279 +      (let [^js h (js/document.createE
+           +lement "div")]
+      1280 +        (set! (.. h -style -cssText) "
+           +font-size:12px;opacity:.7;margin-left:
+           +24px")
+      1281 +        (set! (.-textContent h) hint)
+      1282 +        (.appendChild row h)))
+      1283 +    (.appendChild box row)))
+      1284 +
+      1285 +(defn set-today!
+      1286 +  "The Today card (pm.today): `state`
+           +nil hides it (the Construct's white
+      1287 +   room). `state` is {:layout :title :
+           +collapse :rows :pill}; `on-toggle`
+      1288 +   gets `false` from the card's collap
+           +se button, `true` from the pill.
+      1289 +   Rebuilt only when it changes (this
+           +runs every frame)."
+      1290 +  [state on-toggle]
+      1291 +  (let [^js box (today-el)
+      1292 +        key     (pr-str state)]
+      1293 +    (when (not= key (.. box -dataset -
+           +key))
+      1294 +      (set! (.. box -dataset -key) key
+           +)
+      1295 +      (set! (.-innerHTML box) "")
+      1296 +      (set! (.. box -style -width) "")
+      1297 +      (set! (.. box -style -maxHeight)
+           + "")
+      1298 +      (set! (.. box -style -overflowY)
+           + "visible")
+      1299 +      (set! (.. box -style -padding) "
+           +0")
+      1300 +      (set! (.. box -style -boxSizing)
+           + "content-box")
+      1301 +      (when state
+      1302 +        (let [{:keys [layout title col
+           +lapse rows pill]} state]
+      1303 +          (if (= :card (:mode layout))
+      1304 +            (do
+      1305 +              (set! (.. box -style -wi
+           +dth) (str (:width layout) "px"))
+      1306 +              (set! (.. box -style -ma
+           +xHeight) (str (:max-height layout) "px
+           +"))
+      1307 +              (set! (.. box -style -ov
+           +erflowY) "auto")
+      1308 +              (set! (.. box -style -pa
+           +dding) "10px 12px")
+      1309 +              (set! (.. box -style -bo
+           +xSizing) "border-box")
+      1310 +              (let [^js head (js/docum
+           +ent.createElement "div")
+      1311 +                    ^js ttl  (js/docum
+           +ent.createElement "span")
+      1312 +                    ^js hide (js/docum
+           +ent.createElement "button")]
+      1313 +                (set! (.. head -style
+           +-cssText) "display:flex;align-items:ce
+           +nter;justify-content:space-between;mar
+           +gin-bottom:8px")
+      1314 +                (set! (.. ttl -style -
+           +cssText) "font:600 11px system-ui,sans
+           +-serif;letter-spacing:.12em;text-trans
+           +form:uppercase;opacity:.9")
+      1315 +                (set! (.-textContent t
+           +tl) title)
+      1316 +                (set! (.. hide -style
+           +-cssText) "all:unset;cursor:pointer;co
+           +lor:inherit;font:13px system-ui,sans-s
+           +erif;opacity:.75")
+      1317 +                (set! (.-textContent h
+           +ide) collapse)
+      1318 +                (.addEventListener hid
+           +e "click" (fn [^js e] (.stopPropagatio
+           +n e) (on-toggle false)))
+      1319 +                (.appendChild head ttl
+           +)
+      1320 +                (.appendChild head hid
+           +e)
+      1321 +                (.appendChild box head
+           +))
+      1322 +              (doseq [row rows] (appen
+           +d-today-row! box row)))
+      1323 +            (let [^js btn (js/document
+           +.createElement "button")]
+      1324 +              (set! (.. btn -style -cs
+           +sText)
+      1325 +                    (str "all:unset;di
+           +splay:block;cursor:pointer;height:40px
+           +;padding:0 14px;"
+      1326 +                         "color:inheri
+           +t;font:15px system-ui,sans-serif"))
+      1327 +              (set! (.-textContent btn
+           +) pill)
+      1328 +              (.addEventListener btn "
+           +click" (fn [^js e] (.stopPropagation e
+           +) (on-toggle true)))
+      1329 +              (.appendChild box btn)))
+           +)))
+      1330 +    (when-let [{:keys [left top]} (:la
+           +yout state)]
+      1331 +      (set! (.. box -style -left) (str
+           + left "px"))
+      1332 +      (set! (.. box -style -top) (str
+           +top "px")))
+      1333 +    (set! (.. box -style -display) (if
+           + state "block" "none"))))
+      1334 +
+      1335 +;; -- The Day won card ---------------
+           +--------------------------------------
+           +---
+      1336 +
+      1337 +(defn show-day-won!
+      1338 +  "The Day won card (pm.today): once p
+           +er day, centred, the game's card style
+           +.
+      1339 +   `state` nil hides it; {:title :line
+           + :button :who} shows it. `on-close` is
+      1340 +   the Keep playing click."
+      1341 +  [state on-close]
+      1342 +  (let [^js box (card-el "day-won-veil
+           +" 460 "rgba(12,14,22,.35)")
+      1343 +        key     (pr-str state)]
+      1344 +    (when (not= key (.. box -dataset -
+           +key))
+      1345 +      (set! (.. box -dataset -key) key
+           +)
+      1346 +      (set! (.-innerHTML box) "")
+      1347 +      (when state
+      1348 +        (construct-css!)
+      1349 +        (let [^js card (js/document.cr
+           +eateElement "div")
+      1350 +              ^js ttl  (js/document.cr
+           +eateElement "div")]
+      1351 +          (set! (.. card -style -cssTe
+           +xt) "background:#fff;border-radius:16p
+           +x;padding:26px 34px;max-width:620px;te
+           +xt-align:center;box-shadow:0 10px 40px
+           + rgba(0,0,0,.3)")
+      1352 +          (set! (.. ttl -style -cssTex
+           +t) "font:600 28px system-ui;margin-bot
+           +tom:12px")
+      1353 +          (set! (.-textContent ttl) (:
+           +title state))
+      1354 +          (.appendChild card ttl)
+      1355 +          (append-say! card (:line sta
+           +te) (:who state))
+      1356 +          (append-hint! card (:button
+           +state))
+      1357 +          (.addEventListener card "cli
+           +ck" (fn [^js e] (.stopPropagation e) (
+           +when (button-click? e) (on-close))))
+      1358 +          (.appendChild box card))))
+      1359 +    (set! (.. box -style -display) (if
+           + state "flex" "none"))))
+      1360 +
+
+⏺ Now let's run the gate to check compilation and tests.
+
+  Searched for 1 pattern, ran 3 shell commands
+
+⏺ Update(src/pm/today.cljs)
+  ⎿  Added 9 lines, removed 9 lines
+       88          (with-win now))))
+       89
+       90  (defn build-real [today now offset-min
+           opts]
+       91 -  (if-not (finite? now)
+       92 -    today
+       91 +  (if (or (not (finite? now)) (:practic
+          +e? opts))
+       92 +    today   ; nothing ticks while the C
+          +onstruct runs: not even the day rollove
+          +r
+       93      (let [s (current today now offset-m
+           in)]
+       94 -      (-> (if (and (:tutorial? s) (not
+          -(:practice? opts)) (not (:at-load? opts
+          -)))
+       94 +      (-> (if (and (:tutorial? s) (not
+          +(:at-load? opts)))
+       95              (assoc s :built? true)
+       96              s)
+       97            (with-win now)))))
+       98
+       99  (defn jacked-out [today now offset-min
+           opts]
+      100 -  (if-not (finite? now)
+      101 -    today
+      100 +  (if (or (not (finite? now)) (:practic
+          +e? opts))
+      101 +    today   ; nothing ticks while the C
+          +onstruct runs: not even the day rollove
+          +r
+      102      (let [s (current today now offset-m
+           in)]
+      103 -      (-> (if (and (:tutorial? s) (not
+          -(:practice? opts)))
+      103 +      (-> (if (:tutorial? s)
+      104              (assoc s :out? true)
+      105              s)
+      106            (with-win now)))))
+      107
+      108  (defn jacked-in [today now offset-min o
+           pts]
+      109 -  (if-not (finite? now)
+      110 -    today
+      109 +  (if (or (not (finite? now)) (:practic
+          +e? opts))
+      110 +    today   ; nothing ticks while the C
+          +onstruct runs: not even the day rollove
+          +r
+      111      (let [s (current today now offset-m
+           in)]
+      112 -      (-> (if (and (:out? s) (not (:pra
+          -ctice? opts)))
+      112 +      (-> (if (:out? s)
+      113              (assoc s :back? true)
+      114              s)
+      115            (with-win now)))))
+
+⏺ Let's re-run the gate.
+
+  Ran 1 shell command
+
+⏺ Gate passes. Now let's write the builder-notes.md per
+  the quest's Done-when and spec §8.
+
+  Listed 1 directory
+
+⏺ Write(crew/runs/win-the-day-v0-20261…/builder-notes.md)
+  ⎿  Wrote 35 lines to crew/runs/win-the-day-v0-2026
+     1125-1723/builder-notes.md
+       1 # builder-notes: win the day v0
+       2
+       3 What Hal clicks, in the dev build (`npx s
+         hadow-cljs watch app`, http://localhost:8
+         080):
+       4
+       5 1. `/?fresh` → jack in → play the Constru
+         ct to the end (through the fifth beat,
+       6    free your mind). The Today card appear
+         s top-left with **Finish the
+     … +29 lines
+
+  Ran 2 shell commands
+
+⏺ Done. Implemented the win-the-day v0 spec entirely
+  within my assigned files:
+
+  - src/pm/today.cljs (new): pure pm.today — day rollover
+    via a pure civil-calendar algorithm (no js/Date),
+    the four event fns, won?, rows, pill, layout,
+    transitions, save-text/restore, etc.
+  - src/pm/core.cljs: wired pm.today in per spec §5 — new
+    state/persistence (today-key, !today, !today-open,
+    !real-from-file?),
+    today-event!/on-today-world!/on-day-won!/today-tick!,
+    hooks into construct-tick!, fresh-start!, init!,
+    frame, fetch-builds!, apply-blueprint-file!.
+  - src/pm/ui.cljs: added set-today! (the top-left
+    card/pill) and show-day-won! (the centred win card),
+    plus private helpers.
+  - resources/estate.edn: added the :today block verbatim
+    after :construct-script.
+  - resources/content/hal-lines.edn: added the :day-won
+    entry verbatim after :jack-in.
+
+  Didn't touch test/, pm.content, pm.construct,
+  pm.blueprint, pm.world, or anything else out of scope.
+
+  One implementation note beyond the spec's literal
+  wording: the test suite's t35 (the "whole day"
+  integration test) requires that
+  build-real/jacked-out/jacked-in skip the day-rollover
+  entirely (not just the flag) when :practice? true —
+  i.e. a practice event leaves today byte-for-byte
+  unchanged, including staying nil. I implemented it that
+  way; it's consistent with every other test and with
+  spec §4's "nothing ticks while the Construct runs."
+
+  Gate: GATE: PASS — 0 warnings; Ran 1501 tests
+  containing 8199 assertions.
+
+   resources/content/hal-lines.edn |   7 +++
+   resources/estate.edn            |  13 +++++
+   src/pm/core.cljs                |  81
+  +++++++++++++++++++++---
+   src/pm/ui.cljs                  | 113
+  +++++++++++++++++++++++++++++
+   src/pm/today.cljs (new)         | 192
+  ++++++++++++++++++++++++++++
+
+  builder-notes.md is written in the run dir with the
+  click-through steps, the headless fake-build snippet,
+  and the overlap check.
+
+  done-8941
+
+✻ Brewed for 11m 8s · done 5:43 PM
+
+─────────────────────────────────────────────────────────
+❯
+─────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

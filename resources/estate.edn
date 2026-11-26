@@ -93,6 +93,19 @@
   :hints {:ask "Yes, rounder" :blueprint "Approve" :ring "Jack out" :out "Jack back in"}   ; the buttons
   ;; where the camera looks as your agent's building (the workshop) lands in beat 5
   :land-camera {:target [-6.2 2.1 -3.5] :offset [3.8 2.3 4.1]}}
+ ;; The day's three goals (pm.today; the final project's win loop): the Today card in the
+ ;; top-left once the Construct is done, and the Day won card when all three are ticked.
+ :today {:title     "Today"
+         :rows      {:tutorial "Finish the tutorial"
+                     :build    "Build something with your twin"
+                     :jack     "Jack out and back in"}
+         :hints     {:build "Ask your twin in 💭 (type or 🎙 talk) for a thing, try it, make it real."
+                     :jack  "Click the phone booth to jack out, then jack back in."}
+         :pill      "{title} {done}/{total}"   ; the collapsed card
+         :won       "Day won ✓"               ; the collapsed card once the day is won
+         :collapse  "Hide"                    ; the open card's collapse button
+         :win-title "Day won"
+         :button    "Keep playing"}
  ;; A due chore of yours is one of the day's "!"s (GDD §2.1): this mark leads the
  ;; creature's speech until you do it (click her, tick it in 💭, or text the twin).
  :needs-you-mark "!"

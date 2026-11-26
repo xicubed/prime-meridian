@@ -1,0 +1,169 @@
+hal in ~/src/prime-meridian on main ● λ export PATH=/Users/hal/.cache/crew-up/prime-meridian/bin-le-critique:$PATH
+hal in ~/src/prime-meridian on main ● λ hermes -p crew -m claude-sonnet-5 --in /Users/hal/src/prime-meridian --provider anthropic
+You are Le Critique (Herdr agent name "le-critique"), the critic in the "prime-meridian" crew: coding agents in Herdr panes.
+The manager is Hal ("hal"). They send you work by typing into your pane and read your reply on your screen, so answer in your pane; you can't message them any other way.
+Project directory: /Users/hal/src/prime-meridian
+
+# Role: critic
+
+You do a read-only review of the round's diff against the spec: naming,
+idiomatic ClojureScript, purity (no js/Date or three.js inside `pm.world`),
+anything specific to one pet leaking into code, and whether the code and
+tests match what the spec asked for.
+
+Project: **Prime Meridian**, a cozy 3D management game where the characters are real AI agents (`docs/GDD.md`). Read `AGENTS.md` before your first change: ClojureScript via shadow-cljs, three.js only through `pm.three`, Babashka for scripts, **no TypeScript, ever**, 0 compile warnings. The repo is public: no secrets, phone numbers or emails in anything you write.
+
+- Never edit source or t
+
+██╗  ██╗███████╗██████╗ ███╗   ███╗███████╗███████╗       █████╗  ██████╗ ███████╗███╗   ██╗████████╗
+██║  ██║██╔════╝██╔══██╗████╗ ████║██╔════╝██╔════╝      ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝
+███████║█████╗  ██████╔╝██╔████╔██║█████╗  ███████╗█████╗███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║
+██╔══██║██╔══╝  ██╔══██╗██║╚██╔╝██║██╔══╝  ╚════██║╚════╝██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║
+██║  ██║███████╗██║  ██║██║ ╚═╝ ██║███████╗███████║      ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║
+╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝      ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝
+
+╭────────────────────────── Hermes Agent v0.23.1 (2026.9.24) · stable · local 3b4215785882 ───────────────────────────╮
+│                                   Available Tools                                                                   │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀⠀⢀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   browser-use: browser_exec                                                         │
+│  ⠀⠀⠀⠀⠀⠀⢀⣠⣴⣾⣿⣿⣇⠸⣿⣿⠇⣸⣿⣿⣷⣦⣄⡀⠀⠀⠀⠀⠀⠀   clarify: clarify                                                                  │
+│  ⠀⢀⣠⣴⣶⠿⠋⣩⡿⣿⡿⠻⣿⡇⢠⡄⢸⣿⠟⢿⣿⢿⣍⠙⠿⣶⣦⣄⡀⠀   code_execution: execute_code                                                      │
+│  ⠀⠀⠉⠉⠁⠶⠟⠋⠀⠉⠀⢀⣈⣁⡈⢁⣈⣁⡀⠀⠉⠀⠙⠻⠶⠈⠉⠉⠀⠀   connections: manage_connections                                                   │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⣿⡿⠛⢁⡈⠛⢿⣿⣦⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   delegation: delegate_task                                                         │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠿⣿⣦⣤⣈⠁⢠⣴⣿⠿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   file: patch, read_file, search_files, write_file                                  │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠻⢿⣿⣦⡉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   image_gen: image_generate                                                         │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⢷⣦⣈⠛⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   memory: memory                                                                    │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣴⠦⠈⠙⠿⣦⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   (and 6 more toolsets...)                                                          │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⣿⣤⡈⠁⢤⣿⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀                                                                                     │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠷⠄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   Available Skills                                                                  │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠑⢶⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   autonomous-ai-agents: hermes-agent                                                │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠁⢰⡆⠈⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   general: crew-round-review                                                        │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠳⠈⣡⠞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀                                                                                     │
+│  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀   Profile: crew                                                                     │
+│                                   21 tools · 2 skills · /help for commands                                          │
+│  claude-sonnet-5 · Nous Research  ⚠ update available                                                                │
+│  /Users/hal/src/prime-meridian                                                                                      │
+│  Session: 1e7d3e03                                                                                                  │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+Welcome to Hermes Agent! Type your message or /help for commands.
+✦ Tip: hermes completion bash >> ~/.bashrc enables tab completion for all commands and profiles.
+
+
+
+────────────────────────────────────────
+❯ Say hi in ONE line: your name, your job, and the model you're running on. Don't use any tools.
+────────────────────────────────────────
+
+────────────────────────────────────────
+☤ Hermes
+Hi, I'm Hal (hal-niner) — I handle credentialed/local work on Prime Meridian — running on claude-sonnet-5.
+────────────────────────────────────────
+
+─ 4.9s · 5:23 PM
+
+
+────────────────────────────────────────
+❯ Review the round's changes against crew/runs/win-the-day-v0-20261125-1723/spec.md and .crew/quests/win-the-day-v0.md: git diff for edited files, and read the new files (git status lists them). Check in particular: pm.today is pure (now passed in, no js/Date, no atoms); the tutorial's practice jump and rock can't tick goals; builds real at load don't count; the checkboxes can't be clicked to fake a goal; the win shows once; ?fresh clears pm.today.v1; it works with DEMO true and no bridge; no person, pet or member named in code; no npm deps. Write the review to crew/runs/win-the-day-v0-20261125-1723/review.md.
+
+When you have completely finished, end your reply with a line containing only this: done-9149
+────────────────────────────────────────
+
+📚 Skill crew-round-review  0.1s
+💻 $ git status --short + 2 commands  1.1s
+📖 Read spec.md
+📖 Read win-the-day-v0.md
+🔎 Find *  2.5s
+💻 $ find crew/runs/win-the-day-v0-20261125-1723 -type f  0.3s
+📖 Read log.md
+📖 Read gate-note.md
+📖 Read review-le-critique.txt
+📖 Read review-le-critique.txt.status
+💻 $ git diff -- resources/content/hal-lines.edn resources/estate.edn src/pm/core.cljs src/pm/ui.cljs  0.3s
+📖 Read today.cljs
+📖 Read today_test.cljs
+💻 $ git diff -- package.json package-lock.json + 3 commands  0.4s
+💻 $ grep -n 'make-real!\|toggle-jack-out!' src/pm/core.cljs + 2 commands  0.4s
+💻 $ bash .crew/gate.sh  19.1s
+💻 $ git stash -u >/dev/null + 4 commands  3.9s
+💻 $ grep -c '^(deftest' test/pm/today_test.cljs + 8 commands  2.3s
+💻 $ grep -n '^(defn line' -A 10 src/pm/content.cljs + 1 command  0.5s
+
+────────────────────────────────────────
+☤ Hermes
+Signature matches pm.today/win-line's call exactly. Everything checks out against actual implementation. Now writing the review.
+────────────────────────────────────────
+
+✍️ Write crew/runs/win-the-day-v0-20261125-1723/review.md
+│ crew/runs/win-the-day-v0-20261125-1723/review.md
+│ @@ -0,0 +1,58 @@
+│ +# Review: win-the-day-v0 (20261125-1723)
+│ +
+│ +## Scope note
+│ +`replies/review-le-critique.txt` is not independent corroboration — it's a live capture of
+│ +*this same* reviewing session's own pane (same prompt, same tool calls, cut off mid-"Find *"),
+│ +not a second reviewer's pass. Disregarded as evidence; every check below was done fresh against
+│ +the spec and the diff.
+│ +
+│ +## Conformance summary
+│ +- Gate re-run independently (not just read from `gate-note.md`): `bash .crew/gate.sh` →
+│ +  **PASS**, compile 0 warnings, `Ran 1501 tests containing 8199 assertions, 0 failures, 0
+│ +  errors`; babashka 5 tests / 42 assertions, 0 failures. Matches `gate-note.md` and
+│ +  `builder-notes.md` exactly, and `pm.today-test` is confirmed actually executed (its header
+│ +  appears in the raw test-runner output).
+│ +- Test-count delta verified against HEAD, not against the round's own claim: tracked
+│ +  `test/**/*.cljs` at `HEAD` sum to 1465 `deftest`s; the new untracked `today_test.cljs` adds
+│ +  exactly 36 (`t01`…`t36`, all present, none skipped); 1465 + 36 = 1501, matching the gate's
+│ +  reported total precisely.
+│ +- Boundary table: diff touches exactly `src/pm/today.cljs` (new), `src/pm/core.cljs` (only the
+│ +  wiring points named in spec §5: new atoms/consts next to `construct-key`, `today-event!`/
+│ +  `save-today!`/`on-today-world!`/`on-day-won!`/`today-tick!`, the hooks in `construct-tick!`,
+│ +  `fresh-start!`, `frame`, `fetch-builds!`, `apply-blueprint-file!`, `init!`), `src/pm/ui.cljs`
+│ +  (only `set-today!`/`show-day-won!` + private helpers, appended after line 1245 — nothing
+│ +  earlier in the file changed), `resources/estate.edn` (only the `:today` block, inserted
+│ +  verbatim right after `:construct-script`'s closing `:land-camera`), `resources/content/hal-
+│ +  lines.edn` (only `:day-won`, inserted verbatim after `:jack-in`). `package.json`/`package-
+│ +  lock.json` diff is empty — no npm deps. `src/pm/content.cljs`, `construct.cljs`,
+│ +  `blueprint.cljs`, `world.cljs`, `TASKS.md` untouched, as required.
+│ +- Purity: `pm.today.cljs` has no atoms, no `js/Date`, no three.js/DOM; `now`/`offset-min` are
+│ +  always parameters. Grepped clean.
+│ +- Checkboxes: `append-today-row!` sets `cb.disabled = true` — ticks can't be faked by clicking.
+│ +- Practice jump / tutorial rock: `build-real`/`jacked-out`/`jacked-in` all short-circuit to
+│ +  "return `today` unchanged" under `:practice?`; the rock is DOM-only (`pm.ui` `.pm-rock`), never
+│ +  a blueprint, so it can't appear in `real-ids`. Confirmed against spec's own hand-worked t35
+│ +  (practice jack out/in while `s` is `nil` → `s` stays `nil`), which is the authoritative value,
+│ +  not the §3 prose summary.
+│ +- Builds real at load: `fetch-builds!` and `apply-blueprint-file!` both wrap their `!world`
+│ +  swap with `!real-from-file? true/false` (`finally`-protected), and `build-real` checks
+│ +  `:at-load?` before setting `:built?` — t11 passes with that flag.
+│ +- Win shows once: `:won-at` is set only when `(won? state)` and `:won-at` was `nil`
+│ +  (`with-win`); `today-event!` only calls `on-day-won!` when `just-won?` is true. No path resets
+│ +  `:won-at` within a day.
+│ +- `?fresh`: `fresh-start!` now also does `(.removeItem js/localStorage today-key)` and
+│ +  `(reset! !today nil)`.
+│ +- DEMO/no-bridge: the whole wiring rides the generic `!world` watch (`on-today-world!`) over
+│ +  blueprint status and `:jack`, never touches a bridge or `DEMO`-conditional code; `builder-
+│ +  notes.md` §5 shows the devtools fake-build path confirming this.
+│ +- Naming: grepped `pm.today.cljs`, the new `ui.cljs`/`core.cljs` hunks, and `today_test.cljs`
+│ +  for Michael/Hal/Flora/Juniper/Pepper — the only hits are pre-existing comments elsewhere in
+│ +  `ui.cljs` (lines 722–1108, untouched by this diff). `core.cljs`'s `:who (j/twin (j/names
+│ +  @!world))` computes the name dynamically via the existing helper, same pattern used
+│ +  elsewhere — not a hardcoded name.
+│ +
+│ +## Findings
+│ +None rise above a style nit. The round matches the spec's signatures, data shapes, wiring
+│ +points, and all 36 hand-worked test values I spot-checked (day rollover, win-once, order-
+│ +matters jack, transitions ordering/dedup, `pill`/`rows`/`layout` formatting) trace correctly
+│ +against the delivered `pm.today.cljs` implementation.
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/win-the-day-v0-20261125-1723/review.md: 0 findings above a style nit. Independently re-ran the gate (PASS, 0 warnings, 1501 tests/8199 assertions — matches gate-note.md exactly, and the 1465+36 deftest delta confirms all 36 new tests landed), verified boundary compliance, purity, the practice/at-load/checkbox/win-once/?fresh/no-bridge/no-npm-deps/no-names checks all hold. Noted that replies/review-le-critique.txt is a live self-capture of this same session, not independent corroboration, and excluded it as evidence.
+
+done-9149
+────────────────────────────────────────
+
+─ 3m03s · edited 1 file · read 1 skill, 8 files · ran 9 commands · searched 1 path · 5:47 PM
+─────────────────────────────────────────────────────────────────────────────────────── Greet with name job and model ─
+crew ❯ Type / to browse commands, or Ctrl+P for the palette
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ☤ claude-sonnet-5 · ~73.6K/1M · [█░░░░░░░░░] ~7% · ◎ 86.8% · ◷ 14.4s · ↑ 82 t/s · 29m · ⏲ 3m 2s · ✓ 0s

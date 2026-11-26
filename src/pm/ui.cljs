@@ -1245,3 +1245,116 @@
   (when-let [^js box (el "sources")]
     (.remove box)))
 
+;; -- The Today card (the final project's win loop, pm.today) ---------------
+;; Top-left, above the bottom-left buttons (z 200), below the 💭 panel and
+;; HUD (z 220): three read-only goals, open by default until won, a pill
+;; ("Today 2/3") once collapsed or while 💭 is open.
+
+(defn- today-el []
+  (or (el "pm-today")
+      (let [^js box (js/document.createElement "div")]
+        (set! (.-id box) "pm-today")
+        (set! (.. box -style -cssText)
+              (str "position:fixed;z-index:205;background:rgba(20,24,32,.88);color:#f3efe2;"
+                   "border-radius:10px;font:15px/1.4 system-ui,sans-serif;display:none;"))
+        (.appendChild js/document.body box)
+        box)))
+
+(defn- append-today-row!
+  [^js box {:keys [text hint ticked?]}]
+  (let [^js row (js/document.createElement "div")
+        ^js lab (js/document.createElement "label")
+        ^js cb  (js/document.createElement "input")
+        ^js txt (js/document.createElement "span")]
+    (set! (.. row -style -cssText) "margin-bottom:6px")
+    (set! (.. lab -style -cssText) "display:flex;align-items:baseline;gap:8px")
+    (set! (.-type cb) "checkbox")
+    (set! (.-checked cb) (boolean ticked?))
+    (set! (.-disabled cb) true)
+    (set! (.-textContent txt) text)
+    (.appendChild lab cb)
+    (.appendChild lab txt)
+    (.appendChild row lab)
+    (when hint
+      (let [^js h (js/document.createElement "div")]
+        (set! (.. h -style -cssText) "font-size:12px;opacity:.7;margin-left:24px")
+        (set! (.-textContent h) hint)
+        (.appendChild row h)))
+    (.appendChild box row)))
+
+(defn set-today!
+  "The Today card (pm.today): `state` nil hides it (the Construct's white
+   room). `state` is {:layout :title :collapse :rows :pill}; `on-toggle`
+   gets `false` from the card's collapse button, `true` from the pill.
+   Rebuilt only when it changes (this runs every frame)."
+  [state on-toggle]
+  (let [^js box (today-el)
+        key     (pr-str state)]
+    (when (not= key (.. box -dataset -key))
+      (set! (.. box -dataset -key) key)
+      (set! (.-innerHTML box) "")
+      (set! (.. box -style -width) "")
+      (set! (.. box -style -maxHeight) "")
+      (set! (.. box -style -overflowY) "visible")
+      (set! (.. box -style -padding) "0")
+      (set! (.. box -style -boxSizing) "content-box")
+      (when state
+        (let [{:keys [layout title collapse rows pill]} state]
+          (if (= :card (:mode layout))
+            (do
+              (set! (.. box -style -width) (str (:width layout) "px"))
+              (set! (.. box -style -maxHeight) (str (:max-height layout) "px"))
+              (set! (.. box -style -overflowY) "auto")
+              (set! (.. box -style -padding) "10px 12px")
+              (set! (.. box -style -boxSizing) "border-box")
+              (let [^js head (js/document.createElement "div")
+                    ^js ttl  (js/document.createElement "span")
+                    ^js hide (js/document.createElement "button")]
+                (set! (.. head -style -cssText) "display:flex;align-items:center;justify-content:space-between;margin-bottom:8px")
+                (set! (.. ttl -style -cssText) "font:600 11px system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;opacity:.9")
+                (set! (.-textContent ttl) title)
+                (set! (.. hide -style -cssText) "all:unset;cursor:pointer;color:inherit;font:13px system-ui,sans-serif;opacity:.75")
+                (set! (.-textContent hide) collapse)
+                (.addEventListener hide "click" (fn [^js e] (.stopPropagation e) (on-toggle false)))
+                (.appendChild head ttl)
+                (.appendChild head hide)
+                (.appendChild box head))
+              (doseq [row rows] (append-today-row! box row)))
+            (let [^js btn (js/document.createElement "button")]
+              (set! (.. btn -style -cssText)
+                    (str "all:unset;display:block;cursor:pointer;height:40px;padding:0 14px;"
+                         "color:inherit;font:15px system-ui,sans-serif"))
+              (set! (.-textContent btn) pill)
+              (.addEventListener btn "click" (fn [^js e] (.stopPropagation e) (on-toggle true)))
+              (.appendChild box btn))))))
+    (when-let [{:keys [left top]} (:layout state)]
+      (set! (.. box -style -left) (str left "px"))
+      (set! (.. box -style -top) (str top "px")))
+    (set! (.. box -style -display) (if state "block" "none"))))
+
+;; -- The Day won card --------------------------------------------------------
+
+(defn show-day-won!
+  "The Day won card (pm.today): once per day, centred, the game's card style.
+   `state` nil hides it; {:title :line :button :who} shows it. `on-close` is
+   the Keep playing click."
+  [state on-close]
+  (let [^js box (card-el "day-won-veil" 460 "rgba(12,14,22,.35)")
+        key     (pr-str state)]
+    (when (not= key (.. box -dataset -key))
+      (set! (.. box -dataset -key) key)
+      (set! (.-innerHTML box) "")
+      (when state
+        (construct-css!)
+        (let [^js card (js/document.createElement "div")
+              ^js ttl  (js/document.createElement "div")]
+          (set! (.. card -style -cssText) "background:#fff;border-radius:16px;padding:26px 34px;max-width:620px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3)")
+          (set! (.. ttl -style -cssText) "font:600 28px system-ui;margin-bottom:12px")
+          (set! (.-textContent ttl) (:title state))
+          (.appendChild card ttl)
+          (append-say! card (:line state) (:who state))
+          (append-hint! card (:button state))
+          (.addEventListener card "click" (fn [^js e] (.stopPropagation e) (when (button-click? e) (on-close))))
+          (.appendChild box card))))
+    (set! (.. box -style -display) (if state "flex" "none"))))
+

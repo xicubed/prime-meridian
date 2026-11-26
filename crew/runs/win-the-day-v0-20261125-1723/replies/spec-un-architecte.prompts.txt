@@ -1,0 +1,41 @@
+=== prompt 1 (17:26:10)
+  adding tests; le-docteur: a TASKS.md row F-1 for the final project's win loop). Reply when it's written.
+
+  When you have completely finished, end your reply with a line containing only this: done-3405
+
+  Searched for 3 patterns, read 1 file, listed 2 directories, ran 1 shell command
+
+⏺ Reading the quest and code so far (construct, core's wiring, blueprint, content); next I'll check the UI layout and
+  then write the spec.
+
+  Computing epoch timestamps for date test cases
+  ⎿  $ node -e '
+     const c=[[2026,10,25,12,0],[2026,10,26,3,0],[2026,11,31,23,30],[2028,1,29,12,0],[2026,10,25,23,30],[2026,10,25,9,0
+     ],[2026,10,26,9,0],[1970,0,1,0,0]];
+     for (const a of c){const t=Date.UTC(...a); console.log(a.join(","), t);}
+     const f=(t,o)=>new Date(t+o*60000).toISOString().slice(0,10);
+     co…
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose "switch to auto mode" below
+ Compute epoch timestamps for date test cases
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ node -e '
+ │ const c=[[2026,10,25,12,0],[2026,10,26,3,0],[2026,11,31,23,30],[2028,1,29,12,0],[2026,10,25,23,30],[2026,10,25,9,0]
+ │ ,[2026,10,26,9,0],[1970,0,1,0,0]];
+ │ for (const a of c){const t=Date.UTC(...a); console.log(a.join(","), t);}
+ │ const f=(t,o)=>new Date(t+o*60000).toISOString().slice(0,10);
+ │ console.log(f(Date.UTC(2026,10,26,3,0),-300), f(Date.UTC(2026,11,31,23,30),60), f(Date.UTC(2026,10,25,23,30),540),
+ │ f(-1,0));
+ │ '
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: node *
+   3. Yes, and switch to auto mode · auto mode handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend

@@ -63,6 +63,13 @@
   "Here you are. Anyone who needs you will come find you."
   "Back again. Let's see who needs you first."
   "You're jacked in. Start with the board, or just walk."],
+ ;; :day-won written by hand for the win loop (win-the-day-v0); the request lists it now,
+ ;; so the next `bb content hal-lines` run regenerates it with the rest.
+ :day-won
+ ["That's the day won. What you built stays built."
+  "Day won. Go live the rest of it; the estate keeps."
+  "All three done. Same again tomorrow, if you like."
+  "You built something, left, and came back. That's the whole game."],
  :program-needed
  ["This one needs {program}. Load it and we'll keep going."
   "I don't have {program} yet. That's what this task is waiting on."

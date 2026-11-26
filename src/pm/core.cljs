@@ -31,6 +31,7 @@
             [pm.scene :as scene]
             [pm.plan :as plan]
             [pm.talk :as talk]
+            [pm.today :as today]
             [pm.ui :as ui]
             [pm.view :as view]
             [pm.world :as world]
@@ -121,7 +122,7 @@
 (defonce ^:private !last-builds (atom nil))   ; the parsed builds.edn, for apply-blueprint-file!
 (defonce ^:private !kit (atom nil))           ; the kit handle, once start-kit! has it
 
-(declare apply-blueprint-file!)
+(declare apply-blueprint-file! today-event! !real-from-file?)
 
 (defn- fetch-builds! []
   (-> (js/fetch (str builds-url "?t=" (js/Date.now)) #js {:cache "no-store"})
@@ -129,7 +130,9 @@
       (.then (fn [text]
                (when-let [b (overlay/parse-file text)]
                  (reset! !last-builds b)
-                 (swap! !world bp/apply-real-builds b))))
+                 (reset! !real-from-file? true)
+                 (try (swap! !world bp/apply-real-builds b)
+                      (finally (reset! !real-from-file? false))))))
       (.catch (fn [_]))))
 
 (defn- fetch-blueprints!
@@ -426,6 +429,14 @@
   (atom (and (not (.has (js/URLSearchParams. (.. js/window -location -search)) "construct"))
              (try (= "1" (.getItem js/localStorage construct-key)) (catch :default _ false)))))
 
+;; The day's three goals (pm.today, the final project's win loop): persisted
+;; state, the player's last collapse toggle, and whether !world is mid-swap
+;; from state/builds.edn (so that status change never ticks goal 2).
+(def today-key "pm.today.v1")
+(defonce ^:private !today (atom nil))
+(defonce ^:private !today-open (atom nil))
+(defonce ^:private !real-from-file? (atom false))
+
 (defn- fresh-start!
   "Testing aid: `?fresh` in the URL forgets the talk history and what was done
    to sample creatures in this browser, and lets the Construct's white room
@@ -436,8 +447,10 @@
     (try (.removeItem js/localStorage talk-key)
          (.removeItem js/localStorage play-key)
          (.removeItem js/localStorage construct-key)
+         (.removeItem js/localStorage today-key)
          (catch :default _ nil))
-    (reset! !construct-seen? false)))
+    (reset! !construct-seen? false)
+    (reset! !today nil)))
 
 (defonce ^:private !construct-said (atom nil))
 
@@ -525,7 +538,8 @@
         (swap! !world construct/load-program (:id (:program rack)) now))
       (when (and (nil? room) (nil? rack) (nil? spar) (nil? jump) (nil? free) (:entered-at (:construct @!world)))
         (reset! !construct-seen? true)
-        (try (.setItem js/localStorage construct-key "1") (catch :default _ nil))))))
+        (try (.setItem js/localStorage construct-key "1") (catch :default _ nil))
+        (today-event! today/tutorial-done)))))
 
 (defn- restore-talk! []
   (let [text (read-talk)]
@@ -608,6 +622,58 @@
 
 (defn- tz-offset-min []
   (- (.getTimezoneOffset (js/Date.))))
+
+(defn- save-today! []
+  (try (.setItem js/localStorage today-key (today/save-text @!today)) (catch :default _ nil)))
+
+(declare on-day-won! say!)
+(defn- today-event!
+  "Feeds one event fn of pm.today (f today now offset-min & args); saves, and shows the win once."
+  [f & args]
+  (let [before @!today
+        after  (apply f before (js/Date.now) (tz-offset-min) args)]
+    (when (not= before after)
+      (reset! !today after)
+      (save-today!)
+      (when (today/just-won? before after) (on-day-won! (:won-at after))))))
+
+(defn- on-today-world!
+  "Watch on !world: a blueprint turning :real, and jack-out / jack-in at the booth."
+  [_ _ old new]
+  (when-not (identical? old new)
+    (let [practice? (not @!construct-seen?)]
+      (doseq [e (today/transitions old new)]
+        (case e
+          :build-real (today-event! today/build-real {:practice? practice? :at-load? @!real-from-file?})
+          :jacked-out (today-event! today/jacked-out {:practice? practice?})
+          :jacked-in  (today-event! today/jacked-in  {:practice? practice?}))))))
+
+(defn- close-day-won! [] (ui/show-day-won! nil nil))
+
+(defn- on-day-won! [now]
+  (let [line (today/win-line content/hal-lines (content/day-number now))]
+    (reset! !today-open nil)   ; back to the default: collapsed once won
+    (ui/show-day-won! (assoc (today/win-card (:today @!world) line) :who (j/twin (j/names @!world)))
+                      close-day-won!)
+    (say! :day-won line)))     ; caption + 💭, like the twin's other lines (talk/observe picks up :hal)
+
+(defn- today-tick!
+  "Every frame: the day rollover, then the Today card (hidden until the Construct is seen)."
+  [now]
+  (let [before @!today
+        after  (today/current before now (tz-offset-min))]
+    (when-not (identical? before after) (reset! !today after) (save-today!)))
+  (ui/set-today!
+    (when @!construct-seen?
+      (let [s @!today texts (:today @!world)]
+        {:layout   (today/layout {:vw (.-innerWidth js/window) :vh (.-innerHeight js/window)
+                                  :panel-open? (boolean (:open? (:talk @!world)))
+                                  :open? (today/card-open? s @!today-open)})
+         :title    (:title texts)
+         :collapse (:collapse texts)
+         :rows     (today/rows s texts)
+         :pill     (today/pill s texts)}))
+    (fn [open?] (reset! !today-open open?))))
 
 (defonce ^:private !sky (atom nil))   ; the kit hour pm.sky last set
 (declare toggle-jack-out! crew-key-tick! twin-thinking? twin-dots walker-colours trial-card! view-tick!)
@@ -1021,6 +1087,7 @@
     ;; The Construct's first beat (GDD §2.7, §4.8): a first-time player
     ;; lands in a silent white room before the twin steps in.
     (construct-tick! (js/Date.now))
+    (today-tick! (js/Date.now))
     ;; Closing time (GDD §2.3, §4.8): last call, then goodnight, by the
     ;; player's own bedtime (declared data, pm.closing). The twin's banner
     ;; rides the same :hal path as jack-in. Night itself is the sky's
@@ -1649,7 +1716,8 @@
                             (update w :talk talk/append line now)
                             w))
                         w2 (:announce r))]
-        (reset! !world w3)
+        (reset! !real-from-file? true)
+        (try (reset! !world w3) (finally (reset! !real-from-file? false)))
         (js/console.info "Prime Meridian: blueprints added" (:added r) "removed" (:removed r))))))
 
 ;; The card floats just clear of the sign's own plate: anchored at the
@@ -1740,6 +1808,7 @@
         (ui/set-panel-open! false)))
     true)
   (fresh-start!)
+  (reset! !today (today/restore (try (.getItem js/localStorage today-key) (catch :default _ nil))))
   (restore-talk!)
   (wire-talk-ui!)
   (add-watch !world ::talk-cache on-talk-change!)
@@ -1747,6 +1816,8 @@
   (restore-cache!)
   (add-watch !world ::state-cache on-world-change!)
   (add-watch !world ::play-cache on-play-change!)
+  (add-watch !world ::today on-today-world!)
+  (when @!construct-seen? (today-event! today/tutorial-done))
   (if DEMO
     (do (start-sample-says!)   ; the demo's twin has a voice with nothing real behind it
         ;; and one worker raises its shipped sample question a little after the estate is
