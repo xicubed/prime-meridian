@@ -8,9 +8,7 @@
 username (`guest33`) and a password (in the course submission; ask Michael). The world takes
 about a minute to load the first time.
 
-1. **Click once anywhere** to turn on sound, then **Jack in**.
-2. Click a character to talk to them; **💭** (bottom left) opens your messages.
-3. Click Flora (the axolotl, in her jar by the creek) to feed her; click a blue ghost to try a build.
+**How to play, start to win: [PLAY.md](PLAY.md).**
 
 Assignment 7 write-up: [docs/assignment-7-submission.md](docs/assignment-7-submission.md)
 
