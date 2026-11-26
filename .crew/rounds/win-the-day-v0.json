@@ -1,0 +1,67 @@
+{
+  "round": "win-the-day-v0",
+  "quest": ".crew/quests/win-the-day-v0.md",
+  "runDir": "crew/runs",
+  "gate": "bash .crew/gate.sh",
+  "fix": {
+    "who": "un-automate-monde",
+    "max": 2
+  },
+  "timeoutMinutes": 60,
+  "steps": [
+    {
+      "id": "spec",
+      "who": [
+        "un-architecte"
+      ],
+      "prompt": "New quest: read {quest} (and the code it cites). Write the spec to {run}/spec.md following your role card: exact signatures for the new src/pm/today.cljs, the estate :today block, the pm.core wiring points (name the functions you hook), the pm.ui card and win card with their placement numbers, numbered test cases with hand-checked expected values, and a who-touches-what table (builder: src/pm/today.cljs, src/pm/core.cljs, src/pm/ui.cljs, resources/estate.edn's new :today block, resources/content/hal-lines.edn's new :day-won entry only; tester: new test/pm/today_test.cljs, only adding tests; le-docteur: a TASKS.md row F-1 for the final project's win loop). Reply when it's written.",
+      "expect": [
+        "{run}/spec.md"
+      ]
+    },
+    {
+      "id": "build",
+      "who": [
+        "un-automate-monde",
+        "le-testeur"
+      ],
+      "prompt": {
+        "un-automate-monde": "Spec: {run}/spec.md (quest: {quest}). Implement it in the source files the spec assigns the builder, and nothing else. Run .crew/gate.sh before replying, then write {run}/builder-notes.md as the quest's Done-when says.",
+        "le-testeur": "Spec: {run}/spec.md (quest: {quest}). Write its test cases in the test file the spec assigns the tester, and nothing else. The builder is coding in parallel."
+      },
+      "expect": [
+        "{run}/builder-notes.md"
+      ]
+    },
+    {
+      "id": "gate",
+      "who": [
+        "le-coureur"
+      ],
+      "verify": true,
+      "prompt": "Run the gate (.crew/gate.sh) and write the gate note to {run}/gate-note.md as your role card says.",
+      "expect": [
+        "{run}/gate-note.md"
+      ]
+    },
+    {
+      "id": "review",
+      "who": [
+        "le-critique"
+      ],
+      "prompt": "Review the round's changes against {run}/spec.md and {quest}: git diff for edited files, and read the new files (git status lists them). Check in particular: pm.today is pure (now passed in, no js/Date, no atoms); the tutorial's practice jump and rock can't tick goals; builds real at load don't count; the checkboxes can't be clicked to fake a goal; the win shows once; ?fresh clears pm.today.v1; it works with DEMO true and no bridge; no person, pet or member named in code; no npm deps. Write the review to {run}/review.md.",
+      "expect": [
+        "{run}/review.md"
+      ]
+    },
+    {
+      "id": "docs",
+      "who": [
+        "le-docteur"
+      ],
+      "prompt": "Spec: {run}/spec.md (quest: {quest}). Make only the documentation edits the spec's who-touches-what table gives le-docteur (if none, change nothing). Reply with git diff --stat of what you changed.",
+      "expect": []
+    }
+  ],
+  "onBlocked": "wait"
+}
