@@ -1,0 +1,67 @@
+{
+  "round": "demo-build-ask-v0",
+  "quest": ".crew/quests/demo-build-ask-v0.md",
+  "runDir": "crew/runs",
+  "gate": "bash .crew/gate.sh",
+  "fix": {
+    "who": "un-automate-monde",
+    "max": 2
+  },
+  "timeoutMinutes": 60,
+  "steps": [
+    {
+      "id": "spec",
+      "who": [
+        "un-architecte"
+      ],
+      "prompt": "New quest: read {quest} (and the code it cites, including the win-the-day-v0 changes just landed). Write the spec to {run}/spec.md following your role card: exact signatures for the new src/pm/ask_build.cljc, the pm.three ground-grid fn, the pm.core wiring (name the functions you hook), the estate :demo-builds block with its four looks written out, numbered test cases with hand-checked expected values, and a who-touches-what table (builder: src/pm/ask_build.cljc, src/pm/three.cljs, src/pm/core.cljs, resources/estate.edn's new :demo-builds block only; tester: new test/pm/ask_build_test.cljs, only adding tests; le-docteur: a TASKS.md row F-2). Reply when it's written.",
+      "expect": [
+        "{run}/spec.md"
+      ]
+    },
+    {
+      "id": "build",
+      "who": [
+        "un-automate-monde",
+        "le-testeur"
+      ],
+      "prompt": {
+        "un-automate-monde": "Spec: {run}/spec.md (quest: {quest}). Implement it in the source files the spec assigns the builder, and nothing else. Run .crew/gate.sh before replying, then write {run}/builder-notes.md as the quest's Done-when says.",
+        "le-testeur": "Spec: {run}/spec.md (quest: {quest}). Write its test cases in the test file the spec assigns the tester, and nothing else. The builder is coding in parallel."
+      },
+      "expect": [
+        "{run}/builder-notes.md"
+      ]
+    },
+    {
+      "id": "gate",
+      "who": [
+        "le-coureur"
+      ],
+      "verify": true,
+      "prompt": "Run the gate (.crew/gate.sh) and write the gate note to {run}/gate-note.md as your role card says.",
+      "expect": [
+        "{run}/gate-note.md"
+      ]
+    },
+    {
+      "id": "review",
+      "who": [
+        "le-critique"
+      ],
+      "prompt": "Review the round's changes against {run}/spec.md and {quest}: git diff for edited files, and read the new files (git status lists them). Check in particular: the new path runs only with DEMO true; the parser is pure and its words are data; the ground map is measured in the browser and never written to a file or shipped; placement goes through pm.lot/place and the existing apply-blueprint-file! path; demo make-real/remove use pm.demo-builds.v1 and ?fresh clears it; the dev build without a bridge still refuses make-real; every look is grounded and clickable; no person, pet or member named in code; no npm deps. Write the review to {run}/review.md.",
+      "expect": [
+        "{run}/review.md"
+      ]
+    },
+    {
+      "id": "docs",
+      "who": [
+        "le-docteur"
+      ],
+      "prompt": "Spec: {run}/spec.md (quest: {quest}). Make only the documentation edits the spec's who-touches-what table gives le-docteur (if none, change nothing). Reply with git diff --stat of what you changed.",
+      "expect": []
+    }
+  ],
+  "onBlocked": "wait"
+}
