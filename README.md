@@ -52,7 +52,10 @@ three tables), and $0 marginal on the flat subscription we actually use.
 **Mid-project cost cut.** *Before:* to place a build "here", the twin read a screenshot of the
 game, ~1,850 input tokens per look, and still guessed. *After:* the game sends its camera and
 the ground point at the screen's centre as text (`bb where`), ~120 tokens, about 15× less, with
-exact coordinates. Details: [docs/assignment-7-submission.md](docs/assignment-7-submission.md).
+exact coordinates. These two token counts are calculated, not logged: the image by Anthropic's
+size formula (width × height ÷ 750), the readout by its length (~4 characters a token). The $1.30
+is logged per call, as API-equivalent cost; on our flat subscription the extra cost was $0.
+Details: [docs/assignment-7-submission.md](docs/assignment-7-submission.md).
 
 ## Run
 

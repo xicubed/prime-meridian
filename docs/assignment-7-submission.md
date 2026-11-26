@@ -115,3 +115,8 @@ link goes in the submission box only, never in this public repo.*
   the first scored run, after which Hal's lines cleared the bar in 3 drafts, where the run before had spent all 4 and
   never passed (6.9, 7.9, 7.7, 7.9): prompt input per run 345 KB → 261 KB, about 86k → 65k
   tokens, though each Opus token costs more.)
+- **How these numbers were got:** the before/after token counts are calculated, not logged. The
+  screenshot's from Anthropic's image formula (width × height ÷ 750 at the size the model sees);
+  the readout's and the prompts' from their length (~4 characters a token). Only the $1.30 run
+  is logged per call, and that figure is the API-equivalent cost `claude -p` reports; we ran on
+  a flat subscription, so the extra money actually spent was $0.
