@@ -22,13 +22,14 @@ they could have an agent of their own just by playing. No jargon in the trailer 
 | 4 | "No code. Just a world… and someone in it who works for you." | Landing on the estate; the Today card | — | "Your day's on the card, top left." | 8 |
 | 5 | "Ask for a bench… and it's built." | **Typing:** open grass by the cottage, 💭 → Hal → *put a bench here*; Hal's dot goes amber; the blue ghost appears | Michael types; the twin (Hermes) routes it to Un Automate, who runs `bb blueprint-draft` | "On it: Un Automate's drawing it." then the placed line | 20 (cut the wait) |
 | 6 | "And nothing changes… without your yes." | Click the ghost → trial → **Make it real**; goal 2 ticks | Michael clicks | — | 8 |
-| 7 | "Feed your pet at home… and the world feeds them too. Real… or imagined." | **Phone footage:** Michael feeds Flora at the real 5 PM feed → cut to the game: CREW → Flora, click her; worm count drops, her "!" clears; goal 3 ticks | Flora on REAL, so the click writes her real record | the twin's feed confirmation | 15 |
-| 8 | "Need you? They'll raise a hand." | A crew member's "!" goes up; Michael **calls Hal** (📞) and asks out loud what it's about; Hal answers on the call; Michael answers the member in its thread | `bb ask-player <member> "<a real question>"`; the call goes to the twin's chat | Hal on the call | 20 |
-| 9 | "You think you're playing a game." | The CREW key: dots, names; click two rows, the camera flies | — | the clock line: "The sky, the lamps and the music follow your real clock." | 8 |
-| 10 | "You're running a crew." | Wide aerial: every walker on the estate; then CREW → **Phone booth**, click the booth, jack out, **Jack back in**; goal 4 ticks | Michael clicks | "Real life's calling. Go. The work waits." | 15 |
-| 11 | — | The **Day won** card | — | the twin's `:day-won` line | 5 |
-| 12 | "Prime… Meridian." | The poster | — | — | 4 |
-| 13 | "Bring your life. Batteries… not included." | End card: title, URL | — | — | 4 |
+| 7 | "Need you? They'll raise a hand." | A "!" over Flora's jar and over Juniper; the CREW tab goes amber. Michael **calls Hal** (📞) and asks out loud "what's waiting?" | the call goes to the twin's chat; he answers from the real record (`flora.clj status`) | on the call: Flora's due and she's real, so feed her at home first; Juniper wants hay, and Juniper is imagined | 15 |
+| 8 | "Feed your pet at home… and the world feeds them too." | **REAL:** Flora's crew-key row with its box ticked (REAL); **phone footage** of Michael feeding her at the real 5 PM feed; cut to the game: click her, the worm count drops, her "!" clears; goal 3 ticks | the click writes her real record (`state/mirrors.edn`) | the feed confirmation | 15 |
+| 9 | "Real… or imagined." | **SAMPLE:** Juniper's row, box greyed (no real horse behind it); click Juniper, the hay bales drop, the "!" clears; nothing real changes | SAMPLE: the click stays in the browser | Juniper's thanks | 8 |
+| 10 | "You think you're playing a game." | The CREW key: dots, names; click two rows, the camera flies | — | the clock line: "The sky, the lamps and the music follow your real clock." | 8 |
+| 11 | "You're running a crew." | Wide aerial: every walker on the estate; then CREW → **Phone booth**, click the booth, jack out, **Jack back in**; goal 4 ticks | Michael clicks | "Real life's calling. Go. The work waits." | 15 |
+| 12 | — | The **Day won** card | — | the twin's `:day-won` line | 5 |
+| 13 | "Prime… Meridian." | The poster | — | — | 4 |
+| 14 | "Bring your life. Batteries… not included." | End card: title, URL | — | — | 4 |
 
 About 2:30 of picture. The trailer lines total about 50 s, spoken over their beats' first
 seconds, never over the twin.
@@ -65,14 +66,15 @@ from the first draft so the voice never claims what the game doesn't do:
   up, game reloaded after the bridge started.
 - [ ] A visible Chrome with its own fresh profile (the Construct and the Today card start
   fresh), 1440×900 points, voice and music on, **mic allowed** for the 📞 call; Michael wears
-  headphones for beat 8 so the twin's voice doesn't feed back into the mic (system audio still
+  headphones for beat 7 so the twin's voice doesn't feed back into the mic (system audio still
   records it).
 - [ ] Flora switched to **REAL** in the crew key; the record checked first (`flora.clj status`).
-- [ ] Beat 8's question is a real one Michael is happy to answer on camera; switch on "I'll
-  answer" only if a permission prompt is staged instead (else the fielder answers it first).
+- [ ] Beats 7–9: both creatures due at shoot time (Flora at 17:00 is real; Juniper's SAMPLE
+  clock must show the hay due too, check it in the take's browser before rolling). Michael
+  wears headphones for the call.
 - [ ] Nothing private on screen: the Hermes chat in beat 1 shows only crew talk; no phone
   numbers or emails; the Twilio texts stay off-camera.
-- [ ] Phone footage for beat 7 (portrait is fine, letterboxed).
+- [ ] Phone footage for beat 8 (portrait is fine, letterboxed).
 
 **Cut from this video** (the promo can use them): the content loop and its cost card, the
 `/usage` juice line, the deploy to the live site, the SMS twin.
