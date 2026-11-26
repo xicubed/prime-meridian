@@ -40,9 +40,10 @@ When all four are ticked, the **Day won** card appears. Click **Keep playing** t
 
 ## Getting around
 
+- **Get somewhere fast:** open the **CREW** tab on the right edge and click a name (Hal, a crew
+  member, Flora): the camera flies straight to them. That's the easiest way around.
 - **Look around:** **W A S D** to move. Click and drag (mouse or trackpad) to turn. Two
   fingers on the trackpad, or the scroll wheel, to slide and zoom in and out.
-- **Find someone:** the **CREW** tab on the right lists everyone. Click a name to fly to them.
 - **Talk to Hal:** click him, or open 💭 and tap **Hal**. 💭 works like the messages app on your
   phone: one thread per person. Hal runs the crew, so he's the one to ask; the crew members
   don't answer you in this build (your message to them shows *not sent*). That's by design:
