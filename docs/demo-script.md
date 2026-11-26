@@ -34,6 +34,29 @@ they could have an agent of their own just by playing. No jargon in the trailer 
 About 2:30 of picture. The trailer lines total about 50 s, spoken over their beats' first
 seconds, never over the twin.
 
+**Shot as independent scenes (Michael, Nov 26):** every numbered beat is its own clip, so any
+one can be reshot, cut, reordered, or a new one inserted, without redoing the rest.
+- **One file per scene and take:** `assets/private/video/f4/s<NN>-take<k>.mov` (gitignored),
+  recorded separately (Hal starts and stops `screencapture -v -A` on "scene N, rolling"), with
+  2–3 s of quiet handles at both ends for cuts and the trailer line.
+- **Every scene starts from a known state, saved on disk:** after each good take Hal snapshots
+  the browser's game storage (`pm.today.v1`, `pm.construct.v1`, `pm.talk.v1`, the camera) and
+  copies `state/builds.edn` and `state/mirrors.edn` to `assets/private/video/f4/state-s<NN>/`.
+  A reshoot of scene N restores scene N−1's snapshot first, so the Today card's ticks, the
+  bench and Flora's count are where that scene expects them. The real files are put back as
+  they were after the reshoot (they're real state: see the testing rule in the skill).
+- **The sky is pinned per scene with `?hour=`** (golden for the estate scenes, blue for the
+  booth and Day won), so takes shot at different times still match. The one exception is
+  Flora's REAL feed (beat 8), which happens at the real feed time; its game half can be shot
+  any time after, from scene 7's snapshot.
+- **A scene list drives the cut:** `assets/private/video/f4/scenes.edn` lists each scene's
+  chosen take, in/out points, speed ramps and its trailer line; inserting a scene is one more
+  entry. The assembly (ffmpeg) concatenates the clips, lays the game's own music under the whole
+  thing (so a cut never makes the music jump), then the trailer voice per scene.
+- **What an inserted scene must respect:** the Today card's ticks (a scene placed before the
+  bench can't show goal 2 ticked) and the sky's order (golden before blue). The scene list notes
+  each scene's start and end state so a reorder that breaks either shows up before the render.
+
 **Speed ramps (Michael, Nov 26):** the boring stretches run fast, so the day keeps moving: him
 flying or panning around to find a spot (beat 5's open grass, CREW flights, the walk to the
 booth), the wait while the crew places the bench, the Construct's self-advancing lines. 2–4×
