@@ -15,15 +15,39 @@ booth rings and you jack out. The world waits for you.
 3. On the first screen, click the poster to read it. Turn **🔊 Voice on** if you want Hal to
    speak, then click **Jack in**.
 
-## The tutorial (about 2 minutes)
+## The tutorial (about 75 seconds)
 
-Hal walks you through the white room. Each step has a button; nothing else needs a click.
+Hal walks you through the white room. Each step has a button; nothing else needs a click, and
+the lines in between move on by themselves.
 
 1. **The programs.** They load by themselves; just watch.
 2. **A practice job.** A sample worker asks whether to round a rock: click **Yes, rounder**,
    look at the proposed rock beside the old one, then click **Approve**.
 3. **The phone booth.** It rings: click **Jack out**, then **Jack back in**. Nothing is lost.
-4. The white room fades and you're on the estate.
+4. The white room fades, you're on the estate, and Hal tells you where to start.
+
+## Follow along with the video
+
+The gameplay video plays one day from start to win, in this order. After watching it you can do
+the same, step for step (it takes about 5 minutes).
+
+1. **Open the site and jack in** (0:00). Click the poster to read it, turn voice on if you like,
+   click **Jack in**.
+2. **The tutorial** (about 75 seconds). Hal talks you through it; you click five buttons:
+   **Yes, rounder** → **Approve** (your first approval: the worker's rock gets rounder) →
+   **Jack out** → **Jack back in** (the booth's lesson: the work waits for you).
+3. **Land on the estate.** Hal says *"Your day's on the card, top left."* The **Today** card
+   shows your four goals; the first is already ticked.
+4. **Ask Hal for a bench.** Look at open grass near the cottage, open **💭**, tap **Hal**, type
+   *put a bench here* (or tap 🎙 and say it). A glowing blue ghost bench appears.
+5. **Make it real.** Click the ghost to try it in place, then **Make it real**. The second goal
+   ticks.
+6. **Feed Flora.** Open the **CREW** tab on the right, click **Flora**: the camera flies to her
+   jar. Click her: Hal confirms her feed and the third goal ticks.
+7. **Jack out and back in.** In **CREW**, click **Phone booth** to fly there, click the red
+   booth itself to jack out, then **Jack back in**.
+8. **Day won.** Hal's **Day won** card appears. Click **Keep playing**, or come back
+   tomorrow: the day starts fresh and your bench is still there.
 
 ## Win the day
 
@@ -34,7 +58,7 @@ The **Today** card (top left) lists four goals. Tick all four to win the day:
 | **Finish the tutorial** | Ticks when you reach the estate. |
 | **Build something: talk to Hal** | Open **💭** (bottom left), tap **Hal**, and type or use 🎙 voice: *"put a bench here"*. A glowing blue ghost appears where you're looking. Click it to try it, then click **Make it real**. |
 | **Feed Flora** | Open the **CREW** tab on the right edge, click **Flora** to fly to her, then click her. |
-| **Jack out and back in** | Click the red phone booth to jack out, then click **Jack back in**. |
+| **Jack out and back in** | Click the red phone booth (or **Phone booth** in CREW to fly there first) to jack out, then click **Jack back in**. |
 
 When all four are ticked, the **Day won** card appears. Click **Keep playing** to stay.
 

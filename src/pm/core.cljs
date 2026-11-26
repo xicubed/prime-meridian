@@ -553,7 +553,11 @@
       (when (and (nil? room) (nil? rack) (nil? spar) (nil? jump) (nil? free) (:entered-at (:construct @!world)))
         (reset! !construct-seen? true)
         (try (.setItem js/localStorage construct-key "1") (catch :default _ nil))
-        (today-event! today/tutorial-done)))))
+        (today-event! today/tutorial-done)
+        ;; the first thing said on the estate: where the day's goals are and
+        ;; where to start (a new player landed with no next step before)
+        (when-let [ev (world/twin-says @!world (get-in @!world [:construct-script :landed]))]
+          (swap! !world world/apply-event ev now))))))
 
 (defn- restore-talk! []
   (let [text (read-talk)]
