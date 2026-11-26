@@ -685,7 +685,7 @@
                                   :open? (today/card-open? s @!today-open)})
          :title    (:title texts)
          :collapse (:collapse texts)
-         :rows     (today/rows s texts {:twin (j/twin (j/names @!world))})
+         :rows     (today/rows s texts (assoc (today/pet-vars @!world) :twin (j/twin (j/names @!world))))
          :pill     (today/pill s texts)}))
     (fn [open?] (reset! !today-open open?))))
 
@@ -751,6 +751,7 @@
   (swap! !world (fn [w] (if checked?
                           (chores/tick w content/hal-lines (:n e) (js/Date.now) (tz-offset-min))
                           (chores/untick w content/hal-lines (:n e) (js/Date.now)))))
+  (when checked? (today-event! today/chore-done {:practice? (not @!construct-seen?)}))
   (swap! !talk-ui assoc :listed nil))
 
 (defn- bridge-on? []
@@ -1423,6 +1424,10 @@
   [m]
   (let [before @!world]
     (swap! !world chores/click content/hal-lines m (js/Date.now) (tz-offset-min))
+    ;; the Today card's chore goal: a click that reached one of its chores
+    ;; (done, or checked on while not yet due)
+    (when (chores/chore-at-click before m (js/Date.now))
+      (today-event! today/chore-done {:practice? (not @!construct-seen?)}))
     (let [s0 (get-in before [:mirrors m :state])
           s1 (get-in @!world [:mirrors m :state])]
       (when (and (real-mirror? m) (not= s0 s1))

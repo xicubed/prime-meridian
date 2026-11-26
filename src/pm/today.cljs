@@ -1,7 +1,7 @@
 (ns pm.today
-  "The day's three goals (the final project's win loop, GDD 'win the day'):
-   finish the tutorial, build something with your twin, jack out and back
-   in. Pure: no atoms, no three.js, no DOM, no js/Date -- `now` (epoch ms)
+  "The day's four goals (the final project's win loop, GDD 'win the day'):
+   finish the tutorial, build something with your twin, do a creature's
+   chore (click it in the world or tick it in 💭), jack out and back in. Pure: no atoms, no three.js, no DOM, no js/Date -- `now` (epoch ms)
    and `offset-min` (minutes east of UTC, `pm.core/tz-offset-min`, the same
    convention `pm.closing` uses) are always passed in. No person, pet or
    member is named anywhere in it."
@@ -9,7 +9,7 @@
             [pm.content :as c]
             [pm.blueprint :as bp]))
 
-(def goal-count 3)
+(def goal-count 4)
 (def margin 14)
 (def card-w 300)
 (def pill-h 40)
@@ -58,10 +58,10 @@
       (str y "-" (pad2 m) "-" (pad2 d)))))
 
 (defn fresh [day tutorial?]
-  {:day day :tutorial? (boolean tutorial?) :built? false :out? false :back? false :won-at nil})
+  {:day day :tutorial? (boolean tutorial?) :built? false :chore? false :out? false :back? false :won-at nil})
 
 (defn won? [today]
-  (boolean (and (:tutorial? today) (:built? today) (:back? today))))
+  (boolean (and (:tutorial? today) (:built? today) (:chore? today) (:back? today))))
 
 (defn- with-win [state now]
   (if (and (won? state) (nil? (:won-at state)))
@@ -96,6 +96,17 @@
             s)
           (with-win now)))))
 
+(defn chore-done
+  "A creature's chore done by the player (a click on the creature, or a
+   tick in 💭); a click on a creature that isn't due counts too: they
+   checked on it, and the twin has said when it's next due."
+  [today now offset-min opts]
+  (if (or (not (finite? now)) (:practice? opts))
+    today
+    (let [s (current today now offset-min)]
+      (-> (if (:tutorial? s) (assoc s :chore? true) s)
+          (with-win now)))))
+
 (defn jacked-out [today now offset-min opts]
   (if (or (not (finite? now)) (:practice? opts))
     today   ; nothing ticks while the Construct runs: not even the day rollover
@@ -118,7 +129,7 @@
   (boolean (and (nil? (:won-at before)) (number? (:won-at after)))))
 
 (defn done-count [today]
-  (count (filter #(true? (get today %)) [:tutorial? :built? :back?])))
+  (count (filter #(true? (get today %)) [:tutorial? :built? :chore? :back?])))
 
 (defn rows
   "The card's three rows. `vars` fills `{word}` placeholders in the texts
@@ -132,7 +143,22 @@
               :text (or (f (get-in texts [:rows id])) "")
               :hint (when-not ticked? (f (get-in texts [:hints id])))
               :ticked? ticked?}))
-         [[:tutorial :tutorial?] [:build :built?] [:jack :back?]])))
+         [[:tutorial :tutorial?] [:build :built?] [:chore :chore?] [:jack :back?]])))
+
+(defn- capitalize [s]
+  (if (seq s) (str (.toUpperCase (subs s 0 1)) (subs s 1)) s))
+
+(defn pet-vars
+  "{:pet <name> :chore <its first chore, capitalised>} for the chore goal's
+   text: the first creature on the HUD (`:hud :mirrors`, data) with a
+   chore. Empty when there is none, so the texts keep their placeholders."
+  [world]
+  (or (first (for [id (get-in world [:hud :mirrors])
+                   :let [m (get-in world [:mirrors id]) ch (first (:chores m))]
+                   :when (and m ch)]
+               {:pet (or (:name m) (name id))
+                :chore (capitalize (name (:id ch)))}))
+      {}))
 
 (defn- pill-text [today texts]
   (let [template (if (string? (:pill texts)) (:pill texts) "{title} {done}/{total}")]

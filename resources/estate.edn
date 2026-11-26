@@ -99,8 +99,10 @@
  :today {:title     "Today"
          :rows      {:tutorial "Finish the tutorial"
                      :build    "Build something: talk to {twin}, leader of the agent crew"
+                     :chore    "{chore} {pet}"      ; the first :hud mirror and its first chore, e.g. "Feed <pet>"
                      :jack     "Jack out and back in"}
          :hints     {:build "Open 💭, tap {twin}, then type or use voice (🎙): \"put a bench here\". Try it, make it real."
+                     :chore "Click {pet}'s icon in the CREW panel to fly there, then click {pet}."
                      :jack  "Click the phone booth to jack out, then jack back in."}
          :pill      "{title} {done}/{total}"   ; the collapsed card
          :won       "Day won ✓"               ; the collapsed card once the day is won

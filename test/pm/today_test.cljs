@@ -15,7 +15,7 @@
 (def B  1795683600000)  ; 2026-11-26T09:00Z
 (def D1 "2026-11-25") (def D2 "2026-11-26")
 (def S1 (t/tutorial-done nil A 0))   ; the tutorial done, nothing else
-(def WON (-> S1 (t/build-real (+ A H) 0 {}) (t/jacked-out (+ A (* 2 H)) 0 {}) (t/jacked-in (+ A (* 3 H)) 0 {})))
+(def WON (-> S1 (t/build-real (+ A H) 0 {}) (t/chore-done (+ A (quot H 2) H) 0 {}) (t/jacked-out (+ A (* 2 H)) 0 {}) (t/jacked-in (+ A (* 3 H)) 0 {})))
 (def BP1 :bench-by-mailbox) (def BP2 :lamp-post-by-canal)   ; the estate's two blueprints
 (defn real [world id] (bp/make-real (bp/approve-blueprint world id) id))
 
@@ -39,7 +39,7 @@
   (is (nil? (t/day-of ##NaN -300))))
 
 (deftest t03-fresh
-  (is (= (t/fresh D1 true) {:day D1 :tutorial? true :built? false :out? false :back? false :won-at nil}))
+  (is (= (t/fresh D1 true) {:day D1 :tutorial? true :built? false :chore? false :out? false :back? false :won-at nil}))
   (is (= (:tutorial? (t/fresh D1 nil)) false)))
 
 (deftest t04-current-same-day-is-identical
@@ -63,7 +63,7 @@
   (is (= (t/jacked-in S1 nil 0 {}) S1)))
 
 (deftest t08-tutorial-done-ticks-goal-1
-  (is (= S1 {:day D1 :tutorial? true :built? false :out? false :back? false :won-at nil}))
+  (is (= S1 {:day D1 :tutorial? true :built? false :chore? false :out? false :back? false :won-at nil}))
   (is (= (t/tutorial-done S1 (+ A H) 0) S1)))
 
 (deftest t09-build-real-ticks-goal-2-after-tutorial
@@ -113,7 +113,8 @@
     (is (false? (t/won? {:built? true :back? true})))
     (is (false? (t/won? {:tutorial? true :built? true :out? true})))
     (is (true? (t/won? WON)))
-    (is (true? (t/won? {:tutorial? true :built? true :back? true})))))
+    (is (false? (t/won? {:tutorial? true :built? true :back? true})))   ; the chore goal is missing
+    (is (true? (t/won? {:tutorial? true :built? true :chore? true :back? true})))))
 
 (deftest t17-win-recorded-once-at-winning-event
   (is (= (:won-at WON) 1795608000000))
@@ -121,20 +122,20 @@
          1795608000000)))
 
 (deftest t18-winning-by-the-build-last
-  (let [before (-> S1 (t/jacked-out (+ A H) 0 {}) (t/jacked-in (+ A (* 2 H)) 0 {}))
+  (let [before (-> S1 (t/chore-done (+ A (quot H 2)) 0 {}) (t/jacked-out (+ A H) 0 {}) (t/jacked-in (+ A (* 2 H)) 0 {}))
         after  (t/build-real before (+ A (* 3 H)) 0 {})]
     (is (nil? (:won-at before)))
     (is (= (:won-at after) 1795608000000))))
 
 (deftest t19-just-won
-  (let [O' (-> S1 (t/build-real (+ A H) 0 {}) (t/jacked-out (+ A (* 2 H)) 0 {}))]
+  (let [O' (-> S1 (t/build-real (+ A H) 0 {}) (t/chore-done (+ A (quot H 2) H) 0 {}) (t/jacked-out (+ A (* 2 H)) 0 {}))]
     (is (true? (t/just-won? O' WON))))
   (is (false? (t/just-won? WON WON)))
   (is (false? (t/just-won? nil nil)))
   (is (false? (t/just-won? WON (t/current WON B 0)))))
 
 (deftest t20-day-rollover-with-an-event
-  (is (= (t/build-real WON B 0 {}) {:day D2 :tutorial? true :built? true :out? false :back? false :won-at nil}))
+  (is (= (t/build-real WON B 0 {}) {:day D2 :tutorial? true :built? true :chore? false :out? false :back? false :won-at nil}))
   (is (false? (t/won? (t/current WON B 0)))))
 
 (deftest t21-done-count
@@ -143,7 +144,8 @@
     (is (= (t/done-count S1) 1))
     (is (= (t/done-count (t/build-real S1 A 0 {})) 2))
     (is (= (t/done-count O) 1))
-    (is (= (t/done-count WON) 3))))
+    (is (= (t/done-count (t/chore-done S1 A 0 {})) 2))
+    (is (= (t/done-count WON) 4))))
 
 (deftest t22-rows-from-the-estates-texts
   ;; texts come from the estate; {twin} is filled with whichever name is passed
@@ -152,31 +154,52 @@
     (is (= (t/rows S1 TX {:twin "Ana"})
            [{:id :tutorial :text (get-in TX [:rows :tutorial]) :hint nil :ticked? true}
             {:id :build :text (sub (get-in TX [:rows :build])) :hint (sub (get-in TX [:hints :build])) :ticked? false}
+            {:id :chore :text (get-in TX [:rows :chore]) :hint (get-in TX [:hints :chore]) :ticked? false}
             {:id :jack :text (get-in TX [:rows :jack]) :hint (get-in TX [:hints :jack]) :ticked? false}]))
     (is (clojure.string/includes? (:text (second (t/rows S1 TX {:twin "Ana"}))) "Ana"))
     (is (not (clojure.string/includes? (:hint (second (t/rows S1 TX {:twin "Ana"}))) "{twin}"))))
-  (is (= (mapv :ticked? (t/rows WON TX)) [true true true]))
-  (is (= (mapv :hint (t/rows WON TX)) [nil nil nil])))
+  (is (= (mapv :ticked? (t/rows WON TX)) [true true true true]))
+  (is (= (mapv :hint (t/rows WON TX)) [nil nil nil nil]))
+  ;; the chore row's {pet} and {chore} come from whichever creature is passed
+  (is (= (:text (nth (t/rows S1 TX {:pet "Rex" :chore "Walk"}) 2))
+         (-> (get-in TX [:rows :chore]) (clojure.string/replace "{pet}" "Rex") (clojure.string/replace "{chore}" "Walk")))))
+
+(deftest t22b-pet-vars-from-the-hud-mirror
+  (is (= (t/pet-vars {:hud {:mirrors [:rex]} :mirrors {:rex {:name "Rex" :chores [{:id :walk}]}}})
+         {:pet "Rex" :chore "Walk"}))
+  (is (= (t/pet-vars {:hud {:mirrors [:a :b]} :mirrors {:a {:name "A"} :b {:name "Bo" :chores [{:id :brush} {:id :feed}]}}})
+         {:pet "Bo" :chore "Brush"}))   ; the first HUD mirror that has a chore
+  (is (= (t/pet-vars {}) {}))
+  (let [world (w/load-estate w/estate-edn)
+        id    (first (get-in world [:hud :mirrors]))]
+    (is (= (:pet (t/pet-vars world)) (get-in world [:mirrors id :name])))))
+
+(deftest t22c-chore-done
+  (is (true? (:chore? (t/chore-done S1 A 0 {}))))
+  (is (false? (:chore? (t/chore-done (t/fresh D1 false) A 0 {}))))   ; not before the tutorial
+  (is (= (t/chore-done S1 A 0 {:practice? true}) S1))
+  (is (= (t/chore-done S1 nil 0 {}) S1)))
 
 (deftest t23-rows-from-a-second-texts-map
   (is (= (t/rows (t/fresh D1 false) TX2)
          [{:id :tutorial :text "A" :hint "ha" :ticked? false}
           {:id :build :text "B" :hint "hb" :ticked? false}
+          {:id :chore :text "" :hint nil :ticked? false}
           {:id :jack :text "C" :hint "hc" :ticked? false}]))
   (let [O (t/jacked-out S1 (+ A H) 0 {})]
-    (is (= (nth (t/rows O TX2) 2) {:id :jack :text "C" :hint "hc" :ticked? false})))
-  (is (= (mapv :text (t/rows S1 nil)) ["" "" ""]))
-  (is (= (mapv :hint (t/rows S1 {})) [nil nil nil])))
+    (is (= (nth (t/rows O TX2) 3) {:id :jack :text "C" :hint "hc" :ticked? false})))
+  (is (= (mapv :text (t/rows S1 nil)) ["" "" "" ""]))
+  (is (= (mapv :hint (t/rows S1 {})) [nil nil nil nil])))
 
 (deftest t24-pill
-  (is (= (t/pill S1 TX) "Today 1/3"))
-  (is (= (t/pill (t/build-real S1 A 0 {}) TX) "Today 2/3"))
+  (is (= (t/pill S1 TX) "Today 1/4"))
+  (is (= (t/pill (t/build-real S1 A 0 {}) TX) "Today 2/4"))
   (is (= (t/pill WON TX) "Day won ✓"))
-  (is (= (t/pill S1 TX2) "Jour · 1 sur 3"))
+  (is (= (t/pill S1 TX2) "Jour · 1 sur 4"))
   (is (= (t/pill WON TX2) "Gagné"))
-  (is (= (t/pill S1 {}) " 1/3"))
-  (is (= (t/pill WON {}) " 3/3"))
-  (is (= (t/pill nil TX) "Today 0/3")))
+  (is (= (t/pill S1 {}) " 1/4"))
+  (is (= (t/pill WON {}) " 4/4"))
+  (is (= (t/pill nil TX) "Today 0/4")))
 
 (deftest t25-card-open
   (is (true? (t/card-open? S1 nil)))
@@ -273,13 +296,14 @@
         w-build (real w-load BP2)
         s (step s w-load w-build (+ A H) {})
         _ (is (= (:built? s) true))
+        s (t/chore-done s (+ A (quot H 2) H) 0 {})   ; the creature click (core calls it directly)
         w-out (assoc w-build :jack {:out? true})
         w-in  (assoc w-build :jack {:out? false})
         s (step s w-build w-out (+ A (* 2 H)) {})
         s (step s w-out w-in (+ A (* 3 H)) {})]
     (is (true? (t/won? s)))
     (is (= (:won-at s) 1795608000000))
-    (is (= (t/done-count s) 3))
+    (is (= (t/done-count s) 4))
     (is (= (t/pill s TX) "Day won ✓"))))
 
 (deftest t36-estate-block-complete-data-names-no-one
