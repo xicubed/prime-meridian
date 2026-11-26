@@ -41,8 +41,13 @@
                   :dojo      "/assets/audio/music/the-dojo.mp3"
                   :afternoon "/assets/audio/music/afternoon-in-the-simulation.mp3"
                   :golden    "/assets/audio/music/golden-hour-uplink.mp3"
-                  :blue      "/assets/audio/music/blue-hour-signal.mp3"}
-         :by-sky {:day :afternoon :golden :golden :blue :blue :night :blue}}
+                  :blue      "/assets/audio/music/blue-hour-signal.mp3"
+                  :white-room "/assets/audio/music/the-white-room.mp3"}
+         :by-sky {:day :afternoon :golden :golden :blue :blue :night :blue}
+         ;; after the scene's own track plays through, the rest of its group follow
+         ;; in turn (pm.music/playlist), so a long evening isn't one track on loop
+         :rotation [[:construct :white-room]
+                    [:afternoon :golden :blue]]}
  ;; The one-time ask at bedtime (pm.closing/asking-to-stay?): its words.
  :stay-late-ask {:ask "Staying past closing?" :button "Stay" :leave "Close up"
                 :sign "Closed for the night. Click the booth to come back in."}
