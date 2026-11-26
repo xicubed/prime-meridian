@@ -55,6 +55,47 @@ size formula (width × height ÷ 750), the readout by its length (~4 characters 
 is logged per call, as API-equivalent cost; on our flat subscription the extra cost was $0.
 Details: [docs/assignment-7-submission.md](docs/assignment-7-submission.md).
 
+## Make it yours: your own agents, your own world
+
+The hosted game at pm.perstitio.us is the test drive: everything there is SAMPLE, and only a
+pretend twin answers. Swapping in your own parts takes more setup the further down this list you go:
+
+| | What you do | Who answers you | What you install | Status |
+|---|---|---|---|---|
+| **1. Your key, in the browser** | Paste an AI API key into the hosted game; it stays in your browser | Your twin, played by that model with the game's own prompt (it can place builds). The crew stays SAMPLE | Nothing | Planned, after the course |
+| **2. Your agent, the game on your machine** | Clone this repo, run the game and `bb crew-bridge` | Your own agent as your twin, in its own chat and in-world (`bb hal-say`) | This repo, Node, a JDK, Babashka | Works today with Hermes (`scripts/hal_relay.py`); another agent needs its own relay and needs to know the game's protocol (`[from the game]` turns in, `bb hal-say` out) |
+| **3. Your agent, the hosted game** | Run only the bridge on your machine and pair it with the hosted page | Your agent, as in 2 | The bridge script and Babashka | Planned: the hosted page calls your bridge on `127.0.0.1` |
+| **4. The whole crew** | Run Herdr and crew-up beside the game | Your twin plus a crew of coding agents that build the game with you ([crew/README.md](crew/README.md)) | As in 2, plus the list below | Works today: this is how the game is built |
+
+What to clone:
+
+- **The game and your twin (2):** this repo only. The bridge, `hal-say` and the prompt fielder
+  are Babashka scripts here.
+- **The crew (4):** also [crew-up](https://github.com/xicubed/crew-up), plus Herdr ≥ 0.9,
+  Claude Code (logged in) and `jq`. If your manager runs in a Claude Code pane, install crew-up
+  as a plugin, with no clone (`claude plugin marketplace add xicubed/crew-up`, then `claude plugin
+  install crew-up@crew-up`, then `/crew-up`). If your manager drives Herdr from outside (as Hermes
+  does here), clone crew-up to `~/src/crew-up` and run its `bin/crew-up`.
+
+**The world is not in this repo.** The estate (the island, the cottage, the creek) is a licensed
+scene kit, [Hiroshi's Island](https://3ditions.drop3.app/watch/hiroshis-island/) by 3DITIONS. Its
+licence covers one compiled product and forbids handing out the pack. pm.perstitio.us serves it
+only compiled into our demo, behind a login, and a clone can't load it from there. A clone
+without the kit runs on a placeholder scene. To get the world:
+
+- **The same island:** buy the kit and copy its built player into `public/kit/` (gitignored):
+  `rsync -a --delete <kit>/dist/ public/kit/`.
+- **A world of your own** (the Old West, a space station): the game talks to a world through a
+  small handle, and everything else is data. The world is a three.js build in `public/kit/` that
+  sets `window.hiroshi` to `{scene, camera, renderer, THREE, rig}`. The rig has
+  `setHour("day"|"golden"|"blue"|"night")` for time of day, plus an orbit camera. Then
+  `resources/estate.edn` describes it: the meshes you can stand on (`:motion :ground`), the
+  materials our props borrow (`:kit-materials`), the sky schedule (`:sky`), and the landmarks and
+  walkers' spots. The rules, the crew, the mirrors and your twin carry over unchanged.
+  Honest caveat: the handle is still named after the island kit, and the code assumes its four
+  sky states. Making the world a clean plug-in (a documented interface plus a second sample world
+  on the same path) is planned work.
+
 ## Run
 
 ```bash
