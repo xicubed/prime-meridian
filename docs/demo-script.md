@@ -1,5 +1,71 @@
 # Demo script
 
+## The final gameplay video (TASKS F-4, final project due Dec 6)
+
+*Drafted Nov 26 with Michael. 2:30–3:00, one day from first screen to the Day won card, on the
+**dev build** (`localhost:8080`, real crew, real bridge, the real twin in his Hermes chat), not
+the hosted demo. Two voices: the **trailer voice** (Suno speech, deep movie-trailer narrator,
+one take for the whole script so it stays one voice) speaks the chapter lines between beats; the
+**twin's own Chrome voice** speaks everything that happens in the game, live. Music and the
+brook are the game's own (system audio); the music ducks under each trailer line in the edit.*
+
+**Who it's for:** people who have never heard of an agent harness. They should leave knowing
+they could have an agent of their own just by playing. No jargon in the trailer voice
+(harness, Herdr, MCP, bridge); the screens may show them.
+
+| # | Trailer voice (chapter line) | Shot | What happens (who does it) | Twin, live | ~s |
+|---|---|---|---|---|---|
+| 0 | "Everyone's talking about AI agents. Somewhere… they're already working. Unseen." | The Herdr Terminal window, the crew's panes scrolling mid-round; slow push in | real crew working (any round, or a staged read-only job) | — | 6 |
+| 1 | "Trapped behind screens… behind code… behind command lines only engineers can read." | A permission prompt in a pane; the Hermes chat | — | — | 5 |
+| 2 | "Until now." | Hard cut to the white room | — | — | 2 |
+| 3 | "Now… they're free to roam." | The Construct, cut down to ~25 s: the twin walks in, **Yes, rounder** → **Approve** → **Jack out** → **Jack back in** | Michael clicks | the Construct's own lines | 25 |
+| 4 | "No code. Just a world… and someone in it who works for you." | Landing on the estate; the Today card | — | "Your day's on the card, top left." | 8 |
+| 5 | "Ask for a bench… and it's built." | **Typing:** open grass by the cottage, 💭 → Hal → *put a bench here*; Hal's dot goes amber; the blue ghost appears | Michael types; the twin (Hermes) routes it to Un Automate, who runs `bb blueprint-draft` | "On it: Un Automate's drawing it." then the placed line | 20 (cut the wait) |
+| 6 | "And nothing changes… without your yes." | Click the ghost → trial → **Make it real**; goal 2 ticks | Michael clicks | — | 8 |
+| 7 | "Feed your pet at home… and the world feeds them too. Real… or imagined." | **Phone footage:** Michael feeds Flora at the real 5 PM feed → cut to the game: CREW → Flora, click her; worm count drops, her "!" clears; goal 3 ticks | Flora on REAL, so the click writes her real record | the twin's feed confirmation | 15 |
+| 8 | "Need you? They'll raise a hand." | A crew member's "!" goes up; Michael **calls Hal** (📞) and asks out loud what it's about; Hal answers on the call; Michael answers the member in its thread | `bb ask-player <member> "<a real question>"`; the call goes to the twin's chat | Hal on the call | 20 |
+| 9 | "You think you're playing a game." | The CREW key: dots, names; click two rows, the camera flies | — | the clock line: "The sky, the lamps and the music follow your real clock." | 8 |
+| 10 | "You're running a crew." | Wide aerial: every walker on the estate; then CREW → **Phone booth**, click the booth, jack out, **Jack back in**; goal 4 ticks | Michael clicks | "Real life's calling. Go. The work waits." | 15 |
+| 11 | — | The **Day won** card | — | the twin's `:day-won` line | 5 |
+| 12 | "Prime… Meridian." | The poster | — | — | 4 |
+| 13 | "Bring your life. Batteries… not included." | End card: title, URL | — | — | 4 |
+
+About 2:30 of picture. The trailer lines total about 50 s, spoken over their beats' first
+seconds, never over the twin.
+
+**What each line promises (checked against the code, Nov 26).** These are the lines changed
+from the first draft so the voice never claims what the game doesn't do:
+- *"No code. No setup."* became **"No code."**: this video shows the real game on Michael's
+  machine, which took setup. The hosted demo is the no-setup one.
+- *"They'll walk over and ask"* became **"They'll raise a hand"**: an `ask_player` member
+  walks to the *twin*, not to the player; the "!" over its head is what reaches the player.
+- *"Ask for a bench… and it's built"* is followed at once by *"nothing changes without your
+  yes"*: the ask makes a ghost, the player makes it real.
+- *"…the world feeds them too"* is literal: Flora's REAL record (`state/mirrors.edn`) changes
+  only because he fed her; shoot it at a real feed, never as a pretend one.
+
+**Before rolling (checklist):**
+- [ ] Trailer voice: the whole table's left column as ONE Suno speech take (two voices to pick
+  from); separate clips come out as different voices.
+- [ ] Shoot between **16:15 and 17:15**: golden hour until 16:45, blue hour after (`:sky`), the
+  real Flora feed at 17:00, well before the 22:15 closing card.
+- [ ] Crew up, `bb crew-bridge` up, `state/hal-session` = the live Hermes chat, shadow watch
+  up, game reloaded after the bridge started.
+- [ ] A visible Chrome with its own fresh profile (the Construct and the Today card start
+  fresh), 1440×900 points, voice and music on, **mic allowed** for the 📞 call; Michael wears
+  headphones for beat 8 so the twin's voice doesn't feed back into the mic (system audio still
+  records it).
+- [ ] Flora switched to **REAL** in the crew key; the record checked first (`flora.clj status`).
+- [ ] Beat 8's question is a real one Michael is happy to answer on camera; switch on "I'll
+  answer" only if a permission prompt is staged instead (else the fielder answers it first).
+- [ ] Nothing private on screen: the Hermes chat in beat 1 shows only crew talk; no phone
+  numbers or emails; the Twilio texts stay off-camera.
+- [ ] Phone footage for beat 7 (portrait is fine, letterboxed).
+
+**Cut from this video** (the promo can use them): the content loop and its cost card, the
+`/usage` juice line, the deploy to the live site, the SMS twin.
+
+## Earlier cuts (Nov 29 hand-in)
 *Two videos for the Nov 29 hand-in (below), then the Nov 21 demo-day run order (kept; its shots are
 the pool both videos draw from). Everything runs on the **dev build** (`localhost:8080`, `bb
 crew-bridge` up, `state/hal-session` pointed at the live Hermes chat) so Hal can speak; the live
