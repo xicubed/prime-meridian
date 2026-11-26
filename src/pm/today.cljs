@@ -180,8 +180,11 @@
 (defn layout
   "Where the Today card sits: a card, or (below `narrow-vw`, with the 💭
    panel open, or without a usable viewport size) a collapsed pill."
-  [{:keys [vw vh panel-open? open?]}]
-  (if (and open? (not panel-open?) (number? vw) (number? vh) (>= vw narrow-vw))
+  [{:keys [vw vh panel-open? open? chosen?]}]
+  ;; `chosen?`: the player tapped the pill to open it, so a narrow window
+  ;; opens it anyway (it only starts collapsed there); the 💭 panel is closed
+  ;; by that tap (core), so the two never overlap
+  (if (and open? (not panel-open?) (number? vw) (number? vh) (or chosen? (>= vw narrow-vw)))
     {:mode :card :left margin :top margin
      :width (min card-w (- vw 28)) :max-height (max min-card-h (- vh bottom-clear))}
     {:mode :pill :left margin :top margin :width nil :max-height nil}))

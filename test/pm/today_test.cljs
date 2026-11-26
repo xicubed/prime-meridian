@@ -220,7 +220,13 @@
     (is (= (t/layout {:vw 1280 :vh 800 :panel-open? false :open? false}) pill))
     (is (= (t/layout {:vw 719 :vh 800 :panel-open? false :open? true}) pill))
     (is (= (t/layout {:vw nil :vh 800 :open? true}) pill))
-    (is (= (t/layout {}) pill)))
+    (is (= (t/layout {}) pill))
+    ;; a narrow window starts with the pill, but a tap on it opens the card
+    (is (= (t/layout {:vw 600 :vh 800 :panel-open? false :open? true :chosen? true})
+           {:mode :card :left 14 :top 14 :width 300 :max-height 550}))
+    (is (= (t/layout {:vw 300 :vh 800 :panel-open? false :open? true :chosen? true})
+           {:mode :card :left 14 :top 14 :width 272 :max-height 550}))
+    (is (= (t/layout {:vw 600 :vh 800 :panel-open? true :open? true :chosen? true}) pill)))
   (is (true? (< (+ t/margin t/pill-h) t/panel-top))))
 
 (deftest t28-win-line

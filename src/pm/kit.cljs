@@ -37,8 +37,14 @@
 
 (defn- hide-kit-title!
   "The kit shows its own title ('Hiroshi's island') in its UI; this is
-   Prime Meridian. Hide that text wherever the kit renders it."
+   Prime Meridian. Hide that text wherever the kit renders it, and the
+   whole title block (its time-of-day eyebrow and tagline sit under the
+   Today card, top-left, as stray words: Michael)."
   []
+  (let [^js st (js/document.createElement "style")]
+    (set! (.-id st) "pm-hide-kit-title")
+    (set! (.-textContent st) ".cozy-title{display:none !important}")
+    (.appendChild js/document.head st))
   (let [re    #"(?i)^Hiroshi.s island$"
         sweep (fn []
                 (doseq [^js el (array-seq (.querySelectorAll js/document "h1,h2,h3,p,span,div,strong,em"))]

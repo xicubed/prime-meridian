@@ -682,12 +682,17 @@
       (let [s @!today texts (:today @!world)]
         {:layout   (today/layout {:vw (.-innerWidth js/window) :vh (.-innerHeight js/window)
                                   :panel-open? (boolean (:open? (:talk @!world)))
-                                  :open? (today/card-open? s @!today-open)})
+                                  :open? (today/card-open? s @!today-open)
+                                  :chosen? (true? @!today-open)})
          :title    (:title texts)
          :collapse (:collapse texts)
          :rows     (today/rows s texts (assoc (today/pet-vars @!world) :twin (j/twin (j/names @!world))))
          :pill     (today/pill s texts)}))
-    (fn [open?] (reset! !today-open open?))))
+    (fn [open?]
+      (reset! !today-open open?)
+      ;; opening the card closes 💭: they share the top-left corner
+      (when (and open? (:open? (:talk @!world)))
+        (swap! !world update :talk talk/close-panel)))))
 
 (defonce ^:private !sky (atom nil))   ; the kit hour pm.sky last set
 (declare toggle-jack-out! crew-key-tick! twin-thinking? twin-dots walker-colours trial-card! view-tick!)
