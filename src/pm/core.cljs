@@ -531,6 +531,7 @@
           (let [on? (boolean (:voice? (:talk @!world)))
                 labels (get-in @!world [:construct-script :voice])]
             (assoc room :voice on?
+                        :poster (get-in @!world [:construct-script :poster])
                         :voice-label (when (ui/speech?) (if on? (:on labels) (:off labels)))))))
       (ui/set-program-rack! rack)
       ;; the click hints are data too (:construct-script :hints)

@@ -242,7 +242,18 @@
       (set! (.-innerHTML box) "")
       (set! (.. box -style -flexDirection) "column")
       (cond
-        waiting?      (do (append-hint! box (:prompt state))
+        waiting?      (do (when-let [src (:poster state)]
+                            ;; the key art first: the first thing a new player sees
+                            (let [^js img (js/document.createElement "img")]
+                              (set! (.-id img) "construct-poster")
+                              (set! (.-src img) src)
+                              (set! (.-alt img) "Prime Meridian")
+                              (set! (.. img -style -cssText)
+                                    (str "max-height:min(58vh,900px);max-width:80vw;width:auto;"
+                                         "border-radius:6px;box-shadow:0 12px 40px rgba(0,0,0,.35);"
+                                         "margin-bottom:28px;"))
+                              (.appendChild box img)))
+                          (append-hint! box (:prompt state))
                           ;; the voice switch, right where you start: it's the same
                           ;; setting as the 🔊 button, remembered per browser
                           (when-let [label (:voice-label state)]

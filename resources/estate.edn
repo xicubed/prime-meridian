@@ -61,6 +61,7 @@
   :rock-labels ["now" "proposed"]   ; the two rocks side by side while you decide
   :start    "Jack in"   ; the first click is also what lets the browser play sound
   :voice    {:on "🔊 Voice on" :off "🔇 Voice off"}   ; the switch beside it (same as the 🔊 button)
+  :poster   "/poster/prime-meridian-poster.jpg"     ; the key art, above Jack in on the first screen (img/poster/)
   :opening  "This is the white room. Nothing in here is real yet. We load what you need, then we go make it real."
   :loaded   "Felt that? That's me, the real me, plugged in."
   :programs [{:id :own-agent :name "Your own agent"}
