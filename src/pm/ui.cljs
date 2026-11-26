@@ -211,6 +211,50 @@
 
 (declare append-hint! button-click?)
 
+(defonce ^:private !poster-key (atom nil))   ; the zoomed poster's Esc listener
+
+(defn- close-poster! []
+  (when-let [f @!poster-key]
+    (.removeEventListener js/window "keydown" f true)
+    (reset! !poster-key nil))
+  (when-let [^js o (el "construct-poster-zoom")] (.remove o)))
+
+(defn show-poster!
+  "The poster full size, over everything (the first screen's key art is too
+   small to read): as wide as the window allows up to its own 1600 px,
+   scrolling down its length; a labelled Close button, Esc, or a click on
+   the poster itself closes it."
+  [src]
+  (close-poster!)
+  (let [^js o   (js/document.createElement "div")
+        ^js img (js/document.createElement "img")
+        ^js btn (js/document.createElement "button")]
+    (set! (.-id o) "construct-poster-zoom")
+    (set! (.. o -style -cssText)
+          (str "position:fixed;inset:0;z-index:700;background:rgba(4,8,14,.94);"
+               "overflow:auto;display:block;text-align:center;padding:24px 0;box-sizing:border-box;"))
+    (set! (.-src img) src)
+    (set! (.-alt img) "Prime Meridian")
+    (set! (.. img -style -cssText)
+          "width:min(1600px,94vw);height:auto;display:block;margin:0 auto;cursor:zoom-out;border-radius:6px;")
+    (.addEventListener img "click" (fn [^js e] (.stopPropagation e) (close-poster!)))
+    (set! (.-textContent btn) "✕ Close")
+    (set! (.. btn -style -cssText)
+          (str "position:fixed;top:18px;right:22px;z-index:701;font:600 18px system-ui,sans-serif;"
+               "padding:10px 18px;border-radius:10px;border:1px solid rgba(255,255,255,.5);"
+               "background:rgba(0,0,0,.6);color:#fff;cursor:pointer;"))
+    (.addEventListener btn "click" (fn [^js e] (.stopPropagation e) (close-poster!)))
+    (.addEventListener o "click" (fn [^js e] (.stopPropagation e)))
+    (let [on-key (fn [^js e]
+                   (when (= "Escape" (.-key e))
+                     (.stopPropagation e) (.preventDefault e)
+                     (close-poster!)))]
+      (reset! !poster-key on-key)
+      (.addEventListener js/window "keydown" on-key true))
+    (.appendChild o img)
+    (.appendChild o btn)
+    (.appendChild js/document.body o)))
+
 (defn- white-room-el
   "The Construct's white room (GDD §2.7): a plain white screen above
    everything else, created on first use, same self-contained pattern as
@@ -243,15 +287,19 @@
       (set! (.. box -style -flexDirection) "column")
       (cond
         waiting?      (do (when-let [src (:poster state)]
-                            ;; the key art first: the first thing a new player sees
+                            ;; the key art first: the first thing a new player sees;
+                            ;; click it to read it full size (show-poster!)
                             (let [^js img (js/document.createElement "img")]
                               (set! (.-id img) "construct-poster")
                               (set! (.-src img) src)
                               (set! (.-alt img) "Prime Meridian")
+                              (set! (.-title img) "Click to read the poster")
                               (set! (.. img -style -cssText)
-                                    (str "max-height:min(58vh,900px);max-width:80vw;width:auto;"
+                                    (str "max-height:min(68vh,1000px);max-width:86vw;width:auto;"
                                          "border-radius:6px;box-shadow:0 12px 40px rgba(0,0,0,.35);"
-                                         "margin-bottom:28px;"))
+                                         "margin-bottom:22px;cursor:zoom-in;"))
+                              (.addEventListener img "click"
+                                (fn [^js e] (.stopPropagation e) (show-poster! src)))
                               (.appendChild box img)))
                           (append-hint! box (:prompt state))
                           ;; the voice switch, right where you start: it's the same
