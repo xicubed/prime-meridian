@@ -700,9 +700,25 @@
       (let [^js card (js/document.createElement "div")
             ^js h    (js/document.createElement "div")
             ^js list (js/document.createElement "div")]
-        (set! (.. card -style -cssText) "background:#fff;border-radius:16px;padding:22px 26px;width:min(640px,90vw);max-height:80vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.3);color:#1b1f2a")
-        (set! (.-className h) "pm-who")
-        (set! (.-textContent h) title)
+        (set! (.. card -style -cssText) "background:#fff;border-radius:16px;padding:0 26px 22px;width:min(640px,90vw);max-height:80vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.3);color:#1b1f2a")
+        ;; the title row stays pinned while the list scrolls, with its own ✕:
+        ;; the Close button at the bottom is out of sight on a long inbox
+        (set! (.. h -style -cssText)
+              "position:sticky;top:0;z-index:1;background:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 0 10px")
+        (let [^js t (js/document.createElement "div")
+              ^js x (js/document.createElement "button")]
+          (set! (.-className t) "pm-who")
+          (set! (.. t -style -margin) "0")
+          (set! (.-textContent t) title)
+          (set! (.-textContent x) "✕")
+          (set! (.-title x) close)
+          (.setAttribute x "aria-label" close)
+          (set! (.. x -style -cssText)
+                (str "flex:none;width:36px;height:36px;border-radius:50%;border:1px solid #d1d5db;"
+                     "background:#f9fafb;color:#1b1f2a;font:600 17px/1 system-ui,sans-serif;cursor:pointer"))
+          (.addEventListener x "click" (fn [^js e] (.stopPropagation e) (show-mail! nil)))
+          (.appendChild h t)
+          (.appendChild h x))
         (.appendChild card h)
         (doseq [r rows]
           (let [^js row  (js/document.createElement "div")
