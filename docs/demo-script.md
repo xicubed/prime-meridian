@@ -33,6 +33,18 @@ they could have an agent of their own just by playing. No jargon in the trailer 
 About 2:30 of picture. The trailer lines total about 50 s, spoken over their beats' first
 seconds, never over the twin.
 
+**Speed ramps (Michael, Nov 26):** the boring stretches run fast, so the day keeps moving: him
+flying or panning around to find a spot (beat 5's open grass, CREW flights, the walk to the
+booth), the wait while the crew places the bench, the Construct's self-advancing lines. 2–4×
+with a short ease in and out (`ffmpeg setpts` per segment). Rules: never speed a stretch where
+the twin or a member is talking, or a click that matters (Make it real, the "!", the booth); the
+sped stretch's game audio is dropped and the **music bed under the whole cut is the game's own
+track files** (`public/assets/audio/music/`, in the order the sky plays them), so cuts and ramps
+never make the music jump or chipmunk; the brook and the twin's voice stay from the take.
+Hal keeps a cue log during the take (clock time of each beat, each twin line, each click), so
+the fast stretches are the gaps between cues; he proposes the ramps on a contact sheet and
+Michael picks.
+
 **What each line promises (checked against the code, Nov 26).** These are the lines changed
 from the first draft so the voice never claims what the game doesn't do:
 - *"No code. No setup."* became **"No code."**: this video shows the real game on Michael's
