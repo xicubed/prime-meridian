@@ -831,15 +831,20 @@
         (swap! !world update :talk talk/crew-say member who text now)
         (let [t (:talk @!world) n (:n t)]
           (when (> n before-n)
-            (post-crew! member :say nil (:text (talk/entry t n)) n)
-            ;; the twin with no bridge to carry the words: in the demo build he
-            ;; builds what you asked for (pm.ask-build); elsewhere (a dev build
-            ;; without a bridge) he says so himself, instead of a silent failed line
-            (when (and (not (bridge-on?)) (= member (:agent (world/twin-walker @!world))))
-              (if DEMO
-                (demo-ask! text (+ now 1))
-                (when-let [ev (world/twin-says @!world (world/no-bridge-line @!world))]
-                  (swap! !world world/apply-event ev (+ now 1)))))))))))
+            (let [twin-agent (:agent (world/twin-walker @!world))
+                  plan       (talk/say-reply DEMO member twin-agent @!world)]
+              (if (:post? plan)
+                ;; the dev build, exactly as before: the bridge, and the twin's own no-bridge line
+                (do (post-crew! member :say nil (:text (talk/entry t n)) n)
+                    (when (and (not (bridge-on?)) (= member twin-agent))
+                      (when-let [ev (world/twin-says @!world (world/no-bridge-line @!world))]
+                        (swap! !world world/apply-event ev (+ now 1)))))
+                ;; the demo: nothing is posted; your line is sent, and the reply is local
+                (do (swap! !world update :talk talk/crew-result n (:outcome plan) now)
+                    (case (:reply plan)
+                      :twin   (demo-ask! text (+ now 1))
+                      :member (swap! !world update :talk talk/crew-reply member who (:text plan) (+ now 1))
+                      nil))))))))))
 
 (defn- call-say!
   "Like say-entry!, for a call's lines: the same !spoken guard (a line that
@@ -1066,7 +1071,7 @@
                                       (crew/dot (:crew w) (:member row) now colors))]
                         (merge row (when entry (walker-colours entry)) {:dot (:color d)})))
             rows  (-> (talk/crew-roster (:crew w) now (bridge-on?) (:crew-log w) (:expanded @!talk-ui) asked)
-                      (talk/with-walkers (:walkers w) (:agent twin) asked)
+                      (talk/with-walkers (:walkers w) (:agent twin) asked DEMO)
                       (talk/with-questions (:asks-player w))
                       (talk/with-twin twin (bridge-on?) (twin-thinking? w now))
                       (->> (mapv dressed))

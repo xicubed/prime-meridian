@@ -1,0 +1,75 @@
+
+ ▐▛███▛█   Claude Code v2.1.332
+▝▜██████▀  Sonnet 5 · Claude Max
+ ▝▝   ▝▝   ~/src/prime-meridian
+
+
+❯ Say hi in ONE line: your name, your job, and the model you're running on. Don't use any tools.
+
+⏺ Hi, I'm Le Testeur, the tester on prime-meridian, running on Claude Sonnet 5.
+
+✻ Sautéed for 2s · done 11:22 AM
+
+❯ Spec: crew/runs/demo-talk-v0-20261126-1137/spec.md (quest: .crew/quests/demo-talk-v0.md). Write its test cases in
+  the test file the spec assigns the tester, and nothing else. The builder is coding in parallel.
+
+  When you have completely finished, end your reply with a line containing only this: done-3540
+
+  Read 3 files
+
+⏺ Explore(Check world/jumeaux/crew function signatures)
+  ⎿  Backgrounded agent (↓ to manage · ctrl+o to expand)
+
+  Listed 1 directory · 1 failed
+
+⏺ Good, file doesn't exist yet. Let me peek at crew_talk_test.cljs for style conventions while the Explore agent runs.
+
+  Searched for 2 patterns, read 5 files · 1 failed
+
+⏺ Agent "Check world/jumeaux/crew function signatures" finished · 25s
+
+  Searched for 1 pattern
+
+⏺ Now I have everything confirmed. Writing the test file per spec §6.
+
+⏺ Write(test/pm/demo_talk_test.cljs)
+  ⎿  Wrote 206 lines to test/pm/demo_talk_test.cljs
+       1 (ns pm.demo-talk-test
+       2   (:require [cljs.test :refer [deftest is]]
+       3             [clojure.string :as str]
+       4             [pm.talk :as tk] [pm.crew :as crew] [pm.world :as w] [pm.jumeaux :as j]))
+       5
+       6 (def T0 1800000000000)
+       7 (def LINE "Ask {twin}, who runs the crew. In the full game I can answer you myself.")
+       8 (def HAL-LINE "Ask Hal, who runs the crew. In the full game I can answer you myself.")
+       9 (def ADA-LINE "Ask Ada, who runs the crew. In the full game I can answer you myself.")
+      10 (def WE (w/load-estate w/estate-edn))                 ; the real estate: twin "Hal", agent :hal
+     … +196 lines
+
+  Ran 1 shell command
+
+⏺ New file test/pm/demo_talk_test.cljs (ns pm.demo-talk-test), 206 lines, covering all 27 numbered cases from spec §6:
+
+  - t01–t05: estate :member-talk block and demo-member-line (both fixtures, no-jumeaux, blank/non-string/nil edge
+    cases)
+  - t06–t12: say-reply decision (not-demo, demo→twin, demo→member, second fixture, no line in data, no twin walker,
+    invalid member)
+  - t13–t17: crew-reply (basic shape, trims, identical-on-invalid-args, crew-label arm, counts?/crew-kinds)
+  - t18–t20: whole flows matching on-say's call order (twin, member/estate, member/second fixture)
+  - t21–t22: unread/call-line, restore round-trip + drop-on-missing-:member
+  - t23–t24: non-demo no-bridge still fails with · not sent: bridge off (member and twin)
+  - t25: twin-thinking? in the demo
+  - t26–t27: with-walkers 5-arity (open/closed, 4-arity unchanged, second fixture)
+
+  These exercise demo-member-line, say-reply, crew-reply, the :crew-reply arms in crew-label/restore, and the
+  with-walkers 5-arity — none of which exist in pm.talk yet, so the suite will fail to compile/run until the builder
+  lands them; that's expected per the brief.
+
+  done-3540
+
+✻ Cooked for 2m 7s · done 11:44 AM
+                                              You've used 75% of your weekly limit · resets 2pm (America/Los_Angeles)
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

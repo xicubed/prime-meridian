@@ -19,6 +19,10 @@
                            "Flora's fed. Worm count's holding."
                            "Nothing's on fire. Walk the creek if you like."
                            "Calendar's clear until tonight."]}
+ ;; A crew member in the demo build (no bridge, no real agent behind the walker): your say
+ ;; to them shows sent, and they answer this once in their own 💭 thread. {twin} is the
+ ;; twin's name from :jumeaux (pm.talk/demo-member-line). The dev build never uses it.
+ :member-talk {:demo "Ask {twin}, who runs the crew. In the full game I can answer you myself."}
  ;; Closing time (GDD §2.3, §4.8): a rule the player sets, not a lock the
  ;; software imposes ("you asked me to send you home"). Last call shows 15
  ;; minutes earlier; at bedtime the estate goes to night and the twin says

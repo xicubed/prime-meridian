@@ -1,0 +1,67 @@
+{
+  "round": "demo-talk-v0",
+  "quest": ".crew/quests/demo-talk-v0.md",
+  "runDir": "crew/runs",
+  "gate": "bash .crew/gate.sh",
+  "fix": {
+    "who": "un-automate-monde",
+    "max": 2
+  },
+  "timeoutMinutes": 45,
+  "steps": [
+    {
+      "id": "spec",
+      "who": [
+        "un-architecte"
+      ],
+      "prompt": "New quest: read {quest} and the code it cites. Write the spec to {run}/spec.md following your role card: the pure decision fn's exact signature and namespace, the pm.core on-say wiring (name the functions you hook), the estate :member-talk block, how the member's reply enters talk (the existing member-line path you found), numbered test cases with hand-checked expected values, and a who-touches-what table (builder: src/pm/core.cljs, src/pm/talk.cljs or the new cljc, resources/estate.edn's new :member-talk only; tester: a new test file test/pm/demo_talk_test.cljs, only adding tests; le-docteur: PLAY.md lines 71-77). Reply when it's written.",
+      "expect": [
+        "{run}/spec.md"
+      ]
+    },
+    {
+      "id": "build",
+      "who": [
+        "un-automate-monde",
+        "le-testeur"
+      ],
+      "prompt": {
+        "un-automate-monde": "Spec: {run}/spec.md (quest: {quest}). Implement it in the source files the spec assigns the builder, and nothing else. Run .crew/gate.sh before replying, then write {run}/builder-notes.md as the quest's Done-when says.",
+        "le-testeur": "Spec: {run}/spec.md (quest: {quest}). Write its test cases in the test file the spec assigns the tester, and nothing else. The builder is coding in parallel."
+      },
+      "expect": [
+        "{run}/builder-notes.md"
+      ]
+    },
+    {
+      "id": "gate",
+      "who": [
+        "le-coureur"
+      ],
+      "verify": true,
+      "prompt": "Run the gate (.crew/gate.sh) and write the gate note to {run}/gate-note.md as your role card says.",
+      "expect": [
+        "{run}/gate-note.md"
+      ]
+    },
+    {
+      "id": "review",
+      "who": [
+        "le-critique"
+      ],
+      "prompt": "Review the round's changes against {run}/spec.md and {quest}: git diff for edited files, and read the new files (git status lists them). Check in particular: the change is DEMO-only and the dev build with no bridge still shows not sent: bridge off; no bridge POST in the demo; the member's line comes from estate data with {twin} filled from :jumeaux; the decision is pure and tested; the reply lands in the member's 💭 thread; no person, pet or member named in code. Write the review to {run}/review.md.",
+      "expect": [
+        "{run}/review.md"
+      ]
+    },
+    {
+      "id": "docs",
+      "who": [
+        "le-docteur"
+      ],
+      "prompt": "Spec: {run}/spec.md (quest: {quest}). Make only the documentation edits the spec's who-touches-what table gives le-docteur (if none, change nothing). Reply with git diff --stat of what you changed.",
+      "expect": []
+    }
+  ],
+  "onBlocked": "wait"
+}

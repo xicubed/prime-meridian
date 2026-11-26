@@ -69,12 +69,11 @@ When all four are ticked, the **Day won** card appears. Click **Keep playing** t
 - **Look around:** **W A S D** to move. Click and drag (mouse or trackpad) to turn. Two
   fingers on the trackpad, or the scroll wheel, to slide and zoom in and out.
 - **Talk to Hal:** click him, or open 💭 and tap **Hal**. 💭 works like the messages app on your
-  phone: one thread per person. Hal runs the crew, so he's the one to ask; the crew members
-  don't answer you in this build (your message to them shows *not sent*). That's by design:
-  it's simpler to tell Hal what you want than to pester the help. Messaging a crew member
-  directly is still an option when you run the game with your own agents, and can make sense
-  there, for example with a local model, or when you don't want the leader spending tokens to
-  pass a message on.
+  phone: one thread per person. Hal runs the crew, so he's the one to ask; message a crew
+  member instead and it goes through, but in this build they just point you back to Hal; in
+  the full game they answer you themselves. Messaging a crew member directly is still an
+  option when you run the game with your own agents, and can make sense there, for example
+  with a local model, or when you don't want the leader spending tokens to pass a message on.
 - **Build:** Hal can build a **bench**, a **lamp post**, a **table** or a **planter**, near
   **here** (the middle of your screen), the **mailbox**, the **phone booth**, the **workshop**
   or the **creek**. Example: *"a lamp post by the mailbox"*. He picks level, open ground; if a

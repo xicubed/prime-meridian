@@ -1,0 +1,195 @@
+diff --git a/PLAY.md b/PLAY.md
+index 023fe70..291670e 100644
+--- a/PLAY.md
++++ b/PLAY.md
+@@ -69,12 +69,11 @@ When all four are ticked, the **Day won** card appears. Click **Keep playing** t
+ - **Look around:** **W A S D** to move. Click and drag (mouse or trackpad) to turn. Two
+   fingers on the trackpad, or the scroll wheel, to slide and zoom in and out.
+ - **Talk to Hal:** click him, or open 💭 and tap **Hal**. 💭 works like the messages app on your
+-  phone: one thread per person. Hal runs the crew, so he's the one to ask; the crew members
+-  don't answer you in this build (your message to them shows *not sent*). That's by design:
+-  it's simpler to tell Hal what you want than to pester the help. Messaging a crew member
+-  directly is still an option when you run the game with your own agents, and can make sense
+-  there, for example with a local model, or when you don't want the leader spending tokens to
+-  pass a message on.
++  phone: one thread per person. Hal runs the crew, so he's the one to ask; message a crew
++  member instead and it goes through, but they only answer once, pointing you back to Hal — in
++  the full game they'd answer you themselves. Messaging a crew member directly is still an
++  option when you run the game with your own agents, and can make sense there, for example
++  with a local model, or when you don't want the leader spending tokens to pass a message on.
+ - **Build:** Hal can build a **bench**, a **lamp post**, a **table** or a **planter**, near
+   **here** (the middle of your screen), the **mailbox**, the **phone booth**, the **workshop**
+   or the **creek**. Example: *"a lamp post by the mailbox"*. He picks level, open ground; if a
+diff --git a/resources/estate.edn b/resources/estate.edn
+index 5798854..c134897 100644
+--- a/resources/estate.edn
++++ b/resources/estate.edn
+@@ -19,6 +19,10 @@
+                            "Flora's fed. Worm count's holding."
+                            "Nothing's on fire. Walk the creek if you like."
+                            "Calendar's clear until tonight."]}
++ ;; A crew member in the demo build (no bridge, no real agent behind the walker): your say
++ ;; to them shows sent, and they answer this once in their own 💭 thread. {twin} is the
++ ;; twin's name from :jumeaux (pm.talk/demo-member-line). The dev build never uses it.
++ :member-talk {:demo "Ask {twin}, who runs the crew. In the full game I can answer you myself."}
+  ;; Closing time (GDD §2.3, §4.8): a rule the player sets, not a lock the
+  ;; software imposes ("you asked me to send you home"). Last call shows 15
+  ;; minutes earlier; at bedtime the estate goes to night and the twin says
+diff --git a/src/pm/core.cljs b/src/pm/core.cljs
+index 5821ec5..60a78e3 100644
+--- a/src/pm/core.cljs
++++ b/src/pm/core.cljs
+@@ -831,15 +831,20 @@
+         (swap! !world update :talk talk/crew-say member who text now)
+         (let [t (:talk @!world) n (:n t)]
+           (when (> n before-n)
+-            (post-crew! member :say nil (:text (talk/entry t n)) n)
+-            ;; the twin with no bridge to carry the words: in the demo build he
+-            ;; builds what you asked for (pm.ask-build); elsewhere (a dev build
+-            ;; without a bridge) he says so himself, instead of a silent failed line
+-            (when (and (not (bridge-on?)) (= member (:agent (world/twin-walker @!world))))
+-              (if DEMO
+-                (demo-ask! text (+ now 1))
+-                (when-let [ev (world/twin-says @!world (world/no-bridge-line @!world))]
+-                  (swap! !world world/apply-event ev (+ now 1)))))))))))
++            (let [twin-agent (:agent (world/twin-walker @!world))
++                  plan       (talk/say-reply DEMO member twin-agent @!world)]
++              (if (:post? plan)
++                ;; the dev build, exactly as before: the bridge, and the twin's own no-bridge line
++                (do (post-crew! member :say nil (:text (talk/entry t n)) n)
++                    (when (and (not (bridge-on?)) (= member twin-agent))
++                      (when-let [ev (world/twin-says @!world (world/no-bridge-line @!world))]
++                        (swap! !world world/apply-event ev (+ now 1)))))
++                ;; the demo: nothing is posted; your line is sent, and the reply is local
++                (do (swap! !world update :talk talk/crew-result n (:outcome plan) now)
++                    (case (:reply plan)
++                      :twin   (demo-ask! text (+ now 1))
++                      :member (swap! !world update :talk talk/crew-reply member who (:text plan) (+ now 1))
++                      nil))))))))))
+ 
+ (defn- call-say!
+   "Like say-entry!, for a call's lines: the same !spoken guard (a line that
+@@ -1066,7 +1071,7 @@
+                                       (crew/dot (:crew w) (:member row) now colors))]
+                         (merge row (when entry (walker-colours entry)) {:dot (:color d)})))
+             rows  (-> (talk/crew-roster (:crew w) now (bridge-on?) (:crew-log w) (:expanded @!talk-ui) asked)
+-                      (talk/with-walkers (:walkers w) (:agent twin) asked)
++                      (talk/with-walkers (:walkers w) (:agent twin) asked DEMO)
+                       (talk/with-questions (:asks-player w))
+                       (talk/with-twin twin (bridge-on?) (twin-thinking? w now))
+                       (->> (mapv dressed))
+diff --git a/src/pm/talk.cljs b/src/pm/talk.cljs
+index 802fa55..dc54d98 100644
+--- a/src/pm/talk.cljs
++++ b/src/pm/talk.cljs
+@@ -6,9 +6,10 @@
+             [pm.world :as w]
+             [pm.crew :as crew]
+             [pm.crew-log :as cl]
+-            [pm.jumeaux :as j]))
++            [pm.jumeaux :as j]
++            [pm.content :as c]))
+ 
+-(def crew-kinds #{:crew-prompt :crew-status :crew-say :crew-log})
++(def crew-kinds #{:crew-prompt :crew-status :crew-say :crew-log :crew-reply})
+ (def prompt-states #{:pending :sending :allowed :declined :stale})
+ (def say-states #{:sending :sent :failed})
+ (def you "You")
+@@ -510,6 +511,43 @@
+       talk
+       (append-crew talk {:who you :text t :at now :kind :crew-say :member member :to who :state :sending}))))
+ 
++(defn demo-member-line
++  "The pointer line a crew member answers with in the demo build (no
++   bridge, no real agent behind the walker): resources/estate.edn's
++   :member-talk :demo, with {twin} filled from :jumeaux. Nil when there's
++   no usable line; never throws."
++  [world]
++  (let [t (get-in world [:member-talk :demo])]
++    (when (non-blank-str? t)
++      (c/fill t {:twin (j/twin (j/names world))}))))
++
++(defn say-reply
++  "on-say's whole decision for a say to `member`: post to the bridge as
++   today (dev build), or -- only when `demo?` is true -- resolve it
++   locally, to the twin (demo-ask! answers) or to a member (its one
++   pointer line from demo-member-line, or none when there isn't one)."
++  [demo? member twin-agent world]
++  (cond
++    (not (keyword? member)) nil
++    (not (true? demo?)) {:post? true}
++    (and (keyword? twin-agent) (= member twin-agent))
++    {:post? false :outcome {:result :ok} :reply :twin}
++    :else
++    (let [line (demo-member-line world)]
++      (if (some? line)
++        {:post? false :outcome {:result :ok} :reply :member :text line}
++        {:post? false :outcome {:result :ok} :reply nil}))))
++
++(defn crew-reply
++  "Append a crew member's answer in its own thread: the mirror of
++   crew-say, for the demo's local reply."
++  [talk member who text now]
++  (let [talk (or talk empty-talk)
++        t    (when (string? text) (str/trim text))]
++    (if-not (and (keyword? member) (non-blank-str? who) (non-blank-str? t) (finite-number? now))
++      talk
++      (append-crew talk {:who who :text t :at now :kind :crew-reply :member member}))))
++
+ (defn prompt-waiting?
+   "True when some crew-prompt entry is waiting on the player or the
+    bridge: drives the red badge."
+@@ -604,6 +642,7 @@
+             :failed  (str " · not sent: " (:error e))
+             ""))
+      :crew-log (str (:who e) " " (:text e) " · " (clock-text (:at e) offset-min))
++     :crew-reply (str (:who e) " · " (:text e))
+      nil)))
+ 
+ (defn with-questions
+@@ -672,14 +711,17 @@
+    are pm.world's [{:agent :name}]; `twin` (the twin's agent keyword) is
+    left to with-twin; `asked` opens the say… box for a member with a
+    question up (Michael, in the demo: Le Critique's \"!\" had nowhere to be
+-   answered). Status is :unknown; the dot comes from the walker's own look."
+-  [rows walkers twin asked]
+-  (let [have (set (map :member rows))]
+-    (into (vec rows)
+-          (for [{:keys [agent name]} walkers
+-                :when (and (keyword? agent) (not= agent twin) (not (contains? have agent)))]
+-            {:member agent :who (or name (clojure.core/name agent)) :status :unknown
+-             :say? (contains? (set asked) agent)}))))
++   answered). Status is :unknown; the dot comes from the walker's own look.
++   `open?` (the demo build) opens every member's say… box: with no bridge the
++   say resolves locally (say-reply)."
++  ([rows walkers twin asked] (with-walkers rows walkers twin asked false))
++  ([rows walkers twin asked open?]
++   (let [have (set (map :member rows))]
++     (into (vec rows)
++           (for [{:keys [agent name]} walkers
++                 :when (and (keyword? agent) (not= agent twin) (not (contains? have agent)))]
++             {:member agent :who (or name (clojure.core/name agent)) :status :unknown
++              :say? (or (true? open?) (contains? (set asked) agent))})))))
+ 
+ (defn with-twin
+   "Adds the twin's row to the roster (GDD §2.1): the twin lives in a Hermes chat,
+@@ -801,7 +843,8 @@
+               (case (:kind e)
+                 :crew-prompt (and (crew/valid-prompt? (:prompt e)) (contains? prompt-states (:state e)))
+                 :crew-status true
+-                :crew-say (and (non-blank-str? (:to e)) (contains? say-states (:state e)))))
++                :crew-say (and (non-blank-str? (:to e)) (contains? say-states (:state e)))
++                :crew-reply true))
+ 
+          :else true)))
+ 
+@@ -824,7 +867,8 @@
+         (cond-> (assoc (select-keys e [:n :who :text :at :kind :member :to]) :state state)
+           sending? (assoc :error "not confirmed")
+           (and (not sending?) (string? (:error e))) (assoc :error (:error e))))
+-      :crew-log (assoc (select-keys e [:n :who :text :at :kind :member]) :log (cl/upgrade-entry (:log e))))
++      :crew-log (assoc (select-keys e [:n :who :text :at :kind :member]) :log (cl/upgrade-entry (:log e)))
++      :crew-reply (select-keys e [:n :who :text :at :kind :member]))
+     (let [base (cond-> (select-keys e [:n :who :text :at :kind])
+                  (keyword? (:mirror e)) (assoc :mirror (:mirror e))
+                  (keyword? (:event e))  (assoc :event (:event e))

@@ -6,9 +6,10 @@
             [pm.world :as w]
             [pm.crew :as crew]
             [pm.crew-log :as cl]
-            [pm.jumeaux :as j]))
+            [pm.jumeaux :as j]
+            [pm.content :as c]))
 
-(def crew-kinds #{:crew-prompt :crew-status :crew-say :crew-log})
+(def crew-kinds #{:crew-prompt :crew-status :crew-say :crew-log :crew-reply})
 (def prompt-states #{:pending :sending :allowed :declined :stale})
 (def say-states #{:sending :sent :failed})
 (def you "You")
@@ -510,6 +511,43 @@
       talk
       (append-crew talk {:who you :text t :at now :kind :crew-say :member member :to who :state :sending}))))
 
+(defn demo-member-line
+  "The pointer line a crew member answers with in the demo build (no
+   bridge, no real agent behind the walker): resources/estate.edn's
+   :member-talk :demo, with {twin} filled from :jumeaux. Nil when there's
+   no usable line; never throws."
+  [world]
+  (let [t (get-in world [:member-talk :demo])]
+    (when (non-blank-str? t)
+      (c/fill t {:twin (j/twin (j/names world))}))))
+
+(defn say-reply
+  "on-say's whole decision for a say to `member`: post to the bridge as
+   today (dev build), or -- only when `demo?` is true -- resolve it
+   locally, to the twin (demo-ask! answers) or to a member (its one
+   pointer line from demo-member-line, or none when there isn't one)."
+  [demo? member twin-agent world]
+  (cond
+    (not (keyword? member)) nil
+    (not (true? demo?)) {:post? true}
+    (and (keyword? twin-agent) (= member twin-agent))
+    {:post? false :outcome {:result :ok} :reply :twin}
+    :else
+    (let [line (demo-member-line world)]
+      (if (some? line)
+        {:post? false :outcome {:result :ok} :reply :member :text line}
+        {:post? false :outcome {:result :ok} :reply nil}))))
+
+(defn crew-reply
+  "Append a crew member's answer in its own thread: the mirror of
+   crew-say, for the demo's local reply."
+  [talk member who text now]
+  (let [talk (or talk empty-talk)
+        t    (when (string? text) (str/trim text))]
+    (if-not (and (keyword? member) (non-blank-str? who) (non-blank-str? t) (finite-number? now))
+      talk
+      (append-crew talk {:who who :text t :at now :kind :crew-reply :member member}))))
+
 (defn prompt-waiting?
   "True when some crew-prompt entry is waiting on the player or the
    bridge: drives the red badge."
@@ -604,6 +642,7 @@
             :failed  (str " · not sent: " (:error e))
             ""))
      :crew-log (str (:who e) " " (:text e) " · " (clock-text (:at e) offset-min))
+     :crew-reply (str (:who e) " · " (:text e))
      nil)))
 
 (defn with-questions
@@ -672,14 +711,17 @@
    are pm.world's [{:agent :name}]; `twin` (the twin's agent keyword) is
    left to with-twin; `asked` opens the say… box for a member with a
    question up (Michael, in the demo: Le Critique's \"!\" had nowhere to be
-   answered). Status is :unknown; the dot comes from the walker's own look."
-  [rows walkers twin asked]
-  (let [have (set (map :member rows))]
-    (into (vec rows)
-          (for [{:keys [agent name]} walkers
-                :when (and (keyword? agent) (not= agent twin) (not (contains? have agent)))]
-            {:member agent :who (or name (clojure.core/name agent)) :status :unknown
-             :say? (contains? (set asked) agent)}))))
+   answered). Status is :unknown; the dot comes from the walker's own look.
+   `open?` (the demo build) opens every member's say… box: with no bridge the
+   say resolves locally (say-reply)."
+  ([rows walkers twin asked] (with-walkers rows walkers twin asked false))
+  ([rows walkers twin asked open?]
+   (let [have (set (map :member rows))]
+     (into (vec rows)
+           (for [{:keys [agent name]} walkers
+                 :when (and (keyword? agent) (not= agent twin) (not (contains? have agent)))]
+             {:member agent :who (or name (clojure.core/name agent)) :status :unknown
+              :say? (or (true? open?) (contains? (set asked) agent))})))))
 
 (defn with-twin
   "Adds the twin's row to the roster (GDD §2.1): the twin lives in a Hermes chat,
@@ -801,7 +843,8 @@
               (case (:kind e)
                 :crew-prompt (and (crew/valid-prompt? (:prompt e)) (contains? prompt-states (:state e)))
                 :crew-status true
-                :crew-say (and (non-blank-str? (:to e)) (contains? say-states (:state e)))))
+                :crew-say (and (non-blank-str? (:to e)) (contains? say-states (:state e)))
+                :crew-reply true))
 
          :else true)))
 
@@ -824,7 +867,8 @@
         (cond-> (assoc (select-keys e [:n :who :text :at :kind :member :to]) :state state)
           sending? (assoc :error "not confirmed")
           (and (not sending?) (string? (:error e))) (assoc :error (:error e))))
-      :crew-log (assoc (select-keys e [:n :who :text :at :kind :member]) :log (cl/upgrade-entry (:log e))))
+      :crew-log (assoc (select-keys e [:n :who :text :at :kind :member]) :log (cl/upgrade-entry (:log e)))
+      :crew-reply (select-keys e [:n :who :text :at :kind :member]))
     (let [base (cond-> (select-keys e [:n :who :text :at :kind])
                  (keyword? (:mirror e)) (assoc :mirror (:mirror e))
                  (keyword? (:event e))  (assoc :event (:event e))
