@@ -1,0 +1,24 @@
+shadow-cljs - config: /Users/hal/src/prime-meridian/shadow-cljs.edn
+shadow-cljs - connected to server
+
+[:app] Compiling ...
+[:app] Build completed. (101 files, 0 compiled, 0 warnings, 1.11s)
+[:test] Compiling ...
+[:test] Build completed. (151 files, 1 compiled, 0 warnings, 1.22s)
+--- node out/test.js
+/Users/hal/src/prime-meridian/out/gate-js/cljs-runtime/pm.ask_build_test.js:20
+pm.ask_build_test.≈ = (function pm$ask_build_test$≈(a,b){
+                  
+
+SyntaxError: Invalid or unexpected token
+    at new Script (node:vm:118:7)
+    at createScript (node:vm:270:10)
+    at Object.runInThisContext (node:vm:318:10)
+    at global.SHADOW_IMPORT (/Users/hal/src/prime-meridian/out/test.js:56:15)
+    at /Users/hal/src/prime-meridian/out/test.js:1435:1
+    at Object.<anonymous> (/Users/hal/src/prime-meridian/out/test.js:1520:3)
+    at Module._compile (node:internal/modules/cjs/loader:1956:14)
+    at Object..js (node:internal/modules/cjs/loader:2096:10)
+    at Module.load (node:internal/modules/cjs/loader:1678:32)
+    at Module._load (node:internal/modules/cjs/loader:1470:12)
+GATE: FAIL no test summary

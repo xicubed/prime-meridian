@@ -1,0 +1,400 @@
+           +mo-remove! instead of the bridge.
+      1676 +
+      1677 +(defn- save-demo-file! []
+      1678 +  (try (.setItem js/localStorage demo-
+           +builds-key (ab/save-text @!demo-file))
+           + (catch :default _ nil)))
+      1679 +
+      1680 +(defn- demo-merge!
+      1681 +  "The demo file into the world throug
+           +h the one existing path (seat, draw,
+      1682 +   author's line)."
+      1683 +  []
+      1684 +  (reset! !last-builds (ab/builds-of @
+           +!demo-file))
+      1685 +  (apply-blueprint-file! @!demo-file))
+      1686 +
+      1687 +(defn- twin-reply! [text at]
+      1688 +  (when-let [ev (world/twin-says @!wor
+           +ld text)] (swap! !world world/apply-ev
+           +ent ev at)))
+      1689 +
+      1690 +(defn- cover-meshes!
+      1691 +  "Ground ∪ the kit's cover meshes (ab
+           +/cover-name?), found once and cached."
+      1692 +  [^js h]
+      1693 +  (when (empty? @!cover-meshes)
+      1694 +    (let [sampler (get-in raw-estate [
+           +:demo-builds :sampler])
+      1695 +          cm      (into (view-ground-m
+           +eshes! h) (t/find-meshes (.-scene h) #
+           +(ab/cover-name? sampler %)))]
+      1696 +      (when (seq cm) (reset! !cover-me
+           +shes cm))))
+      1697 +  @!cover-meshes)
+      1698 +
+      1699 +(defn- demo-ask!
+      1700 +  "The demo's pretend twin: a build re
+           +quest typed or said in 💭 (the demo
+      1701 +   build only)."
+      1702 +  [text at]
+      1703 +  (let [^js h (kit/handle)
+      1704 +        ctx   {:estate raw-estate :wor
+           +ld @!world :file @!demo-file :rules (:
+           +build-rules @!world)
+      1705 +               :here (when h (t/center
+           +-hit (.-camera h) (view-ground-meshes!
+           + h)))
+      1706 +               :by (:agent (world/twin
+           +-walker @!world)) :now (js/Date.now)}
+      1707 +        r     (ab/ask ctx text)]
+      1708 +    (if-let [s (:say r)]
+      1709 +      (twin-reply! s at)
+      1710 +      (let [sampler (get-in raw-estate
+           + [:demo-builds :sampler])
+      1711 +            t0      (js/performance.no
+           +w)
+      1712 +            ground  (when h (t/ground-
+           +grid (view-ground-meshes! h) (cover-me
+           +shes! h) (:spec r)
+      1713 +
+           +     (:from-y sampler) (partial ab/sam
+           +ple-cell sampler)))
+      1714 +            _       (js/console.info "
+           +Prime Meridian: ground grid" (:cols (:
+           +spec r)) "x" (:rows (:spec r))
+      1715 +                                     "
+           +in" (js/Math.round (- (js/performance.
+           +now) t0)) "ms")
+      1716 +            p       (ab/plan ctx (:req
+           + r) ground)]
+      1717 +        (when (:ok p)
+      1718 +          (reset! !demo-file (:file p)
+           +)
+      1719 +          (save-demo-file!)
+      1720 +          (demo-merge!))
+      1721 +        (twin-reply! (:say p) at)))))
+      1722 +
+      1723 +(defn- demo-make-real! [id done]
+      1724 +  (swap! !world bp/make-real id)
+           +        ; a status turning :real: the
+           +Today goal ticks (watch)
+      1725 +  (swap! !demo-file ab/mark-real id (j
+           +s/Date.now))
+      1726 +  (save-demo-file!)
+      1727 +  (say! :blueprint-real (get-in @!worl
+           +d [:demo-builds :lines :made-real]))
+      1728 +  (done))
+      1729 +
+      1730 +(defn- demo-remove! [id]
+      1731 +  (let [now (js/Date.now)]
+      1732 +    (swap! !world bp/finish-removal id
+           + now)
+      1733 +    (swap! !demo-file ab/mark-removed
+           +id now)
+      1734 +    (save-demo-file!)))
+      1735 +
+      1736  (defn- view-tick!
+      1737    "Posts the game's view to the bridge
+             (TASKS T-19) at most every
+      1738     view/post-every-ms, and only when v
+            iew/post? says to."
+
+⏺ Now the init! hook:
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 3 lines, removed 1 line
+      1902    (add-watch !world ::today on-today-w
+            orld!)
+      1903    (when @!construct-seen? (today-event
+            ! today/tutorial-done))
+      1904    (if DEMO
+      1905 -    (do (start-sample-says!)   ; the d
+           -emo's twin has a voice with nothing re
+           -al behind it
+      1905 +    (do (reset! !demo-file (ab/restore
+           + (try (.getItem js/localStorage demo-b
+           +uilds-key) (catch :default _ nil))))
+      1906 +        (demo-merge!)
+      1907 +        (start-sample-says!)   ; the d
+           +emo's twin has a voice with nothing re
+           +al behind it
+      1908          ;; and one worker raises its s
+            hipped sample question a little after
+            the estate is
+      1909          ;; up (demo script shot 3: "a
+            worker needs a word"): no bridge repla
+            ys them here.
+      1910          ;; Answered once, it stays ans
+            wered (crew-sample-muted?) until SAMPL
+            E/REAL flips.
+
+⏺ Now let's run the gate to check compilation and fix any
+  paren/logic issues.
+
+  Read 1 file, ran 1 shell command
+
+⏺ Update(src/pm/ask_build.cljc)
+  ⎿  Added 2 lines
+      172
+      173  ;; -- ask / plan: the two steps of one
+           request ------------------------------
+      174
+      175 +(declare add-build)
+      176 +
+      177  (defn ask
+      178    "The step before measuring: help or s
+           ky/refused, or `{:req :target
+      179     :spec}` ready for `ground-grid` + `p
+           lan`."
+
+  Searched for 2 patterns, ran 6 shell commands · 1
+  failed
+
+⏺ Confirmed consistent. Both [:app] (production code) and
+  [:test] compile with 0 warnings — the only failure is
+  a JS syntax error from the test file's ≈ fixture, which
+  isn't mine to edit. Now let's write builder-notes.md.
+
+⏺ Write(crew/runs/demo-build-ask-v0-20…/builder-notes.md)
+  ⎿  Wrote 59 lines to crew/runs/demo-build-ask-v0-2
+     0261125-1750/builder-notes.md
+       1 # builder-notes: ask the demo's twin to b
+         uild something (F-2)
+       2
+       3 How Hal checks it headless, in the demo b
+         uild:
+       4
+       5 1. `bb demo-build`, then serve `dist/demo
+         ` at a site root, e.g.:
+       6    ```
+       7    python3 -m http.server -d dist/demo 80
+     … +53 lines (~3 KB)
+
+  Read 1 file
+
+⏺ Let me fix the indentation of the if DEMO branches in
+  both make-real! and remove-click! for readability:
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 8 lines, removed 8 lines
+      1402      (reset! !saving id)
+      1403      (if DEMO
+      1404        (do (demo-remove! id) (reset! !s
+            aving nil))
+      1405 -    (if-not (bridge-on?)
+      1406 -      (do (swap! !world bp/fail-remova
+           -l id nil (js/Date.now))
+      1407 -          (reset! !saving nil))
+      1408 -      (post-real! #(crew/remove-build-
+           -body % id)
+      1409 -                  (fn [ok? reason]
+      1410 -                    (let [now (js/Date
+           -.now)]
+      1411 -                      (swap! !world (i
+           -f ok? #(bp/finish-removal % id now) #(
+           -bp/fail-removal % id reason now)))
+      1412 -                      (reset! !saving
+           -nil))))))))
+      1405 +      (if-not (bridge-on?)
+      1406 +        (do (swap! !world bp/fail-remo
+           +val id nil (js/Date.now))
+      1407 +            (reset! !saving nil))
+      1408 +        (post-real! #(crew/remove-buil
+           +d-body % id)
+      1409 +                    (fn [ok? reason]
+      1410 +                      (let [now (js/Da
+           +te.now)]
+      1411 +                        (swap! !world
+           +(if ok? #(bp/finish-removal % id now)
+           +#(bp/fail-removal % id reason now)))
+      1412 +                        (reset! !savin
+           +g nil))))))))
+      1413
+      1414  (defn- real-mirror? [m]
+      1415    (= :hal (get-in @!world [:mirrors m
+            :state :source])))
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 6 lines, removed 6 lines
+      1364        (if-not (bridge-on?)
+      1365          (do (say! :blueprint-real (:no
+            -bridge words)) (done))
+      1366          (post-real! #(crew/real-build-
+            body % id)
+      1367 -                  (fn [ok? reason]
+      1368 -                    (if ok?
+      1369 -                      (do (swap! !worl
+           -d bp/make-real id)
+      1370 -                          (say! :bluep
+           -rint-real (:real words)))
+      1371 -                      (say! :blueprint
+           --real (str (:no-bridge words) " (" rea
+           -son ")")))
+      1372 -                    (done)))))))
+      1367 +                    (fn [ok? reason]
+      1368 +                      (if ok?
+      1369 +                        (do (swap! !wo
+           +rld bp/make-real id)
+      1370 +                            (say! :blu
+           +eprint-real (:real words)))
+      1371 +                        (say! :bluepri
+           +nt-real (str (:no-bridge words) " (" r
+           +eason ")")))
+      1372 +                      (done)))))))
+      1373
+      1374  ;; The id whose make-real request is i
+            n flight (TASKS T-14): both trial-card
+      1375  ;; buttons disable while it's set, so
+            a double click can't post twice.
+
+⏺ Let's re-run the gate to confirm the app build still
+  compiles cleanly after these formatting edits.
+
+  Ran 2 shell commands
+
+⏺ Both [:app] and [:test] builds compile cleanly (0
+  warnings); the run still fails solely at the ≈ symbol
+  in the tester's file. Let's check git diff --stat and
+  clean up the scratch file.
+
+  Ran 1 shell command
+  ⎿  Read crew/runs/demo-build-ask-v0-20261125-1750/build
+     er-notes.md (59 lines)
+  ⎿  Referenced file
+     out/gate-js/cljs-runtime/pm.ask_build_test.js
+  ⎿  Referenced file resources/estate.edn
+  ⎿  Referenced file src/pm/three.cljs
+  ⎿  Referenced file
+     crew/runs/demo-build-ask-v0-20261125-1750/spec.md
+
+⏺ Implemented
+  crew/runs/demo-build-ask-v0-20261125-1750/spec.md in
+  the builder's files:
+  - src/pm/ask_build.cljc (new) — the full pm.ask-build
+    ns (request parsing, id/target/grid math, ground
+    sampler, ask/plan, the demo file).
+  - src/pm/three.cljs — added ground-grid (two downward
+    rays per cell → a pm.lot ground map).
+  - src/pm/core.cljs — [pm.ask-build :as ab] require; new
+    demo-file state next to today-key;
+    demo-ask!/demo-make-real!/demo-remove!/demo-merge!/co
+    ver-meshes!/twin-reply!/save-demo-file!; hooked into
+    on-say, make-real!, remove-click!, fresh-start!,
+    init!.
+  - resources/estate.edn — added the :demo-builds block
+    verbatim (§2.1).
+  - crew/runs/demo-build-ask-v0-20261125-1750/builder-not
+    es.md (new).
+
+  Gate: [:app] and [:test] both compile with 0 warnings.
+  The test run still crashes —
+  test/pm/ask_build_test.cljs (not mine) defines (def ≈
+  ...), and ≈ isn't a legal JS identifier character
+  (confirmed with node -e "var ≈ = 1" → SyntaxError), so
+  the whole compiled test bundle fails to parse before
+  any test executes. That's the tester's file, so I
+  didn't touch it — flagged it in builder-notes.md
+  instead, along with hand-verification of all 45 spec
+  test values against pm.ask-build via a standalone bb
+  script (all matched, modulo JVM-vs-JS
+  numeric-representation non-issues).
+
+  Last gate line: GATE: FAIL no test summary (both builds
+  clean, test run blocked by the ≈ symbol).
+
+  git diff --stat
+   resources/estate.edn |  44 +++++++++
+   src/pm/core.cljs     | 133 +++++++++++++++++---
+   src/pm/three.cljs    |  21 +++++
+   3 files changed, 174 insertions(+), 24 deletions(-)
+
+  git diff --no-index --stat /dev/null
+  src/pm/ask_build.cljc
+   1 file changed, 295 insertions(+)
+
+  git diff --no-index --stat /dev/null crew/runs/demo-bui
+  ld-ask-v0-20261125-1750/builder-notes.md
+   1 file changed, 59 insertions(+)
+
+  done-8699
+
+✻ Brewed for 12m 40s · done 6:11 PM
+
+❯ The gate failed. Its output (last 60 lines) is below
+  and in full at
+  crew/runs/demo-build-ask-v0-20261125-1750/gate-1.txt.
+  Fix the source so it passes; don't edit tests unless a
+  test contradicts the spec. Reply with git diff
+  --stat.
+
+  shadow-cljs - config:
+  /Users/hal/src/prime-meridian/shadow-cljs.edn
+  shadow-cljs - connected to server
+
+  [:app] Compiling ...
+  [:app] Build completed. (101 files, 0 compiled, 0
+  warnings, 1.21s)
+  [:test] Compiling ...
+  [:test] Build completed. (151 files, 1 compiled, 0
+  warnings, 1.35s)
+  --- node out/test.js
+  /Users/hal/src/prime-meridian/out/gate-js/cljs-runtime
+  /pm.ask_build_test.js:20
+  pm.ask_build_test.≈ = (function
+  pm$ask_build_test$≈(a,b){
+
+  SyntaxError: Invalid or unexpected token
+      at new Script (node:vm:118:7)
+      at createScript (node:vm:270:10)
+      at Object.runInThisContext (node:vm:318:10)
+      at global.SHADOW_IMPORT
+  (/Users/hal/src/prime-meridian/out/test.js:56:15)
+      at
+  /Users/hal/src/prime-meridian/out/test.js:1435:1
+      at Object.<anonymous>
+  (/Users/hal/src/prime-meridian/out/test.js:1520:3)
+      at Module._compile
+  (node:internal/modules/cjs/loader:1956:14)
+      at Object..js
+  (node:internal/modules/cjs/loader:2096:10)
+      at Module.load
+  (node:internal/modules/cjs/loader:1678:32)
+      at Module._load
+  (node:internal/modules/cjs/loader:1470:12)
+  GATE: FAIL no test summary
+
+  When you have completely finished, end your reply with
+  a line containing only this: done-1744
+
+  Searched for 1 pattern, ran 1 shell command
+
+⏺ This isn't a source-fixable failure: the crash is
+  test/pm/ask_build_test.cljs:24's own (def ≈ (fn [a b]
+  ...)) — ≈ (U+2248, Unicode category Sm) isn't a legal
+  JS identifier character, confirmed directly (node -e
+  "var ≈ = 1" throws the identical SyntaxError). The
+  compiled test bundle fails to parse from that line
+  alone, regardless of anything in src/; none of my files
+  reference ≈. That's inside test/, which I'm not
+  permitted to edit, and it isn't a case of the test
+  contradicting the spec (the spec's own §7 suggested
+  this exact fixture) — it's that the fixture's name
+  isn't valid JS. The fix (renaming that var to any legal
+  identifier, e.g. approx) has to land in the test file.
+
+  git diff --stat
+   resources/estate.edn |  44 +++++++++++++++++
+   src/pm/core.cljs     | 133
+  +++++++++++++++++++++++++++++++++++++++++----------
+   src/pm/three.cljs    |  21 ++++++++
+   3 files changed, 174 insertions(+), 24 deletions(-)
+
+  done-1744
+
+✻ Cooked for 49s · done 6:12 PM
+
+─────────────────────────────────────────────────────────
+❯
+─────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

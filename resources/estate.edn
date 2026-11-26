@@ -307,6 +307,50 @@
                :look {:parts [{:shape :box :size [0.3 2.4 0.3] :at [0 1.2 0] :color :tin}            ; the post: drawable and thick enough to click
                               {:shape :cone :size [0.7 0.4 0.7] :at [0 2.75 0] :color :tin}          ; the shade: a big click target
                               {:shape :sphere :size [0.3 0.3 0.3] :at [0 2.45 0] :color :gold :glow true}]}}]   ; the bulb: lights up like the kit's lamps once built
+ ;; The demo's pretend twin builds what you ask for in 💭 (pm.ask-build; demo build only, GDD:
+ ;; every connection has an in-game pretend version). :words and :places are whole words or
+ ;; phrases, lowercase; :looks follow the blueprint look format above (grounded on y 0, every
+ ;; part at least 0.08 m, palette keys). The ground is measured in the browser, never shipped:
+ ;; :sampler says how (cover mesh names, Hal's T/B heights, the ray height).
+ :demo-builds
+ {:looks  {:bench     {:summary "A bench"
+                       :look {:parts [{:shape :box :size [1.1 0.1 0.4]   :at [0 0.45 0]        :color :brown}   ; seat
+                                      {:shape :box :size [1.1 0.4 0.08]  :at [0 0.7 -0.16]     :color :brown}   ; back
+                                      {:shape :box :size [0.08 0.4 0.08] :at [0.45 0.2 0.15]   :color :brown}   ; legs
+                                      {:shape :box :size [0.08 0.4 0.08] :at [0.45 0.2 -0.15]  :color :brown}
+                                      {:shape :box :size [0.08 0.4 0.08] :at [-0.45 0.2 0.15]  :color :brown}
+                                      {:shape :box :size [0.08 0.4 0.08] :at [-0.45 0.2 -0.15] :color :brown}]}}
+           :lamp-post {:summary "A lamp post"
+                       :look {:parts [{:shape :box :size [0.3 0.1 0.3]   :at [0 0.05 0]        :color :tin}     ; base
+                                      {:shape :box :size [0.12 2.2 0.12] :at [0 1.2 0]         :color :tin}     ; post
+                                      {:shape :box :size [0.3 0.3 0.3]   :at [0 2.45 0]        :color :gold}]}} ; lamp
+           :table     {:summary "A table"
+                       :look {:parts [{:shape :box :size [1.0 0.08 0.7]  :at [0 0.74 0]        :color :brown}   ; top
+                                      {:shape :box :size [0.08 0.7 0.08] :at [0.42 0.35 0.27]  :color :brown}   ; legs
+                                      {:shape :box :size [0.08 0.7 0.08] :at [0.42 0.35 -0.27] :color :brown}
+                                      {:shape :box :size [0.08 0.7 0.08] :at [-0.42 0.35 0.27] :color :brown}
+                                      {:shape :box :size [0.08 0.7 0.08] :at [-0.42 0.35 -0.27] :color :brown}]}}
+           :planter   {:summary "A planter"
+                       :look {:parts [{:shape :box :size [0.8 0.4 0.4]   :at [0 0.2 0]         :color :brown}   ; box
+                                      {:shape :box :size [0.6 0.16 0.24] :at [0 0.48 0]        :color :gold}]}}};flowers
+  :words  {"bench" :bench "seat" :bench
+           "lamp post" :lamp-post "lamppost" :lamp-post "lamp" :lamp-post "light" :lamp-post
+           "table" :table
+           "planter" :planter "flowers" :planter "flower box" :planter "plant pot" :planter}
+  :places {"here" :here "there" :here
+           "mailbox" :mailbox "booth" :phone-booth "phone booth" :phone-booth "workshop" :workshop
+           "creek" :creek "stream" :creek "water" :creek}
+  :anchors {:creek [-0.9 -15.7]}   ; where "the creek" is measured around: open water by the axolotl
+  :lines  {:placed    "{summary}, drawn near {place}. Try it, and make it real if you like it."
+           :refused   "I can't put that there: {reason}."
+           :help      "I can build a bench, a lamp post, a table or a planter. Try: put a bench here."
+           :made-real "Made real. It stays in this browser."
+           :sky       "The middle of your screen is sky. Look at the ground and ask me again."}
+  :sampler {:cover  ["Leaves" "CanopyMass" "WoodlandNear" "TreeWood" "Rocks" "Gravel" "creek"]
+            :water  ["creek"] :rocks ["Rocks"] :gravel ["Gravel"]
+            :tree-m 2 :bush-m 0.35   ; cover > 2 m above the ground: T; 0.35-2 m: B (Hal's sampler)
+            :pad-m 1                 ; measured past search-m, so a look's feet stay on the grid
+            :from-y 40}}             ; rays start this high (above every canopy)
  ;; Display scale (standing rule): creatures and crew are drawn big enough to
  ;; see from the kit's camera views without zooming in, about the size of a
  ;; mid-size rock (~1 m). Real size doesn't matter; proportions do. Author a

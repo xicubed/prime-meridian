@@ -30,6 +30,7 @@
             [pm.pick :as pick]
             [pm.scene :as scene]
             [pm.plan :as plan]
+            [pm.ask-build :as ab]
             [pm.talk :as talk]
             [pm.today :as today]
             [pm.ui :as ui]
@@ -122,7 +123,7 @@
 (defonce ^:private !last-builds (atom nil))   ; the parsed builds.edn, for apply-blueprint-file!
 (defonce ^:private !kit (atom nil))           ; the kit handle, once start-kit! has it
 
-(declare apply-blueprint-file! today-event! !real-from-file?)
+(declare apply-blueprint-file! today-event! !real-from-file? demo-ask! demo-make-real! demo-remove!)
 
 (defn- fetch-builds! []
   (-> (js/fetch (str builds-url "?t=" (js/Date.now)) #js {:cache "no-store"})
@@ -437,6 +438,16 @@
 (defonce ^:private !today-open (atom nil))
 (defonce ^:private !real-from-file? (atom false))
 
+;; The demo's pretend twin builds what you ask for (pm.ask-build, demo build
+;; only): the demo "file" (localStorage pm.demo-builds.v1), the kit's cover
+;; meshes (found once, cached, for the ground sampler), and the raw estate
+;; (:mirrors still a vector, which pm.lot expects; world/load-estate turns it
+;; into a map and pm.lot/things would break on it).
+(def demo-builds-key "pm.demo-builds.v1")
+(defonce ^:private !demo-file (atom ab/empty-file))
+(defonce ^:private !cover-meshes (atom []))
+(def ^:private raw-estate (cljs.reader/read-string world/estate-edn))
+
 (defn- fresh-start!
   "Testing aid: `?fresh` in the URL forgets the talk history and what was done
    to sample creatures in this browser, and lets the Construct's white room
@@ -448,9 +459,11 @@
          (.removeItem js/localStorage play-key)
          (.removeItem js/localStorage construct-key)
          (.removeItem js/localStorage today-key)
+         (.removeItem js/localStorage demo-builds-key)
          (catch :default _ nil))
     (reset! !construct-seen? false)
-    (reset! !today nil)))
+    (reset! !today nil)
+    (reset! !demo-file ab/empty-file)))
 
 (defonce ^:private !construct-said (atom nil))
 
@@ -808,11 +821,14 @@
         (let [t (:talk @!world) n (:n t)]
           (when (> n before-n)
             (post-crew! member :say nil (:text (talk/entry t n)) n)
-            ;; the twin with no bridge to carry the words (the demo): he says so
-            ;; himself, on the estate, instead of a silent failed line
+            ;; the twin with no bridge to carry the words: in the demo build he
+            ;; builds what you asked for (pm.ask-build); elsewhere (a dev build
+            ;; without a bridge) he says so himself, instead of a silent failed line
             (when (and (not (bridge-on?)) (= member (:agent (world/twin-walker @!world))))
-              (when-let [ev (world/twin-says @!world (world/no-bridge-line @!world))]
-                (swap! !world world/apply-event ev (+ now 1))))))))))
+              (if DEMO
+                (demo-ask! text (+ now 1))
+                (when-let [ev (world/twin-says @!world (world/no-bridge-line @!world))]
+                  (swap! !world world/apply-event ev (+ now 1)))))))))))
 
 (defn- call-say!
   "Like say-entry!, for a call's lines: the same !spoken guard (a line that
@@ -1343,15 +1359,17 @@
    post twice)."
   [id done]
   (let [words (:blueprint-text @!world)]
-    (if-not (bridge-on?)
-      (do (say! :blueprint-real (:no-bridge words)) (done))
-      (post-real! #(crew/real-build-body % id)
-                  (fn [ok? reason]
-                    (if ok?
-                      (do (swap! !world bp/make-real id)
-                          (say! :blueprint-real (:real words)))
-                      (say! :blueprint-real (str (:no-bridge words) " (" reason ")")))
-                    (done))))))
+    (if DEMO
+      (demo-make-real! id done)
+      (if-not (bridge-on?)
+        (do (say! :blueprint-real (:no-bridge words)) (done))
+        (post-real! #(crew/real-build-body % id)
+                    (fn [ok? reason]
+                      (if ok?
+                        (do (swap! !world bp/make-real id)
+                            (say! :blueprint-real (:real words)))
+                        (say! :blueprint-real (str (:no-bridge words) " (" reason ")")))
+                      (done)))))))
 
 ;; The id whose make-real request is in flight (TASKS T-14): both trial-card
 ;; buttons disable while it's set, so a double click can't post twice.
@@ -1382,14 +1400,16 @@
   [id]
   (when (and (nil? @!saving) (= :removing (bp/status @!world id)))
     (reset! !saving id)
-    (if-not (bridge-on?)
-      (do (swap! !world bp/fail-removal id nil (js/Date.now))
-          (reset! !saving nil))
-      (post-real! #(crew/remove-build-body % id)
-                  (fn [ok? reason]
-                    (let [now (js/Date.now)]
-                      (swap! !world (if ok? #(bp/finish-removal % id now) #(bp/fail-removal % id reason now)))
-                      (reset! !saving nil)))))))
+    (if DEMO
+      (do (demo-remove! id) (reset! !saving nil))
+      (if-not (bridge-on?)
+        (do (swap! !world bp/fail-removal id nil (js/Date.now))
+            (reset! !saving nil))
+        (post-real! #(crew/remove-build-body % id)
+                    (fn [ok? reason]
+                      (let [now (js/Date.now)]
+                        (swap! !world (if ok? #(bp/finish-removal % id now) #(bp/fail-removal % id reason now)))
+                        (reset! !saving nil))))))))
 
 (defn- real-mirror? [m]
   (= :hal (get-in @!world [:mirrors m :state :source])))
@@ -1650,6 +1670,69 @@
       (when (seq gm) (reset! !view-meshes gm))))
   @!view-meshes)
 
+;; The demo's pretend twin builds what you ask for (pm.ask-build, demo build
+;; only): a request in 💭 goes to demo-ask!, Make it real/Remove on a demo
+;; build go through demo-make-real!/demo-remove! instead of the bridge.
+
+(defn- save-demo-file! []
+  (try (.setItem js/localStorage demo-builds-key (ab/save-text @!demo-file)) (catch :default _ nil)))
+
+(defn- demo-merge!
+  "The demo file into the world through the one existing path (seat, draw,
+   author's line)."
+  []
+  (reset! !last-builds (ab/builds-of @!demo-file))
+  (apply-blueprint-file! @!demo-file))
+
+(defn- twin-reply! [text at]
+  (when-let [ev (world/twin-says @!world text)] (swap! !world world/apply-event ev at)))
+
+(defn- cover-meshes!
+  "Ground ∪ the kit's cover meshes (ab/cover-name?), found once and cached."
+  [^js h]
+  (when (empty? @!cover-meshes)
+    (let [sampler (get-in raw-estate [:demo-builds :sampler])
+          cm      (into (view-ground-meshes! h) (t/find-meshes (.-scene h) #(ab/cover-name? sampler %)))]
+      (when (seq cm) (reset! !cover-meshes cm))))
+  @!cover-meshes)
+
+(defn- demo-ask!
+  "The demo's pretend twin: a build request typed or said in 💭 (the demo
+   build only)."
+  [text at]
+  (let [^js h (kit/handle)
+        ctx   {:estate raw-estate :world @!world :file @!demo-file :rules (:build-rules @!world)
+               :here (when h (t/center-hit (.-camera h) (view-ground-meshes! h)))
+               :by (:agent (world/twin-walker @!world)) :now (js/Date.now)}
+        r     (ab/ask ctx text)]
+    (if-let [s (:say r)]
+      (twin-reply! s at)
+      (let [sampler (get-in raw-estate [:demo-builds :sampler])
+            t0      (js/performance.now)
+            ground  (when h (t/ground-grid (view-ground-meshes! h) (cover-meshes! h) (:spec r)
+                                           (:from-y sampler) (partial ab/sample-cell sampler)))
+            _       (js/console.info "Prime Meridian: ground grid" (:cols (:spec r)) "x" (:rows (:spec r))
+                                     "in" (js/Math.round (- (js/performance.now) t0)) "ms")
+            p       (ab/plan ctx (:req r) ground)]
+        (when (:ok p)
+          (reset! !demo-file (:file p))
+          (save-demo-file!)
+          (demo-merge!))
+        (twin-reply! (:say p) at)))))
+
+(defn- demo-make-real! [id done]
+  (swap! !world bp/make-real id)              ; a status turning :real: the Today goal ticks (watch)
+  (swap! !demo-file ab/mark-real id (js/Date.now))
+  (save-demo-file!)
+  (say! :blueprint-real (get-in @!world [:demo-builds :lines :made-real]))
+  (done))
+
+(defn- demo-remove! [id]
+  (let [now (js/Date.now)]
+    (swap! !world bp/finish-removal id now)
+    (swap! !demo-file ab/mark-removed id now)
+    (save-demo-file!)))
+
 (defn- view-tick!
   "Posts the game's view to the bridge (TASKS T-19) at most every
    view/post-every-ms, and only when view/post? says to."
@@ -1819,7 +1902,9 @@
   (add-watch !world ::today on-today-world!)
   (when @!construct-seen? (today-event! today/tutorial-done))
   (if DEMO
-    (do (start-sample-says!)   ; the demo's twin has a voice with nothing real behind it
+    (do (reset! !demo-file (ab/restore (try (.getItem js/localStorage demo-builds-key) (catch :default _ nil))))
+        (demo-merge!)
+        (start-sample-says!)   ; the demo's twin has a voice with nothing real behind it
         ;; and one worker raises its shipped sample question a little after the estate is
         ;; up (demo script shot 3: "a worker needs a word"): no bridge replays them here.
         ;; Answered once, it stays answered (crew-sample-muted?) until SAMPLE/REAL flips.

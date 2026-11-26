@@ -1,0 +1,302 @@
+diff --git a/TASKS.md b/TASKS.md
+index bc8e32e..c721a44 100644
+--- a/TASKS.md
++++ b/TASKS.md
+@@ -105,6 +105,7 @@ The twin on the estate (GDD §2.1). Built today: he walks (black body, white joi
+ 
+ ## Final project (due Dec 6)
+ - [x] Nov 25 (crew round win-the-day-v0) F-1 Win the day (Michael, Nov 25: the final video runs "start to win"). After the Construct a Today card top-left lists three goals with read-only checkboxes: finish the tutorial, build something with your twin (a blueprint turning real after the tutorial; builds real at load and the tutorial's rock don't count), jack out and back in at the booth (in that order, not the practice jump). All three: a Day won card (the twin's :day-won line, Keep playing), once per day per browser; the card then reads "Day won ✓". Pure pm.today (localStorage pm.today.v1, ?fresh clears it), texts in estate.edn :today. Open: add :day-won to content/requests/hal-lines.edn; the demo's own build path (next round).
++- [x] Nov 25 (crew round demo-build-ask-v0) F-2 Ask the demo's twin to build something (Michael, Nov 25: the win's "build something by talking to your twin"). In the demo build only, "put a bench here" (typed or said in 💭) is parsed from estate data (:demo-builds: four looks, words, places, lines); the ground around the target is measured in the browser (two rays per cell, never shipped) and pm.lot/place picks a level, open spot; the twin says where it went (or why not), and the ghost arrives through the existing blueprint-file path. Make it real and Remove record into localStorage pm.demo-builds.v1 in the demo (estate samples too); reload keeps them, ?fresh clears. Pure pm.ask-build. Open: the grid's timing on slow machines; letters outside a–z split words in the parser.
+ 
+ ## Business (Pepper)
+ Owner: Business Manager (GDD §9b, §10d). Real-world steps that need ID, bank, or a signature are the Director's; Pepper preps everything around them.
+diff --git a/resources/estate.edn b/resources/estate.edn
+index 40a2fb1..fe0669f 100644
+--- a/resources/estate.edn
++++ b/resources/estate.edn
+@@ -307,6 +307,50 @@
+                :look {:parts [{:shape :box :size [0.3 2.4 0.3] :at [0 1.2 0] :color :tin}            ; the post: drawable and thick enough to click
+                               {:shape :cone :size [0.7 0.4 0.7] :at [0 2.75 0] :color :tin}          ; the shade: a big click target
+                               {:shape :sphere :size [0.3 0.3 0.3] :at [0 2.45 0] :color :gold :glow true}]}}]   ; the bulb: lights up like the kit's lamps once built
++ ;; The demo's pretend twin builds what you ask for in 💭 (pm.ask-build; demo build only, GDD:
++ ;; every connection has an in-game pretend version). :words and :places are whole words or
++ ;; phrases, lowercase; :looks follow the blueprint look format above (grounded on y 0, every
++ ;; part at least 0.08 m, palette keys). The ground is measured in the browser, never shipped:
++ ;; :sampler says how (cover mesh names, Hal's T/B heights, the ray height).
++ :demo-builds
++ {:looks  {:bench     {:summary "A bench"
++                       :look {:parts [{:shape :box :size [1.1 0.1 0.4]   :at [0 0.45 0]        :color :brown}   ; seat
++                                      {:shape :box :size [1.1 0.4 0.08]  :at [0 0.7 -0.16]     :color :brown}   ; back
++                                      {:shape :box :size [0.08 0.4 0.08] :at [0.45 0.2 0.15]   :color :brown}   ; legs
++                                      {:shape :box :size [0.08 0.4 0.08] :at [0.45 0.2 -0.15]  :color :brown}
++                                      {:shape :box :size [0.08 0.4 0.08] :at [-0.45 0.2 0.15]  :color :brown}
++                                      {:shape :box :size [0.08 0.4 0.08] :at [-0.45 0.2 -0.15] :color :brown}]}}
++           :lamp-post {:summary "A lamp post"
++                       :look {:parts [{:shape :box :size [0.3 0.1 0.3]   :at [0 0.05 0]        :color :tin}     ; base
++                                      {:shape :box :size [0.12 2.2 0.12] :at [0 1.2 0]         :color :tin}     ; post
++                                      {:shape :box :size [0.3 0.3 0.3]   :at [0 2.45 0]        :color :gold}]}} ; lamp
++           :table     {:summary "A table"
++                       :look {:parts [{:shape :box :size [1.0 0.08 0.7]  :at [0 0.74 0]        :color :brown}   ; top
++                                      {:shape :box :size [0.08 0.7 0.08] :at [0.42 0.35 0.27]  :color :brown}   ; legs
++                                      {:shape :box :size [0.08 0.7 0.08] :at [0.42 0.35 -0.27] :color :brown}
++                                      {:shape :box :size [0.08 0.7 0.08] :at [-0.42 0.35 0.27] :color :brown}
++                                      {:shape :box :size [0.08 0.7 0.08] :at [-0.42 0.35 -0.27] :color :brown}]}}
++           :planter   {:summary "A planter"
++                       :look {:parts [{:shape :box :size [0.8 0.4 0.4]   :at [0 0.2 0]         :color :brown}   ; box
++                                      {:shape :box :size [0.6 0.16 0.24] :at [0 0.48 0]        :color :gold}]}}};flowers
++  :words  {"bench" :bench "seat" :bench
++           "lamp post" :lamp-post "lamppost" :lamp-post "lamp" :lamp-post "light" :lamp-post
++           "table" :table
++           "planter" :planter "flowers" :planter "flower box" :planter "plant pot" :planter}
++  :places {"here" :here "there" :here
++           "mailbox" :mailbox "booth" :phone-booth "phone booth" :phone-booth "workshop" :workshop
++           "creek" :creek "stream" :creek "water" :creek}
++  :anchors {:creek [-0.9 -15.7]}   ; where "the creek" is measured around: open water by the axolotl
++  :lines  {:placed    "{summary}, drawn near {place}. Try it, and make it real if you like it."
++           :refused   "I can't put that there: {reason}."
++           :help      "I can build a bench, a lamp post, a table or a planter. Try: put a bench here."
++           :made-real "Made real. It stays in this browser."
++           :sky       "The middle of your screen is sky. Look at the ground and ask me again."}
++  :sampler {:cover  ["Leaves" "CanopyMass" "WoodlandNear" "TreeWood" "Rocks" "Gravel" "creek"]
++            :water  ["creek"] :rocks ["Rocks"] :gravel ["Gravel"]
++            :tree-m 2 :bush-m 0.35   ; cover > 2 m above the ground: T; 0.35-2 m: B (Hal's sampler)
++            :pad-m 1                 ; measured past search-m, so a look's feet stay on the grid
++            :from-y 40}}             ; rays start this high (above every canopy)
+  ;; Display scale (standing rule): creatures and crew are drawn big enough to
+  ;; see from the kit's camera views without zooming in, about the size of a
+  ;; mid-size rock (~1 m). Real size doesn't matter; proportions do. Author a
+diff --git a/src/pm/core.cljs b/src/pm/core.cljs
+index 35fef42..9070100 100644
+--- a/src/pm/core.cljs
++++ b/src/pm/core.cljs
+@@ -30,6 +30,7 @@
+             [pm.pick :as pick]
+             [pm.scene :as scene]
+             [pm.plan :as plan]
++            [pm.ask-build :as ab]
+             [pm.talk :as talk]
+             [pm.today :as today]
+             [pm.ui :as ui]
+@@ -122,7 +123,7 @@
+ (defonce ^:private !last-builds (atom nil))   ; the parsed builds.edn, for apply-blueprint-file!
+ (defonce ^:private !kit (atom nil))           ; the kit handle, once start-kit! has it
+ 
+-(declare apply-blueprint-file! today-event! !real-from-file?)
++(declare apply-blueprint-file! today-event! !real-from-file? demo-ask! demo-make-real! demo-remove!)
+ 
+ (defn- fetch-builds! []
+   (-> (js/fetch (str builds-url "?t=" (js/Date.now)) #js {:cache "no-store"})
+@@ -437,6 +438,16 @@
+ (defonce ^:private !today-open (atom nil))
+ (defonce ^:private !real-from-file? (atom false))
+ 
++;; The demo's pretend twin builds what you ask for (pm.ask-build, demo build
++;; only): the demo "file" (localStorage pm.demo-builds.v1), the kit's cover
++;; meshes (found once, cached, for the ground sampler), and the raw estate
++;; (:mirrors still a vector, which pm.lot expects; world/load-estate turns it
++;; into a map and pm.lot/things would break on it).
++(def demo-builds-key "pm.demo-builds.v1")
++(defonce ^:private !demo-file (atom ab/empty-file))
++(defonce ^:private !cover-meshes (atom []))
++(def ^:private raw-estate (cljs.reader/read-string world/estate-edn))
++
+ (defn- fresh-start!
+   "Testing aid: `?fresh` in the URL forgets the talk history and what was done
+    to sample creatures in this browser, and lets the Construct's white room
+@@ -448,9 +459,11 @@
+          (.removeItem js/localStorage play-key)
+          (.removeItem js/localStorage construct-key)
+          (.removeItem js/localStorage today-key)
++         (.removeItem js/localStorage demo-builds-key)
+          (catch :default _ nil))
+     (reset! !construct-seen? false)
+-    (reset! !today nil)))
++    (reset! !today nil)
++    (reset! !demo-file ab/empty-file)))
+ 
+ (defonce ^:private !construct-said (atom nil))
+ 
+@@ -808,11 +821,14 @@
+         (let [t (:talk @!world) n (:n t)]
+           (when (> n before-n)
+             (post-crew! member :say nil (:text (talk/entry t n)) n)
+-            ;; the twin with no bridge to carry the words (the demo): he says so
+-            ;; himself, on the estate, instead of a silent failed line
++            ;; the twin with no bridge to carry the words: in the demo build he
++            ;; builds what you asked for (pm.ask-build); elsewhere (a dev build
++            ;; without a bridge) he says so himself, instead of a silent failed line
+             (when (and (not (bridge-on?)) (= member (:agent (world/twin-walker @!world))))
+-              (when-let [ev (world/twin-says @!world (world/no-bridge-line @!world))]
+-                (swap! !world world/apply-event ev (+ now 1))))))))))
++              (if DEMO
++                (demo-ask! text (+ now 1))
++                (when-let [ev (world/twin-says @!world (world/no-bridge-line @!world))]
++                  (swap! !world world/apply-event ev (+ now 1)))))))))))
+ 
+ (defn- call-say!
+   "Like say-entry!, for a call's lines: the same !spoken guard (a line that
+@@ -1343,15 +1359,17 @@
+    post twice)."
+   [id done]
+   (let [words (:blueprint-text @!world)]
+-    (if-not (bridge-on?)
+-      (do (say! :blueprint-real (:no-bridge words)) (done))
+-      (post-real! #(crew/real-build-body % id)
+-                  (fn [ok? reason]
+-                    (if ok?
+-                      (do (swap! !world bp/make-real id)
+-                          (say! :blueprint-real (:real words)))
+-                      (say! :blueprint-real (str (:no-bridge words) " (" reason ")")))
+-                    (done))))))
++    (if DEMO
++      (demo-make-real! id done)
++      (if-not (bridge-on?)
++        (do (say! :blueprint-real (:no-bridge words)) (done))
++        (post-real! #(crew/real-build-body % id)
++                    (fn [ok? reason]
++                      (if ok?
++                        (do (swap! !world bp/make-real id)
++                            (say! :blueprint-real (:real words)))
++                        (say! :blueprint-real (str (:no-bridge words) " (" reason ")")))
++                      (done)))))))
+ 
+ ;; The id whose make-real request is in flight (TASKS T-14): both trial-card
+ ;; buttons disable while it's set, so a double click can't post twice.
+@@ -1382,14 +1400,16 @@
+   [id]
+   (when (and (nil? @!saving) (= :removing (bp/status @!world id)))
+     (reset! !saving id)
+-    (if-not (bridge-on?)
+-      (do (swap! !world bp/fail-removal id nil (js/Date.now))
+-          (reset! !saving nil))
+-      (post-real! #(crew/remove-build-body % id)
+-                  (fn [ok? reason]
+-                    (let [now (js/Date.now)]
+-                      (swap! !world (if ok? #(bp/finish-removal % id now) #(bp/fail-removal % id reason now)))
+-                      (reset! !saving nil)))))))
++    (if DEMO
++      (do (demo-remove! id) (reset! !saving nil))
++      (if-not (bridge-on?)
++        (do (swap! !world bp/fail-removal id nil (js/Date.now))
++            (reset! !saving nil))
++        (post-real! #(crew/remove-build-body % id)
++                    (fn [ok? reason]
++                      (let [now (js/Date.now)]
++                        (swap! !world (if ok? #(bp/finish-removal % id now) #(bp/fail-removal % id reason now)))
++                        (reset! !saving nil))))))))
+ 
+ (defn- real-mirror? [m]
+   (= :hal (get-in @!world [:mirrors m :state :source])))
+@@ -1650,6 +1670,69 @@
+       (when (seq gm) (reset! !view-meshes gm))))
+   @!view-meshes)
+ 
++;; The demo's pretend twin builds what you ask for (pm.ask-build, demo build
++;; only): a request in 💭 goes to demo-ask!, Make it real/Remove on a demo
++;; build go through demo-make-real!/demo-remove! instead of the bridge.
++
++(defn- save-demo-file! []
++  (try (.setItem js/localStorage demo-builds-key (ab/save-text @!demo-file)) (catch :default _ nil)))
++
++(defn- demo-merge!
++  "The demo file into the world through the one existing path (seat, draw,
++   author's line)."
++  []
++  (reset! !last-builds (ab/builds-of @!demo-file))
++  (apply-blueprint-file! @!demo-file))
++
++(defn- twin-reply! [text at]
++  (when-let [ev (world/twin-says @!world text)] (swap! !world world/apply-event ev at)))
++
++(defn- cover-meshes!
++  "Ground ∪ the kit's cover meshes (ab/cover-name?), found once and cached."
++  [^js h]
++  (when (empty? @!cover-meshes)
++    (let [sampler (get-in raw-estate [:demo-builds :sampler])
++          cm      (into (view-ground-meshes! h) (t/find-meshes (.-scene h) #(ab/cover-name? sampler %)))]
++      (when (seq cm) (reset! !cover-meshes cm))))
++  @!cover-meshes)
++
++(defn- demo-ask!
++  "The demo's pretend twin: a build request typed or said in 💭 (the demo
++   build only)."
++  [text at]
++  (let [^js h (kit/handle)
++        ctx   {:estate raw-estate :world @!world :file @!demo-file :rules (:build-rules @!world)
++               :here (when h (t/center-hit (.-camera h) (view-ground-meshes! h)))
++               :by (:agent (world/twin-walker @!world)) :now (js/Date.now)}
++        r     (ab/ask ctx text)]
++    (if-let [s (:say r)]
++      (twin-reply! s at)
++      (let [sampler (get-in raw-estate [:demo-builds :sampler])
++            t0      (js/performance.now)
++            ground  (when h (t/ground-grid (view-ground-meshes! h) (cover-meshes! h) (:spec r)
++                                           (:from-y sampler) (partial ab/sample-cell sampler)))
++            _       (js/console.info "Prime Meridian: ground grid" (:cols (:spec r)) "x" (:rows (:spec r))
++                                     "in" (js/Math.round (- (js/performance.now) t0)) "ms")
++            p       (ab/plan ctx (:req r) ground)]
++        (when (:ok p)
++          (reset! !demo-file (:file p))
++          (save-demo-file!)
++          (demo-merge!))
++        (twin-reply! (:say p) at)))))
++
++(defn- demo-make-real! [id done]
++  (swap! !world bp/make-real id)              ; a status turning :real: the Today goal ticks (watch)
++  (swap! !demo-file ab/mark-real id (js/Date.now))
++  (save-demo-file!)
++  (say! :blueprint-real (get-in @!world [:demo-builds :lines :made-real]))
++  (done))
++
++(defn- demo-remove! [id]
++  (let [now (js/Date.now)]
++    (swap! !world bp/finish-removal id now)
++    (swap! !demo-file ab/mark-removed id now)
++    (save-demo-file!)))
++
+ (defn- view-tick!
+   "Posts the game's view to the bridge (TASKS T-19) at most every
+    view/post-every-ms, and only when view/post? says to."
+@@ -1819,7 +1902,9 @@
+   (add-watch !world ::today on-today-world!)
+   (when @!construct-seen? (today-event! today/tutorial-done))
+   (if DEMO
+-    (do (start-sample-says!)   ; the demo's twin has a voice with nothing real behind it
++    (do (reset! !demo-file (ab/restore (try (.getItem js/localStorage demo-builds-key) (catch :default _ nil))))
++        (demo-merge!)
++        (start-sample-says!)   ; the demo's twin has a voice with nothing real behind it
+         ;; and one worker raises its shipped sample question a little after the estate is
+         ;; up (demo script shot 3: "a worker needs a word"): no bridge replays them here.
+         ;; Answered once, it stays answered (crew-sample-muted?) until SAMPLE/REAL flips.
+diff --git a/src/pm/three.cljs b/src/pm/three.cljs
+index 31395b7..9fbb0a3 100644
+--- a/src/pm/three.cljs
++++ b/src/pm/three.cljs
+@@ -749,6 +749,27 @@
+            vec))
+     (catch :default _ [])))
+ 
++(defn ground-grid
++  "The ground around a target as a pm.lot ground map, measured in the
++   browser (never shipped: the kit's licence forbids extracted datasets).
++   Two downward rays per cell from `from-y`: the first hit of
++   `ground-meshes`, and the first hit of `cover-meshes` (ground plus
++   cover). `cell-fn` (pure, pm.ask-build/sample-cell partially applied)
++   turns them into {:kind :y}. Never throws: a failed ray counts as no hit
++   (down-hits already guards every ray)."
++  [ground-meshes cover-meshes {:keys [origin step cols rows]} from-y cell-fn]
++  (let [[x0 z0] origin
++        cells (vec (for [r (range rows)]
++                     (vec (for [c (range cols)]
++                            (let [x (+ x0 (* c step))
++                                  z (+ z0 (* r step))
++                                  g (first (down-hits ground-meshes x z from-y))
++                                  h (first (down-hits cover-meshes x z from-y))]
++                              (cell-fn g h))))))]
++    {:origin origin :step step :cols cols :rows rows
++     :kinds (mapv (fn [row] (apply str (map :kind row))) cells)
++     :y     (mapv (fn [row] (mapv :y row)) cells)}))
++
+ (defn- flatten-points [points]
+   (js/Float32Array.from (into-array (mapcat identity points))))
+ 

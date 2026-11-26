@@ -1,0 +1,78 @@
+=== prompt 1 (18:09:37)
+ │ (check "t41a" (ab/builds-of {:real [:a] :removed [:b]
+ │ :blueprints []}) {:real [:a] :removed [:b]})
+ │ (check "t41b" (ab/builds-of nil) {:real [] :removed
+ │ []})
+ │
+ │ ;; t22-25 data
+ │ (doseq [k [:bench :lamp-post :table :planter]]
+ │   (let [look-def (get-in DB [:looks k])
+ │         look (:look look-def)]
+ │     (check (str "t22-" k "-summary") (and (string?
+ │ (:summary look-def)) (not (clojure.string/blank?
+ │ (:summary look-def)))) true)
+ │     (check (str "t22-" k "-parts") (every? (fn [p]
+ │ (and (= :box (:shape p)) (every? #(>= % 0.08) (:size
+ │ p)))) (:parts look)) true)
+ │     (check (str "t22-" k "-colors") (every?
+ │ #(contains? #{:brown :tin :gold} (:color %)) (:parts
+ │ look)) true)
+ │     (check (str "t22-" k "-grounded") (<= (apply min
+ │ (map (fn [{[_ ay _] :at [_ sy _] :size}] (- ay (/ sy
+ │ 2))) (:parts look))) 1e-9) true)
+ │     (check (str "t22-" k "-feet") (boolean (seq
+ │ (lot/feet look))) true)))
+ │
+ │ (println "done")
+ │ EOF
+ │ echo wrote
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Contains brace with quote character (expansion
+ obfuscation)
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   3. No
+ ↑ 322 more lines
+ Esc to cancel · Tab to amend
+=== prompt 2 (18:09:47)
+      174
+      175 +(declare add-build)
+      176 +
+      177  (defn ask
+      178    "The step before measuring: help or s
+           ky/refused, or `{:req :target
+      179     :spec}` ready for `ground-grid` + `p
+           lan`."
+
+  Running bb -cp src -f
+  /private/tmp/claude-504/-Users-hal-…
+  ⎿  $ bb -cp src -f /private/tmp/claude-504/-Users-hal-s
+     rc-prime-meridian/a26c5924-7272-422f-8b58-a0efe1e2b9
+     b3/scratchpad/verify_ask_build.clj 2>&1 | tail -150
+
+─────────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ bb -cp src -f /private/tmp/claude-504/-Users-hal-src-
+ │ prime-meridian/a26c5924-7272-422f-8b58-a0efe1e2b9b3/s
+ │ cratchpad/verify_ask_build.clj 2>&1 | tail -150
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: bb -cp src -f
+      /private/tmp/claude-504/-Users-hal-src-prime-merid
+      ian/a26c5924-7272-422f-8b58-a0efe1e2b9b3/scratchpa
+      d/verify_ask_build.clj
+   3. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend

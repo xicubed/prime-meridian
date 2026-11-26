@@ -1,0 +1,40 @@
+
+
+  Searched for 1 pattern, ran 2 shell commands
+
+⏺ Writing the spec now. One quick check first: the demo build task and the TASKS section F-1 added.
+
+  Searched for 1 pattern
+
+⏺ Write(crew/runs/demo-build-ask-v0-20261125-1750/spec.md)
+  ⎿  Wrote 407 lines to crew/runs/demo-build-ask-v0-20261125-1750/spec.md
+      1 # Spec: ask the demo's twin to build something (final project, F-2)
+      2
+      3 Quest: `.crew/quests/demo-build-ask-v0.md`. Start commit `06d7428` (win-the-day-v0 has landed).
+      4 In the demo build only, a request typed or said to the twin in 💭 ("put a bench here") is parsed
+      5 from data, and the ground around the target is measured in the browser. `pm.lot/place` picks a
+      6 level, open spot, and the new blueprint goes into a demo "file" kept in localStorage. It reaches the
+      7 world through the existing `apply-blueprint-file!` path, so it seats, draws and announces itself.
+      8 The twin then says where he put it. In the demo, Make it real and Remove record into the same
+      9 localStorage key instead of the bridge.
+     … +398 lines
+
+⏺ The spec is written: crew/runs/demo-build-ask-v0-20261125-1750/spec.md
+  Public functions in pm.ask-build: normalize-text, find-word, parse-request, taken-ids, next-id, target-xz, grid-spec,
+  name-has?, cover-name?, cell-kind, sample-cell, fill, lot-estate, ask, plan, empty-file, normalize-file, save-text,
+  restore, add-build, mark-real, mark-removed, builds-of. In pm.three: ground-grid. In pm.core it hooks on-say,
+  make-real!, remove-click!, fresh-start! and the demo branch of init!.
+  There are 45 test cases (t01–t45), covering the parser with a second word table, all four looks, a second place, and
+  the merge on both a demo build and an estate sample.
+
+  The demo file adds a :removed list to the quest's {:as-of :blueprints :real} shape. Without it, a removed estate
+  sample blueprint would come back on reload.
+
+  done-5673
+
+✻ Crunched for 7m 45s · done 5:58 PM
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

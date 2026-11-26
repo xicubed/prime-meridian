@@ -1,0 +1,38 @@
+  Gate: [:app] and [:test] both compile with 0 warnings.
+  The test run still crashes —
+  test/pm/ask_build_test.cljs (not mine) defines (def ≈
+  ...), and ≈ isn't a legal JS identifier character
+  (confirmed with node -e "var ≈ = 1" → SyntaxError), so
+  the whole compiled test bundle fails to parse before
+  any test executes. That's the tester's file, so I
+  didn't touch it — flagged it in builder-notes.md
+  instead, along with hand-verification of all 45 spec
+  test values against pm.ask-build via a standalone bb
+  script (all matched, modulo JVM-vs-JS
+  numeric-representation non-issues).
+
+  Last gate line: GATE: FAIL no test summary (both builds
+  clean, test run blocked by the ≈ symbol).
+
+  git diff --stat
+   resources/estate.edn |  44 +++++++++
+   src/pm/core.cljs     | 133 +++++++++++++++++---
+   src/pm/three.cljs    |  21 +++++
+   3 files changed, 174 insertions(+), 24 deletions(-)
+
+  git diff --no-index --stat /dev/null
+  src/pm/ask_build.cljc
+   1 file changed, 295 insertions(+)
+
+  git diff --no-index --stat /dev/null crew/runs/demo-bui
+  ld-ask-v0-20261125-1750/builder-notes.md
+   1 file changed, 59 insertions(+)
+
+  done-8699
+
+✻ Brewed for 12m 40s · done 6:11 PM
+
+─────────────────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

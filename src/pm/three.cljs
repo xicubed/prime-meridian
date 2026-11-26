@@ -749,6 +749,114 @@
            vec))
     (catch :default _ [])))
 
+(def ^:private crop-min-tris 2000)
+
+(defn- world-tris
+  "`mesh`'s triangles in world space, 9 floats each (non-indexed)."
+  [^js mesh]
+  (let [^js g   (.-geometry mesh)
+        ^js pos (.getAttribute g "position")
+        ^js idx (.-index g)
+        n       (if idx (.-count idx) (.-count pos))
+        e       (do (.updateWorldMatrix mesh true false) (.. mesh -matrixWorld -elements))
+        out     (js/Float32Array. (* 3 n))]
+    (loop [k 0]
+      (when (< k n)
+        (let [i (if idx (.getX idx k) k)
+              x (.getX pos i) y (.getY pos i) z (.getZ pos i)
+              o (* 3 k)]
+          (aset out o       (+ (* (aget e 0) x) (* (aget e 4) y) (* (aget e 8) z) (aget e 12)))
+          (aset out (+ o 1) (+ (* (aget e 1) x) (* (aget e 5) y) (* (aget e 9) z) (aget e 13)))
+          (aset out (+ o 2) (+ (* (aget e 2) x) (* (aget e 6) y) (* (aget e 10) z) (aget e 14)))
+          (recur (inc k)))))
+    out))
+
+(defn- tris-in-box
+  "The triangles of `tris` (9 floats each) whose x/z bounds touch the box
+   [x0 z0 x1 z1]."
+  [tris [x0 z0 x1 z1]]
+  (let [n   (/ (.-length tris) 9)
+        out (js/Float32Array. (.-length tris))]
+    (loop [t 0 w 0]
+      (if (< t n)
+        (let [o  (* 9 t)
+              ax (aget tris o) az (aget tris (+ o 2))
+              bx (aget tris (+ o 3)) bz (aget tris (+ o 5))
+              cx (aget tris (+ o 6)) cz (aget tris (+ o 8))]
+          (if (and (<= (min ax bx cx) x1) (>= (max ax bx cx) x0)
+                   (<= (min az bz cz) z1) (>= (max az bz cz) z0))
+            (do (.set out (.subarray tris o (+ o 9)) w)
+                (recur (inc t) (+ w 9)))
+            (recur (inc t) w)))
+        (.slice out 0 w)))))
+
+(defn- tri-mesh
+  "A stand-in mesh (never added to a scene) for `tris` in world space, with
+   `like`'s name and material, so a hit on it reads like a hit on `like`."
+  [^js like tris]
+  (let [^js T    (three)
+        ^js geom (new (.-BufferGeometry T))
+        ^js m    (new (.-Mesh T) geom (.-material like))]
+    (.setAttribute geom "position" (new (.-BufferAttribute T) tris 3))
+    (.computeBoundingSphere geom)
+    (set! (.-name m) (.-name like))
+    (.updateMatrixWorld m true)
+    m))
+
+(defn- big-mesh? [^js m]
+  (let [^js g (.-geometry m) ^js pos (when g (.getAttribute g "position"))]
+    (and (.-isMesh m) (not (.-isInstancedMesh m)) pos
+         (>= (/ (if (.-index g) (.. g -index -count) (.-count pos)) 3) crop-min-tris))))
+
+(defn- row-meshes
+  "For each grid row (z = z0 + r*step), `meshes` with every big mesh (the
+   kit's leaves are one 220k-triangle mesh) replaced by a stand-in holding
+   only its triangles that cross that row inside [bx0 bx1]. A downward ray
+   on the row hits the stand-in where it would hit the original, at a
+   small fraction of the cost. Returns [rows-of-meshes stand-ins]."
+  [meshes bx0 bx1 z0 step rows]
+  (let [tol    (* 0.01 step)
+        whole  [bx0 (- z0 step) bx1 (+ z0 (* rows step))]
+        boxed  (into {} (for [^js m meshes :when (big-mesh? m)]
+                          [m (tris-in-box (world-tris m) whole)]))
+        made   #js []
+        rowsv  (vec (for [r (range rows)]
+                      (let [z (+ z0 (* r step))]
+                        (mapv (fn [m]
+                                (if-let [tris (get boxed m)]
+                                  (let [sm (tri-mesh m (tris-in-box tris [bx0 (- z tol) bx1 (+ z tol)]))]
+                                    (.push made sm) sm)
+                                  m))
+                              meshes))))]
+    [rowsv made]))
+
+(defn ground-grid
+  "The ground around a target as a pm.lot ground map, measured in the
+   browser (never shipped: the kit's licence forbids extracted datasets).
+   Two downward rays per cell from `from-y`: the first hit of
+   `ground-meshes`, and the first hit of `cover-meshes` (ground plus
+   cover). `cell-fn` (pure, pm.ask-build/sample-cell partially applied)
+   turns them into {:kind :y}. Big meshes are cut into one strip per row
+   first (row-meshes), which takes a 30 x 30 grid from ~26 s to well under
+   a second. Never throws: a failed ray counts as no hit (down-hits already
+   guards every ray)."
+  [ground-meshes cover-meshes {:keys [origin step cols rows]} from-y cell-fn]
+  (let [[x0 z0] origin
+        bx0 (- x0 step) bx1 (+ x0 (* cols step))
+        [g-rows g-made] (row-meshes ground-meshes bx0 bx1 z0 step rows)
+        [c-rows c-made] (row-meshes cover-meshes bx0 bx1 z0 step rows)
+        cells (vec (for [r (range rows)]
+                     (vec (for [c (range cols)]
+                            (let [x (+ x0 (* c step))
+                                  z (+ z0 (* r step))
+                                  g (first (down-hits (nth g-rows r) x z from-y))
+                                  h (first (down-hits (nth c-rows r) x z from-y))]
+                              (cell-fn g h))))))]
+    (doseq [^js m (concat g-made c-made)] (.dispose (.-geometry m)))
+    {:origin origin :step step :cols cols :rows rows
+     :kinds (mapv (fn [row] (apply str (map :kind row))) cells)
+     :y     (mapv (fn [row] (mapv :y row)) cells)}))
+
 (defn- flatten-points [points]
   (js/Float32Array.from (into-array (mapcat identity points))))
 
