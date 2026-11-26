@@ -160,7 +160,7 @@
       (is (string? summary))
       (is (not (clojure.string/blank? summary)))
       (doseq [{:keys [shape size color]} parts]
-        (is (= shape :box))
+        (is (contains? #{:box :cone :sphere :cylinder} shape))   ; the shapes blueprints draw (the lamp has a cone hood and a glowing sphere)
         (is (every? #(>= % 0.08) size))
         (is (contains? #{:brown :tin :gold} color)))
       (is (< (js/Math.abs (apply min (map (fn [{[_ sy _] :size [_ ay _] :at}] (- ay (/ sy 2))) parts)))
@@ -175,7 +175,11 @@
 
 (deftest t24-look-radii-by-hand
   (is (approx= (lot/look-radius (get-in DB [:looks :bench :look]) 1) 0.5852349955))
-  (is (approx= (lot/look-radius (get-in DB [:looks :lamp-post :look]) 1) 0.2121320344))
+  ;; the demo's lamp is the estate's own lamp (lamp-post-by-canal), glow and all
+  (let [canal (some #(when (= :lamp-post-by-canal (:id %)) %) (:blueprints RAW))]
+    (is (= (get-in DB [:looks :lamp-post :look]) (:look canal)))
+    (is (approx= (lot/look-radius (get-in DB [:looks :lamp-post :look]) 1) (lot/look-radius (:look canal) 1)))
+    (is (some :glow (get-in DB [:looks :lamp-post :look :parts]))))
   (is (approx= (lot/look-radius (get-in DB [:looks :table :look]) 1) 0.6103277808))
   (is (approx= (lot/look-radius (get-in DB [:looks :planter :look]) 1) 0.4472135955)))
 

@@ -321,10 +321,10 @@
                                       {:shape :box :size [0.08 0.4 0.08] :at [0.45 0.2 -0.15]  :color :brown}
                                       {:shape :box :size [0.08 0.4 0.08] :at [-0.45 0.2 0.15]  :color :brown}
                                       {:shape :box :size [0.08 0.4 0.08] :at [-0.45 0.2 -0.15] :color :brown}]}}
-           :lamp-post {:summary "A lamp post"
-                       :look {:parts [{:shape :box :size [0.3 0.1 0.3]   :at [0 0.05 0]        :color :tin}     ; base
-                                      {:shape :box :size [0.12 2.2 0.12] :at [0 1.2 0]         :color :tin}     ; post
-                                      {:shape :box :size [0.3 0.3 0.3]   :at [0 2.45 0]        :color :gold}]}} ; lamp
+           :lamp-post {:summary "A lamp post"     ; the same lamp as the estate's own (lamp-post-by-canal): glows with the kit's lamps at night
+                       :look {:parts [{:shape :box    :size [0.3 2.4 0.3] :at [0 1.2 0]  :color :tin}             ; post
+                                      {:shape :cone   :size [0.7 0.4 0.7] :at [0 2.75 0] :color :tin}             ; hood
+                                      {:shape :sphere :size [0.3 0.3 0.3] :at [0 2.45 0] :color :gold :glow true}]}} ; lamp
            :table     {:summary "A table"
                        :look {:parts [{:shape :box :size [1.0 0.08 0.7]  :at [0 0.74 0]        :color :brown}   ; top
                                       {:shape :box :size [0.08 0.7 0.08] :at [0.42 0.35 0.27]  :color :brown}   ; legs
