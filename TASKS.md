@@ -113,6 +113,14 @@ The twin on the estate (GDD §2.1). Built today: he walks (black body, white joi
 - [ ] F-7 A first-time playtest from `?fresh` (Michael, then someone who has never seen it); fixes as one crew round.
 - [ ] F-8 Maybe: a **Next ›** button on the Construct's self-advancing lines (~6 s each) if the playtest says it drags; Flora's "not due" case explained in PLAY.md; the poster on the kit's loading screen.
 
+## After the course: make it yours (README "Make it yours", Michael, Nov 26)
+Future work, after the Dec 6 hand-in. Write each one into the GDD before building it.
+- [ ] M-1 Your key, in the browser: a setup card in the hosted game takes the player's own AI API key (kept only in their browser's storage, never sent to our server) and the twin becomes that model with the game's prompt (the estate, what it can build, STYLE.md's voice); it places builds through `pm.ask-build`/`pm.lot`, and the crew stays SAMPLE. Nothing to install. Say plainly on the card what the key is used for.
+- [ ] M-2 Your agent, the hosted game: a third build kind (hosted, bridge optional, SAMPLE fallback) that calls the player's own `bb crew-bridge` on `127.0.0.1`. The bridge allows the hosted Origin and answers the browser's local-network preflight, and it serves the state files itself; pairing is a one-time token paste.
+- [ ] M-3 Any agent as the twin: today only Hermes is wired in (`scripts/hal_relay.py`). Ship the game's protocol as a skill or MCP server any agent can load (`[from the game]` turns in, `bb hal-say` out), plus a relay for Claude Code, so a player's own agent answers in-world.
+- [ ] M-4 The world as a plug-in: document the handle the game uses (`scene`, `camera`, `renderer`, `THREE`, `rig` with `setHour` and the orbit camera), give it a neutral name instead of the island kit's, move the four sky states into estate data, and ship a second sample world (a small Old West or space scene, free or CC0 assets) loaded the same way, to prove a player can bring their own.
+- [ ] M-5 One clone for the crew: a `bb crew-up` task in this repo that finds crew-up wherever it lives (the Claude plugin install or `~/src/crew-up`), and `crew/README.md` saying "install the plugin" first.
+
 ## Business (Pepper)
 Owner: Business Manager (GDD §9b, §10d). Real-world steps that need ID, bank, or a signature are the Director's; Pepper preps everything around them.
 - [ ] B-1 Payments account: finish the provider's business verification before the first sale. Director does the identity/bank steps; Pepper first gets lotect.com review-ready (what we sell, contact info, privacy and refund policies).
