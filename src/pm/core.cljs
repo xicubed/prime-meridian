@@ -685,7 +685,7 @@
                                   :open? (today/card-open? s @!today-open)})
          :title    (:title texts)
          :collapse (:collapse texts)
-         :rows     (today/rows s texts)
+         :rows     (today/rows s texts {:twin (j/twin (j/names @!world))})
          :pill     (today/pill s texts)}))
     (fn [open?] (reset! !today-open open?))))
 

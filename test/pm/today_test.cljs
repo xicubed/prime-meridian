@@ -146,10 +146,15 @@
     (is (= (t/done-count WON) 3))))
 
 (deftest t22-rows-from-the-estates-texts
-  (is (= (t/rows S1 TX)
-         [{:id :tutorial :text "Finish the tutorial" :hint nil :ticked? true}
-          {:id :build :text "Build something with your twin" :hint "Ask your twin in 💭 (type or 🎙 talk) for a thing, try it, make it real." :ticked? false}
-          {:id :jack :text "Jack out and back in" :hint "Click the phone booth to jack out, then jack back in." :ticked? false}]))
+  ;; texts come from the estate; {twin} is filled with whichever name is passed
+  ;; (a name that isn't anyone's real twin, so nothing here depends on the data's)
+  (let [sub #(clojure.string/replace % "{twin}" "Ana")]
+    (is (= (t/rows S1 TX {:twin "Ana"})
+           [{:id :tutorial :text (get-in TX [:rows :tutorial]) :hint nil :ticked? true}
+            {:id :build :text (sub (get-in TX [:rows :build])) :hint (sub (get-in TX [:hints :build])) :ticked? false}
+            {:id :jack :text (get-in TX [:rows :jack]) :hint (get-in TX [:hints :jack]) :ticked? false}]))
+    (is (clojure.string/includes? (:text (second (t/rows S1 TX {:twin "Ana"}))) "Ana"))
+    (is (not (clojure.string/includes? (:hint (second (t/rows S1 TX {:twin "Ana"}))) "{twin}"))))
   (is (= (mapv :ticked? (t/rows WON TX)) [true true true]))
   (is (= (mapv :hint (t/rows WON TX)) [nil nil nil])))
 

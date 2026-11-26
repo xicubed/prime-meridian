@@ -98,9 +98,9 @@
  ;; top-left once the Construct is done, and the Day won card when all three are ticked.
  :today {:title     "Today"
          :rows      {:tutorial "Finish the tutorial"
-                     :build    "Build something with your twin"
+                     :build    "Build something: talk to {twin}, leader of the agent crew"
                      :jack     "Jack out and back in"}
-         :hints     {:build "Ask your twin in 💭 (type or 🎙 talk) for a thing, try it, make it real."
+         :hints     {:build "Open 💭, tap {twin}, then type or use voice (🎙): \"put a bench here\". Try it, make it real."
                      :jack  "Click the phone booth to jack out, then jack back in."}
          :pill      "{title} {done}/{total}"   ; the collapsed card
          :won       "Day won ✓"               ; the collapsed card once the day is won

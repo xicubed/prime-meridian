@@ -120,14 +120,19 @@
 (defn done-count [today]
   (count (filter #(true? (get today %)) [:tutorial? :built? :back?])))
 
-(defn rows [today texts]
-  (mapv (fn [[id k]]
-          (let [ticked? (boolean (get today k))]
-            {:id id
-             :text (get-in texts [:rows id] "")
-             :hint (when-not ticked? (get-in texts [:hints id]))
-             :ticked? ticked?}))
-        [[:tutorial :tutorial?] [:build :built?] [:jack :back?]]))
+(defn rows
+  "The card's three rows. `vars` fills `{word}` placeholders in the texts
+   (`{twin}` = the twin's name, which is data, never code)."
+  ([today texts] (rows today texts {}))
+  ([today texts vars]
+   (mapv (fn [[id k]]
+           (let [ticked? (boolean (get today k))
+                 f       #(when (string? %) (c/fill % vars))]
+             {:id id
+              :text (or (f (get-in texts [:rows id])) "")
+              :hint (when-not ticked? (f (get-in texts [:hints id])))
+              :ticked? ticked?}))
+         [[:tutorial :tutorial?] [:build :built?] [:jack :back?]])))
 
 (defn- pill-text [today texts]
   (let [template (if (string? (:pill texts)) (:pill texts) "{title} {done}/{total}")]
