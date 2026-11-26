@@ -45,8 +45,11 @@ one can be reshot, cut, reordered, or a new one inserted, without redoing the re
   A reshoot of scene N restores scene N−1's snapshot first, so the Today card's ticks, the
   bench and Flora's count are where that scene expects them. The real files are put back as
   they were after the reshoot (they're real state: see the testing rule in the skill).
-- **The sky is pinned per scene with `?hour=`** (golden for the estate scenes, blue for the
-  booth and Day won), so takes shot at different times still match. The one exception is
+- **The sky is pinned per scene:** a `?hour=` in the URL stops the game from following the
+  clock, then Hal sets the scene's sky over CDP with the kit's own
+  `hiroshi.rig.setHour('golden'|'blue', true)` (the poster recipe), golden for the estate
+  scenes and blue for the booth and Day won, so takes shot at different times still match. The
+  music follows the pinned hour too. The one exception is
   Flora's REAL feed (beat 8), which happens at the real feed time; its game half can be shot
   any time after, from scene 7's snapshot.
 - **A scene list drives the cut:** `assets/private/video/f4/scenes.edn` lists each scene's
