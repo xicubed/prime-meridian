@@ -700,22 +700,24 @@
       (let [^js card (js/document.createElement "div")
             ^js h    (js/document.createElement "div")
             ^js list (js/document.createElement "div")]
-        (set! (.. card -style -cssText) "background:#fff;border-radius:16px;padding:0 26px 22px;width:min(640px,90vw);max-height:80vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.3);color:#1b1f2a")
+        ;; dark, like the crew key and the Today card (rgba(20,24,32,…), #f3efe2)
+        (set! (.. card -style -cssText) "background:rgba(20,24,32,.94);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:0 26px 22px;width:min(640px,90vw);max-height:80vh;overflow:auto;scrollbar-color:rgba(255,255,255,.25) transparent;box-shadow:0 10px 40px rgba(0,0,0,.45);color:#f3efe2")
         ;; the title row stays pinned while the list scrolls, with its own ✕:
         ;; the Close button at the bottom is out of sight on a long inbox
         (set! (.. h -style -cssText)
-              "position:sticky;top:0;z-index:1;background:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 0 10px")
+              "position:sticky;top:0;z-index:1;background:rgb(22,26,34);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 0 10px")
         (let [^js t (js/document.createElement "div")
               ^js x (js/document.createElement "button")]
           (set! (.-className t) "pm-who")
           (set! (.. t -style -margin) "0")
+          (set! (.. t -style -color) "rgba(243,239,226,.75)")
           (set! (.-textContent t) title)
           (set! (.-textContent x) "✕")
           (set! (.-title x) close)
           (.setAttribute x "aria-label" close)
           (set! (.. x -style -cssText)
-                (str "flex:none;width:36px;height:36px;border-radius:50%;border:1px solid #d1d5db;"
-                     "background:#f9fafb;color:#1b1f2a;font:600 17px/1 system-ui,sans-serif;cursor:pointer"))
+                (str "flex:none;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.25);"
+                     "background:rgba(255,255,255,.08);color:#f3efe2;font:600 17px/1 system-ui,sans-serif;cursor:pointer"))
           (.addEventListener x "click" (fn [^js e] (.stopPropagation e) (show-mail! nil)))
           (.appendChild h t)
           (.appendChild h x))
@@ -724,17 +726,17 @@
           (let [^js row  (js/document.createElement "div")
                 ^js top  (js/document.createElement "div")
                 ^js body (js/document.createElement "div")]
-            (set! (.. row -style -cssText) "border-top:1px solid #e5e7eb;padding:10px 4px;cursor:pointer")
+            (set! (.. row -style -cssText) "border-top:1px solid rgba(255,255,255,.12);padding:10px 4px;cursor:pointer")
             (set! (.. top -style -cssText) "display:flex;gap:10px;align-items:baseline")
             (set! (.-innerHTML top)
                   (str "<b style='min-width:120px'></b><span style='flex:1'></span>"
-                       "<span style='font-size:12px;color:#6b7280'></span>"))
+                       "<span style='font-size:12px;color:rgba(243,239,226,.55)'></span>"))
             (set! (.-textContent (aget (.-children top) 0)) (:who r))
             (set! (.-textContent (aget (.-children top) 1))
                   (str (when (:held? r) "⚠ held back · ") (:subject r)))
             (set! (.-textContent (aget (.-children top) 2))
                   (str (:ago r) (when (:sample? r) (str " · " sample))))
-            (set! (.. body -style -cssText) "display:none;margin-top:8px;color:#374151;white-space:pre-wrap")
+            (set! (.. body -style -cssText) "display:none;margin-top:8px;color:rgba(243,239,226,.85);white-space:pre-wrap")
             (set! (.-textContent body) (:body r))
             (.addEventListener row "click"
               (fn [_] (set! (.. body -style -display)
@@ -748,6 +750,8 @@
           (set! (.-className row) "pm-row")
           (set! (.-className b) "pm-btn")
           (set! (.. b -style -animation) "none")
+          (set! (.. b -style -background) "rgba(255,255,255,.14)")
+          (set! (.. b -style -color) "#f3efe2")
           (set! (.-textContent b) close)
           (.addEventListener b "click" (fn [_] (show-mail! nil)))
           (.appendChild row b)
