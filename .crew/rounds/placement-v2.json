@@ -1,0 +1,67 @@
+{
+  "round": "placement-v2",
+  "quest": ".crew/quests/placement-v2.md",
+  "runDir": "crew/runs",
+  "gate": "bash .crew/gate.sh",
+  "fix": {
+    "who": "un-automate-monde",
+    "max": 2
+  },
+  "timeoutMinutes": 60,
+  "steps": [
+    {
+      "id": "spec",
+      "who": [
+        "un-architecte"
+      ],
+      "prompt": "New quest: read {quest} and the code it cites (placement-v1 just landed). Write the spec to {run}/spec.md following your role card: bb blueprint-draft --at here|x,z (exact signature, the view freshness/sky refusals, reading state/view.edn), the face-the-camera yaw fn, the demo here path in demo-ask!, removing the too-steep refusal everywhere it gates (sign, make-real, twin line) while seat still stretches legs, numbered test cases with hand-checked values, the list of existing tests whose too-steep expectations change, and a who-touches-what table (builder: src/ and scripts/ files you name, resources/estate.edn only if needed; tester: new test files plus the old-test edits you list; le-docteur: .crew/roles/builder.md Build requests and PLAY.md's Build bullet). Reply when it's written.",
+      "expect": [
+        "{run}/spec.md"
+      ]
+    },
+    {
+      "id": "build",
+      "who": [
+        "un-automate-monde",
+        "le-testeur"
+      ],
+      "prompt": {
+        "un-automate-monde": "Spec: {run}/spec.md (quest: {quest}). Implement it in the source files the spec assigns the builder, and nothing else. Run .crew/gate.sh before replying, then write {run}/builder-notes.md as the quest's Done-when says.",
+        "le-testeur": "Spec: {run}/spec.md (quest: {quest}). Write its test cases in the test file the spec assigns the tester, and nothing else. The builder is coding in parallel."
+      },
+      "expect": [
+        "{run}/builder-notes.md"
+      ]
+    },
+    {
+      "id": "gate",
+      "who": [
+        "le-coureur"
+      ],
+      "verify": true,
+      "prompt": "Run the gate (.crew/gate.sh) and write the gate note to {run}/gate-note.md as your role card says.",
+      "expect": [
+        "{run}/gate-note.md"
+      ]
+    },
+    {
+      "id": "review",
+      "who": [
+        "le-critique"
+      ],
+      "prompt": "Review the round's changes against {run}/spec.md and {quest}: git diff and the new files. Check in particular: --at here uses the view's exact centre with no search or refusal beyond stale/missing/sky; the yaw faces the camera; too-steep no longer blocks anything but seat still stretches legs; named places unchanged; the demo here path matches; no person, pet or member named in code; no npm deps. Write the review to {run}/review.md.",
+      "expect": [
+        "{run}/review.md"
+      ]
+    },
+    {
+      "id": "docs",
+      "who": [
+        "le-docteur"
+      ],
+      "prompt": "Spec: {run}/spec.md (quest: {quest}). Make only the documentation edits the spec's who-touches-what table gives le-docteur (if none, change nothing). Reply with git diff --stat of what you changed.",
+      "expect": []
+    }
+  ],
+  "onBlocked": "wait"
+}
