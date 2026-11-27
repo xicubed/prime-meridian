@@ -1,0 +1,216 @@
+💻 $ cat crew/runs/placement-v1-20261126-1903/builder-notes.md 2>/dev/null  0.4s
+💻 $ git diff --stat -- package.json package-lock.json + 3 commands  0.4s
+📖 Read placement_test.cljs
+💻 $ bash .crew/gate.sh  21.5s
+✗ $ grep -niE "michael|\bhal\b|flora|juniper|pip\b|wren\b" src/pm/lot.cljc src/pm/ask_build.cljc src/pm/camera.cljs src/pm/blueprint.cljs scripts/blueprint_draft.clj | grep -v "^src/pm/core.cljs" echo "---core.cljs diff region names---" git diff -- src/pm/core.cljs | grep -niE "michael|\bhal\b|flora|juniper"  0.5s [exit 1]
+✍️ Write /Users/hal/src/prime-meridian/crew/runs/placement-v1-20261126-1903/review.md
+│ crew/runs/placement-v1-20261126-1903/review.md
+│ @@ -0,0 +1,69 @@
+│ +# Review: placement-v1 (crew/runs/placement-v1-20261126-1903)
+│ +
+│ +## Scope
+│ +Start commit `82b9e60` = current `HEAD` (no intervening commit), so `git diff`/`git status` is
+│ +this round's own clean diff. Files touched: `resources/estate.edn`, `scripts/blueprint_draft.clj`,
+│ +`src/pm/ask_build.cljc`, `src/pm/blueprint.cljs`, `src/pm/camera.cljs`, `src/pm/core.cljs`,
+│ +`src/pm/lot.cljc`, `test/pm/ask_build_test.cljs` (t29/t33 + the `RULES` comment only, as the
+│ +boundary table allows), plus the new `test/pm/placement_test.cljs`.
+│ +
+│ +## Verified independently
+│ +- Re-ran `bash .crew/gate.sh` myself: **PASS — 0 warnings; 1688 tests / 8855 assertions**, matching
+│ +  `builder-notes.md`'s claim exactly.
+│ +- `test/pm/placement_test.cljs` has `t01`–`t54`, one `deftest` per spec-numbered case (54 total,
+│ +  114 `is` assertions), transcribed faithfully — spot-checked every group (A rules helpers, B/C
+│ +  `:open-kinds` in `spot`/`place`, D the widening search, E `moved-line`, F estate data, G
+│ +  `pm.ask-build`, H `pm.camera`, I `pm.blueprint/arrival-at`) against the spec's worked values.
+│ +- `src/pm/lot.cljc`'s `place` hand-traced directly against spec §2: pass 1 (`d <= S+eps`, unchanged
+│ +  shape) and pass 2 (`S+eps < d <= M+eps`, only when pass 1 is empty, adding `:moved-m`/`:why` from
+│ +  **pass 1's** whys) share one candidate list bounded by `M` — no ring-step loop, matching the
+│ +  spec's "don't add ring steps" note. Refusal (neither pass) uses `(refusal (concat whys1 whys2) M
+│ +  word)`. `spot`'s bad-cell branch correctly distinguishes "open kind, no `y`" (→ "most of it has
+│ +  no ground") from a genuinely closed kind (→ `cell-reason`) via `(contains? open kind)`. `refusal`
+│ +  itself is byte-identical (now built from `refusal-prefix`/`dominant-why`, same string).
+│ +  `:open-kinds [] → #{}` (nothing buildable) is the documented no-special-case behavior.
+│ +- Canopy (`T`) is placeable only through `:open-kinds` (default `#{"o"}` when missing/non-sequential,
+│ +  confirmed via `open-kinds`'s `sequential?` guard — a string like `"oT"` does NOT count as
+│ +  sequential-of-strings for this purpose and falls back to `#{"o"}`, matching test case 1).
+│ +  Bushes/trunks (`B`), rocks (`R`), and water (`~`/`:`) still go through unchanged `cell-reason`
+│ +  regardless of `:open-kinds` — there is no path that adds them to the open set.
+│ +- `pm.camera/fly-decision` hand-traced: check order is no-ghost → card-open → player-moving
+│ +  (`now-ms - last-move-ms < quiet-ms`) → in-view (on-screen AND 3-D distance ≤ `near-m`) → fly,
+│ +  exactly matching spec §4 and all of test cases 39–48 (including the boundary at exactly
+│ +  `near-m`=10 → `:in-view`, exactly `quiet-ms`=2000 ago → `:fly`, and the "no ghost beats everything
+│ +  else" ordering in t46). `flight`/`ghost-flight` are the CREW key's maths moved verbatim and reused
+│ +  by both `crew-key-tick!` (`core.cljs`, `fly!` now calls `camera/flight`) and `show-arrival!` — one
+│ +  flight, not two, per the quest.
+│ +- The fly-to never fires while a trial card is open (`:card-open? (some? (bp/card-of w))`) or within
+│ +  `:quiet-ms` (2000ms) of a player camera move (`@!camera-moved-at`, stamped on `pointerdown`,
+│ +  `pointermove`-while-dragging, and `wheel`, all `{:passive true}` so they never block input) — both
+│ +  checked ahead of `:fly` in `fly-decision`'s cond, and `show-arrival!` only calls `camera/frame!`
+│ +  when the decision is exactly `:fly`.
+│ +- The demo path gets the same flight: `demo-ask!` → `demo-merge!` → `apply-blueprint-file!` (the
+│ +  one hook, right after `reset! !world w3`) → `bp/arrival-at` → `show-arrival!` — no second,
+│ +  demo-specific hook, matching "wired once." `bp/arrival-at`'s first-merge-announces-nothing
+│ +  property (so a page reload never flies) is confirmed by test cases 53/54 against the real
+│ +  `merge-file`/demo-file paths.
+│ +- No npm deps: `git diff --stat -- package.json package-lock.json` is empty.
+│ +- No person/pet/member name appears anywhere in this round's own diff hunks (`lot.cljc`,
+│ +  `ask_build.cljc`, `camera.cljs`, the new `arrival-at` in `blueprint.cljs`, `blueprint_draft.clj`,
+│ +  and the `core.cljs`/`estate.edn` hunks) — the few `grep` hits for "Michael"/`:hal` in
+│ +  `blueprint.cljs` are all pre-existing lines this round didn't touch (confirmed against
+│ +  `git diff`'s own hunks, not just a raw file grep).
+│ +
+│ +## Findings
+│ +
+│ +1. **`.crew/roles/builder.md` and `PLAY.md` (le-docteur, spec §5) have not been updated, and
+│ +   `PLAY.md`'s current text is now actively wrong.** `log.md` shows only spec/build/gate/review
+│ +   steps — no docs step has run. `.crew/roles/builder.md`'s "Build requests from the player (💭)"
+│ +   section still says nothing about `:open-kinds`, the widening search, or the two-line
+│ +   `blueprint-draft` output; worse, `PLAY.md:79-80` still reads "He picks level, open ground; **if
+│ +   a spot is too steep or under trees he says so**" — that's now false under this round's own
+│ +   change (shade counts; a spot under a tree is placed, not refused). This is the same pattern as
+│ +   two prior rounds (demo-talk-v0's PLAY.md, crew-mirror-v0's `crew/README.md`) — a required,
+│ +   spec-text-verbatim deliverable that the quest's own "Done when" and spec §5 call for, not yet
+│ +   dispatched. **Fix:** dispatch le-docteur with spec §5's verbatim text before closing the round.
+│ +
+│ +No other findings rise above a style nit — the pure logic (`pm.lot`, `pm.camera`, `pm.ask-build`,
+│ +`pm.blueprint/arrival-at`) and its wiring into `pm.core` conform to the spec exactly, independently
+│ +re-verified against both the diff and a fresh gate run.
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/placement-v1-20261126-1903/review.md: 1 finding.
+
+Independently re-ran the gate (PASS, 1688 tests/8855 assertions, 0 warnings) and hand-traced pm.lot/place's two-pass widening, pm.camera/fly-decision's check order, the CREW-flight reuse, and the demo path's single hook — all conform exactly to spec, confirmed against both the diff and the new 54-case test file. The one finding, now a recurring pattern across three consecutive rounds: le-docteur's docs step (.crew/roles/builder.md, PLAY.md) hasn't run yet, and PLAY.md's current text is actively wrong since it still says a spot under trees gets refused.
+
+done-1991
+────────────────────────────────────────
+
+─ 2m37s · edited 1 file · read 2 files · ran 14 commands · 7:25 PM
+  💾 Self-improvement review: Skill 'crew-round-review' patched
+
+
+────────────────────────────────────────
+❯ Review the round's changes against crew/runs/placement-v2-20261126-2014/spec.md and .crew/quests/placement-v2.md: git diff and the new files. Check in particular: --at here uses the view's exact centre with no search or refusal beyond stale/missing/sky; the yaw faces the camera; too-steep no longer blocks anything but seat still stretches legs; named places unchanged; the demo here path matches; no person, pet or member named in code; no npm deps. Write the review to crew/runs/placement-v2-20261126-2014/review.md.
+
+When you have completely finished, end your reply with a line containing only this: done-7854
+────────────────────────────────────────
+
+💻 $ echo "=== git status ===" + 5 commands  0.8s
+💻 $ echo "=== quest ===" + 3 commands  0.3s
+📖 Read spec.md
+💻 $ git diff -- src/pm/lot.cljc  0.4s
+💻 $ git diff -- src/pm/view.cljc resources/estate.edn  0.5s
+💻 $ grep -n "defn.*vec3?\|defn-.*vec3?" src/pm/view.cljc  0.4s
+💻 $ git diff -- src/pm/ask_build.cljc  0.4s
+💻 $ grep -n "valid-xz3?" src/pm/ask_build.cljc  0.4s
+💻 $ git diff -- src/pm/core.cljs  0.4s
+💻 $ git diff -- src/pm/camera.cljs  0.5s
+💻 $ git diff -- src/pm/blueprint.cljs  0.4s
+
+────────────────────────────────────────
+☤ Hermes
+All matches spec §5/§6 precisely. Now check blueprint_draft.clj's :at case, the test file, and remaining boundary/doc items.
+────────────────────────────────────────
+
+💻 $ git diff -- scripts/blueprint_draft.clj  0.5s
+💻 $ git diff -- test/pm/view_test.cljs test/pm/blueprint_live_test.cljs test/pm/blueprint_seat_test.cljs  0.4s
+📖 Read placement_v2_test.cljs
+💻 $ git diff -- .crew/roles/builder.md PLAY.md + 2 commands  0.4s
+💻 $ bash .crew/gate.sh  21.2s
+📖 Read builder.md L23-52
+💻 $ git diff -- src/pm/lot.cljc src/pm/view.cljc src/pm/ask_build.cljc src/pm/camera.cljs src/pm/blueprint.cljs src/pm/core.cljs scripts/blueprint_draft.clj resources/estate.edn | grep -niE "michael|\bhal\b|flora|juniper" echo "---npm deps---" git diff --stat -- package.json package-lock.json  0.3s
+✍️ Write /Users/hal/src/prime-meridian/crew/runs/placement-v2-20261126-2014/review.md
+│ crew/runs/placement-v2-20261126-2014/review.md
+│ @@ -0,0 +1,78 @@
+│ +# Review: placement-v2 (crew/runs/placement-v2-20261126-2014)
+│ +
+│ +## Scope
+│ +Start commit `e8a061b` = current `HEAD`, so `git diff`/`git status` is this round's own clean
+│ +diff. Files touched: `resources/estate.edn`, `scripts/blueprint_draft.clj`, `src/pm/ask_build.cljc`,
+│ +`src/pm/blueprint.cljs`, `src/pm/camera.cljs`, `src/pm/core.cljs`, `src/pm/lot.cljc`,
+│ +`src/pm/view.cljc`, the three existing test files listed in spec §10 (exactly the lines §10
+│ +names, nothing else), plus the new `test/pm/placement_v2_test.cljs`.
+│ +
+│ +## Verified independently
+│ +- Re-ran `bash .crew/gate.sh` myself: **PASS — 0 warnings; 1737 tests / 8964 assertions**, matching
+│ +  `builder-notes.md`'s claim.
+│ +- `test/pm/placement_v2_test.cljs` has `t01`–`t49`, one `deftest` per spec-numbered case (49
+│ +  total), transcribed faithfully against spec §9's worked values — spot-checked every group (face
+│ +  yaw, `at-here`/`at-xz`, `parse-args`/`at-line`/`blueprint`, the demo's here path, no-too-steep,
+│ +  no-flight, named places unchanged).
+│ +- **`--at here` is exact, with only stale/missing/sky refusals.** `view/at-here` hand-traced
+│ +  against spec §3: order is (1) `raw` not a map or `:as-of` not a number → `lot/no-view`, (2) older
+│ +  than `here-ms` (30000) → `here-stale` (exactly 30000ms old still passes — confirmed by t09's
+│ +  boundary case), (3) `:center` fails `vec3?` (covers `nil` = sky) → `here-sky`, (4) else `:ok true
+│ +  :at (vec center)` **unchanged from `:center`**, no ground check, no search, no gap/route rule.
+│ +  Order is stale-before-sky (t13). `--at x,z` (`at-xz`) is unconditionally `:ok true`: no refusal
+│ +  path exists at all, matching "always `:ok true` (no checks)."
+│ +- **The yaw faces the camera.** `lot/face-yaw` hand-traced: `atan2(dx, dz)` in degrees, snapped to
+│ +  the nearest 45° via `round*`, height (`y`) ignored, returns 0 when either argument isn't 3
+│ +  numbers or the camera is directly overhead (`dx²+dz² < eps`). Verified against all 8 compass
+│ +  points, the two snapping cases, and the two degenerate cases in spec §9 A — all match. `turn [0
+│ +  1] yaw` convention (a look's front is local +z) is honored consistently in `at-here`/`at-xz`/
+│ +  `ask-build/plan-here` alike.
+│ +- **Too-steep no longer blocks anything, but `seat` still stretches legs.** `bp/seat` keeps its
+│ +  stretch-to-ground maths and `:seat-drop` (for information), but no longer sets `:too-steep?` at
+│ +  all (confirmed by diff: the key is gone from the `assoc`, not just always-false). `max-seat-drop-m`
+│ +  and `refuse-steep` are deleted; `sign-text` drops the `:steep` branch; `apply-approved!`'s
+│ +  `(and blueprint (:too-steep? blueprint))` cond clause is removed outright, so a seated ghost on a
+│ +  steep slope reaches `breaks-build?`/`:else` same as any other and Make it real proceeds. The
+│ +  estate's `:steep` line is deleted from `:blueprint-text`. Grepped `src/`, `scripts/`, `test/` for
+│ +  `:too-steep?`/`refuse-steep`/`max-seat-drop-m` outside the touched files — no other reader exists
+│ +  (`merge-file`'s pre-existing key-stripping, confirmed unchanged by `m11-file-keys-stripped`
+│ +  staying untouched, already drops a stale `:too-steep?` from a file as before).
+│ +- **Named places are unchanged.** `lot/place`, `spot`, `refusal`, and the v1 widening pass are
+│ +  untouched by this round's diff; `lot/spot`'s "too steep" ground-kind check still exists as the
+│ +  named-place search rule (quest Decided 4), confirmed by t49 (a named "well" request still
+│ +  refuses on bad ground) and by the explicit "checked and unchanged" list in spec §10 matching the
+│ +  actual diff (no hunk touches `place`/`spot`/`ask-build`'s `ask`/`plan`/`widen?`).
+│ +- **The demo's here path matches.** `ab/here?`/`ab/plan-here` skip the grid and `lot/place`
+│ +  entirely — `plan-here` places directly at `ctx`'s `:here` with `face-yaw` against `ctx`'s
+│ +  `:camera`, no measuring. `core.cljs`'s `demo-ask!` branches on `(ab/here? r)` before the
+│ +  grid-measuring block, so a "here" ask in the demo never logs a ground-grid line (confirmed by
+│ +  reading the wiring directly, matching the quest's "no grid in the console" done-when item) and
+│ +  the fly logic also gets `:center` (via `t/center-hit`) in `show-arrival!`, so a here ghost lands
+│ +  at `:at-center` and never flies, while a named-place ghost keeps v1's flight rules — confirmed by
+│ +  `fly-decision`'s new `:center` clause sitting correctly between `:player-moving` and `:in-view`.
+│ +- No npm deps (`package.json`/`package-lock.json` diff empty). No person/pet/member name appears
+│ +  in this round's own diff hunks (the only two "Michael"/`:hal` grep hits are a pre-existing,
+│ +  untouched comment line and a line being *deleted*, not added, as part of removing `refuse-steep`).
+│ +
+│ +## Findings
+│ +
+│ +1. **`.crew/roles/builder.md` and `PLAY.md` (le-docteur, spec §7) have not been updated — and both
+│ +   now describe behavior this round explicitly removes.** `log.md` shows only spec/build/gate/
+│ +   review steps; no docs step has run. `.crew/roles/builder.md:36-42` still tells the builder to
+│ +   use `--near <spot>` with `here` as one of `--near`'s values ("else `here`... when he says
+│ +   'here'"), with the v1 widening/moving/flying language — but this round's whole point is that
+│ +   "here" is a **different, exact** mode (`--at here`, no search, no moving, no flight) while
+│ +   `--near` is reserved for named places only. Using the stale card, a builder would literally run
+│ +   the wrong command for a "here" request. `PLAY.md:77-81` is similarly stale: "if the exact spot
+│ +   is too steep... he puts it at the nearest spot that fits... and the camera flies over to show
+│ +   you" is now false for a "here" request (no steep refusal exists anywhere any more, and a here
+│ +   ghost never flies). This is the same gap flagged in each of the three prior rounds
+│ +   (demo-talk-v0, crew-mirror-v0, placement-v1) — a required, spec-text-verbatim deliverable not
+│ +   yet dispatched. **Fix:** dispatch le-docteur with spec §7's verbatim text before closing the
+│ +   round; this one is higher-priority than the prior rounds' equivalents since the current text
+│ +   actively contradicts the new behavior rather than merely omitting it.
+│ +
+│ +No other findings rise above a style nit — the pure logic (`pm.lot/face-yaw`, `pm.view/at-here`/
+│ +`at-xz`, `pm.ask-build/here?`/`plan-here`, `pm.camera/fly-decision`'s `:center` rule, and the
+│ +`bp/seat`/`apply-approved!` steep-gate removal) and its wiring conform to the spec exactly,
+│ +independently re-verified against both the diff and a fresh gate run.
+
+────────────────────────────────────────
+☤ Hermes
+Review written to crew/runs/placement-v2-20261126-2014/review.md: 1 finding.
+
+Independently re-ran the gate (PASS, 1737 tests/8964 assertions, 0 warnings) and hand-traced view/at-here/at-xz's refusal order, lot/face-yaw's compass/snapping/degenerate cases, the seat/apply-approved! steep-gate removal, and the demo's here-path wiring — all conform exactly to spec against both the diff and the new 49-case test file. The one finding, now the fourth consecutive round with this pattern: le-docteur's docs step hasn't run, and this time it's worse than the prior rounds' versions — .crew/roles/builder.md and PLAY.md don't just omit the new behavior, they actively tell the builder to do the wrong thing (use --near here with the old widen/move/fly behavior, when this round makes "here" a separate exact --at mode with no search and no flight).
+
+done-7854
+────────────────────────────────────────
+
+─ 2m08s · edited 1 file · read 3 files · ran 15 commands · 8:29 PM
+───────────────────── Introduce yourself in one line ─
+crew ❯ Turn these notes into a to-do list
+ ☤ claude-sonnet-5 · ~30% · ◎ 92% · 9h 12m

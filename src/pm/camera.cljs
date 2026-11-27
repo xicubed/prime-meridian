@@ -15,6 +15,11 @@
    overridden by the estate's `:build-rules :show-me`."
   {:near-m 10 :quiet-ms 2000 :lift-m 0.6 :back 1.4 :low 0.5})
 
+(def center-m
+  "Metres: a new ghost this close (xz) to the screen's centre point is
+   \"here\" (placement-v2) -- no flight."
+  1.0)
+
 (defn- finite? [x] (and (number? x) (js/isFinite x) (<= (js/Math.abs x) max-coord)))
 (defn- vec3? [v] (and (vector? v) (= 3 (count v)) (every? finite? v)))
 
@@ -29,19 +34,25 @@
   [ndc]
   (boolean (and (finite-nums3? ndc) (every? (fn [v] (<= -1 v 1)) ndc))))
 
+(defn- dist-xz [[ax _ az] [bx _ bz]]
+  (js/Math.sqrt (+ (* (- ax bx) (- ax bx)) (* (- az bz) (- az bz)))))
+
 (defn fly-decision
-  "Show me (placement-v1): whether the camera should fly to a new ghost at
-   `m`'s `:ghost`. `show` is merged over `show-defaults` (nil is fine). The
-   first match wins: no sane `:ghost` -> :no-ghost; a trial card open ->
-   :card-open; the player moved the camera within `:quiet-ms` -> :player-
-   moving; already on screen and within `:near-m` of the camera ->
-   :in-view; else :fly."
-  [show {:keys [ghost camera on-screen? card-open? last-move-ms now-ms]}]
+  "Show me (placement-v1, placement-v2): whether the camera should fly to
+   a new ghost at `m`'s `:ghost`. `show` is merged over `show-defaults`
+   (nil is fine). The first match wins: no sane `:ghost` -> :no-ghost; a
+   trial card open -> :card-open; the player moved the camera within
+   `:quiet-ms` -> :player-moving; on screen and within `center-m` (xz) of
+   `m`'s `:center` -> :at-center (placement-v2: a here build, already in
+   the middle of the screen, never flies); already on screen and within
+   `:near-m` of the camera -> :in-view; else :fly."
+  [show {:keys [ghost camera on-screen? card-open? last-move-ms now-ms center]}]
   (let [{:keys [near-m quiet-ms]} (merge show-defaults show)]
     (cond
       (not (finite-nums3? ghost)) :no-ghost
       card-open? :card-open
       (and (number? last-move-ms) (< (- now-ms last-move-ms) quiet-ms)) :player-moving
+      (and on-screen? (finite-nums3? center) (<= (dist-xz ghost center) center-m)) :at-center
       (and on-screen? (nums3? camera)
            (<= (js/Math.sqrt (reduce + (map (fn [a b] (* (- a b) (- a b))) camera ghost))) near-m))
       :in-view

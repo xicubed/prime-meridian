@@ -1,0 +1,35 @@
+
+⏺ Diff stats:
+  - test/pm/placement_v2_test.cljs (new, ns
+    pm.placement-v2-test): 309 lines — tests t01–t49
+    from spec §9 (A–H: face-yaw, view/at-here,
+    view/at-xz, parse-args/at-line/blueprint, demo's
+    here path, no-too-steep gate, no-flight-for-here,
+    named places unchanged).
+  - test/pm/blueprint_seat_test.cljs: 21 lines changed
+    — s01/s02 now assert (not (contains? b
+    :too-steep?)); s03-the-bank-is-too-steep renamed
+    s03-the-bank-still-seats (asserts :at, :seat-drop,
+    :seated?, no :too-steep?);
+    s08-seat-all-and-the-steep-sign-and-caption renamed
+    s08-seat-all-a-steep-ghost-signs-and-builds-like-a
+    ny-other (asserts the "click to build" sign and
+    :approved status).
+  - test/pm/blueprint_live_test.cljs: 4 lines — s1/s2
+    drop :too-steep? false from the expected maps.
+  - test/pm/view_test.cljs: 4 lines — v05-post?
+    boundary numbers moved from 30999/31000 to
+    10999/11000 (new keep-alive-ms).
+
+  test/pm/placement_test.cljs and
+  test/pm/ask_build_test.cljs were untouched this round
+  (not in scope of this spec's §10).
+
+  done-7792
+
+✻ Crunched for 1m 43s · done 8:21 PM
+
+───────────────────────────────────────────────────────
+❯ 
+───────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

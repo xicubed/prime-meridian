@@ -1,0 +1,649 @@
+diff --git a/.crew/roles/builder.md b/.crew/roles/builder.md
+index e613028..b9b1b48 100644
+--- a/.crew/roles/builder.md
++++ b/.crew/roles/builder.md
+@@ -23,26 +23,32 @@ Project: **Prime Meridian**, a cozy 3D management game where the characters are
+ ## Build requests from the player (💭)
+ 
+ The player can message you from the estate's 💭 phone; the bridge types his words into your
+-pane as a plain prompt. When he asks for a thing in the world ("put a bench by the creek",
+-"a bench here, in the shade"), that is a build request: answer it with a blueprint, never by
+-editing `resources/estate.edn` or any source file. A build request is **two commands, no more**:
++pane as a plain prompt. When he asks for a thing in the world ("a bench here", "a lamp by the
++mailbox"), that is a build request: answer it with a blueprint, never by editing
++`resources/estate.edn` or any source file. A build request is **two commands, no more**:
+ 
+ 1. Write a draft in your scratchpad: `{:id :<new-kebab-id> :summary "proposed: <a few words>"
+    :look {:parts [...]}}`, parts as documented under `:blueprints` in `resources/estate.edn`
+    (shapes box/cylinder/cone/sphere; colours from the palette keys used there, e.g. `:brown`
+    for timber, `:tin` for metal). Real-world size, y 0 is the ground, every leg or base
+-   touching y 0, at most 12 parts, nothing thinner than 0.08 m (he has to click it). Ids must be
+-   new: never reuse a removed one.
+-2. **One** `bb blueprint-draft <your-name> <draft.edn> --near <spot>`. `<spot>` is the `x,z` Hal
+-   gives you, else `here` (the middle of his screen) when he says "here", else a landmark from
+-   his words (`bb blueprint-draft --landmarks` lists them) or a walker id for "by you / by him".
+-   Shade under trees is fine. If the spot itself doesn't fit, the command moves the build to the
+-   nearest spot that does (up to 15 m) and prints a second line saying so; it refuses only when
+-   nothing fits. The ghost appears within 5 s, the camera flies to it, and "drew a blueprint"
+-   lands in 💭 by itself.
+-3. **One** `bb hal-say --as <your-name> "<line>"`: if it moved, its second printed line; if it
+-   refused, the reason and a landmark to try instead; otherwise a few words on what you drew.
+-
+-Don't read or script around the ground map (`state/ground.edn`, `python3`, `node`, `bb -e`):
+-the command already reports where it went or why not. Then reply in your pane with the
+-command's printed line(s). Don't propose more than he asked for.
++   touching y 0, **its front toward +z** (a bench's seat side, a sign's face), at most 12
++   parts, nothing thinner than 0.08 m (he has to click it). Ids must be new: never reuse a
++   removed one.
++2. **One** `bb blueprint-draft`:
++   - **"here", or no place at all:** `bb blueprint-draft <your-name> <draft.edn> --at here`. It
++     goes exactly in the middle of his screen, turned to face his camera: no ground checks, no
++     moving it. If Hal gives you a spot, `--at x,z` does the same there. It refuses only when the
++     game's view is missing or more than 30 s old, or he's looking at the sky.
++   - **A named place** ("by the mailbox", "by the creek", "by you"):
++     `bb blueprint-draft <your-name> <draft.edn> --near <landmark>` (`bb blueprint-draft
++     --landmarks` lists them; a walker id for "by you / by him"). It finds level ground nearby,
++     up to 15 m, and prints a second line if it had to move.
++
++   The ghost appears within 5 s and "drew a blueprint" lands in 💭 by itself.
++3. **One** `bb hal-say --as <your-name> "<line>"`: a few words on what you drew; if it moved,
++   its second printed line; if it refused, the reason ("look at the ground and ask again").
++
++Don't read or script around the ground map or the view (`state/ground.edn`,
++`state/view.edn`, `python3`, `node`, `bb -e`): the command already reports where it went or
++why not. If a build looks wrong where it landed, he removes it and asks again. Then reply in
++your pane with the command's printed line(s). Don't propose more than he asked for.
+diff --git a/PLAY.md b/PLAY.md
+index cd5b9f2..4c1c34a 100644
+--- a/PLAY.md
++++ b/PLAY.md
+@@ -74,11 +74,12 @@ When all four are ticked, the **Day won** card appears. Click **Keep playing** t
+   the full game they answer you themselves. Messaging a crew member directly is still an
+   option when you run the game with your own agents, and can make sense there, for example
+   with a local model, or when you don't want the leader spending tokens to pass a message on.
+-- **Build:** Hal can build a **bench**, a **lamp post**, a **table** or a **planter**, near
+-  **here** (the middle of your screen), the **mailbox**, the **phone booth**, the **workshop**
+-  or the **creek**. Example: *"a lamp post by the mailbox"*. Shade under the trees is fine. If
+-  the exact spot is too steep, crowded or in a bush, he puts it at the nearest spot that fits
+-  and tells you how far he moved it, and the camera flies over to show you.
++- **Build:** Hal can build a **bench**, a **lamp post**, a **table** or a **planter**.
++  Say **here** (or no place at all) and it goes exactly in the middle of your screen, turned to
++  face you, on any ground: a slope just gets longer legs. Or name a place, the **mailbox**, the
++  **phone booth**, the **workshop** or the **creek**, and he finds a level spot near it and the
++  camera flies over to show you. Example: *"a bench here"*. If it doesn't look right, remove it,
++  move a little and ask again.
+ - **Change your mind:** click a real build, then **Remove…**. A red preview shows what goes;
+   confirm with **Remove it**.
+ - **Mail:** click the mailbox to read the sample inbox.
+diff --git a/resources/estate.edn b/resources/estate.edn
+index 99e41eb..6ba86cf 100644
+--- a/resources/estate.edn
++++ b/resources/estate.edn
+@@ -301,7 +301,6 @@
+                   :saving    "Saving…"                                                ; the first button while the bridge records it, disabled (TASKS T-14)
+                   :real      "Made real. It stays."                                   ; twin's caption once it's recorded
+                   :no-bridge "Start the bridge (bb crew-bridge) to make it real."     ; no bridge, nothing real changes
+-                  :steep     "the ground's too steep here, so it won't build; ask for a flatter spot"   ; pm.blueprint/seat: a foot would hang past max-seat-drop-m
+                   :failed    "that one won't build, so the estate stays as it was"    ; after a refused approval
+                   :remove           "Remove…"                                          ; a real build's card: preview the removal (TASKS T-15)
+                   :close            "Close"                                            ; a real build's card: close it, nothing changes (TASKS T-15)
+diff --git a/scripts/blueprint_draft.clj b/scripts/blueprint_draft.clj
+index 3e44e1e..56867b0 100644
+--- a/scripts/blueprint_draft.clj
++++ b/scripts/blueprint_draft.clj
+@@ -5,8 +5,13 @@
+ ;; full blueprint through the existing bb blueprint-add -- one writer, one validator.
+ ;;
+ ;;   bb blueprint-draft <member> <draft.edn> --near <landmark|x,z> [--dry-run]
++;;   bb blueprint-draft <member> <draft.edn> --at <here|x,z> [--dry-run]
+ ;;   bb blueprint-draft --landmarks
+ ;;
++;; --at puts the draft's base exactly at the middle of the player's screen
++;; (state/view.edn's :center, at most 30 s old) or at x,z, its front (+z)
++;; turned to face the camera; no ground checks.
++;;
+ ;; All I/O; every decision is pm.lot's.
+ 
+ (require '[clojure.edn :as edn]
+@@ -37,6 +42,26 @@
+ (defn- read-estate []
+   (edn/read-string (slurp "resources/estate.edn")))
+ 
++(defn- finish!
++  "The shared tail once a spot is found: validate `bp`, then either print
++   (dry-run) or hand it to bb blueprint-add and print on success."
++  [bp member dry-run print-lines!]
++  (let [problems (bf/problems bp)]
++    (when (seq problems)
++      (fail! (str "invalid draft: " (clojure.string/join "; " problems))))
++    (if dry-run
++      (do (print-lines!)
++          (System/exit 0))
++      (let [tmp (java.io.File/createTempFile "blueprint-draft" ".edn")]
++        (try
++          (spit tmp (pr-str bp))
++          (let [r (p/shell {:continue true} "bb" "scripts/blueprint_add.clj" (name member) (str tmp))]
++            (if (zero? (:exit r))
++              (do (print-lines!)
++                  (System/exit 0))
++              (System/exit 1)))
++          (finally (.delete tmp)))))))
++
+ (let [parsed (lot/parse-args *command-line-args*)]
+   (when (:usage parsed)
+     (binding [*out* *err*] (println (:usage parsed)))
+@@ -62,24 +87,23 @@
+           (if-not (:ok result)
+             (fail! (:reason result))
+             (let [bp (lot/blueprint draft result)
+-                  problems (bf/problems bp)
+                   lm (lot/resolve-landmark (lot/landmarks ground estate file-bps view') near)
+                   print-lines! (fn []
+                                  (println (lot/placed-line draft (:word lm) result))
+                                  (when-let [moved (lot/moved-line (get-in estate [:blueprint-text :moved])
+                                                                    (:word lm) result)]
+                                    (println moved)))]
+-              (when (seq problems)
+-                (fail! (str "invalid draft: " (clojure.string/join "; " problems))))
+-              (if dry-run
+-                (do (print-lines!)
+-                    (System/exit 0))
+-                (let [tmp (java.io.File/createTempFile "blueprint-draft" ".edn")]
+-                  (try
+-                    (spit tmp (pr-str bp))
+-                    (let [r (p/shell {:continue true} "bb" "scripts/blueprint_add.clj" (name member) (str tmp))]
+-                      (if (zero? (:exit r))
+-                        (do (print-lines!)
+-                            (System/exit 0))
+-                        (System/exit 1)))
+-                    (finally (.delete tmp))))))))))))
++              (finish! bp member dry-run print-lines!))))
++
++        :at
++        (let [{:keys [path member at dry-run]} parsed
++              draft  (or (read-edn path) (fail! (str "can't read " path)))
++              raw    (read-edn (view-file))
++              result (if (= :here at)
++                       (view/at-here raw (System/currentTimeMillis))
++                       (view/at-xz at ground raw (System/currentTimeMillis)))]
++          (if-not (:ok result)
++            (fail! (:reason result))
++            (let [bp (lot/blueprint draft result)
++                  print-lines! (fn [] (println (lot/at-line draft result)))]
++              (finish! bp member dry-run print-lines!))))))))
+diff --git a/src/pm/ask_build.cljc b/src/pm/ask_build.cljc
+index 10e4412..da51030 100644
+--- a/src/pm/ask_build.cljc
++++ b/src/pm/ask_build.cljc
+@@ -228,6 +228,37 @@
+           {:ok false :say (fill (get-in demo [:lines :refused]) {:reason (:reason res)})
+            :reason (:reason res)})))))
+ 
++(defn here?
++  "True iff `asked` (ask's result) is a request for :here -- the build
++   goes exactly at the view's centre, with no measuring (placement-v2). A
++   help or sky result (no :req) gives false."
++  [asked]
++  (= :here (get-in asked [:req :near])))
++
++(defn plan-here
++  "Show me (placement-v2): a request for :here places exactly at `ctx`'s
++   `:here` (a ground hit [x y z]), facing `ctx`'s `:camera` ([x y z] or
++   nil) -- no measuring, no `lot/place`. Same result shapes as `plan`."
++  [ctx req]
++  (let [{:keys [estate world file by now here camera]} ctx
++        demo     (:demo-builds estate)
++        look     (:look req)
++        look-def (get-in demo [:looks look])]
++    (cond
++      (nil? look-def)
++      {:ok false :say (get-in demo [:lines :help])}
++
++      (not (valid-xz3? here))
++      {:ok false :say (get-in demo [:lines :sky])}
++
++      :else
++      (let [id    (next-id look (taken-ids world file))
++            draft {:id id :summary (:summary look-def) :look (:look look-def)}
++            bp    (assoc (lot/blueprint draft {:at (vec here) :yaw (lot/face-yaw here camera)}) :by by)]
++        {:ok true :id id :blueprint bp :file (add-build file bp now)
++         :say (fill (get-in demo [:lines :placed])
++                    {:summary (str/replace (:summary look-def) #"\.$" "") :place lot/here-word})}))))
++
+ (defn widen?
+   "Measure the wide grid and plan again? True iff `asked` (ask's result) has
+    a `:wide-spec` and `p1` (plan's result on the near grid) refused for
+diff --git a/src/pm/blueprint.cljs b/src/pm/blueprint.cljs
+index 3fc0ea6..c679bf0 100644
+--- a/src/pm/blueprint.cljs
++++ b/src/pm/blueprint.cljs
+@@ -100,10 +100,9 @@
+   [world bp]
+   (if (= :real (:status bp))
+     (sign-summary bp)
+-    (let [{:keys [hint failed trial steep removing]} (:blueprint-text world)
++    (let [{:keys [hint failed trial removing]} (:blueprint-text world)
+           tail (cond (= :removing (:status bp)) removing
+                      (:failed? bp) failed
+-                     (and (:too-steep? bp) (= :pending (:status bp)) (string? steep)) steep
+                      (= :approved (:status bp)) trial
+                      :else hint)]
+       (if (and (string? tail) (not (str/blank? tail)))
+@@ -419,13 +418,9 @@
+ ;; one side and in the air on the other (Michael, Nov 22). So before it is
+ ;; drawn, every blueprint is seated: the game reads the ground under each
+ ;; foot, keeps the item level at the highest one, and stretches the lower
+-;; feet down to touch. Ground that falls away more than `max-seat-drop-m`
+-;; under one item is too steep: it is still drawn seated, but it won't
+-;; build, and its sign says why.
+-
+-(def max-seat-drop-m
+-  "Metres: the most a foot may be stretched to reach the ground."
+-  0.25)
++;; feet down to touch, however far that stretch has to go (placement-v2,
++;; Decided 3: no "too steep" refusal anywhere -- if it looks bad, he removes
++;; it). `:seat-drop` keeps the size of the stretch, for information only.
+ 
+ (def ^:private foot-eps 0.02)
+ 
+@@ -444,10 +439,9 @@
+   "`bp` seated on the ground (`ground-at` is x z -> height or nil): :at's
+    height becomes the highest ground under its feet (parts resting on the
+    item's base, y 0), and each lower foot is stretched down to its own
+-   ground. `:seat-drop` is the largest stretch; `:too-steep?` is true past
+-   `max-seat-drop-m`. With no feet it sits on the ground at its centre.
+-   Unchanged if any ground read is missing, the look has no :parts list,
+-   or it's already seated."
++   ground. `:seat-drop` is the largest stretch. With no feet it sits on
++   the ground at its centre. Unchanged if any ground read is missing, the
++   look has no :parts list, or it's already seated."
+   [bp ground-at]
+   (let [{:keys [at yaw look]} bp
+         parts (:parts look)]
+@@ -473,20 +467,9 @@
+             (-> bp
+                 (assoc :at [(first at) base (nth at 2)]
+                        :seated? true
+-                       :seat-drop most
+-                       :too-steep? (> most max-seat-drop-m))
++                       :seat-drop most)
+                 (assoc-in [:look :parts] parts'))))))))
+ 
+-(defn refuse-steep
+-  "Approval refused because the ground under the blueprint is too steep
+-   (`seat`'s :too-steep?): it stays a ghost (its sign already says so) and
+-   the twin says it in the caption. Wording: `:blueprint-text :steep`."
+-  [world now]
+-  (let [text (get-in world [:blueprint-text :steep])]
+-    (if (and (string? text) (not (str/blank? text)))
+-      (assoc world :hal {:event :blueprint-refused :text text :until (+ now c/hal-ms)})
+-      world)))
+-
+ (defn seat-all
+   "Every blueprint in `world` seated on the ground (`seat`)."
+   [world ground-at]
+diff --git a/src/pm/camera.cljs b/src/pm/camera.cljs
+index a3eebaa..c166025 100644
+--- a/src/pm/camera.cljs
++++ b/src/pm/camera.cljs
+@@ -15,6 +15,11 @@
+    overridden by the estate's `:build-rules :show-me`."
+   {:near-m 10 :quiet-ms 2000 :lift-m 0.6 :back 1.4 :low 0.5})
+ 
++(def center-m
++  "Metres: a new ghost this close (xz) to the screen's centre point is
++   \"here\" (placement-v2) -- no flight."
++  1.0)
++
+ (defn- finite? [x] (and (number? x) (js/isFinite x) (<= (js/Math.abs x) max-coord)))
+ (defn- vec3? [v] (and (vector? v) (= 3 (count v)) (every? finite? v)))
+ 
+@@ -29,19 +34,25 @@
+   [ndc]
+   (boolean (and (finite-nums3? ndc) (every? (fn [v] (<= -1 v 1)) ndc))))
+ 
++(defn- dist-xz [[ax _ az] [bx _ bz]]
++  (js/Math.sqrt (+ (* (- ax bx) (- ax bx)) (* (- az bz) (- az bz)))))
++
+ (defn fly-decision
+-  "Show me (placement-v1): whether the camera should fly to a new ghost at
+-   `m`'s `:ghost`. `show` is merged over `show-defaults` (nil is fine). The
+-   first match wins: no sane `:ghost` -> :no-ghost; a trial card open ->
+-   :card-open; the player moved the camera within `:quiet-ms` -> :player-
+-   moving; already on screen and within `:near-m` of the camera ->
+-   :in-view; else :fly."
+-  [show {:keys [ghost camera on-screen? card-open? last-move-ms now-ms]}]
++  "Show me (placement-v1, placement-v2): whether the camera should fly to
++   a new ghost at `m`'s `:ghost`. `show` is merged over `show-defaults`
++   (nil is fine). The first match wins: no sane `:ghost` -> :no-ghost; a
++   trial card open -> :card-open; the player moved the camera within
++   `:quiet-ms` -> :player-moving; on screen and within `center-m` (xz) of
++   `m`'s `:center` -> :at-center (placement-v2: a here build, already in
++   the middle of the screen, never flies); already on screen and within
++   `:near-m` of the camera -> :in-view; else :fly."
++  [show {:keys [ghost camera on-screen? card-open? last-move-ms now-ms center]}]
+   (let [{:keys [near-m quiet-ms]} (merge show-defaults show)]
+     (cond
+       (not (finite-nums3? ghost)) :no-ghost
+       card-open? :card-open
+       (and (number? last-move-ms) (< (- now-ms last-move-ms) quiet-ms)) :player-moving
++      (and on-screen? (finite-nums3? center) (<= (dist-xz ghost center) center-m)) :at-center
+       (and on-screen? (nums3? camera)
+            (<= (js/Math.sqrt (reduce + (map (fn [a b] (* (- a b) (- a b))) camera ghost))) near-m))
+       :in-view
+diff --git a/src/pm/core.cljs b/src/pm/core.cljs
+index 1693fda..4243730 100644
+--- a/src/pm/core.cljs
++++ b/src/pm/core.cljs
+@@ -1539,8 +1539,6 @@
+         blueprint (first (filter #(= id (:id %)) (bp/all before)))]
+     (reset! !last-good before)
+     (cond
+-      (and blueprint (:too-steep? blueprint))
+-      (swap! !world bp/refuse-steep (js/Date.now))
+       (and blueprint (bp/breaks-build? blueprint))
+       (do (revert-to-last-good!)
+           ;; say so on its sign: a silent no-op reads as a broken click
+@@ -1782,20 +1780,24 @@
+         r     (ab/ask ctx text)]
+     (if-let [s (:say r)]
+       (twin-reply! s at)
+-      (let [sampler (get-in raw-estate [:demo-builds :sampler])
+-            measure (fn [spec] (when h (let [t0 (js/performance.now)
+-                                             g  (t/ground-grid (view-ground-meshes! h) (cover-meshes! h) spec
+-                                                               (:from-y sampler) (partial ab/sample-cell sampler))]
+-                                         (js/console.info "Prime Meridian: ground grid" (:cols spec) "x" (:rows spec)
+-                                                          "in" (js/Math.round (- (js/performance.now) t0)) "ms")
+-                                         g)))
+-            p1      (ab/plan (update ctx :rules lot/near-rules) (:req r) (measure (:spec r)))
+-            p       (if (ab/widen? r p1) (ab/plan ctx (:req r) (measure (:wide-spec r))) p1)]
+-        (when (:ok p)
+-          (reset! !demo-file (:file p))
+-          (save-demo-file!)
+-          (demo-merge!))
+-        (twin-reply! (:say p) at)))))
++      (if (ab/here? r)
++        (let [p (ab/plan-here (assoc ctx :camera (when h (:pos (t/rig-view h)))) (:req r))]
++          (when (:ok p) (reset! !demo-file (:file p)) (save-demo-file!) (demo-merge!))
++          (twin-reply! (:say p) at))
++        (let [sampler (get-in raw-estate [:demo-builds :sampler])
++              measure (fn [spec] (when h (let [t0 (js/performance.now)
++                                               g  (t/ground-grid (view-ground-meshes! h) (cover-meshes! h) spec
++                                                                 (:from-y sampler) (partial ab/sample-cell sampler))]
++                                           (js/console.info "Prime Meridian: ground grid" (:cols spec) "x" (:rows spec)
++                                                            "in" (js/Math.round (- (js/performance.now) t0)) "ms")
++                                           g)))
++              p1      (ab/plan (update ctx :rules lot/near-rules) (:req r) (measure (:spec r)))
++              p       (if (ab/widen? r p1) (ab/plan ctx (:req r) (measure (:wide-spec r))) p1)]
++          (when (:ok p)
++            (reset! !demo-file (:file p))
++            (save-demo-file!)
++            (demo-merge!))
++          (twin-reply! (:say p) at))))))
+ 
+ (defn- demo-make-real! [id done]
+   (swap! !world bp/make-real id)              ; a status turning :real: the Today goal ticks (watch)
+@@ -1865,6 +1867,7 @@
+           d    (camera/fly-decision show {:ghost at :camera (:pos (t/rig-view h))
+                                           :on-screen? (camera/on-screen? (when fl (t/project-ndc (.-camera h) (:target fl))))
+                                           :card-open? (some? (bp/card-of w))
++                                          :center (t/center-hit (.-camera h) (view-ground-meshes! h))
+                                           :last-move-ms @!camera-moved-at :now-ms (js/Date.now)})]
+       (when (and fl (= :fly d))
+         (camera/frame! h (:target fl) (:offset fl))
+diff --git a/src/pm/lot.cljc b/src/pm/lot.cljc
+index 0998277..bef09d8 100644
+--- a/src/pm/lot.cljc
++++ b/src/pm/lot.cljc
+@@ -10,7 +10,8 @@
+ (def default-radius-m 0.6)
+ (def grounded-m 0.02)
+ (def narrow-m 0.3)
+-(def usage "usage: bb blueprint-draft <member> <draft.edn> --near <landmark|here|walker|x,z> [--dry-run] | bb blueprint-draft --landmarks")
++(def here-word "where you're looking")   ; view-landmarks' :here word now comes from this (same text)
++(def usage "usage: bb blueprint-draft <member> <draft.edn> --near <landmark|here|walker|x,z> [--dry-run] | bb blueprint-draft <member> <draft.edn> --at <here|x,z> [--dry-run] | bb blueprint-draft --landmarks")
+ (def refusal-prefix "no level open ground within ")
+ (def nothing-fits "nothing fits closer")
+ (def no-ground-map "no ground map (state/ground.edn): the twin samples it from the kit")
+@@ -25,7 +26,9 @@
+ (defn- round* [x] #?(:clj (Math/round (double x)) :cljs (js/Math.round x)))
+ (defn- ceil*  [x] #?(:clj (Math/ceil x)  :cljs (js/Math.ceil x)))
+ (defn- floor* [x] #?(:clj (Math/floor x) :cljs (js/Math.floor x)))
++(defn- atan2* [y x] #?(:clj (Math/atan2 y x) :cljs (js/Math.atan2 y x)))
+ (defn- to-radians [deg] (* deg (/ pi 180)))
++(defn- to-degrees [rad] (* rad (/ 180 pi)))
+ (defn- abs* [x] (if (neg? x) (- x) x))
+ 
+ (defn- words [k]
+@@ -34,6 +37,9 @@
+ (defn- valid-at3? [at]
+   (and (vector? at) (= 3 (count at)) (every? number? at)))
+ 
++(defn- xyz3? [v]
++  (and (sequential? v) (= 3 (count v)) (every? number? v)))
++
+ (defn- sized-part? [{:keys [size at]}]
+   (and (vector? size) (= 3 (count size)) (every? number? size)
+        (vector? at) (= 3 (count at)) (every? number? at)))
+@@ -82,6 +88,21 @@
+         s (round12 (sin* (to-radians yaw)))]
+     [(+ (* c dx) (* s dz)) (+ (* (- s) dx) (* c dz))]))
+ 
++(defn face-yaw
++  "The yaw (0/45/.../315) that turns a look's front (local +z, placement-v2)
++   toward camera from at (both [x y z]), snapped to the nearest 45°: `(turn
++   [0 1] (face-yaw at camera))` is the snapped unit vector from at toward
++   camera. 0 when either isn't 3 numbers, or camera is straight above at
++   (dx and dz both ~0)."
++  [at camera]
++  (if (and (xyz3? at) (xyz3? camera))
++    (let [[x _ z] at [cx _ cz] camera
++          dx (- cx x) dz (- cz z)]
++      (if (< (+ (* dx dx) (* dz dz)) eps)
++        0
++        (mod (* 45 (round* (/ (to-degrees (atan2* dx dz)) 45))) 360)))
++    0))
++
+ (defn feet-at
+   "Each foot turned by yaw and added to [x z], same order as feet."
+   [feet [x z] yaw]
+@@ -226,7 +247,7 @@
+                        (sorted-map)
+                        (:walkers view))]
+       (if-let [c (:center view)]
+-        (assoc base :here {:word "where you're looking" :xz [(nth c 0) (nth c 2)]})
++        (assoc base :here {:word here-word :xz [(nth c 0) (nth c 2)]})
+         base))))
+ 
+ (defn landmarks
+@@ -368,6 +389,18 @@
+   {:id (:id draft) :at (:at result) :yaw (:yaw result)
+    :summary (:summary draft) :look (:look draft)})
+ 
++(defn at-line
++  "The line a `--at` build prints (placement-v2): like placed-line, but
++   for an exact spot with no distance/spread, naming `:here` and whether
++   it faces the camera."
++  [draft result]
++  (let [{:keys [at yaw landmark facing?]} result
++        [x y z] at]
++    (str "placed " (name (:id draft))
++         (when (= :here landmark) " where you're looking,")
++         " at [" (fmt x) " " (fmt y) " " (fmt z) "] yaw " (fmt yaw)
++         (when facing? ", facing the camera"))))
++
+ (defn moved-line
+   "`template`'s `{why}`/`{place}`/`{moved}` filled for a build that moved
+    further out than `:search-m` (an unknown placeholder stays as written):
+@@ -473,7 +506,8 @@
+             near (fn [n]
+                    (or (coord-near n)
+                        (let [n' (str/replace-first n #"^:" "")]
+-                         (when (re-matches bf/id-re n') (keyword n')))))]
++                         (when (re-matches bf/id-re n') (keyword n')))))
++            at (fn [n] (if (= n "here") :here (coord-near n)))]
+         (cond
+           (and (= 2 (count rest-args)) (= "--near" (first rest-args)) (near (second rest-args)))
+           {:mode :draft :member (keyword member) :path path :near (near (second rest-args)) :dry-run false}
+@@ -484,6 +518,15 @@
+           (and (= 3 (count rest-args)) (= "--dry-run" (first rest-args)) (= "--near" (second rest-args)) (near (nth rest-args 2)))
+           {:mode :draft :member (keyword member) :path path :near (near (nth rest-args 2)) :dry-run true}
+ 
++          (and (= 2 (count rest-args)) (= "--at" (first rest-args)) (at (second rest-args)))
++          {:mode :at :member (keyword member) :path path :at (at (second rest-args)) :dry-run false}
++
++          (and (= 3 (count rest-args)) (= "--at" (first rest-args)) (at (second rest-args)) (= "--dry-run" (nth rest-args 2)))
++          {:mode :at :member (keyword member) :path path :at (at (second rest-args)) :dry-run true}
++
++          (and (= 3 (count rest-args)) (= "--dry-run" (first rest-args)) (= "--at" (second rest-args)) (at (nth rest-args 2)))
++          {:mode :at :member (keyword member) :path path :at (at (nth rest-args 2)) :dry-run true}
++
+           :else
+           {:usage usage}))
+ 
+diff --git a/src/pm/view.cljc b/src/pm/view.cljc
+index 1a31c44..3b1ee7f 100644
+--- a/src/pm/view.cljc
++++ b/src/pm/view.cljc
+@@ -9,14 +9,17 @@
+ (def max-coord 2000)          ; metres, the same bound as pm.camera/max-coord
+ (def max-walkers 32)
+ (def post-every-ms 2000)
+-(def keep-alive-ms 30000)
++(def keep-alive-ms 10000)     ; was 30000: a still camera re-posts every 10 s, so an open game's view is never near 30 s old
+ (def camera-move-m 0.05)      ; pos or target moved more than this -> changed
+ (def center-move-m 0.1)
+ (def walker-move-m 0.25)
+ (def fresh-ms 120000)
++(def here-ms 30000)           ; --at here refuses a view older than this
+ (def eps 1e-9)
+ (def no-view lot/no-view)     ; "I can't see where you're looking: the game isn't sending its view"
+ (def stale-view "I can't see where you're looking: the game isn't open")
++(def here-stale "I can't see where you're looking: the game's view is more than 30 s old; look at the ground and ask again")
++(def here-sky   "the middle of your screen is sky: look at the ground and ask again")
+ 
+ (defn- sqrt* [x] #?(:clj (Math/sqrt x) :cljs (js/Math.sqrt x)))
+ (defn- round* [x] #?(:clj (Math/round (double x)) :cljs (js/Math.round x)))
+@@ -129,6 +132,37 @@
+     (> (- now (:as-of raw)) fresh-ms) {:ok false :reason stale-view}
+     :else {:ok true :view raw}))
+ 
++(defn at-here
++  "An at result (placement-v2) for `--at here`: `raw` is the parsed
++   state/view.edn (or nil); `now` is in ms. The first match wins: no sane
++   :as-of -> no-view; older than here-ms -> here-stale; :center isn't 3
++   numbers (nil = sky) -> here-sky; else ok true at :center, yaw turned to
++   face the camera (0, facing? false, with no camera)."
++  [raw now]
++  (cond
++    (or (not (map? raw)) (not (number? (:as-of raw)))) {:ok false :reason no-view}
++    (> (- now (:as-of raw)) here-ms) {:ok false :reason here-stale}
++    (not (vec3? (:center raw))) {:ok false :reason here-sky}
++    :else
++    (let [center (:center raw)
++          pos    (get-in raw [:camera :pos])]
++      {:ok true :at (vec center) :yaw (lot/face-yaw center pos) :landmark :here :facing? (vec3? pos)})))
++
++(defn at-xz
++  "An at result (placement-v2) for `--at x,z`: always ok true, no checks.
++   `y` is ground's height at [x z] when `ground` is a map and that's a
++   number, else 0 (the game seats it on the real ground anyway). The view
++   \"faces\" when `raw` is a map, no older than here-ms, and its camera's
++   :pos is 3 numbers; the yaw then turns to face it, else 0."
++  [[x z] ground raw now]
++  (let [cell (when (map? ground) (lot/cell ground [x z]))
++        y    (if (number? (:y cell)) (:y cell) 0)
++        pos  (get-in raw [:camera :pos])
++        faces (boolean (and (map? raw) (number? (:as-of raw))
++                             (<= (- now (:as-of raw)) here-ms)
++                             (vec3? pos)))]
++    {:ok true :at [x y z] :yaw (if faces (lot/face-yaw [x y z] pos) 0) :landmark [x z] :facing? faces}))
++
+ (defn ground-word
+   "What ground [x z] is on, from ground (state/ground.edn's shape)."
+   [ground [x z]]
+diff --git a/test/pm/blueprint_live_test.cljs b/test/pm/blueprint_live_test.cljs
+index 531a34b..3f2b891 100644
+--- a/test/pm/blueprint_live_test.cljs
++++ b/test/pm/blueprint_live_test.cljs
+@@ -115,13 +115,13 @@
+ 
+ (deftest s1-seat-ids-seats-only-the-given-id
+   (let [bps (:blueprints (bp/seat-ids W2 [:bench-by-creek] G))]
+-    (is (= (assoc (fbp CB) :at [1.0 1.5 -9.0] :seated? true :seat-drop 0 :too-steep? false) (nth bps 2)))
++    (is (= (assoc (fbp CB) :at [1.0 1.5 -9.0] :seated? true :seat-drop 0) (nth bps 2)))
+     (is (= (fbp PL) (nth bps 3)))
+     (is (= [E-BENCH E-LAMP] (take 2 bps)))))
+ 
+ (deftest s2-seat-ids-second-blueprint
+   (let [bps (:blueprints (bp/seat-ids W2 #{:planter} G))]
+-    (is (= (assoc (fbp PL) :at [-2.0 1.5 -4.0] :seated? true :seat-drop 0 :too-steep? false) (nth bps 3)))
++    (is (= (assoc (fbp PL) :at [-2.0 1.5 -4.0] :seated? true :seat-drop 0) (nth bps 3)))
+     (is (= (fbp CB) (nth bps 2)))))
+ 
+ (deftest s3-seat-ids-empty-or-unknown-ids-is-a-no-op
+diff --git a/test/pm/blueprint_seat_test.cljs b/test/pm/blueprint_seat_test.cljs
+index c7b665b..651db8a 100644
+--- a/test/pm/blueprint_seat_test.cljs
++++ b/test/pm/blueprint_seat_test.cljs
+@@ -19,7 +19,7 @@
+     (is (= [2 1.5 3] (:at b)))
+     (is (= (get-in (bench [2 0 3] 0) [:look :parts]) (get-in b [:look :parts])))
+     (is (true? (:seated? b)))
+-    (is (false? (:too-steep? b)))))
++    (is (not (contains? b :too-steep?)))))
+ 
+ (deftest s02-slope-levels-at-the-high-foot-and-stretches-the-low-one
+   ;; ground rises 0.1 m per metre of x: +x foot at 1.045, -x foot at 0.955
+@@ -33,13 +33,15 @@
+     (is (near= (- (+ (second (:at b)) (get-in lo [:at 1])) (/ (get-in lo [:size 1]) 2)) (g (- legs-x) 0)))
+     (is (= [0 0.45 0] (:at seat)))
+     (is (near= 0.09 (:seat-drop b)))
+-    (is (false? (:too-steep? b)))))
++    (is (not (contains? b :too-steep?)))))
+ 
+-(deftest s03-the-bank-is-too-steep
++(deftest s03-the-bank-still-seats
+   ;; the old mailbox spot: 1.3 m of drop across the bench
+   (let [b (bp/seat (bench [0 0 0] 0) (fn [x _] (+ 0.86 (* 1.4 x))))]
+-    (is (true? (:too-steep? b)))
+-    (is (> (:seat-drop b) bp/max-seat-drop-m))))
++    (is (near= 1.49 (second (:at b))))
++    (is (near= 1.26 (:seat-drop b)))
++    (is (true? (:seated? b)))
++    (is (not (contains? b :too-steep?)))))
+ 
+ (deftest s04-yaw-turns-where-the-feet-stand
+   ;; yaw 90 points +x at world -z: the +x foot reads the ground at z -0.45
+@@ -61,13 +63,10 @@
+                    (fn [x z] (+ x z)))]
+     (is (= [1 3 2] (:at b)))))
+ 
+-(deftest s08-seat-all-and-the-steep-sign-and-caption
++(deftest s08-seat-all-a-steep-ghost-signs-and-builds-like-any-other
+   (let [words {:hint "click to build" :steep "too steep here"}
+         w     (bp/seat-all {:blueprint-text words :blueprints [(bench [0 0 0] 0)]}
+                            (fn [x _] (* 1.4 x)))
+         b     (first (bp/pending w))]
+-    (is (true? (:too-steep? b)))
+-    (is (= "proposed: a bench\ntoo steep here" (bp/sign-text w b)))
+-    (is (= "too steep here" (get-in (bp/refuse-steep w 0) [:hal :text])))
+-    ;; still a ghost: refusing never builds it
+-    (is (= :pending (bp/status (bp/refuse-steep w 0) :bench)))))
++    (is (= "proposed: a bench\nclick to build" (bp/sign-text w b)))
++    (is (= :approved (bp/status (bp/approve-blueprint w :bench) :bench)))))
+diff --git a/test/pm/view_test.cljs b/test/pm/view_test.cljs
+index dd64a96..0ff6d04 100644
+--- a/test/pm/view_test.cljs
++++ b/test/pm/view_test.cljs
+@@ -74,8 +74,8 @@
+     (is (false? (v/post? st S1 2500 on)))
+     (is (true? (v/post? st S1 3000 on)))
+     (is (false? (v/post? st S0 3000 on)))
+-    (is (false? (v/post? st S0 30999 on)))
+-    (is (true? (v/post? st S0 31000 on)))
++    (is (false? (v/post? st S0 10999 on)))
++    (is (true? (v/post? st S0 11000 on)))
+     (is (false? (v/post? (assoc st :in-flight? true) S1 3000 on))))
+   (is (false? (v/post? {} S0 1000 {:demo? true :bridge-on? true})))
+   (is (false? (v/post? {} S0 1000 {:demo? false :bridge-on? false})))

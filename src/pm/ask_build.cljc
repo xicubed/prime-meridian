@@ -228,6 +228,37 @@
           {:ok false :say (fill (get-in demo [:lines :refused]) {:reason (:reason res)})
            :reason (:reason res)})))))
 
+(defn here?
+  "True iff `asked` (ask's result) is a request for :here -- the build
+   goes exactly at the view's centre, with no measuring (placement-v2). A
+   help or sky result (no :req) gives false."
+  [asked]
+  (= :here (get-in asked [:req :near])))
+
+(defn plan-here
+  "Show me (placement-v2): a request for :here places exactly at `ctx`'s
+   `:here` (a ground hit [x y z]), facing `ctx`'s `:camera` ([x y z] or
+   nil) -- no measuring, no `lot/place`. Same result shapes as `plan`."
+  [ctx req]
+  (let [{:keys [estate world file by now here camera]} ctx
+        demo     (:demo-builds estate)
+        look     (:look req)
+        look-def (get-in demo [:looks look])]
+    (cond
+      (nil? look-def)
+      {:ok false :say (get-in demo [:lines :help])}
+
+      (not (valid-xz3? here))
+      {:ok false :say (get-in demo [:lines :sky])}
+
+      :else
+      (let [id    (next-id look (taken-ids world file))
+            draft {:id id :summary (:summary look-def) :look (:look look-def)}
+            bp    (assoc (lot/blueprint draft {:at (vec here) :yaw (lot/face-yaw here camera)}) :by by)]
+        {:ok true :id id :blueprint bp :file (add-build file bp now)
+         :say (fill (get-in demo [:lines :placed])
+                    {:summary (str/replace (:summary look-def) #"\.$" "") :place lot/here-word})}))))
+
 (defn widen?
   "Measure the wide grid and plan again? True iff `asked` (ask's result) has
    a `:wide-spec` and `p1` (plan's result on the near grid) refused for

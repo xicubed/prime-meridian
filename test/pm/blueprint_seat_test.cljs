@@ -19,7 +19,7 @@
     (is (= [2 1.5 3] (:at b)))
     (is (= (get-in (bench [2 0 3] 0) [:look :parts]) (get-in b [:look :parts])))
     (is (true? (:seated? b)))
-    (is (false? (:too-steep? b)))))
+    (is (not (contains? b :too-steep?)))))
 
 (deftest s02-slope-levels-at-the-high-foot-and-stretches-the-low-one
   ;; ground rises 0.1 m per metre of x: +x foot at 1.045, -x foot at 0.955
@@ -33,13 +33,15 @@
     (is (near= (- (+ (second (:at b)) (get-in lo [:at 1])) (/ (get-in lo [:size 1]) 2)) (g (- legs-x) 0)))
     (is (= [0 0.45 0] (:at seat)))
     (is (near= 0.09 (:seat-drop b)))
-    (is (false? (:too-steep? b)))))
+    (is (not (contains? b :too-steep?)))))
 
-(deftest s03-the-bank-is-too-steep
+(deftest s03-the-bank-still-seats
   ;; the old mailbox spot: 1.3 m of drop across the bench
   (let [b (bp/seat (bench [0 0 0] 0) (fn [x _] (+ 0.86 (* 1.4 x))))]
-    (is (true? (:too-steep? b)))
-    (is (> (:seat-drop b) bp/max-seat-drop-m))))
+    (is (near= 1.49 (second (:at b))))
+    (is (near= 1.26 (:seat-drop b)))
+    (is (true? (:seated? b)))
+    (is (not (contains? b :too-steep?)))))
 
 (deftest s04-yaw-turns-where-the-feet-stand
   ;; yaw 90 points +x at world -z: the +x foot reads the ground at z -0.45
@@ -61,13 +63,10 @@
                    (fn [x z] (+ x z)))]
     (is (= [1 3 2] (:at b)))))
 
-(deftest s08-seat-all-and-the-steep-sign-and-caption
+(deftest s08-seat-all-a-steep-ghost-signs-and-builds-like-any-other
   (let [words {:hint "click to build" :steep "too steep here"}
         w     (bp/seat-all {:blueprint-text words :blueprints [(bench [0 0 0] 0)]}
                            (fn [x _] (* 1.4 x)))
         b     (first (bp/pending w))]
-    (is (true? (:too-steep? b)))
-    (is (= "proposed: a bench\ntoo steep here" (bp/sign-text w b)))
-    (is (= "too steep here" (get-in (bp/refuse-steep w 0) [:hal :text])))
-    ;; still a ghost: refusing never builds it
-    (is (= :pending (bp/status (bp/refuse-steep w 0) :bench)))))
+    (is (= "proposed: a bench\nclick to build" (bp/sign-text w b)))
+    (is (= :approved (bp/status (bp/approve-blueprint w :bench) :bench)))))

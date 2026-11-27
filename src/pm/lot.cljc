@@ -10,7 +10,8 @@
 (def default-radius-m 0.6)
 (def grounded-m 0.02)
 (def narrow-m 0.3)
-(def usage "usage: bb blueprint-draft <member> <draft.edn> --near <landmark|here|walker|x,z> [--dry-run] | bb blueprint-draft --landmarks")
+(def here-word "where you're looking")   ; view-landmarks' :here word now comes from this (same text)
+(def usage "usage: bb blueprint-draft <member> <draft.edn> --near <landmark|here|walker|x,z> [--dry-run] | bb blueprint-draft <member> <draft.edn> --at <here|x,z> [--dry-run] | bb blueprint-draft --landmarks")
 (def refusal-prefix "no level open ground within ")
 (def nothing-fits "nothing fits closer")
 (def no-ground-map "no ground map (state/ground.edn): the twin samples it from the kit")
@@ -25,7 +26,9 @@
 (defn- round* [x] #?(:clj (Math/round (double x)) :cljs (js/Math.round x)))
 (defn- ceil*  [x] #?(:clj (Math/ceil x)  :cljs (js/Math.ceil x)))
 (defn- floor* [x] #?(:clj (Math/floor x) :cljs (js/Math.floor x)))
+(defn- atan2* [y x] #?(:clj (Math/atan2 y x) :cljs (js/Math.atan2 y x)))
 (defn- to-radians [deg] (* deg (/ pi 180)))
+(defn- to-degrees [rad] (* rad (/ 180 pi)))
 (defn- abs* [x] (if (neg? x) (- x) x))
 
 (defn- words [k]
@@ -33,6 +36,9 @@
 
 (defn- valid-at3? [at]
   (and (vector? at) (= 3 (count at)) (every? number? at)))
+
+(defn- xyz3? [v]
+  (and (sequential? v) (= 3 (count v)) (every? number? v)))
 
 (defn- sized-part? [{:keys [size at]}]
   (and (vector? size) (= 3 (count size)) (every? number? size)
@@ -81,6 +87,21 @@
   (let [c (round12 (cos* (to-radians yaw)))
         s (round12 (sin* (to-radians yaw)))]
     [(+ (* c dx) (* s dz)) (+ (* (- s) dx) (* c dz))]))
+
+(defn face-yaw
+  "The yaw (0/45/.../315) that turns a look's front (local +z, placement-v2)
+   toward camera from at (both [x y z]), snapped to the nearest 45°: `(turn
+   [0 1] (face-yaw at camera))` is the snapped unit vector from at toward
+   camera. 0 when either isn't 3 numbers, or camera is straight above at
+   (dx and dz both ~0)."
+  [at camera]
+  (if (and (xyz3? at) (xyz3? camera))
+    (let [[x _ z] at [cx _ cz] camera
+          dx (- cx x) dz (- cz z)]
+      (if (< (+ (* dx dx) (* dz dz)) eps)
+        0
+        (mod (* 45 (round* (/ (to-degrees (atan2* dx dz)) 45))) 360)))
+    0))
 
 (defn feet-at
   "Each foot turned by yaw and added to [x z], same order as feet."
@@ -226,7 +247,7 @@
                        (sorted-map)
                        (:walkers view))]
       (if-let [c (:center view)]
-        (assoc base :here {:word "where you're looking" :xz [(nth c 0) (nth c 2)]})
+        (assoc base :here {:word here-word :xz [(nth c 0) (nth c 2)]})
         base))))
 
 (defn landmarks
@@ -368,6 +389,18 @@
   {:id (:id draft) :at (:at result) :yaw (:yaw result)
    :summary (:summary draft) :look (:look draft)})
 
+(defn at-line
+  "The line a `--at` build prints (placement-v2): like placed-line, but
+   for an exact spot with no distance/spread, naming `:here` and whether
+   it faces the camera."
+  [draft result]
+  (let [{:keys [at yaw landmark facing?]} result
+        [x y z] at]
+    (str "placed " (name (:id draft))
+         (when (= :here landmark) " where you're looking,")
+         " at [" (fmt x) " " (fmt y) " " (fmt z) "] yaw " (fmt yaw)
+         (when facing? ", facing the camera"))))
+
 (defn moved-line
   "`template`'s `{why}`/`{place}`/`{moved}` filled for a build that moved
    further out than `:search-m` (an unknown placeholder stays as written):
@@ -473,7 +506,8 @@
             near (fn [n]
                    (or (coord-near n)
                        (let [n' (str/replace-first n #"^:" "")]
-                         (when (re-matches bf/id-re n') (keyword n')))))]
+                         (when (re-matches bf/id-re n') (keyword n')))))
+            at (fn [n] (if (= n "here") :here (coord-near n)))]
         (cond
           (and (= 2 (count rest-args)) (= "--near" (first rest-args)) (near (second rest-args)))
           {:mode :draft :member (keyword member) :path path :near (near (second rest-args)) :dry-run false}
@@ -483,6 +517,15 @@
 
           (and (= 3 (count rest-args)) (= "--dry-run" (first rest-args)) (= "--near" (second rest-args)) (near (nth rest-args 2)))
           {:mode :draft :member (keyword member) :path path :near (near (nth rest-args 2)) :dry-run true}
+
+          (and (= 2 (count rest-args)) (= "--at" (first rest-args)) (at (second rest-args)))
+          {:mode :at :member (keyword member) :path path :at (at (second rest-args)) :dry-run false}
+
+          (and (= 3 (count rest-args)) (= "--at" (first rest-args)) (at (second rest-args)) (= "--dry-run" (nth rest-args 2)))
+          {:mode :at :member (keyword member) :path path :at (at (second rest-args)) :dry-run true}
+
+          (and (= 3 (count rest-args)) (= "--dry-run" (first rest-args)) (= "--at" (second rest-args)) (at (nth rest-args 2)))
+          {:mode :at :member (keyword member) :path path :at (at (nth rest-args 2)) :dry-run true}
 
           :else
           {:usage usage}))

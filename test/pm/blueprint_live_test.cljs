@@ -115,13 +115,13 @@
 
 (deftest s1-seat-ids-seats-only-the-given-id
   (let [bps (:blueprints (bp/seat-ids W2 [:bench-by-creek] G))]
-    (is (= (assoc (fbp CB) :at [1.0 1.5 -9.0] :seated? true :seat-drop 0 :too-steep? false) (nth bps 2)))
+    (is (= (assoc (fbp CB) :at [1.0 1.5 -9.0] :seated? true :seat-drop 0) (nth bps 2)))
     (is (= (fbp PL) (nth bps 3)))
     (is (= [E-BENCH E-LAMP] (take 2 bps)))))
 
 (deftest s2-seat-ids-second-blueprint
   (let [bps (:blueprints (bp/seat-ids W2 #{:planter} G))]
-    (is (= (assoc (fbp PL) :at [-2.0 1.5 -4.0] :seated? true :seat-drop 0 :too-steep? false) (nth bps 3)))
+    (is (= (assoc (fbp PL) :at [-2.0 1.5 -4.0] :seated? true :seat-drop 0) (nth bps 3)))
     (is (= (fbp CB) (nth bps 2)))))
 
 (deftest s3-seat-ids-empty-or-unknown-ids-is-a-no-op

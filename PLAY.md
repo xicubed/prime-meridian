@@ -74,11 +74,12 @@ When all four are ticked, the **Day won** card appears. Click **Keep playing** t
   the full game they answer you themselves. Messaging a crew member directly is still an
   option when you run the game with your own agents, and can make sense there, for example
   with a local model, or when you don't want the leader spending tokens to pass a message on.
-- **Build:** Hal can build a **bench**, a **lamp post**, a **table** or a **planter**, near
-  **here** (the middle of your screen), the **mailbox**, the **phone booth**, the **workshop**
-  or the **creek**. Example: *"a lamp post by the mailbox"*. Shade under the trees is fine. If
-  the exact spot is too steep, crowded or in a bush, he puts it at the nearest spot that fits
-  and tells you how far he moved it, and the camera flies over to show you.
+- **Build:** Hal can build a **bench**, a **lamp post**, a **table** or a **planter**.
+  Say **here** (or no place at all) and it goes exactly in the middle of your screen, turned to
+  face you, on any ground: a slope just gets longer legs. Or name a place, the **mailbox**, the
+  **phone booth**, the **workshop** or the **creek**, and he finds a level spot near it and the
+  camera flies over to show you. Example: *"a bench here"*. If it doesn't look right, remove it,
+  move a little and ask again.
 - **Change your mind:** click a real build, then **Remove…**. A red preview shows what goes;
   confirm with **Remove it**.
 - **Mail:** click the mailbox to read the sample inbox.

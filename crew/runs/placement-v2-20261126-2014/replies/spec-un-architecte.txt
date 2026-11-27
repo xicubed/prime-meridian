@@ -1,0 +1,151 @@
+
+ ▐▛███▛█   Claude Code v2.1.332
+▝▜██████▀  Opus 5.5 with high effort · Claude Max
+ ▝▝   ▝▝   ~/src/prime-meridian
+
+
+❯ Say hi in ONE line: your name, your job, and the model you're running on. Don't use any tools.
+
+⏺ Hi, I'm Un Architecte, lead architect for Prime Meridian. I turn quests into specs the builder and tester can
+  work from in parallel, and I'm running on Opus 5.5 (claude-opus-5-5).
+
+✻ Baked for 2s · done 7:02 PM
+
+❯ New quest: read .crew/quests/placement-v1.md and the code it cites. Write the spec to
+  crew/runs/placement-v1-20261126-1903/spec.md following your role card: the pm.lot changes (:open-kinds, the
+  widening search to :max-search-m, :moved-m, refusal only past it) with exact signatures, the new estate
+  :build-rules keys and :blueprint-text words, the fly-to decision as a pure fn (inputs: the new ghost's
+  position, the camera, whether it is on screen, trial card open, last player camera move) and its wiring in
+  pm.core for both the dev blueprints poll and the demo's demo-ask!, the builder role card's Build requests
+  rewrite (one bb blueprint-draft + one bb hal-say --as, no ground-map scripts), numbered test cases with
+  hand-checked expected values (check every existing pm.lot test that a widened search or :open-kinds would
+  change, and list the old expectations to update), and a who-touches-what table (builder: src/ and scripts/
+  files you name, resources/estate.edn's :build-rules and :blueprint-text only; tester: new test files only plus
+  the old-test edits you list; le-docteur: .crew/roles builder card's Build requests section and PLAY.md's Build
+  bullet). Reply when it's written.
+
+  When you have completely finished, end your reply with a line containing only this: done-6573
+
+  Searched for 1 pattern, read 5 files, listed 1 directory, ran 1 shell command
+
+⏺ Reading pm.core's blueprint poll, the CREW flight and the demo path so I can wire the fly-to; the spec comes
+  next.
+
+  Read 2 files, listed 1 directory, ran 3 shell commands
+
+⏺ Still reading: pm.three's projection helpers and the blueprint/test bits the fly-to will touch, then writing the
+  spec.
+
+  Searched for 1 pattern, ran 2 shell commands
+
+⏺ Drafting the spec now; checking a couple of values (demo lamp summary, a few square roots) before writing the
+  test cases.
+
+  Searched for 1 pattern, listed 1 directory, ran 2 shell commands
+
+⏺ Write(crew/runs/placement-v1-20261126-1903/spec.md)
+  ⎿  Wrote 551 lines to crew/runs/placement-v1-20261126-1903/spec.md
+       1 # Spec: placement-v1, build where you look, and show me
+       2
+       3 Quest: `.crew/quests/placement-v1.md`. Its "Decided" list is final; this spec only says how.
+       4 Four parts, all pure where they can be:
+       5
+       6 1. **pm.lot**: `:open-kinds` (shade counts) and a second, wider search pass up to
+       7    `:max-search-m`, so a refusal only comes when nothing fits that far out. A widened result
+       8    carries `:moved-m` and `:why`.
+       9 2. **The line**: `lot/moved-line` fills the estate's `:blueprint-text :moved` template. The
+      10    script prints it, and the demo's twin says it.
+     … +541 lines
+
+⏺ Spec: crew/runs/placement-v1-20261126-1903/spec.md. The estate gets :max-search-m 15, :open-kinds ["o" "T"], a
+  :show-me map and a :moved line; lot_test needs no edits, and ask_build_test t29 and t33 change.
+  Public functions:
+  - pm.lot: new open-kinds, max-search-m, near-rules, dominant-why, moved-line, refusal-prefix, nothing-fits. spot
+    and place keep their signatures; a spot found in the wider pass adds :moved-m and :why.
+  - pm.ask-build: ask adds :wide-spec, plan adds :reason and the moved sentence, new widen?.
+  - pm.camera: show-defaults, on-screen?, fly-decision, flight, ghost-flight.
+  - pm.blueprint: arrival-at.
+  - pm.core: one show-arrival! hook in apply-blueprint-file! serves both the dev poll and demo-ask!.
+
+  Test cases: 54 numbered (A–I), plus the edits to ask_build_test t29 and t33.
+
+  done-6573
+
+✻ Sautéed for 8m 53s · done 7:12 PM
+
+※ recap: The placement-v1 spec is written (benches in the shade, the wider search, the camera flying to new
+  ghosts, one command per build request), with 54 test cases. Next, the builder and tester start the build step
+  from that spec. (turn off recaps in /config)
+
+❯ New quest: read .crew/quests/placement-v2.md and the code it cites (placement-v1 just landed). Write the spec
+  to crew/runs/placement-v2-20261126-2014/spec.md following your role card: bb blueprint-draft --at here|x,z
+  (exact signature, the view freshness/sky refusals, reading state/view.edn), the face-the-camera yaw fn, the
+  demo here path in demo-ask!, removing the too-steep refusal everywhere it gates (sign, make-real, twin line)
+  while seat still stretches legs, numbered test cases with hand-checked values, the list of existing tests whose
+  too-steep expectations change, and a who-touches-what table (builder: src/ and scripts/ files you name,
+  resources/estate.edn only if needed; tester: new test files plus the old-test edits you list; le-docteur:
+  .crew/roles/builder.md Build requests and PLAY.md's Build bullet). Reply when it's written.
+
+  When you have completely finished, end your reply with a line containing only this: done-3849
+
+  Searched for 1 pattern, read 1 file, ran 3 shell commands
+
+⏺ Reading the view tests and the demo/fly-to code from v1 before writing; the plan is --at via pure fns in
+  pm.view/pm.lot, and dropping :too-steep? from seat entirely.
+
+  Searched for 1 pattern, listed 1 directory, ran 1 shell command
+
+⏺ Writing the v2 spec now.
+
+⏺ Write(crew/runs/placement-v2-20261126-2014/spec.md)
+  ⎿  Wrote 485 lines to crew/runs/placement-v2-20261126-2014/spec.md
+       1 # Spec: placement-v2, put it where I'm looking
+       2
+       3 Quest: `.crew/quests/placement-v2.md`. Its "Decided" list is final. This round has four parts:
+       4
+       5 1. **"Here" is exact.** The build goes at the view's `:center`, facing the player's camera, with
+       6    no ground check, search, gap/route rule or refusal:
+       7    - Dev: `bb blueprint-draft <member> <draft> --at here|x,z`, backed by the pure
+       8      `pm.view/at-here` and `pm.view/at-xz`.
+       9    - Demo: `pm.ask-build/plan-here`, which skips the grid and `pm.lot/place`.
+      10 2. **Facing.** `pm.lot/face-yaw` turns the look's front (its local +z) toward the camera,
+     … +475 lines
+
+  Searched for 1 pattern
+
+⏺ I've written the spec to crew/runs/placement-v2-20261126-2014/spec.md.
+
+  New functions:
+  - pm.lot: face-yaw turns a build's front toward the camera, snapped to 45°. parse-args gains --at here|x,z
+    ({:mode :at …}). Also new: at-line and here-word.
+  - pm.view: at-here reads state/view.edn and places at the exact centre. It refuses only when the view is
+    missing, older than 30 s, or the centre is sky ("look at the ground and ask again"). at-xz never refuses.
+    keep-alive-ms drops from 30000 to 10000, so an open game's view is never close to 30 s old.
+  - pm.ask-build: here? and plan-here. In the demo, "here" skips the grid and pm.lot/place.
+  - pm.camera: fly-decision gains a :center input and a new :at-center result, with center-m 1.0. A "here" ghost
+    doesn't make the camera fly; named places keep the v1 flight.
+
+  Too steep is gone:
+  - seat still levels the build and stretches its lower legs, and keeps :seat-drop, but no longer sets
+    :too-steep?.
+  - max-seat-drop-m, refuse-steep, the :steep sign line, the estate's :steep words and the gate in apply-approved!
+    are deleted, so Make it real works.
+  - pm.lot's own "too steep" stays, because named places keep their search (Decided 4).
+
+  Hidden tab: while the game's tab is hidden, the view may only refresh about once a minute. --at here can then
+  refuse as stale. That follows the quest's 30 s rule; the spec asks the builder to note it if the live check hits
+  it.
+
+  Tests: 49 numbered cases. Old expectations change in:
+  - blueprint_seat_test s01, s02, s03 and s08
+  - blueprint_live_test s1 and s2
+  - view_test v05, lines 77–78
+
+  done-3849
+
+✻ Cooked for 5m 1s · done 8:19 PM
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

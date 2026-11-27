@@ -1,0 +1,400 @@
+      52 +    (if dry-run
+      53 +      (do (print-lines!)
+      54 +          (System/exit 0))
+      55 +      (let [tmp (java.io.File/createTempFile "blueprint-draft" ".edn")]
+      56 +        (try
+      57 +          (spit tmp (pr-str bp))
+      58 +          (let [r (p/shell {:continue true} "bb" "scripts/blueprint_add.clj" (name member) (str t
+         +mp))]
+      59 +            (if (zero? (:exit r))
+      60 +              (do (print-lines!)
+      61 +                  (System/exit 0))
+      62 +              (System/exit 1)))
+      63 +          (finally (.delete tmp)))))))
+      64 +
+      65  (let [parsed (lot/parse-args *command-line-args*)]
+      66    (when (:usage parsed)
+      67      (binding [*out* *err*] (println (:usage parsed)))
+
+⏺ Update(scripts/blueprint_draft.clj)
+  ⎿  Added 14 lines, removed 15 lines
+       87            (if-not (:ok result)
+       88              (fail! (:reason result))
+       89              (let [bp (lot/blueprint draft result)
+       90 -                  problems (bf/problems bp)
+       90                    lm (lot/resolve-landmark (lot/landmarks ground estate file-bps view') near)
+       91                    print-lines! (fn []
+       92                                   (println (lot/placed-line draft (:word lm) result))
+       93                                   (when-let [moved (lot/moved-line (get-in estate [:blueprint-tex
+           t :moved])
+       94                                                                     (:word lm) result)]
+       95                                     (println moved)))]
+       97 -              (when (seq problems)
+       98 -                (fail! (str "invalid draft: " (clojure.string/join "; " problems))))
+       99 -              (if dry-run
+      100 -                (do (print-lines!)
+      101 -                    (System/exit 0))
+      102 -                (let [tmp (java.io.File/createTempFile "blueprint-draft" ".edn")]
+      103 -                  (try
+      104 -                    (spit tmp (pr-str bp))
+      105 -                    (let [r (p/shell {:continue true} "bb" "scripts/blueprint_add.clj" (name mem
+          -ber) (str tmp))]
+      106 -                      (if (zero? (:exit r))
+      107 -                        (do (print-lines!)
+      108 -                            (System/exit 0))
+      109 -                        (System/exit 1)))
+      110 -                    (finally (.delete tmp))))))))))))
+       96 +              (finish! bp member dry-run print-lines!))))
+       97 +
+       98 +        :at
+       99 +        (let [{:keys [path member at dry-run]} parsed
+      100 +              draft  (or (read-edn path) (fail! (str "can't read " path)))
+      101 +              raw    (read-edn (view-file))
+      102 +              result (if (= :here at)
+      103 +                       (view/at-here raw (System/currentTimeMillis))
+      104 +                       (view/at-xz at ground raw (System/currentTimeMillis)))]
+      105 +          (if-not (:ok result)
+      106 +            (fail! (:reason result))
+      107 +            (let [bp (lot/blueprint draft result)
+      108 +                  print-lines! (fn [] (println (lot/at-line draft result)))]
+      109 +              (finish! bp member dry-run print-lines!))))))))
+
+  Read 1 file
+
+⏺ Looks balanced and correct. Now update pm.ask_build.cljc with here? and plan-here.
+
+⏺ Update(src/pm/ask_build.cljc)
+  ⎿  Added 31 lines
+      228            {:ok false :say (fill (get-in demo [:lines :refused]) {:reason (:reason res)})
+      229             :reason (:reason res)})))))
+      230
+      231 +(defn here?
+      232 +  "True iff `asked` (ask's result) is a request for :here -- the build
+      233 +   goes exactly at the view's centre, with no measuring (placement-v2). A
+      234 +   help or sky result (no :req) gives false."
+      235 +  [asked]
+      236 +  (= :here (get-in asked [:req :near])))
+      237 +
+      238 +(defn plan-here
+      239 +  "Show me (placement-v2): a request for :here places exactly at `ctx`'s
+      240 +   `:here` (a ground hit [x y z]), facing `ctx`'s `:camera` ([x y z] or
+      241 +   nil) -- no measuring, no `lot/place`. Same result shapes as `plan`."
+      242 +  [ctx req]
+      243 +  (let [{:keys [world file by now here camera]} ctx
+      244 +        demo     (:demo-builds (:estate ctx))
+      245 +        look     (:look req)
+      246 +        look-def (get-in demo [:looks look])]
+      247 +    (cond
+      248 +      (nil? look-def)
+      249 +      {:ok false :say (get-in demo [:lines :help])}
+      250 +
+      251 +      (not (valid-xz3? here))
+      252 +      {:ok false :say (get-in demo [:lines :sky])}
+      253 +
+      254 +      :else
+      255 +      (let [id    (next-id look (taken-ids world file))
+      256 +            draft {:id id :summary (:summary look-def) :look (:look look-def)}
+      257 +            bp    (assoc (lot/blueprint draft {:at (vec here) :yaw (lot/face-yaw here camera)})
+          +:by by)]
+      258 +        {:ok true :id id :blueprint bp :file (add-build file bp now)
+      259 +         :say (fill (get-in demo [:lines :placed])
+      260 +                    {:summary (str/replace (:summary look-def) #"\.$" "") :place lot/here-word})
+          +}))))
+      261 +
+      262  (defn widen?
+      263    "Measure the wide grid and plan again? True iff `asked` (ask's result) has
+      264     a `:wide-spec` and `p1` (plan's result on the near grid) refused for
+
+⏺ Update(src/pm/ask_build.cljc)
+  ⎿  Added 2 lines, removed 2 lines
+      240     `:here` (a ground hit [x y z]), facing `ctx`'s `:camera` ([x y z] or
+      241     nil) -- no measuring, no `lot/place`. Same result shapes as `plan`."
+      242    [ctx req]
+      243 -  (let [{:keys [world file by now here camera]} ctx
+      244 -        demo     (:demo-builds (:estate ctx))
+      243 +  (let [{:keys [estate world file by now here camera]} ctx
+      244 +        demo     (:demo-builds estate)
+      245          look     (:look req)
+      246          look-def (get-in demo [:looks look])]
+      247      (cond
+
+⏺ Now pm.blueprint.cljs: remove too-steep gate.
+
+⏺ Update(src/pm/blueprint.cljs)
+  ⎿  Added 1 line, removed 2 lines
+      100    [world bp]
+      101    (if (= :real (:status bp))
+      102      (sign-summary bp)
+      103 -    (let [{:keys [hint failed trial steep removing]} (:blueprint-text world)
+      103 +    (let [{:keys [hint failed trial removing]} (:blueprint-text world)
+      104            tail (cond (= :removing (:status bp)) removing
+      105                       (:failed? bp) failed
+      106 -                     (and (:too-steep? bp) (= :pending (:status bp)) (string? steep)) steep
+      106                       (= :approved (:status bp)) trial
+      107                       :else hint)]
+      108        (if (and (string? tail) (not (str/blank? tail)))
+
+⏺ Update(src/pm/blueprint.cljs)
+  ⎿  Added 3 lines, removed 7 lines
+      418  ;; one side and in the air on the other (Michael, Nov 22). So before it is
+      419  ;; drawn, every blueprint is seated: the game reads the ground under each
+      420  ;; foot, keeps the item level at the highest one, and stretches the lower
+      421 -;; feet down to touch. Ground that falls away more than `max-seat-drop-m`
+      422 -;; under one item is too steep: it is still drawn seated, but it won't
+      423 -;; build, and its sign says why.
+      421 +;; feet down to touch, however far that stretch has to go (placement-v2,
+      422 +;; Decided 3: no "too steep" refusal anywhere -- if it looks bad, he removes
+      423 +;; it). `:seat-drop` keeps the size of the stretch, for information only.
+      424
+      425 -(def max-seat-drop-m
+      426 -  "Metres: the most a foot may be stretched to reach the ground."
+      427 -  0.25)
+      428 -
+      425  (def ^:private foot-eps 0.02)
+      426
+      427  (defn- foot? [{[_ dy _] :at [_ sy _] :size}]
+
+⏺ Now update seat's docstring and body, and delete refuse-steep.
+
+⏺ Update(src/pm/blueprint.cljs)
+  ⎿  Added 3 lines, removed 4 lines
+      439    "`bp` seated on the ground (`ground-at` is x z -> height or nil): :at's
+      440     height becomes the highest ground under its feet (parts resting on the
+      441     item's base, y 0), and each lower foot is stretched down to its own
+      442 -   ground. `:seat-drop` is the largest stretch; `:too-steep?` is true past
+      443 -   `max-seat-drop-m`. With no feet it sits on the ground at its centre.
+      444 -   Unchanged if any ground read is missing, the look has no :parts list,
+      445 -   or it's already seated."
+      442 +   ground. `:seat-drop` is the largest stretch. With no feet it sits on
+      443 +   the ground at its centre. Unchanged if any ground read is missing, the
+      444 +   look has no :parts list, or it's already seated."
+      445    [bp ground-at]
+      446    (let [{:keys [at yaw look]} bp
+      447          parts (:parts look)]
+
+⏺ Update(src/pm/blueprint.cljs)
+  ⎿  Added 1 line, removed 12 lines
+      467              (-> bp
+      468                  (assoc :at [(first at) base (nth at 2)]
+      469                         :seated? true
+      470 -                       :seat-drop most
+      471 -                       :too-steep? (> most max-seat-drop-m))
+      470 +                       :seat-drop most)
+      471                  (assoc-in [:look :parts] parts'))))))))
+      472
+      474 -(defn refuse-steep
+      475 -  "Approval refused because the ground under the blueprint is too steep
+      476 -   (`seat`'s :too-steep?): it stays a ghost (its sign already says so) and
+      477 -   the twin says it in the caption. Wording: `:blueprint-text :steep`."
+      478 -  [world now]
+      479 -  (let [text (get-in world [:blueprint-text :steep])]
+      480 -    (if (and (string? text) (not (str/blank? text)))
+      481 -      (assoc world :hal {:event :blueprint-refused :text text :until (+ now c/hal-ms)})
+      482 -      world)))
+      483 -
+      473  (defn seat-all
+      474    "Every blueprint in `world` seated on the ground (`seat`)."
+      475    [world ground-at]
+
+  Searched for 1 pattern
+
+⏺ Good — those are exactly the two spots left to fix: pm.core/apply-approved! and the estate's :steep line.
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Removed 2 lines
+      1539          blueprint (first (filter #(= id (:id %)) (bp/all before)))]
+      1540      (reset! !last-good before)
+      1541      (cond
+      1542 -      (and blueprint (:too-steep? blueprint))
+      1543 -      (swap! !world bp/refuse-steep (js/Date.now))
+      1542        (and blueprint (bp/breaks-build? blueprint))
+      1543        (do (revert-to-last-good!)
+      1544            ;; say so on its sign: a silent no-op reads as a broken click
+
+⏺ Update(resources/estate.edn)
+  ⎿  Removed 1 line
+      301                    :saving    "Saving…"                                                ; the firs
+           t button while the bridge records it, disabled (TASKS T-14)
+      302                    :real      "Made real. It stays."                                   ; twin's c
+           aption once it's recorded
+      303                    :no-bridge "Start the bridge (bb crew-bridge) to make it real."     ; no bridg
+           e, nothing real changes
+      304 -                  :steep     "the ground's too steep here, so it won't build; ask for a flatter
+          -spot"   ; pm.blueprint/seat: a foot would hang past max-seat-drop-m
+      304                    :failed    "that one won't build, so the estate stays as it was"    ; after a
+           refused approval
+      305                    :remove           "Remove…"                                          ; a real
+           build's card: preview the removal (TASKS T-15)
+      306                    :close            "Close"                                            ; a real
+           build's card: close it, nothing changes (TASKS T-15)
+
+⏺ Now pm.camera.cljs: add center-m and the new fly-decision rule.
+
+⏺ Update(src/pm/camera.cljs)
+  ⎿  Added 5 lines
+      15     overridden by the estate's `:build-rules :show-me`."
+      16    {:near-m 10 :quiet-ms 2000 :lift-m 0.6 :back 1.4 :low 0.5})
+      17
+      18 +(def center-m
+      19 +  "Metres: a new ghost this close (xz) to the screen's centre point is
+      20 +   \"here\" (placement-v2) -- no flight."
+      21 +  1.0)
+      22 +
+      23  (defn- finite? [x] (and (number? x) (js/isFinite x) (<= (js/Math.abs x) max-coord)))
+      24  (defn- vec3? [v] (and (vector? v) (= 3 (count v)) (every? finite? v)))
+      25
+
+⏺ Update(src/pm/camera.cljs)
+  ⎿  Added 13 lines, removed 7 lines
+      34    [ndc]
+      35    (boolean (and (finite-nums3? ndc) (every? (fn [v] (<= -1 v 1)) ndc))))
+      36
+      37 +(defn- dist-xz [[ax _ az] [bx _ bz]]
+      38 +  (js/Math.sqrt (+ (* (- ax bx) (- ax bx)) (* (- az bz) (- az bz)))))
+      39 +
+      40  (defn fly-decision
+      38 -  "Show me (placement-v1): whether the camera should fly to a new ghost at
+      39 -   `m`'s `:ghost`. `show` is merged over `show-defaults` (nil is fine). The
+      40 -   first match wins: no sane `:ghost` -> :no-ghost; a trial card open ->
+      41 -   :card-open; the player moved the camera within `:quiet-ms` -> :player-
+      42 -   moving; already on screen and within `:near-m` of the camera ->
+      43 -   :in-view; else :fly."
+      44 -  [show {:keys [ghost camera on-screen? card-open? last-move-ms now-ms]}]
+      41 +  "Show me (placement-v1, placement-v2): whether the camera should fly to
+      42 +   a new ghost at `m`'s `:ghost`. `show` is merged over `show-defaults`
+      43 +   (nil is fine). The first match wins: no sane `:ghost` -> :no-ghost; a
+      44 +   trial card open -> :card-open; the player moved the camera within
+      45 +   `:quiet-ms` -> :player-moving; on screen and within `center-m` (xz) of
+      46 +   `m`'s `:center` -> :at-center (placement-v2: a here build, already in
+      47 +   the middle of the screen, never flies); already on screen and within
+      48 +   `:near-m` of the camera -> :in-view; else :fly."
+      49 +  [show {:keys [ghost camera on-screen? card-open? last-move-ms now-ms center]}]
+      50    (let [{:keys [near-m quiet-ms]} (merge show-defaults show)]
+      51      (cond
+      52        (not (finite-nums3? ghost)) :no-ghost
+      53        card-open? :card-open
+      54        (and (number? last-move-ms) (< (- now-ms last-move-ms) quiet-ms)) :player-moving
+      55 +      (and on-screen? (finite-nums3? center) (<= (dist-xz ghost center) center-m)) :at-center
+      56        (and on-screen? (nums3? camera)
+      57             (<= (js/Math.sqrt (reduce + (map (fn [a b] (* (- a b) (- a b))) camera ghost))) near-m
+          ))
+      58        :in-view
+
+⏺ Now update pm.core.cljs: show-arrival! to pass :center, and demo-ask! to use ab/here?/ab/plan-here.
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 1 line
+      1863            d    (camera/fly-decision show {:ghost at :camera (:pos (t/rig-view h))
+      1864                                            :on-screen? (camera/on-screen? (when fl (t/project-nd
+            c (.-camera h) (:target fl))))
+      1865                                            :card-open? (some? (bp/card-of w))
+      1866 +                                          :center (t/center-hit (.-camera h) (view-ground-meshe
+           +s! h))
+      1867                                            :last-move-ms @!camera-moved-at :now-ms (js/Date.now)
+            })]
+      1868        (when (and fl (= :fly d))
+      1869          (camera/frame! h (:target fl) (:offset fl))
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 18 lines, removed 14 lines
+      1780          r     (ab/ask ctx text)]
+      1781      (if-let [s (:say r)]
+      1782        (twin-reply! s at)
+      1783 -      (let [sampler (get-in raw-estate [:demo-builds :sampler])
+      1784 -            measure (fn [spec] (when h (let [t0 (js/performance.now)
+      1785 -                                             g  (t/ground-grid (view-ground-meshes! h) (cover-m
+           -eshes! h) spec
+      1786 -                                                               (:from-y sampler) (partial ab/sa
+           -mple-cell sampler))]
+      1787 -                                         (js/console.info "Prime Meridian: ground grid" (:cols
+           -spec) "x" (:rows spec)
+      1788 -                                                          "in" (js/Math.round (- (js/performanc
+           -e.now) t0)) "ms")
+      1789 -                                         g)))
+      1790 -            p1      (ab/plan (update ctx :rules lot/near-rules) (:req r) (measure (:spec r)))
+      1791 -            p       (if (ab/widen? r p1) (ab/plan ctx (:req r) (measure (:wide-spec r))) p1)]
+      1792 -        (when (:ok p)
+      1793 -          (reset! !demo-file (:file p))
+      1794 -          (save-demo-file!)
+      1795 -          (demo-merge!))
+      1796 -        (twin-reply! (:say p) at)))))
+      1783 +      (if (ab/here? r)
+      1784 +        (let [p (ab/plan-here (assoc ctx :camera (when h (:pos (t/rig-view h)))) (:req r))]
+      1785 +          (when (:ok p) (reset! !demo-file (:file p)) (save-demo-file!) (demo-merge!))
+      1786 +          (twin-reply! (:say p) at))
+      1787 +        (let [sampler (get-in raw-estate [:demo-builds :sampler])
+      1788 +              measure (fn [spec] (when h (let [t0 (js/performance.now)
+      1789 +                                               g  (t/ground-grid (view-ground-meshes! h) (cover
+           +-meshes! h) spec
+      1790 +                                                                 (:from-y sampler) (partial ab/
+           +sample-cell sampler))]
+      1791 +                                           (js/console.info "Prime Meridian: ground grid" (:col
+           +s spec) "x" (:rows spec)
+      1792 +                                                            "in" (js/Math.round (- (js/performa
+           +nce.now) t0)) "ms")
+      1793 +                                           g)))
+      1794 +              p1      (ab/plan (update ctx :rules lot/near-rules) (:req r) (measure (:spec r)))
+      1795 +              p       (if (ab/widen? r p1) (ab/plan ctx (:req r) (measure (:wide-spec r))) p1)]
+      1796 +          (when (:ok p)
+      1797 +            (reset! !demo-file (:file p))
+      1798 +            (save-demo-file!)
+      1799 +            (demo-merge!))
+      1800 +          (twin-reply! (:say p) at))))))
+      1801
+      1802  (defn- demo-make-real! [id done]
+      1803    (swap! !world bp/make-real id)              ; a status turning :real: the Today goal ticks (w
+            atch)
+
+  Ran 1 shell command
+
+⏺ Gate passes, and pm.placement-v2-test (already landed from the tester) is green too. Now writing
+  builder-notes.md.
+
+  Ran 1 shell command
+
+⏺ The test files shown are the tester's edits (not mine, not touched by me). Now writing builder-notes.md.
+
+  Listed 1 directory
+
+⏺ Write(crew/runs/placement-v2-20261126-2014/builder-notes.md)
+  ⎿  Wrote 45 lines to crew/runs/placement-v2-20261126-2014/builder-notes.md
+       1 # Builder notes: placement-v2
+       2
+       3 Gate: 0 warnings, 1737 tests, 0 failures (includes `pm.placement-v2-test`, already landed).
+       4
+       5 ## Changed
+       6
+       7 - `src/pm/lot.cljc`: `here-word`, `face-yaw`, `at-line`; `parse-args` takes `--at <here|x,z>`
+       8   (plus `--dry-run` in both orders); `usage` updated; `view-landmarks` now uses `here-word`.
+       9 - `src/pm/view.cljc`: `here-ms` (30000), `keep-alive-ms` 30000 -> 10000, `here-stale`/`here-sky`;
+      10   `at-here` and `at-xz`.
+     … +35 lines
+
+⏺ Implemented placement-v2 across pm.lot, pm.view, pm.ask_build, pm.blueprint, pm.camera, pm.core,
+  scripts/blueprint_draft.clj, and deleted the :steep line from resources/estate.edn — nothing else touched.
+  Gate's last line: GATE: PASS — 0 warnings; Ran 1737 tests containing 8964 assertions.
+
+  git diff --stat:
+   resources/estate.edn             |  1 -
+   scripts/blueprint_draft.clj      | 54 +++++++++++++++++++++++++++++-----------
+   src/pm/ask_build.cljc            | 31 +++++++++++++++++++++++
+   src/pm/blueprint.cljs            | 33 ++++++------------------
+   src/pm/camera.cljs               | 25 +++++++++++++------
+   src/pm/core.cljs                 | 35 ++++++++++++++------------
+   src/pm/lot.cljc                  | 49 +++++++++++++++++++++++++++++++++---
+   src/pm/view.cljc                 | 36 ++++++++++++++++++++++++++-
+   test/pm/blueprint_live_test.cljs |  4 +--
+   test/pm/blueprint_seat_test.cljs | 21 ++++++++--------
+   test/pm/view_test.cljs           |  4 +--
+   11 files changed, 210 insertions(+), 83 deletions(-)
+  (the three test/ files are le-testeur's edits, not mine). builder-notes.md written as the quest's Done-when
+  requires.
+
+  done-9523
+
+✻ Sautéed for 6m 31s · done 8:26 PM
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

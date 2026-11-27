@@ -5,7 +5,12 @@
 ;; full blueprint through the existing bb blueprint-add -- one writer, one validator.
 ;;
 ;;   bb blueprint-draft <member> <draft.edn> --near <landmark|x,z> [--dry-run]
+;;   bb blueprint-draft <member> <draft.edn> --at <here|x,z> [--dry-run]
 ;;   bb blueprint-draft --landmarks
+;;
+;; --at puts the draft's base exactly at the middle of the player's screen
+;; (state/view.edn's :center, at most 30 s old) or at x,z, its front (+z)
+;; turned to face the camera; no ground checks.
 ;;
 ;; All I/O; every decision is pm.lot's.
 
@@ -37,6 +42,26 @@
 (defn- read-estate []
   (edn/read-string (slurp "resources/estate.edn")))
 
+(defn- finish!
+  "The shared tail once a spot is found: validate `bp`, then either print
+   (dry-run) or hand it to bb blueprint-add and print on success."
+  [bp member dry-run print-lines!]
+  (let [problems (bf/problems bp)]
+    (when (seq problems)
+      (fail! (str "invalid draft: " (clojure.string/join "; " problems))))
+    (if dry-run
+      (do (print-lines!)
+          (System/exit 0))
+      (let [tmp (java.io.File/createTempFile "blueprint-draft" ".edn")]
+        (try
+          (spit tmp (pr-str bp))
+          (let [r (p/shell {:continue true} "bb" "scripts/blueprint_add.clj" (name member) (str tmp))]
+            (if (zero? (:exit r))
+              (do (print-lines!)
+                  (System/exit 0))
+              (System/exit 1)))
+          (finally (.delete tmp)))))))
+
 (let [parsed (lot/parse-args *command-line-args*)]
   (when (:usage parsed)
     (binding [*out* *err*] (println (:usage parsed)))
@@ -62,24 +87,23 @@
           (if-not (:ok result)
             (fail! (:reason result))
             (let [bp (lot/blueprint draft result)
-                  problems (bf/problems bp)
                   lm (lot/resolve-landmark (lot/landmarks ground estate file-bps view') near)
                   print-lines! (fn []
                                  (println (lot/placed-line draft (:word lm) result))
                                  (when-let [moved (lot/moved-line (get-in estate [:blueprint-text :moved])
                                                                    (:word lm) result)]
                                    (println moved)))]
-              (when (seq problems)
-                (fail! (str "invalid draft: " (clojure.string/join "; " problems))))
-              (if dry-run
-                (do (print-lines!)
-                    (System/exit 0))
-                (let [tmp (java.io.File/createTempFile "blueprint-draft" ".edn")]
-                  (try
-                    (spit tmp (pr-str bp))
-                    (let [r (p/shell {:continue true} "bb" "scripts/blueprint_add.clj" (name member) (str tmp))]
-                      (if (zero? (:exit r))
-                        (do (print-lines!)
-                            (System/exit 0))
-                        (System/exit 1)))
-                    (finally (.delete tmp))))))))))))
+              (finish! bp member dry-run print-lines!))))
+
+        :at
+        (let [{:keys [path member at dry-run]} parsed
+              draft  (or (read-edn path) (fail! (str "can't read " path)))
+              raw    (read-edn (view-file))
+              result (if (= :here at)
+                       (view/at-here raw (System/currentTimeMillis))
+                       (view/at-xz at ground raw (System/currentTimeMillis)))]
+          (if-not (:ok result)
+            (fail! (:reason result))
+            (let [bp (lot/blueprint draft result)
+                  print-lines! (fn [] (println (lot/at-line draft result)))]
+              (finish! bp member dry-run print-lines!))))))))

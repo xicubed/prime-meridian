@@ -100,10 +100,9 @@
   [world bp]
   (if (= :real (:status bp))
     (sign-summary bp)
-    (let [{:keys [hint failed trial steep removing]} (:blueprint-text world)
+    (let [{:keys [hint failed trial removing]} (:blueprint-text world)
           tail (cond (= :removing (:status bp)) removing
                      (:failed? bp) failed
-                     (and (:too-steep? bp) (= :pending (:status bp)) (string? steep)) steep
                      (= :approved (:status bp)) trial
                      :else hint)]
       (if (and (string? tail) (not (str/blank? tail)))
@@ -419,13 +418,9 @@
 ;; one side and in the air on the other (Michael, Nov 22). So before it is
 ;; drawn, every blueprint is seated: the game reads the ground under each
 ;; foot, keeps the item level at the highest one, and stretches the lower
-;; feet down to touch. Ground that falls away more than `max-seat-drop-m`
-;; under one item is too steep: it is still drawn seated, but it won't
-;; build, and its sign says why.
-
-(def max-seat-drop-m
-  "Metres: the most a foot may be stretched to reach the ground."
-  0.25)
+;; feet down to touch, however far that stretch has to go (placement-v2,
+;; Decided 3: no "too steep" refusal anywhere -- if it looks bad, he removes
+;; it). `:seat-drop` keeps the size of the stretch, for information only.
 
 (def ^:private foot-eps 0.02)
 
@@ -444,10 +439,9 @@
   "`bp` seated on the ground (`ground-at` is x z -> height or nil): :at's
    height becomes the highest ground under its feet (parts resting on the
    item's base, y 0), and each lower foot is stretched down to its own
-   ground. `:seat-drop` is the largest stretch; `:too-steep?` is true past
-   `max-seat-drop-m`. With no feet it sits on the ground at its centre.
-   Unchanged if any ground read is missing, the look has no :parts list,
-   or it's already seated."
+   ground. `:seat-drop` is the largest stretch. With no feet it sits on
+   the ground at its centre. Unchanged if any ground read is missing, the
+   look has no :parts list, or it's already seated."
   [bp ground-at]
   (let [{:keys [at yaw look]} bp
         parts (:parts look)]
@@ -473,19 +467,8 @@
             (-> bp
                 (assoc :at [(first at) base (nth at 2)]
                        :seated? true
-                       :seat-drop most
-                       :too-steep? (> most max-seat-drop-m))
+                       :seat-drop most)
                 (assoc-in [:look :parts] parts'))))))))
-
-(defn refuse-steep
-  "Approval refused because the ground under the blueprint is too steep
-   (`seat`'s :too-steep?): it stays a ghost (its sign already says so) and
-   the twin says it in the caption. Wording: `:blueprint-text :steep`."
-  [world now]
-  (let [text (get-in world [:blueprint-text :steep])]
-    (if (and (string? text) (not (str/blank? text)))
-      (assoc world :hal {:event :blueprint-refused :text text :until (+ now c/hal-ms)})
-      world)))
 
 (defn seat-all
   "Every blueprint in `world` seated on the ground (`seat`)."

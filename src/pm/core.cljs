@@ -1539,8 +1539,6 @@
         blueprint (first (filter #(= id (:id %)) (bp/all before)))]
     (reset! !last-good before)
     (cond
-      (and blueprint (:too-steep? blueprint))
-      (swap! !world bp/refuse-steep (js/Date.now))
       (and blueprint (bp/breaks-build? blueprint))
       (do (revert-to-last-good!)
           ;; say so on its sign: a silent no-op reads as a broken click
@@ -1782,20 +1780,24 @@
         r     (ab/ask ctx text)]
     (if-let [s (:say r)]
       (twin-reply! s at)
-      (let [sampler (get-in raw-estate [:demo-builds :sampler])
-            measure (fn [spec] (when h (let [t0 (js/performance.now)
-                                             g  (t/ground-grid (view-ground-meshes! h) (cover-meshes! h) spec
-                                                               (:from-y sampler) (partial ab/sample-cell sampler))]
-                                         (js/console.info "Prime Meridian: ground grid" (:cols spec) "x" (:rows spec)
-                                                          "in" (js/Math.round (- (js/performance.now) t0)) "ms")
-                                         g)))
-            p1      (ab/plan (update ctx :rules lot/near-rules) (:req r) (measure (:spec r)))
-            p       (if (ab/widen? r p1) (ab/plan ctx (:req r) (measure (:wide-spec r))) p1)]
-        (when (:ok p)
-          (reset! !demo-file (:file p))
-          (save-demo-file!)
-          (demo-merge!))
-        (twin-reply! (:say p) at)))))
+      (if (ab/here? r)
+        (let [p (ab/plan-here (assoc ctx :camera (when h (:pos (t/rig-view h)))) (:req r))]
+          (when (:ok p) (reset! !demo-file (:file p)) (save-demo-file!) (demo-merge!))
+          (twin-reply! (:say p) at))
+        (let [sampler (get-in raw-estate [:demo-builds :sampler])
+              measure (fn [spec] (when h (let [t0 (js/performance.now)
+                                               g  (t/ground-grid (view-ground-meshes! h) (cover-meshes! h) spec
+                                                                 (:from-y sampler) (partial ab/sample-cell sampler))]
+                                           (js/console.info "Prime Meridian: ground grid" (:cols spec) "x" (:rows spec)
+                                                            "in" (js/Math.round (- (js/performance.now) t0)) "ms")
+                                           g)))
+              p1      (ab/plan (update ctx :rules lot/near-rules) (:req r) (measure (:spec r)))
+              p       (if (ab/widen? r p1) (ab/plan ctx (:req r) (measure (:wide-spec r))) p1)]
+          (when (:ok p)
+            (reset! !demo-file (:file p))
+            (save-demo-file!)
+            (demo-merge!))
+          (twin-reply! (:say p) at))))))
 
 (defn- demo-make-real! [id done]
   (swap! !world bp/make-real id)              ; a status turning :real: the Today goal ticks (watch)
@@ -1865,6 +1867,7 @@
           d    (camera/fly-decision show {:ghost at :camera (:pos (t/rig-view h))
                                           :on-screen? (camera/on-screen? (when fl (t/project-ndc (.-camera h) (:target fl))))
                                           :card-open? (some? (bp/card-of w))
+                                          :center (t/center-hit (.-camera h) (view-ground-meshes! h))
                                           :last-move-ms @!camera-moved-at :now-ms (js/Date.now)})]
       (when (and fl (= :fly d))
         (camera/frame! h (:target fl) (:offset fl))

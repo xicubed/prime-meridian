@@ -9,14 +9,17 @@
 (def max-coord 2000)          ; metres, the same bound as pm.camera/max-coord
 (def max-walkers 32)
 (def post-every-ms 2000)
-(def keep-alive-ms 30000)
+(def keep-alive-ms 10000)     ; was 30000: a still camera re-posts every 10 s, so an open game's view is never near 30 s old
 (def camera-move-m 0.05)      ; pos or target moved more than this -> changed
 (def center-move-m 0.1)
 (def walker-move-m 0.25)
 (def fresh-ms 120000)
+(def here-ms 30000)           ; --at here refuses a view older than this
 (def eps 1e-9)
 (def no-view lot/no-view)     ; "I can't see where you're looking: the game isn't sending its view"
 (def stale-view "I can't see where you're looking: the game isn't open")
+(def here-stale "I can't see where you're looking: the game's view is more than 30 s old; look at the ground and ask again")
+(def here-sky   "the middle of your screen is sky: look at the ground and ask again")
 
 (defn- sqrt* [x] #?(:clj (Math/sqrt x) :cljs (js/Math.sqrt x)))
 (defn- round* [x] #?(:clj (Math/round (double x)) :cljs (js/Math.round x)))
@@ -128,6 +131,37 @@
     (or (not (map? raw)) (not (number? (:as-of raw)))) {:ok false :reason no-view}
     (> (- now (:as-of raw)) fresh-ms) {:ok false :reason stale-view}
     :else {:ok true :view raw}))
+
+(defn at-here
+  "An at result (placement-v2) for `--at here`: `raw` is the parsed
+   state/view.edn (or nil); `now` is in ms. The first match wins: no sane
+   :as-of -> no-view; older than here-ms -> here-stale; :center isn't 3
+   numbers (nil = sky) -> here-sky; else ok true at :center, yaw turned to
+   face the camera (0, facing? false, with no camera)."
+  [raw now]
+  (cond
+    (or (not (map? raw)) (not (number? (:as-of raw)))) {:ok false :reason no-view}
+    (> (- now (:as-of raw)) here-ms) {:ok false :reason here-stale}
+    (not (vec3? (:center raw))) {:ok false :reason here-sky}
+    :else
+    (let [center (:center raw)
+          pos    (get-in raw [:camera :pos])]
+      {:ok true :at (vec center) :yaw (lot/face-yaw center pos) :landmark :here :facing? (vec3? pos)})))
+
+(defn at-xz
+  "An at result (placement-v2) for `--at x,z`: always ok true, no checks.
+   `y` is ground's height at [x z] when `ground` is a map and that's a
+   number, else 0 (the game seats it on the real ground anyway). The view
+   \"faces\" when `raw` is a map, no older than here-ms, and its camera's
+   :pos is 3 numbers; the yaw then turns to face it, else 0."
+  [[x z] ground raw now]
+  (let [cell (when (map? ground) (lot/cell ground [x z]))
+        y    (if (number? (:y cell)) (:y cell) 0)
+        pos  (get-in raw [:camera :pos])
+        faces (boolean (and (map? raw) (number? (:as-of raw))
+                             (<= (- now (:as-of raw)) here-ms)
+                             (vec3? pos)))]
+    {:ok true :at [x y z] :yaw (if faces (lot/face-yaw [x y z] pos) 0) :landmark [x z] :facing? faces}))
 
 (defn ground-word
   "What ground [x z] is on, from ground (state/ground.edn's shape)."

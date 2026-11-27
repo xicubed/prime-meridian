@@ -1,0 +1,400 @@
+※ recap: Updated crew/README.md's services paragraph
+  and added a crew-mirror-v0 Runs row documenting the
+  round's prompt-mirroring work. Next: no action needed
+  from you, this task is complete. (turn off recaps in
+  /config)
+
+❯ Spec: crew/runs/placement-v1-20261126-1903/spec.md
+  (quest: .crew/quests/placement-v1.md). Make only the
+  documentation edits the spec's who-touches-what
+  table gives le-docteur (if none, change nothing).
+  Reply with git diff --stat of what you changed.
+
+  When you have completely finished, end your reply
+  with a line containing only this: done-9493
+
+  Read 1 file, listed 1 directory
+
+⏺ Gate passed on first try. Now let me read the current
+  .crew/roles/builder.md and PLAY.md to apply the
+  verbatim edits from §5.
+
+  Read 1 file
+
+⏺ Update(.crew/roles/builder.md)
+  ⎿  Added 15 lines, removed 13 lines
+      24
+      25  The player can message you from the es
+          tate's 💭 phone; the bridge types his
+          words into your
+      26  pane as a plain prompt. When he asks f
+          or a thing in the world ("put a bench
+          by the creek",
+      27 -"a lamp near the mailbox"), that is a
+         -build request: answer it with a bluepr
+         -int, never by
+      28 -editing `resources/estate.edn` or any
+         -source file.
+      27 +"a bench here, in the shade"), that is
+         + a build request: answer it with a blu
+         +eprint, never by
+      28 +editing `resources/estate.edn` or any
+         +source file. A build request is **two
+         +commands, no more**:
+      29
+      30 -1. Pick the landmark from his words: `
+         -bb blueprint-draft --landmarks` lists
+         -the names. "Here" is
+      31 -   `--near here` (the centre of his sc
+         -reen) and "by you / by him" is `--near
+         - <walker-id>`; both
+      32 -   need the game open (`bb where` show
+         -s what it sees). The twin may also han
+         -d you `--near x,z`.
+      33 -2. Write a draft in your scratchpad: `
+         -{:id :<new-kebab-id> :summary "propose
+         -d: <a few words>"
+      30 +1. Write a draft in your scratchpad: `
+         +{:id :<new-kebab-id> :summary "propose
+         +d: <a few words>"
+      31     :look {:parts [...]}}`, parts as do
+          cumented under `:blueprints` in `resou
+          rces/estate.edn`
+      32     (shapes box/cylinder/cone/sphere; c
+          olours from the palette keys used ther
+          e, e.g. `:brown`
+      33     for timber, `:tin` for metal). Real
+          -world size, y 0 is the ground, every
+          leg or base
+      34     touching y 0, at most 12 parts, not
+          hing thinner than 0.08 m (he has to cl
+          ick it). Ids must be
+      35     new: never reuse a removed one.
+      39 -3. `bb blueprint-draft <your-name> <dr
+         -aft.edn> --near <landmark>`. Its ghost
+         - appears in the
+      40 -   world within 5 s and you say "drew
+         -a blueprint" in 💭 automatically; you
+         -need do nothing
+      41 -   more.
+      42 -4. If it refuses (no level ground, too
+         - close, unknown place), tell him in-wo
+         -rld in one short
+      43 -   line with the reason and a nearby l
+         -andmark to try instead:
+      44 -   `bb hal-say --as <your-name> "<line
+         ->"`.
+      36 +2. **One** `bb blueprint-draft <your-n
+         +ame> <draft.edn> --near <spot>`. `<spo
+         +t>` is the `x,z` Hal
+      37 +   gives you, else `here` (the middle
+         +of his screen) when he says "here", el
+         +se a landmark from
+      38 +   his words (`bb blueprint-draft --la
+         +ndmarks` lists them) or a walker id fo
+         +r "by you / by him".
+      39 +   Shade under trees is fine. If the s
+         +pot itself doesn't fit, the command mo
+         +ves the build to the
+      40 +   nearest spot that does (up to 15 m)
+         + and prints a second line saying so; i
+         +t refuses only when
+      41 +   nothing fits. The ghost appears wit
+         +hin 5 s, the camera flies to it, and "
+         +drew a blueprint"
+      42 +   lands in 💭 by itself.
+      43 +3. **One** `bb hal-say --as <your-name
+         +> "<line>"`: if it moved, its second p
+         +rinted line; if it
+      44 +   refused, the reason and a landmark
+         +to try instead; otherwise a few words
+         +on what you drew.
+      45
+      46 -Then reply in your pane with the comma
+         -nd's printed line. Don't propose more
+         -than he asked for.
+      46 +Don't read or script around the ground
+         + map (`state/ground.edn`, `python3`, `
+         +node`, `bb -e`):
+      47 +the command already reports where it w
+         +ent or why not. Then reply in your pan
+         +e with the
+      48 +command's printed line(s). Don't propo
+         +se more than he asked for.
+
+⏺ Now the PLAY.md "Build" bullet.
+
+  Read 1 file
+
+⏺ Update(PLAY.md)
+  ⎿  Added 3 lines, removed 2 lines
+      76    with a local model, or when you don'
+          t want the leader spending tokens to p
+          ass a message on.
+      77  - **Build:** Hal can build a **bench**
+          , a **lamp post**, a **table** or a **
+          planter**, near
+      78    **here** (the middle of your screen)
+          , the **mailbox**, the **phone booth**
+          , the **workshop**
+      79 -  or the **creek**. Example: *"a lamp
+         -post by the mailbox"*. He picks level,
+         - open ground; if a
+      80 -  spot is too steep or under trees he
+         -says so, so try somewhere flatter.
+      79 +  or the **creek**. Example: *"a lamp
+         +post by the mailbox"*. Shade under the
+         + trees is fine. If
+      80 +  the exact spot is too steep, crowded
+         + or in a bush, he puts it at the neare
+         +st spot that fits
+      81 +  and tells you how far he moved it, a
+         +nd the camera flies over to show you.
+      82  - **Change your mind:** click a real b
+          uild, then **Remove…**. A red preview
+          shows what goes;
+      83    confirm with **Remove it**.
+      84  - **Mail:** click the mailbox to read
+          the sample inbox.
+
+  Ran 1 shell command
+
+⏺  .crew/roles/builder.md | 28
+  +++++++++++++++-------------
+   PLAY.md                |  5 +++--
+   2 files changed, 18 insertions(+), 15 deletions(-)
+
+  I replaced .crew/roles/builder.md's "Build requests
+  from the player (💭)" section and PLAY.md's "Build"
+  bullet with the spec's verbatim §5 text (the
+  two-command flow, moved-build second line, and camera
+  flight).
+
+  done-9493
+
+✻ Cogitated for 32s · done 7:25 PM
+
+※ recap: Updated crew/README.md, builder.md, and
+  PLAY.md with docs for the crew-mirror-v0 and
+  placement-v1 rounds, both gated changes now
+  documented; no further docs work pending. (turn off
+  recaps in /config)
+
+❯ Spec: crew/runs/placement-v2-20261126-2014/spec.md
+  (quest: .crew/quests/placement-v2.md). Make only the
+  documentation edits the spec's who-touches-what
+  table gives le-docteur (if none, change nothing).
+  Reply with git diff --stat of what you changed.
+
+  When you have completely finished, end your reply
+  with a line containing only this: done-4460
+
+  Searched for 1 pattern, read 1 file
+
+⏺ Let me check gate status for this run before editing.
+
+  Listed 1 directory
+
+⏺ Gate passed first try. Now applying the verbatim §7
+  text to both files.
+
+  Read 2 files
+
+⏺ Update(.crew/roles/builder.md)
+  ⎿  Added 23 lines, removed 17 lines
+      23  ## Build requests from the player (💭)
+      24
+      25  The player can message you from the es
+          tate's 💭 phone; the bridge types his
+          words into your
+      26 -pane as a plain prompt. When he asks f
+         -or a thing in the world ("put a bench
+         -by the creek",
+      27 -"a bench here, in the shade"), that is
+         - a build request: answer it with a blu
+         -eprint, never by
+      28 -editing `resources/estate.edn` or any
+         -source file. A build request is **two
+         -commands, no more**:
+      26 +pane as a plain prompt. When he asks f
+         +or a thing in the world ("a bench here
+         +", "a lamp by the
+      27 +mailbox"), that is a build request: an
+         +swer it with a blueprint, never by edi
+         +ting
+      28 +`resources/estate.edn` or any source f
+         +ile. A build request is **two commands
+         +, no more**:
+      29
+      30  1. Write a draft in your scratchpad: `
+          {:id :<new-kebab-id> :summary "propose
+          d: <a few words>"
+      31     :look {:parts [...]}}`, parts as do
+          cumented under `:blueprints` in `resou
+          rces/estate.edn`
+      32     (shapes box/cylinder/cone/sphere; c
+          olours from the palette keys used ther
+          e, e.g. `:brown`
+      33     for timber, `:tin` for metal). Real
+          -world size, y 0 is the ground, every
+          leg or base
+      34 -   touching y 0, at most 12 parts, not
+         -hing thinner than 0.08 m (he has to cl
+         -ick it). Ids must be
+      35 -   new: never reuse a removed one.
+      36 -2. **One** `bb blueprint-draft <your-n
+         -ame> <draft.edn> --near <spot>`. `<spo
+         -t>` is the `x,z` Hal
+      37 -   gives you, else `here` (the middle
+         -of his screen) when he says "here", el
+         -se a landmark from
+      38 -   his words (`bb blueprint-draft --la
+         -ndmarks` lists them) or a walker id fo
+         -r "by you / by him".
+      39 -   Shade under trees is fine. If the s
+         -pot itself doesn't fit, the command mo
+         -ves the build to the
+      40 -   nearest spot that does (up to 15 m)
+         - and prints a second line saying so; i
+         -t refuses only when
+      41 -   nothing fits. The ghost appears wit
+         -hin 5 s, the camera flies to it, and "
+         -drew a blueprint"
+      42 -   lands in 💭 by itself.
+      43 -3. **One** `bb hal-say --as <your-name
+         -> "<line>"`: if it moved, its second p
+         -rinted line; if it
+      44 -   refused, the reason and a landmark
+         -to try instead; otherwise a few words
+         -on what you drew.
+      34 +   touching y 0, **its front toward +z
+         +** (a bench's seat side, a sign's face
+         +), at most 12
+      35 +   parts, nothing thinner than 0.08 m
+         +(he has to click it). Ids must be new:
+         + never reuse a
+      36 +   removed one.
+      37 +2. **One** `bb blueprint-draft`:
+      38 +   - **"here", or no place at all:** `
+         +bb blueprint-draft <your-name> <draft.
+         +edn> --at here`. It
+      39 +     goes exactly in the middle of his
+         + screen, turned to face his camera: no
+         + ground checks, no
+      40 +     moving it. If Hal gives you a spo
+         +t, `--at x,z` does the same there. It
+         +refuses only when the
+      41 +     game's view is missing or more th
+         +an 30 s old, or he's looking at the sk
+         +y.
+      42 +   - **A named place** ("by the mailbo
+         +x", "by the creek", "by you"):
+      43 +     `bb blueprint-draft <your-name> <
+         +draft.edn> --near <landmark>` (`bb blu
+         +eprint-draft
+      44 +     --landmarks` lists them; a walker
+         + id for "by you / by him"). It finds l
+         +evel ground nearby,
+      45 +     up to 15 m, and prints a second l
+         +ine if it had to move.
+      46
+      46 -Don't read or script around the ground
+         - map (`state/ground.edn`, `python3`, `
+         -node`, `bb -e`):
+      47 -the command already reports where it w
+         -ent or why not. Then reply in your pan
+         -e with the
+      48 -command's printed line(s). Don't propo
+         -se more than he asked for.
+      47 +   The ghost appears within 5 s and "d
+         +rew a blueprint" lands in 💭 by itself
+         +.
+      48 +3. **One** `bb hal-say --as <your-name
+         +> "<line>"`: a few words on what you d
+         +rew; if it moved,
+      49 +   its second printed line; if it refu
+         +sed, the reason ("look at the ground a
+         +nd ask again").
+      50 +
+      51 +Don't read or script around the ground
+         + map or the view (`state/ground.edn`,
+      52 +`state/view.edn`, `python3`, `node`, `
+         +bb -e`): the command already reports w
+         +here it went or
+      53 +why not. If a build looks wrong where
+         +it landed, he removes it and asks agai
+         +n. Then reply in
+      54 +your pane with the command's printed l
+         +ine(s). Don't propose more than he ask
+         +ed for.
+
+⏺ Update(PLAY.md)
+  ⎿  Added 6 lines, removed 5 lines
+      74    the full game they answer you themse
+          lves. Messaging a crew member directly
+           is still an
+      75    option when you run the game with yo
+          ur own agents, and can make sense ther
+          e, for example
+      76    with a local model, or when you don'
+          t want the leader spending tokens to p
+          ass a message on.
+      77 -- **Build:** Hal can build a **bench**
+         -, a **lamp post**, a **table** or a **
+         -planter**, near
+      78 -  **here** (the middle of your screen)
+         -, the **mailbox**, the **phone booth**
+         -, the **workshop**
+      79 -  or the **creek**. Example: *"a lamp
+         -post by the mailbox"*. Shade under the
+         - trees is fine. If
+      80 -  the exact spot is too steep, crowded
+         - or in a bush, he puts it at the neare
+         -st spot that fits
+      81 -  and tells you how far he moved it, a
+         -nd the camera flies over to show you.
+      77 +- **Build:** Hal can build a **bench**
+         +, a **lamp post**, a **table** or a **
+         +planter**.
+      78 +  Say **here** (or no place at all) an
+         +d it goes exactly in the middle of you
+         +r screen, turned to
+      79 +  face you, on any ground: a slope jus
+         +t gets longer legs. Or name a place, t
+         +he **mailbox**, the
+      80 +  **phone booth**, the **workshop** or
+         + the **creek**, and he finds a level s
+         +pot near it and the
+      81 +  camera flies over to show you. Examp
+         +le: *"a bench here"*. If it doesn't lo
+         +ok right, remove it,
+      82 +  move a little and ask again.
+      83  - **Change your mind:** click a real b
+          uild, then **Remove…**. A red preview
+          shows what goes;
+      84    confirm with **Remove it**.
+      85  - **Mail:** click the mailbox to read
+          the sample inbox.
+
+  Ran 1 shell command
+
+⏺  .crew/roles/builder.md | 42
+  ++++++++++++++++++++++++------------------
+   PLAY.md                | 11 ++++++-----
+   2 files changed, 30 insertions(+), 23 deletions(-)
+
+  I replaced .crew/roles/builder.md's "Build requests
+  from the player (💭)" section and PLAY.md's "Build"
+  bullet with the spec's verbatim §7 text:
+  "here"/no-place goes to screen centre with no ground
+  check, a named place still searches and may move with
+  a camera flight, and the front-toward-+z part rule.
+
+  done-4460
+
+✻ Baked for 35s · done 8:30 PM
+
+───────────────────────────────────────────────────────
+❯
+───────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)
