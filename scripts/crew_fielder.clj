@@ -13,12 +13,17 @@
 ;;
 ;;   bb crew-fielder [--dry-run]
 ;;
-;; Logs every attempt (never a screen or a token) to crew/fielder.log.
+;; Logs every attempt (never a screen or a token) to crew/fielder.log. Every prompt it
+;; leaves alone (risky or unreadable) is also forwarded once into the twin's Hermes chat
+;; (scripts/hal_relay.py, like a say) with a `bb crew-answer` line to answer it; the
+;; forwarded id is remembered in state/crew-forwarded.edn so it isn't repeated. Nothing
+;; is forwarded while the hold is on, or in --dry-run.
 
 (require '[babashka.process :as p]
          '[cheshire.core :as json]
          '[clojure.edn :as edn]
          '[clojure.java.io :as io]
+         '[clojure.string :as str]
          '[pm.bridge :as b]
          '[pm.prompt :as pr]
          '[pm.crew-log :as cl]
@@ -32,6 +37,9 @@
 (def crew-log-file "state/crew-log.edn")
 (def crew-json-file ".crew/crew.json")
 (def estate-file "resources/estate.edn")
+(def forwarded-file "state/crew-forwarded.edn")
+(def hal-session-file "state/hal-session")
+(def hal-python (str (System/getProperty "user.home") "/.hermes/hermes-agent/venv/bin/python"))
 (def log-file "crew/fielder.log")
 (def start-message "bb crew-fielder: answering routine prompts every 2 s (--dry-run: nothing sent)")
 
@@ -47,10 +55,10 @@
 (defn- crew-json []
   (try (json/parse-string (slurp crew-json-file) true) (catch Exception _ nil)))
 
-(defn- log! [member status reason]
+(defn- log! [member action status reason]
   (try
     (io/make-parents (io/file log-file))
-    (spit log-file (str (b/log-line (str (Instant/now)) member :allow status reason) "\n") :append true)
+    (spit log-file (str (b/log-line (str (Instant/now)) member action status reason) "\n") :append true)
     (catch Exception _)))
 
 (defn- live-for
@@ -65,6 +73,59 @@
      :prompt (when (= status :blocked)
                (let [{:keys [exit out]} (p/sh (b/step-argv herdr member [:read]))]
                  (when (zero? exit) (pr/read-prompt out (repo-path)))))}))
+
+(defn- hal-session []
+  (let [s (try (str/trim (slurp hal-session-file)) (catch Exception _ ""))]
+    (when (re-matches #"[A-Za-z0-9_-]{1,120}" s) s)))
+
+(defn- write-forwarded! [fwd]
+  (try
+    (let [f   (io/file forwarded-file)
+          tmp (io/file (str forwarded-file ".tmp"))]
+      (io/make-parents f)
+      (spit tmp (pr-str fwd))
+      (.renameTo tmp f))
+    (catch Exception _ false)))
+
+(defonce ^:private !no-session-logged (atom false))
+
+(defn- forward-step!
+  "Processes every forwardable prompt in order. Re-checks the hold and the
+   twin's session fresh before each one, stopping the rest of the batch
+   (via `reduced`) the moment either blocks -- a hold flipped on, or no
+   session, mid-poll. The missing-session note is logged once per process.
+   Returns forwarded, updated in memory only for --dry-run."
+  [ctx titles repo dry-run? forwarded]
+  (reduce
+    (fn [fw {:keys [member prompt]}]
+      (cond
+        (cl/hold-on? (cl/parse-hold (slurp-or-nil hold-file)))
+        (reduced fw)
+
+        (not (hal-session))
+        (do (when (compare-and-set! !no-session-logged false true)
+              (log! nil :forward "-" "no twin chat (state/hal-session): not forwarding"))
+            (reduced fw))
+
+        :else
+        (let [title  (get titles member (name member))
+              reason (or (pr/risk-reason (:kind prompt) (:text prompt) repo)
+                         (when (:risky prompt) "flagged risky"))
+              text   (f/forward-text title member prompt reason)]
+          (if dry-run?
+            (do (log! member :forward "-" "dry-run: would forward")
+                (f/record-forward fw member prompt (System/currentTimeMillis)))
+            (let [argv (b/relay-argv hal-python "scripts/hal_relay.py" (hal-session) text)
+                  {:keys [exit out]} (apply p/sh {:extra-env {"PYTHONPATH" (str (System/getProperty "user.home") "/.hermes/hermes-agent")}} argv)
+                  ok?  (and (zero? exit) (b/relay-ok? out))
+                  fw'  (f/record-forward fw member prompt (System/currentTimeMillis))]
+              (if ok?
+                (log! member :forward 200 "forwarded to the twin")
+                (log! member :forward 502 "forward failed"))
+              (write-forwarded! fw')
+              fw')))))
+    forwarded
+    (f/forwardable ctx forwarded)))
 
 (defn- write-crew-log! [entry]
   (try
@@ -99,8 +160,8 @@
       (cond
         dry-run?
         (if (:ok d)
-          (log! member "-" "dry-run: would allow")
-          (log! member (:status d) (:reason d)))
+          (log! member :allow "-" "dry-run: would allow")
+          (log! member :allow (:status d) (:reason d)))
 
         (:ok d)
         (let [ok? (every? (fn [step] (zero? (:exit (p/sh (b/step-argv herdr member step))))) (:steps d))]
@@ -108,28 +169,32 @@
             (do
               (when-let [e (f/log-entry now member live)]
                 (write-crew-log! e))
-              (log! member 200 "allowed"))
-            (log! member 502 "herdr failed")))
+              (log! member :allow 200 "allowed"))
+            (log! member :allow 502 "herdr failed")))
 
         :else
-        (log! member (:status d) (:reason d)))
+        (log! member :allow (:status d) (:reason d)))
       tried)))
 
 (defn -main [& args]
   (let [dry-run? (boolean (some #{"--dry-run"} args))]
     (println start-message)
-    (log! nil "-" start-message)
-    (loop [tried {}]
-      (let [tried' (try
-                     (let [ctx (ctx-now tried)]
-                       (reduce (fn [tr {:keys [member prompt]}]
-                                 (handle-one! member prompt dry-run? tr))
-                               tried
-                               (f/due ctx)))
-                     (catch Exception ex
-                       (log! nil "-" (str "error: " (.getMessage ex)))
-                       tried))]
+    (log! nil nil "-" start-message)
+    (loop [tried {} forwarded (f/parse-forwarded (slurp-or-nil forwarded-file))]
+      (let [[tried' forwarded']
+            (try
+              (let [ctx  (ctx-now tried)
+                    tr2  (reduce (fn [tr {:keys [member prompt]}]
+                                   (handle-one! member prompt dry-run? tr))
+                                 tried
+                                 (f/due ctx))
+                    ctx2 (ctx-now tr2)
+                    fw2  (forward-step! ctx2 (:titles (:crew ctx2)) (repo-path) dry-run? forwarded)]
+                [tr2 fw2])
+              (catch Exception ex
+                (log! nil nil "-" (str "error: " (.getMessage ex)))
+                [tried forwarded]))]
         (Thread/sleep f/every-ms)
-        (recur tried')))))
+        (recur tried' forwarded')))))
 
 (apply -main *command-line-args*)

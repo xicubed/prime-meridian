@@ -7,10 +7,11 @@
 ;; mailbox, phone-booth, lobby) and says the line there, then carries on.
 ;;
 ;; Sends a :say agent-event to the local bridge (bb crew-bridge), which relays it to the
-;; game: the line shows on a speech plate over that walker for a few seconds. When the
-;; speaker is the twin (the default, the estate's twin walker), the line is also his
-;; caption, spoken when voice is on, and kept in the 💭 history -- so what he answers
-;; in his chat can be said back in the world. No answer is waited for.
+;; game: the line shows on a speech plate over that walker for a few seconds, and lands
+;; as a quiet line in that member's own 💭 thread too (pm.talk/observe-says) -- so a
+;; --as <member> line is never speech-plate-only. When the speaker is the twin (the
+;; default, the estate's twin walker), the line is also his caption, spoken when voice
+;; is on. No answer is waited for.
 
 (require '[babashka.http-client.websocket :as ws]
          '[cheshire.core :as json]

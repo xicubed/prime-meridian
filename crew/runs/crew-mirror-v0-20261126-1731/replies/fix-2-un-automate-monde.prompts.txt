@@ -1,0 +1,36 @@
+=== prompt 1 (18:36:29)
+  When you have completely finished, end your reply
+  with a line containing only this: done-3835
+
+  Running diff <(node out/test.js 2>&1 | grep -n "^FAIL
+  in"…
+  ⎿  $ diff <(node out/test.js 2>&1 | grep -n "^FAIL
+     in") - <<'EOF'
+     EOF
+     node out/test.js 2>&1 | grep -n "^FAIL in"
+     echo "---diff stat---"
+     git diff --stat -- src/pm scripts bb.edn
+
+───────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ diff <(node out/test.js 2>&1 | grep -n "^FAIL in")
+ │ - <<'EOF'
+ │ EOF
+ │ node out/test.js 2>&1 | grep -n "^FAIL in"
+ │ echo "---diff stat---"
+ │ git diff --stat -- src/pm scripts bb.edn
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ A command used as a file in this command can't be
+ checked before it runs
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend

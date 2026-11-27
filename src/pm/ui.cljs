@@ -946,8 +946,8 @@
     (.appendChild li text-span)))
 
 (defn- render-crew-row! [^js li entry offset-of crew]
-  (let [{:keys [bridge-on? on-allow on-deny jumeaux]} crew
-        controls (talk/crew-controls entry bridge-on?)
+  (let [{:keys [bridge-on? on-approve on-always on-deny jumeaux]} crew
+        controls (talk/prompt-controls entry bridge-on?)
         ^js time-span (js/document.createElement "span")
         ^js row       (js/document.createElement "div")
         ^js text-span (js/document.createElement "span")]
@@ -956,21 +956,31 @@
     (set! (.-textContent time-span) (talk/clock-text (:at entry) (offset-of (:at entry))))
     (set! (.-className row) "row")
     (when (and controls (:allow? controls))
-      (let [^js cb (js/document.createElement "input")]
-        (set! (.-type cb) "checkbox")
-        (set! (.-disabled cb) (boolean (:disabled? controls)))
-        (.addEventListener cb "change" (fn [^js e] (when (.. e -target -checked) (on-allow (:n entry)))))
-        (.appendChild row cb)))
+      (let [^js allow (js/document.createElement "button")]
+        (set! (.-className allow) "allow")
+        (set! (.-textContent allow) "Allow")
+        (set! (.-disabled allow) (boolean (:disabled? controls)))
+        (.addEventListener allow "click" (fn [_] (on-approve (:n entry))))
+        (.appendChild row allow)))
+    (when (and controls (:always? controls))
+      (let [^js always (js/document.createElement "button")]
+        (set! (.-className always) "always")
+        (set! (.-textContent always) "Always")
+        (set! (.-disabled always) (boolean (:disabled? controls)))
+        (.addEventListener always "click" (fn [_] (on-always (:n entry))))
+        (.appendChild row always)))
+    (when controls
+      (let [^js no (js/document.createElement "button")]
+        (set! (.-className no) "deny")
+        (set! (.-textContent no) "No")
+        (set! (.-disabled no) (boolean (:disabled? controls)))
+        (.addEventListener no "click" (fn [_] (on-deny (:n entry) nil)))
+        (.appendChild row no)))
     (set! (.-className text-span) (str "text" (when (:risky (:prompt entry)) " risky")))
     (set! (.-textContent text-span) (talk/crew-label entry (offset-of (:at entry)) jumeaux))
     (.appendChild row text-span)
     (when controls
-      (let [^js x   (js/document.createElement "button")
-            ^js inp (js/document.createElement "input")]
-        (set! (.-className x) "deny")
-        (set! (.-textContent x) "✕")
-        (set! (.-disabled x) (boolean (:disabled? controls)))
-        (.addEventListener x "click" (fn [_] (on-deny (:n entry) nil)))
+      (let [^js inp (js/document.createElement "input")]
         (set! (.-type inp) "text")
         (.setAttribute inp "placeholder" "reply…")
         (.setAttribute inp "data-n" (str (:n entry)))
@@ -978,7 +988,6 @@
         (.addEventListener inp "keydown"
           (fn [^js e] (when (= "Enter" (.-key e))
                         (on-deny (:n entry) (.. e -target -value)))))
-        (.appendChild row x)
         (.appendChild row inp)))
     (.appendChild li time-span)
     (.appendChild li row)

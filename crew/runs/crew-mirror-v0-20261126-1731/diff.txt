@@ -1,0 +1,1282 @@
+diff --git a/bb.edn b/bb.edn
+index 091afd2..d8b55a2 100644
+--- a/bb.edn
++++ b/bb.edn
+@@ -17,10 +17,13 @@
+                       (System/exit (:exit r)))}
+   juice      {:doc  "The real usage meter: types /usage into an idle Claude member, writes state/juice.edn: bb juice [--watch [S]] [--member NAME]"
+               :task (apply shell "bb" "scripts/juice.clj" *command-line-args*)}
+-  hal-say    {:doc  "An agent speaks on the estate: a bubble over its walker (the twin's line also captioned, spoken, kept in 💭); --at makes it an errand, said there: bb hal-say \"line\" [--as <member>] [--at <where>]"
++  hal-say    {:doc  "An agent speaks on the estate: a bubble over its walker and a quiet line in its own 💭 thread (the twin's line also captioned, spoken); --at makes it an errand, said there: bb hal-say \"line\" [--as <member>] [--at <where>]"
+               :task (apply shell "bb" "scripts/hal_say.clj" *command-line-args*)}
+-  crew-fielder {:doc  "The twin's automatic half: answers routine crew prompts after :answer-after-s; holds while state/hold.edn is on: bb crew-fielder [--dry-run]"
++  crew-fielder {:doc  "The twin's automatic half: answers routine crew prompts after :answer-after-s, forwards every other one (risky/unreadable) to the twin's chat; holds while state/hold.edn is on: bb crew-fielder [--dry-run]"
+                 :task (apply shell "bb" "scripts/crew_fielder.clj" *command-line-args*)}
++  crew-answer {:doc  "The twin answers a prompt crew_fielder.clj forwarded him: bb crew-answer <member> allow|always|deny [--note \"…\"]"
++               :task (let [r (apply shell {:continue true} "bb" "scripts/crew_answer.clj" *command-line-args*)]
++                       (System/exit (:exit r)))}
+   content {:doc  "Generate game content from the GDD: bb content <request>|all [--dry-run]"
+            :task (apply shell "bb" "content/pipeline.clj" *command-line-args*)}
+   content-test {:doc  "Deterministic tests for the scored content loop's pure parts (content/pipeline_test.clj)"
+diff --git a/scripts/crew_bridge.clj b/scripts/crew_bridge.clj
+index a340d7f..809c472 100644
+--- a/scripts/crew_bridge.clj
++++ b/scripts/crew_bridge.clj
+@@ -62,10 +62,9 @@
+ (defn- relay-to-hal!
+   "Passes the player's words into the twin's Hermes chat, tagged as from the game."
+   [text]
+-  (let [{:keys [exit out err]} (p/sh {:extra-env {"PYTHONPATH" (str (System/getProperty "user.home") "/.hermes/hermes-agent")}}
+-                                     hal-python "scripts/hal_relay.py" (hal-session)
+-                                     (str "[from the game] " text))
+-        ok? (and (zero? exit) (str/includes? (str out) "\"ok\": true"))]
++  (let [argv (b/relay-argv hal-python "scripts/hal_relay.py" (hal-session) (str "[from the game] " text))
++        {:keys [exit out err]} (apply p/sh {:extra-env {"PYTHONPATH" (str (System/getProperty "user.home") "/.hermes/hermes-agent")}} argv)
++        ok? (and (zero? exit) (b/relay-ok? out))]
+     (if ok?
+       {:ok true :reason "sent"}
+       {:ok false :status 502 :reason (str "relay failed" (when-let [e (not-empty (str/trim (str err out)))] (str ": " (subs e 0 (min 160 (count e))))))})))
+@@ -144,24 +143,28 @@
+     (catch Exception _)))
+ 
+ (defn- live-for
+-  "The member's status and (when blocked) its prompt, read right now."
++  "The member's status and (when blocked) its prompt, read right now, plus
++   a top-level :always (pm.prompt/always-option) when the dialog itself
++   offers a \"don't ask again\" option."
+   [member]
+   (let [{:keys [exit out]} (p/sh (b/step-argv herdr member [:list]))
+         status (if (zero? exit)
+                  (:status (get (b/agent-statuses (json/parse-string out true)) member {:status :unknown}))
+-                 :unknown)]
+-    {:status status
+-     :prompt (when (= status :blocked)
+-               (let [{:keys [exit out]} (p/sh (b/step-argv herdr member [:read]))]
+-                 (when (zero? exit) (pr/read-prompt out (repo-path)))))}))
++                 :unknown)
++        screen (when (= status :blocked)
++                 (let [{:keys [exit out]} (p/sh (b/step-argv herdr member [:read]))]
++                   (when (zero? exit) out)))]
++    (cond-> {:status status :prompt (when screen (pr/read-prompt screen (repo-path)))}
++      (and screen (integer? (pr/always-option screen))) (assoc :always (pr/always-option screen)))))
+ 
+ (defn- append-crew-log!
+-  "Appends an allow/deny outcome to state/crew-log.edn. A failure is logged
+-   and never changes the bridge's reply."
+-  [member action prompt]
++  "Appends an allow/deny outcome to state/crew-log.edn, credited to `by`
++   (the player, unless the request named itself as the twin -- bb
++   crew-answer). A failure is logged and never changes the bridge's reply."
++  [member action prompt by]
+   (try
+     (let [cur  (cl/parse (try (slurp crew-log-file) (catch Exception _ nil)))
+-          e    (cl/entry (System/currentTimeMillis) member action :player prompt)
++          e    (cl/entry (System/currentTimeMillis) member action by prompt)
+           log' (cl/append cur e)]
+       (when-not (write-edn! crew-log-file log')
+         (throw (ex-info "write failed" {}))))
+@@ -340,10 +343,12 @@
+                       (let [ran    (run-decided! (:member v) decision)
+                             reason (if (:ok ran) (:reason decision) (:reason ran))
+                             final  (if (:ok ran) decision ran)
+-                            r      (b/reply (assoc final :reason reason) origin)]
+-                        (log! (:member v) (:action v) (:status r) reason)
+-                        (when (and (:ok ran) (contains? #{:allow :deny} (:action v)))
+-                          (append-crew-log! (:member v) (if (= :allow (:action v)) :allowed :declined) (:prompt live)))
++                            r      (b/reply (assoc final :reason reason) origin)
++                            by     (or (:by v) :player)
++                            log-reason (if (and (:ok ran) (= :twin by)) (str reason " by the twin") reason)]
++                        (log! (:member v) (:action v) (:status r) log-reason)
++                        (when (and (:ok ran) (b/log-action (:action v)))
++                          (append-crew-log! (:member v) (b/log-action (:action v)) (:prompt live) by))
+                         {:status (:status r) :headers (:headers r) :body (json/generate-string (:body r))}))))))))))))))))
+ 
+ (defn -main [& _]
+diff --git a/scripts/crew_fielder.clj b/scripts/crew_fielder.clj
+index e1f34b5..34787da 100644
+--- a/scripts/crew_fielder.clj
++++ b/scripts/crew_fielder.clj
+@@ -13,12 +13,17 @@
+ ;;
+ ;;   bb crew-fielder [--dry-run]
+ ;;
+-;; Logs every attempt (never a screen or a token) to crew/fielder.log.
++;; Logs every attempt (never a screen or a token) to crew/fielder.log. Every prompt it
++;; leaves alone (risky or unreadable) is also forwarded once into the twin's Hermes chat
++;; (scripts/hal_relay.py, like a say) with a `bb crew-answer` line to answer it; the
++;; forwarded id is remembered in state/crew-forwarded.edn so it isn't repeated. Nothing
++;; is forwarded while the hold is on, or in --dry-run.
+ 
+ (require '[babashka.process :as p]
+          '[cheshire.core :as json]
+          '[clojure.edn :as edn]
+          '[clojure.java.io :as io]
++         '[clojure.string :as str]
+          '[pm.bridge :as b]
+          '[pm.prompt :as pr]
+          '[pm.crew-log :as cl]
+@@ -32,6 +37,9 @@
+ (def crew-log-file "state/crew-log.edn")
+ (def crew-json-file ".crew/crew.json")
+ (def estate-file "resources/estate.edn")
++(def forwarded-file "state/crew-forwarded.edn")
++(def hal-session-file "state/hal-session")
++(def hal-python (str (System/getProperty "user.home") "/.hermes/hermes-agent/venv/bin/python"))
+ (def log-file "crew/fielder.log")
+ (def start-message "bb crew-fielder: answering routine prompts every 2 s (--dry-run: nothing sent)")
+ 
+@@ -47,10 +55,10 @@
+ (defn- crew-json []
+   (try (json/parse-string (slurp crew-json-file) true) (catch Exception _ nil)))
+ 
+-(defn- log! [member status reason]
++(defn- log! [member action status reason]
+   (try
+     (io/make-parents (io/file log-file))
+-    (spit log-file (str (b/log-line (str (Instant/now)) member :allow status reason) "\n") :append true)
++    (spit log-file (str (b/log-line (str (Instant/now)) member action status reason) "\n") :append true)
+     (catch Exception _)))
+ 
+ (defn- live-for
+@@ -66,6 +74,40 @@
+                (let [{:keys [exit out]} (p/sh (b/step-argv herdr member [:read]))]
+                  (when (zero? exit) (pr/read-prompt out (repo-path)))))}))
+ 
++(defn- hal-session []
++  (let [s (try (str/trim (slurp hal-session-file)) (catch Exception _ ""))]
++    (when (re-matches #"[A-Za-z0-9_-]{1,120}" s) s)))
++
++(defn- relay-to-hal!
++  "Passes text into the twin's Hermes chat, the same way crew_bridge.clj's
++   relay-to-hal! does for a player's say."
++  [text]
++  (let [argv (b/relay-argv hal-python "scripts/hal_relay.py" (hal-session) text)
++        {:keys [exit out]} (apply p/sh {:extra-env {"PYTHONPATH" (str (System/getProperty "user.home") "/.hermes/hermes-agent")}} argv)]
++    (and (zero? exit) (b/relay-ok? out))))
++
++(defn- write-forwarded! [fwd]
++  (try
++    (let [f   (io/file forwarded-file)
++          tmp (io/file (str forwarded-file ".tmp"))]
++      (io/make-parents f)
++      (spit tmp (pr-str fwd))
++      (.renameTo tmp f))
++    (catch Exception _ false)))
++
++(defn- forward-one!
++  "Relays one forwardable prompt to the twin's chat and records it.
++   Returns forwarded, unchanged on a relay failure (so it's retried)."
++  [titles repo forwarded member prompt]
++  (let [title  (get titles member (name member))
++        reason (pr/risk-reason (:kind prompt) (:text prompt) repo)
++        text   (f/forward-text title member prompt reason)]
++    (if (relay-to-hal! text)
++      (do (log! member :forward 200 "forwarded to the twin")
++          (f/record-forward forwarded member prompt (System/currentTimeMillis)))
++      (do (log! member :forward 502 "forward failed")
++          forwarded))))
++
+ (defn- write-crew-log! [entry]
+   (try
+     (let [cur  (cl/parse (slurp-or-nil crew-log-file))
+@@ -99,8 +141,8 @@
+       (cond
+         dry-run?
+         (if (:ok d)
+-          (log! member "-" "dry-run: would allow")
+-          (log! member (:status d) (:reason d)))
++          (log! member :allow "-" "dry-run: would allow")
++          (log! member :allow (:status d) (:reason d)))
+ 
+         (:ok d)
+         (let [ok? (every? (fn [step] (zero? (:exit (p/sh (b/step-argv herdr member step))))) (:steps d))]
+@@ -108,28 +150,37 @@
+             (do
+               (when-let [e (f/log-entry now member live)]
+                 (write-crew-log! e))
+-              (log! member 200 "allowed"))
+-            (log! member 502 "herdr failed")))
++              (log! member :allow 200 "allowed"))
++            (log! member :allow 502 "herdr failed")))
+ 
+         :else
+-        (log! member (:status d) (:reason d)))
++        (log! member :allow (:status d) (:reason d)))
+       tried)))
+ 
+ (defn -main [& args]
+   (let [dry-run? (boolean (some #{"--dry-run"} args))]
+     (println start-message)
+-    (log! nil "-" start-message)
+-    (loop [tried {}]
+-      (let [tried' (try
+-                     (let [ctx (ctx-now tried)]
+-                       (reduce (fn [tr {:keys [member prompt]}]
+-                                 (handle-one! member prompt dry-run? tr))
+-                               tried
+-                               (f/due ctx)))
+-                     (catch Exception ex
+-                       (log! nil "-" (str "error: " (.getMessage ex)))
+-                       tried))]
++    (log! nil nil "-" start-message)
++    (loop [tried {} forwarded (f/parse-forwarded (slurp-or-nil forwarded-file))]
++      (let [[tried' forwarded']
++            (try
++              (let [ctx  (ctx-now tried)
++                    tr2  (reduce (fn [tr {:keys [member prompt]}]
++                                   (handle-one! member prompt dry-run? tr))
++                                 tried
++                                 (f/due ctx))
++                    fw2  (if dry-run?
++                           forwarded
++                           (reduce (fn [fw {:keys [member prompt]}]
++                                     (forward-one! (:titles (:crew ctx)) (repo-path) fw member prompt))
++                                   forwarded
++                                   (f/forwardable ctx forwarded)))]
++                (when (not= fw2 forwarded) (write-forwarded! fw2))
++                [tr2 fw2])
++              (catch Exception ex
++                (log! nil nil "-" (str "error: " (.getMessage ex)))
++                [tried forwarded]))]
+         (Thread/sleep f/every-ms)
+-        (recur tried')))))
++        (recur tried' forwarded')))))
+ 
+ (apply -main *command-line-args*)
+diff --git a/scripts/crew_status.clj b/scripts/crew_status.clj
+index 6b2a7a5..c544cc1 100644
+--- a/scripts/crew_status.clj
++++ b/scripts/crew_status.clj
+@@ -2,30 +2,38 @@
+ ;; Crew status for the game: ask Herdr for every agent's lifecycle state, and for a
+ ;; blocked member also read its screen and parse its permission prompt, then write it all
+ ;; to state/crew.edn (gitignored, outside public/, served by pm.dev-http; like the twin's mirrors.edn), which the game polls.
++;; Also watches every Claude member's turn (working/blocked -> idle/done): its last prose
++;; block (pm.prose, never a tool call or diff) becomes one rolling entry in state/crew-said.edn.
+ ;;
+ ;;   bb crew-status          # every 2 s until stopped
+ ;;   bb crew-status --once   # one write
+ ;;
+ ;; Writes names, states, titles and parsed prompts only — never a raw screen:
+ ;;   {:as-of 1794100000000 :agents {:un-automate-monde {:status :blocked :since 1794099000000
+-;;                                                       :prompt {:id .. :kind :bash :text .. :risky false :since ..}}}
++;;                                                       :prompt {:id .. :kind :bash :text .. :risky false
++;;                                                                :since .. :always 2}}}
+ ;;    :titles {:un-automate-monde "Un Automate (monde)" ...}}
+-;; A prompt's map now has 5 keys (:since is the first poll that saw it): a
+-;; member only gets one once the same dialog has been seen on two
+-;; consecutive polls at least pr/confirm-ms apart (pm.prompt/observe-prompts).
++;; A prompt's map now has 5 keys (:since is the first poll that saw it), plus :always
++;; (pm.prompt/with-always) when the dialog itself offers a "don't ask again" option. A
++;; member only gets one once the same dialog has been seen on two consecutive polls at
++;; least pr/confirm-ms apart (pm.prompt/observe-prompts).
+ ;; An agent's own :since is when its current status began (kept across
+ ;; writes while the status doesn't change); pm.crew/stalled? reads it to
+ ;; catch an agent that stops reporting while busy past c/stall-ms (GDD
+ ;; §4.4, §4.8, §3.1), so nothing shows busy forever.
+ ;; States are Herdr's: :idle :working :blocked :done :unknown. Herdr not running → :agents {}.
++;; state/crew-said.edn (pm.prose/add-said): {:as-of .. :said {:member [{:at .. :text ..
++;; :question? ..} ...]}}, last ~20 per member, read-only for the game.
+ 
+ (require '[babashka.process :as p]
+          '[cheshire.core :as json]
+          '[clojure.java.io :as io]
+          '[pm.bridge :as b]
+-         '[pm.prompt :as pr])
++         '[pm.prompt :as pr]
++         '[pm.prose :as pz])
+ 
+ (def out-file "state/crew.edn")
++(def said-file "state/crew-said.edn")
+ (def crew-json-file ".crew/crew.json")
+ (def every-ms 2000)
+ (def herdr (or (System/getenv "HERDR") "herdr"))
+@@ -36,13 +44,14 @@
+ (defn- crew-json []
+   (try (json/parse-string (slurp crew-json-file) true) (catch Exception _ nil)))
+ 
+-(defn agents []
++(defn herdr-list []
+   (try
+     (let [{:keys [exit out]} (p/sh [herdr "agent" "list"])]
+-      (if (zero? exit)
+-        (b/agent-statuses (json/parse-string out true))
+-        {}))
+-    (catch Exception _ {})))
++      (when (zero? exit) (json/parse-string out true)))
++    (catch Exception _ nil)))
++
++(defn agents [raw]
++  (if raw (b/agent-statuses raw) {}))
+ 
+ (defn- screen-for [member]
+   (try
+@@ -50,10 +59,38 @@
+       (when (zero? exit) out))
+     (catch Exception _ nil)))
+ 
++(defn- screen-recent-for [member]
++  (try
++    (let [{:keys [exit out]} (p/sh (b/step-argv herdr member [:read-recent]))]
++      (when (zero? exit) out))
++    (catch Exception _ nil)))
++
+ (defn screens-for [agents members]
+   (let [to-read (pr/screens-to-read agents members)]
+     (into {} (map (fn [m] [m (screen-for m)]) to-read))))
+ 
++(defn turn-said
++  "said, with one more pz/add-said for every claude-member whose turn just
++   ended (pz/turn-ended?, prev status -> agents' status): its recent
++   screen's last prose block, when it has one."
++  [said prev agents claude-members now]
++  (reduce (fn [s m]
++            (if (pz/turn-ended? (:status (get prev m)) (:status (get agents m)))
++              (if-let [line (pz/last-said (screen-recent-for m))]
++                (pz/add-said s m line now)
++                s)
++              s))
++          said
++          claude-members))
++
++(defn write-said! [said]
++  (when (map? said)
++    (let [f   (io/file said-file)
++          tmp (io/file (str said-file ".tmp"))]
++      (io/make-parents f)
++      (spit tmp (pr-str said))
++      (.renameTo tmp f))))
++
+ (defn working-screens
+   "Screens of the members Herdr says are working: a busy agent's screen keeps
+    changing (its spinner and timer tick), so one that stops changing has
+@@ -86,9 +123,11 @@
+     (.renameTo tmp f)))
+ 
+ (defn- poll [members seen]
+-  (let [a   (agents)
+-        scr (screens-for a members)]
+-    (pr/observe-prompts a scr (repo-path) seen (System/currentTimeMillis))))
++  (let [raw (herdr-list)
++        a   (agents raw)
++        scr (screens-for a members)
++        r   (pr/observe-prompts a scr (repo-path) seen (System/currentTimeMillis))]
++    (assoc r :agents (pr/with-always (:agents r) scr) :raw raw)))
+ 
+ (defn -main [& args]
+   (if (some #{"--once"} args)
+@@ -98,16 +137,20 @@
+           _       (Thread/sleep pr/confirm-ms)
+           r2      (poll mset (:seen r1))]
+       (write! (with-since (:agents r2) {} (System/currentTimeMillis) {}) members))
+-    (loop [last nil seen nil prev {}]
++    (loop [last nil seen nil prev {} said nil]
+       (let [members (b/roster (crew-json))
+-            {:keys [agents seen]} (poll (set (keys members)) seen)
++            {:keys [agents seen raw]} (poll (set (keys members)) seen)
+             now     (System/currentTimeMillis)
+-            agents' (with-since agents prev now (working-screens agents (set (keys members))))]
++            agents' (with-since agents prev now (working-screens agents (set (keys members))))
++            claude  (pz/claude-members raw)
++            said'   (turn-said said prev agents claude now)]
+         ;; rewrite when something changed (a prompt change counts), and every 10 s anyway
+         ;; so :as-of stays fresh
+         (when (or (not= agents last) (zero? (mod (quot now every-ms) 5)))
+           (write! agents' members))
++        (when (not= said' said)
++          (write-said! said'))
+         (Thread/sleep every-ms)
+-        (recur agents seen agents')))))
++        (recur agents seen agents' said')))))
+ 
+ (apply -main *command-line-args*)
+diff --git a/scripts/hal_say.clj b/scripts/hal_say.clj
+index bfb338a..01a7e05 100644
+--- a/scripts/hal_say.clj
++++ b/scripts/hal_say.clj
+@@ -7,10 +7,11 @@
+ ;; mailbox, phone-booth, lobby) and says the line there, then carries on.
+ ;;
+ ;; Sends a :say agent-event to the local bridge (bb crew-bridge), which relays it to the
+-;; game: the line shows on a speech plate over that walker for a few seconds. When the
+-;; speaker is the twin (the default, the estate's twin walker), the line is also his
+-;; caption, spoken when voice is on, and kept in the 💭 history -- so what he answers
+-;; in his chat can be said back in the world. No answer is waited for.
++;; game: the line shows on a speech plate over that walker for a few seconds, and lands
++;; as a quiet line in that member's own 💭 thread too (pm.talk/observe-says) -- so a
++;; --as <member> line is never speech-plate-only. When the speaker is the twin (the
++;; default, the estate's twin walker), the line is also his caption, spoken when voice
++;; is on. No answer is waited for.
+ 
+ (require '[babashka.http-client.websocket :as ws]
+          '[cheshire.core :as json]
+diff --git a/src/pm/bridge.cljc b/src/pm/bridge.cljc
+index 5faf0ab..e5a505a 100644
+--- a/src/pm/bridge.cljc
++++ b/src/pm/bridge.cljc
+@@ -12,7 +12,7 @@
+ (def allowed-origin "http://localhost:8080")
+ (def max-text 1000)
+ (def max-body 4096)
+-(def actions #{"allow" "deny" "say"})
++(def actions #{"allow" "deny" "say" "approve" "always"})
+ (def wait-ms 5000)
+ (def hold-uri "/hold")
+ (def events-uri "/events")
+@@ -177,19 +177,27 @@
+ 
+           :else
+           (let [action (keyword (get body "action"))
+-                pid    (get body "prompt-id")]
+-            (if (and (contains? #{:allow :deny} action)
+-                     (not (and (string? pid) (re-matches prompt-id-re pid))))
++                pid    (get body "prompt-id")
++                by-raw (get body "by")]
++            (cond
++              (and (contains? #{:allow :deny :approve :always} action)
++                   (not (and (string? pid) (re-matches prompt-id-re pid))))
+               {:ok false :status 400 :reason "bad prompt-id"}
++
++              (and (contains? body "by") (not (contains? #{"twin" "player"} by-raw)))
++              {:ok false :status 400 :reason "bad by"}
++
++              :else
+               (let [tr (case action
+-                         :allow {:text nil}
++                         (:allow :approve :always) {:text nil}
+                          :deny  (validate-text (get body "text") false)
+                          :say   (validate-text (get body "text") true))]
+                 (if (:error tr)
+                   {:ok false :status 400 :reason (:error tr)}
+-                  {:ok true :member member :action action
+-                   :prompt-id (if (= action :say) nil pid)
+-                   :text (:text tr)})))))))))
++                  (cond-> {:ok true :member member :action action
++                           :prompt-id (if (= action :say) nil pid)
++                           :text (:text tr)}
++                    (and (contains? body "by") (not= action :say)) (assoc :by (keyword by-raw))))))))))))
+ 
+ (defn validate-ws
+   "Whether a websocket handshake to `/events` should be accepted (GDD
+@@ -288,8 +296,21 @@
+ 
+ (defn decide [v live]
+   (let [{:keys [action prompt-id text]} v
+-        {:keys [status prompt]} live]
++        {:keys [status prompt always]} live]
+     (case action
++      :approve
++      (cond
++        (not= status :blocked) {:ok false :status 409 :reason "not blocked"}
++        (or (nil? prompt) (not= (:id prompt) prompt-id)) {:ok false :status 409 :reason "prompt changed"}
++        :else {:ok true :steps [[:keys "1"]] :reason "allowed"})
++
++      :always
++      (cond
++        (not= status :blocked) {:ok false :status 409 :reason "not blocked"}
++        (or (nil? prompt) (not= (:id prompt) prompt-id)) {:ok false :status 409 :reason "prompt changed"}
++        (not (integer? always)) {:ok false :status 409 :reason "no always option"}
++        :else {:ok true :steps [[:keys (str always)]] :reason "allowed always"})
++
+       :allow
+       (cond
+         (not= status :blocked) {:ok false :status 409 :reason "not blocked"}
+@@ -313,6 +334,15 @@
+         (= status :blocked) {:ok false :status 409 :reason "blocked: answer its prompt first"}
+         :else {:ok false :status 409 :reason "busy"}))))
+ 
++(defn log-action
++  "The crew-log action for a successful request's :action, or nil for one
++   that isn't logged (:say)."
++  [action]
++  (case action
++    (:allow :approve :always) :allowed
++    :deny :declined
++    nil))
++
+ (defn reply [decision origin]
+   (let [headers (merge {"Content-Type" "application/json"} (cors-headers origin))]
+     (if (:ok decision)
+@@ -327,9 +357,19 @@
+       ;; Herdr has no `--`; it reads a leading "-" as an option, so such text gets a space first.
+       :prompt    [herdr "agent" "prompt" m (let [t (second step)] (if (re-find #"^-" t) (str " " t) t))]
+       :read      [herdr "agent" "read" m "--source" "visible"]
++      :read-recent [herdr "agent" "read" m "--source" "recent" "--lines" "200"]
+       :list      [herdr "agent" "list"]
+       nil)))
+ 
++(defn relay-argv
++  "argv for the same relay python script and success test crew_bridge.clj
++   and crew_answer use to pass text into the twin's chat."
++  [python script session text]
++  [python script session text])
++
++(defn relay-ok? [out]
++  (and (string? out) (str/includes? out "\"ok\": true")))
++
+ (defn- loggable [v]
+   (cond
+     (keyword? v) (name v)
+@@ -340,5 +380,5 @@
+   (let [m (loggable member)
+         a (loggable action)
+         m' (cond (nil? member) "-" (and m (re-matches name-re m)) m :else "?")
+-        a' (cond (nil? action) "-" (and a (or (contains? actions a) (contains? #{"hold" "ws" "view"} a))) a :else "?")]
++        a' (cond (nil? action) "-" (and a (or (contains? actions a) (contains? #{"hold" "ws" "view" "forward"} a))) a :else "?")]
+     (str iso " " m' " " a' " " status " " reason)))
+diff --git a/src/pm/core.cljs b/src/pm/core.cljs
+index 60a78e3..0ed8cbd 100644
+--- a/src/pm/core.cljs
++++ b/src/pm/core.cljs
+@@ -30,6 +30,7 @@
+             [pm.pick :as pick]
+             [pm.scene :as scene]
+             [pm.plan :as plan]
++            [pm.prose :as prose]
+             [pm.ask-build :as ab]
+             [pm.talk :as talk]
+             [pm.today :as today]
+@@ -282,6 +283,27 @@
+     (fetch-crew-log!)
+     (swap! !crew-log-poll assoc :timer (js/setInterval fetch-crew-log! crew-talk-poll-ms))))
+ 
++(def crew-said-url "/state/crew-said.edn")
++
++(defonce ^:private !crew-said-poll (atom {:timer nil :busy? false}))
++
++(defn- fetch-crew-said! []
++  (when-not (:busy? @!crew-said-poll)
++    (swap! !crew-said-poll assoc :busy? true)
++    (-> (js/fetch (str crew-said-url "?t=" (js/Date.now)) #js {:cache "no-store"})
++        (.then (fn [^js resp] (if (.-ok resp) (.text resp) nil)))
++        (.then (fn [text]
++                 (let [s (prose/parse-said text)]
++                   (when (not= s (:crew-said @!world))
++                     (swap! !world assoc :crew-said s)))))
++        (.catch (fn [_]))
++        (.finally (fn [] (swap! !crew-said-poll assoc :busy? false))))))
++
++(defn- start-crew-said-poll! []
++  (when (nil? (:timer @!crew-said-poll))
++    (fetch-crew-said!)
++    (swap! !crew-said-poll assoc :timer (js/setInterval fetch-crew-said! crew-talk-poll-ms))))
++
+ (def juice-file-url "/state/juice.edn")
+ (def juice-poll-ms 60000)
+ (defonce ^:private !juice-poll (atom {:timer nil :busy? false}))
+@@ -797,6 +819,18 @@
+     (when (= :sending (:state e))
+       (post-crew! (:member e) :deny (:id (:prompt e)) (:note e) n))))
+ 
++(defn- on-approve [n]
++  (swap! !world update :talk talk/crew-send n :approve nil)
++  (let [e (talk/entry (:talk @!world) n)]
++    (when (= :sending (:state e))
++      (post-crew! (:member e) :approve (:id (:prompt e)) nil n))))
++
++(defn- on-always [n]
++  (swap! !world update :talk talk/crew-send n :always nil)
++  (let [e (talk/entry (:talk @!world) n)]
++    (when (= :sending (:state e))
++      (post-crew! (:member e) :always (:id (:prompt e)) nil n))))
++
+ (defn- send-answer!
+   "Answers a pending ask_player question (GDD §3.1, §2.1, §4.8): sends a
+    real :answer event for `agent` out over the bridge's websocket --
+@@ -1001,13 +1035,23 @@
+ (defn- gone-fn [entry]
+   (talk/gone? entry (:crew @!world) (js/Date.now)))
+ 
++(defn- merged-asks
++  "pm.world's own ask_player questions (GDD §3.1), plus every idle
++   member's unanswered said question (talk/said-questions) -- never
++   written back into :asks-player itself. Real ask_player questions win
++   a key clash."
++  [now]
++  (merge (talk/said-questions (:talk @!world) (:crew @!world) now) (:asks-player @!world)))
++
+ (defn- talk-tick! [now]
+   (let [jum (j/names @!world)
+         t  (:talk @!world)
+         t' (-> t
+                (talk/observe @!world now)
+                (talk/observe-crew (:crew @!world) now (talk/policy (:crew-talk @!world) (:hold @!world)))
+-               (talk/observe-log (:crew-log @!world) (:crew @!world) now jum))]
++               (talk/observe-log (:crew-log @!world) (:crew @!world) now jum)
++               (talk/observe-said (:crew-said @!world) (:crew @!world) now)
++               (talk/observe-says @!world))]
+     (when-not (identical? t' t)
+       (swap! !world assoc :talk t'))
+     ;; 1. a call ends itself: End clicked elsewhere, the 💭 toggle, Escape,
+@@ -1049,11 +1093,13 @@
+           (when-not (and (identical? (:entries t') (:listed @!talk-ui)) (= bridge-on (:listed-bridge @!talk-ui)))
+             (let [keep-scroll? (= (:n t') (:listed-n @!talk-ui))]
+               (ui/render-panel! (:entries t') offset-of label-of pick! on-check keep-scroll?
+-                                 {:bridge-on? bridge-on :on-allow on-allow :on-deny on-deny :jumeaux jum
++                                 {:bridge-on? bridge-on :on-allow on-allow :on-deny on-deny
++                                  :on-approve on-approve :on-always on-always :jumeaux jum
+                                   :twin (:agent twin)} gone-fn)
+               (swap! !talk-ui assoc :listed (:entries t') :listed-n (:n t') :listed-bridge bridge-on)))
+           (swap! !talk-ui assoc :listed nil :listed-n nil :listed-bridge nil)))
+-      (let [asked (set (map keyword (keys (:asks-player @!world))))
++      (let [asks  (merged-asks now)
++            asked (set (map keyword (keys asks)))
+             w     @!world
+             ;; the creatures are contacts too: their lines and chores make their thread
+             colors (crew/colors w)
+@@ -1072,7 +1118,7 @@
+                         (merge row (when entry (walker-colours entry)) {:dot (:color d)})))
+             rows  (-> (talk/crew-roster (:crew w) now (bridge-on?) (:crew-log w) (:expanded @!talk-ui) asked)
+                       (talk/with-walkers (:walkers w) (:agent twin) asked DEMO)
+-                      (talk/with-questions (:asks-player w))
++                      (talk/with-questions asks)
+                       (talk/with-twin twin (bridge-on?) (twin-thinking? w now))
+                       (->> (mapv dressed))
+                       (into pets)
+@@ -1108,7 +1154,7 @@
+     (when (kit/handle) (creature-spike/tick! dt' now))
+     (when-let [h (kit/handle)] (camera/save-tick! h now))
+     (when-let [h (kit/handle)] (view-tick! h now))
+-    (bricks/set-dots! (:crew @!world) (:asks-player @!world) (js/Date.now)
++    (bricks/set-dots! (:crew @!world) (merged-asks (js/Date.now)) (js/Date.now)
+                       (twin-dots @!world (js/Date.now) (crew/colors @!world))
+                       (:call @!world))
+     (bricks/set-says! (world/says-now @!world (js/Date.now)))
+@@ -1938,6 +1984,7 @@
+         (start-crew-poll!)
+         (start-bridge-poll!)
+         (start-crew-log-poll!)
++        (start-crew-said-poll!)
+         (start-hold-poll!)
+         (start-juice-poll!)))
+   (kit/load! start-kit! start-scaffold!))
+diff --git a/src/pm/crew.cljs b/src/pm/crew.cljs
+index bb44a84..babc850 100644
+--- a/src/pm/crew.cljs
++++ b/src/pm/crew.cljs
+@@ -58,7 +58,10 @@
+                                             since (:since vv)]
+                                         [k (cond-> {:status s}
+                                              (and (= s :blocked) (valid-prompt? p))
+-                                             (assoc :prompt (select-keys p [:id :kind :text :risky :since]))
++                                             (assoc :prompt
++                                                    (cond-> (select-keys p [:id :kind :text :risky :since])
++                                                      (and (integer? (:always p)) (<= 2 (:always p) 9))
++                                                      (assoc :always (:always p))))
+                                              ;; when this agent last changed status (scripts/crew_status.clj),
+                                              ;; so a long-unchanged "busy" status can be read as stalled below.
+                                              (and (integer? since) (not (neg? since)))
+diff --git a/src/pm/fielder.cljc b/src/pm/fielder.cljc
+index ccdd23c..d2eb736 100644
+--- a/src/pm/fielder.cljc
++++ b/src/pm/fielder.cljc
+@@ -4,8 +4,10 @@
+    members have a routine prompt due to be answered, and whether a live
+    re-read still allows it. No I/O, no js/Date, no atoms — `now` is always
+    an argument. Never required by pm.core."
+-  (:require [pm.bridge :as b]
+-            [pm.crew-log :as cl]))
++  (:require [clojure.string :as str]
++            [pm.bridge :as b]
++            [pm.crew-log :as cl]
++            #?(:clj [clojure.edn :as edn] :cljs [cljs.reader :as reader])))
+ 
+ (def default-answer-after-s 5)
+ (def every-ms 2000)
+@@ -93,3 +95,124 @@
+    per sighting."
+   [tried member prompt]
+   (assoc (or tried {}) member {:id (:id prompt) :since (:since prompt)}))
++
++;; -- forwarding a prompt the fielder leaves to the twin's chat --
++
++(defn forwardable
++  "Every member (sorted) the fielder leaves alone — verdict :unknown or
++   :risky — whose prompt hasn't already been forwarded (by id) or answered
++   in the log since it started, as {:member :prompt}. [] on a nil crew or
++   while the hold is on (verdict already covers both)."
++  [ctx forwarded]
++  (let [agents (get-in ctx [:crew :agents])]
++    (if-not (map? agents)
++      []
++      (vec (keep (fn [m]
++                   (when (contains? #{:unknown :risky} (verdict ctx m))
++                     (let [p (:prompt (get agents m))]
++                       (when (and (not= (:id p) (get-in forwarded [:forwarded m :id]))
++                                  (not (some (fn [x]
++                                               (and (= m (:member x))
++                                                    (= (:id p) (:prompt-id x))
++                                                    (or (not (integer? (:since p)))
++                                                        (>= (:at x) (:since p)))))
++                                             (or (:log ctx) []))))
++                         {:member m :prompt p}))))
++                 (sort (keys agents)))))))
++
++(defn forward-text
++  "The twin's chat line for a forwarded prompt: title is the member's
++   display name (pm.jumeaux's titles, e.g. \"Un Automate\"); reason is
++   pm.prompt/risk-reason's result, or nil."
++  [title member p reason]
++  (str "[from the crew] " title " asks to run: " (:text p)
++       (when reason (str " (risky: " reason ")"))
++       " · answer with: bb crew-answer " (name member) " "
++       (if (integer? (:always p)) "allow|always|deny" "allow|deny")
++       " [--note \"…\"]"))
++
++(defn record-forward
++  "forwarded, with member's prompt id recorded against now so it isn't
++   forwarded again until it changes."
++  [forwarded member p now]
++  (-> (or forwarded {})
++      (assoc :as-of now)
++      (assoc-in [:forwarded member] {:id (:id p) :at now})))
++
++(def ^:private forwarded-id-re #"^[0-9a-f]{40}$")
++
++(defn parse-forwarded
++  "state/crew-forwarded.edn's content, read defensively: nil unless it's a
++   map, with every entry's :id a 40-hex string and :at a non-negative
++   integer."
++  [text]
++  (when (string? text)
++    (let [v (try
++              #?(:clj (edn/read-string text) :cljs (reader/read-string text))
++              (catch #?(:clj Exception :cljs :default) _ nil))]
++      (when (map? v)
++        (let [as-of (:as-of v)
++              as-of (if (and (integer? as-of) (not (neg? as-of))) as-of 0)
++              fwd   (into {}
++                          (keep (fn [[k e]]
++                                  (when (and (keyword? k) (map? e)
++                                             (string? (:id e)) (re-matches forwarded-id-re (:id e))
++                                             (integer? (:at e)) (not (neg? (:at e))))
++                                    [k (select-keys e [:id :at])])))
++                          (or (:forwarded v) {}))]
++          {:as-of as-of :forwarded fwd})))))
++
++;; -- bb crew-answer --
++
++(def ^:private answer-usage "usage: bb crew-answer <member> allow|always|deny [--note \"…\"]")
++(def ^:private answer-member-re #"^[a-z][a-z0-9_-]{0,31}$")
++(def ^:private note-control-re #"[\x00-\x1f\x7f]")
++
++(defn answer-request
++  "bb crew-answer's argv, parsed and checked against the crew and the
++   forwarded record, as {:ok true :member :action :prompt-id :text} or
++   {:ok false :reason}. action is a string (\"approve\"/\"always\"/\"deny\")
++   so the caller can pass it straight into the bridge's request body."
++  [argv crew forwarded]
++  (let [argv   (vec argv)
++        m      (nth argv 0 nil)
++        choice (nth argv 1 nil)]
++    (cond
++      (< (count argv) 2) {:ok false :reason answer-usage}
++      (not (and (string? m) (re-matches answer-member-re m))) {:ok false :reason "bad member"}
++      (not (contains? #{"allow" "always" "deny"} choice)) {:ok false :reason answer-usage}
++
++      :else
++      (let [rst (subvec argv 2)]
++        (cond
++          (not (or (empty? rst) (and (= 2 (count rst)) (= "--note" (first rst)))))
++          {:ok false :reason answer-usage}
++
++          (and (seq rst) (not= choice "deny"))
++          {:ok false :reason "--note goes with deny"}
++
++          :else
++          (let [note-raw (second rst)
++                note     (when note-raw (str/trim note-raw))]
++            (cond
++              (and note-raw (str/blank? note)) {:ok false :reason "empty note"}
++              (and note-raw (> (count note) 1000)) {:ok false :reason "note too long"}
++              (and note-raw (re-find note-control-re note-raw)) {:ok false :reason "control characters in note"}
++
++              :else
++              (let [mk     (keyword m)
++                    fwd-id (get-in forwarded [:forwarded mk :id])
++                    id     (if (and (string? fwd-id) (re-matches #"^[0-9a-f]{40}$" fwd-id))
++                             fwd-id
++                             (get-in crew [:agents mk :prompt :id]))]
++                (if (nil? id)
++                  {:ok false :reason (str "no prompt from " m " to answer")}
++                  {:ok true :member mk
++                   :action (get {"allow" "approve" "always" "always" "deny" "deny"} choice)
++                   :prompt-id id :text note})))))))))
++
++(defn answer-body
++  "The bridge POST body for a successful answer-request, from the twin."
++  [req token]
++  (cond-> {"token" token "action" (:action req) "prompt-id" (:prompt-id req) "by" "twin"}
++    (some? (:text req)) (assoc "text" (:text req))))
+diff --git a/src/pm/prompt.cljc b/src/pm/prompt.cljc
+index 9de8d5d..89acf6f 100644
+--- a/src/pm/prompt.cljc
++++ b/src/pm/prompt.cljc
+@@ -12,6 +12,7 @@
+ 
+ (def ^:private box-edge-re #"^\s*[╭╰]─+[╮╯]$")
+ (def ^:private box-side-re #"^\s*│(.*)│$")
++(def ^:private left-border-re #"^│\s?(.*)$")
+ (def ^:private proceed-line "Do you want to proceed?")
+ (def ^:private bash-line "Bash command")
+ (def ^:private option-re #"^(❯\s*)?1\.\s+Yes\b")
+@@ -44,8 +45,14 @@
+           R  (when (and H P)
+                (keep-indexed (fn [i l] (when (and (> i H) (< i P) (re-matches rule-re l)) i)) ls))
+           cmd (when (and P has-option? H (>= (count R) 2))
+-                (let [r0 (first R) r1 (second R)]
+-                  (into [] (remove str/blank?) (subvec ls (inc r0) r1))))]
++                (let [r0 (first R) r1 (second R)
++                      raw (subvec ls (inc r0) r1)
++                      unbordered (mapv (fn [l]
++                                          (if-let [[_ g1] (re-matches left-border-re l)]
++                                            (str/trim g1)
++                                            l))
++                                        raw)]
++                  (into [] (remove str/blank?) unbordered)))]
+       (if (seq cmd)
+         {:kind :bash :lines cmd :full (str/join " " cmd)}
+         {:kind :unknown :full (str/join "\n" (take-last tail-lines (remove str/blank? ls)))}))))
+@@ -98,6 +105,26 @@
+         (and (boolean (re-find write-marker-re text))
+              (some #(outside-path? repo %) (re-seq token-re text))))))
+ 
++(def risk-reasons
++  "Runs parallel to risky-res: the phrase for the first one that matches."
++  ["changes git state" "deletes files" "reaches the network" "reaches the network"
++   "reaches another machine" "reaches another machine" "installs software"
++   "installs software" "installs software" "runs as root" "changes system services"])
++
++(defn risk-reason
++  "Why a prompt is risky, for the twin's chat: the first match wins, nil
++   when nothing explains it (the caller falls back to \"flagged risky\")."
++  [kind text repo]
++  (cond
++    (not= kind :bash) "not a plain shell command"
++    :else
++    (or (first (keep (fn [[re phrase]] (when (re-find re text) phrase))
++                      (map vector risky-res risk-reasons)))
++        (when (and (re-find write-marker-re text)
++                   (some #(outside-path? repo %) (re-seq token-re text)))
++          "writes outside the repo")
++        (when (>= (count text) max-text) "too long to check"))))
++
+ (defn prompt-of [screen repo]
+   (when-let [{:keys [kind lines full]} (parse-screen screen)]
+     (let [risky (if (= kind :bash)
+@@ -148,6 +175,33 @@
+ (defn prompt-screen? [screen]
+   (boolean (dialog-info screen)))
+ 
++(def ^:private opt-line-re #"^(?:❯\s*)?(\d{1,2})\.\s+(.*)$")
++(def ^:private always-text-re #"(?i)^Yes, (?:and don['’]t ask again\b|allow\b)")
++
++(defn always-option
++  "The option number the dialog offers for \"don't ask again\" / \"allow …
++   this session/project\", or nil (Yes/No only, or not a dialog)."
++  [screen]
++  (when-let [{:keys [ls q]} (dialog-info screen)]
++    (first (keep (fn [l]
++                   (when-let [[_ ns txt] (re-matches opt-line-re (str/trim l))]
++                     (let [n #?(:clj (Long/parseLong ns) :cljs (js/parseInt ns 10))]
++                       (when (and (>= n 2) (re-find always-text-re txt)) n))))
++                 (subvec ls (inc q))))))
++
++(defn with-always
++  "agents with [:prompt :always] set to always-option's screen for every
++   blocked member whose screen offers one. Every other entry unchanged."
++  [agents screens]
++  (into {}
++        (map (fn [[m v]]
++               (let [scr (get screens m)]
++                 (if (and (= :blocked (:status v)) (map? (:prompt v)) (string? scr)
++                          (integer? (always-option scr)))
++                   [m (assoc-in v [:prompt :always] (always-option scr))]
++                   [m v]))))
++        agents))
++
+ (defn read-prompt [screen repo]
+   (when-let [{:keys [ls q]} (dialog-info screen)]
+     (let [p (prompt-of screen repo)]
+diff --git a/src/pm/talk.cljs b/src/pm/talk.cljs
+index dc54d98..fb52aeb 100644
+--- a/src/pm/talk.cljs
++++ b/src/pm/talk.cljs
+@@ -9,7 +9,7 @@
+             [pm.jumeaux :as j]
+             [pm.content :as c]))
+ 
+-(def crew-kinds #{:crew-prompt :crew-status :crew-say :crew-log :crew-reply})
++(def crew-kinds #{:crew-prompt :crew-status :crew-say :crew-log :crew-reply :crew-said})
+ (def prompt-states #{:pending :sending :allowed :declined :stale})
+ (def say-states #{:sending :sent :failed})
+ (def you "You")
+@@ -255,8 +255,9 @@
+ 
+ (def quiet-kinds
+   "Entries that aren't messages to the player (status flips, the crew log,
+-   the player's own lines): they never count as unread."
+-  #{:crew-log :crew-status :crew-say})
++   the player's own lines, a member's own prose summary): they never count
++   as unread."
++  #{:crew-log :crew-status :crew-say :crew-said})
+ 
+ (defn counts?
+   "Does this entry count as a message the player hasn't read?"
+@@ -358,10 +359,20 @@
+     (cond-> (assoc talk :entries entries :n n')
+       open? (assoc :seen n'))))
+ 
++(def prompt-preview-max 160)
++
++(defn prompt-preview
++  "A prompt's command, read as the row shows it: the first ~160 chars,
++   then \"…\" when there's more."
++  [text]
++  (if (<= (count text) prompt-preview-max)
++    text
++    (str (subs text 0 (dec prompt-preview-max)) "…")))
++
+ (defn- crew-prompt-text [p]
+   (if (= :bash (:kind p))
+-    (str "wants to run " (:text p))
+-    (str "is waiting at a prompt: " (str/replace (:text p) "\n" " / "))))
++    (str "wants to run " (prompt-preview (:text p)))
++    (str "is waiting at a prompt: " (prompt-preview (str/replace (:text p) "\n" " / ")))))
+ 
+ (defn- stale-pending [entries member eff]
+   (mapv (fn [e]
+@@ -464,8 +475,11 @@
+   (let [talk (or talk empty-talk)
+         e    (entry talk n)]
+     (if-not (and e (= :crew-prompt (:kind e)) (= :pending (:state e))
+-                 (contains? #{:allow :deny} action)
+-                 (or (= action :deny) (allowable? e)))
++                 (contains? #{:allow :deny :approve :always} action)
++                 (or (= action :deny)
++                     (= action :approve)
++                     (and (= action :allow) (allowable? e))
++                     (and (= action :always) (integer? (:always (:prompt e))))))
+       talk
+       (let [note' (when (= action :deny) (clean-note note))]
+         (if (and note' (> (count note') 1000))
+@@ -491,7 +505,8 @@
+                      (case (:kind x)
+                        :crew-prompt
+                        (case result
+-                         :ok (assoc x :state (if (= :allow (:action x)) :allowed :declined) :answered-at now)
++                         :ok (assoc x :state (if (contains? #{:allow :approve :always} (:action x)) :allowed :declined)
++                                    :answered-at now)
+                          :stale (assoc x :state :stale)
+                          :error (-> x (dissoc :action :note) (assoc :state :pending :error reason))
+                          x)
+@@ -556,12 +571,30 @@
+     (boolean (some #(and (= :crew-prompt (:kind %)) (contains? #{:pending :sending} (:state %)))
+                    (:entries talk)))))
+ 
+-(defn crew-controls [e bridge-on?]
+-  (when (and (= :crew-prompt (:kind e)) (contains? #{:pending :sending} (:state e)))
++(defn crew-controls
++  "The old bash-only Allow/No controls: nil for a non-bash (:unknown)
++   prompt, which prompt-controls alone now handles."
++  [e bridge-on?]
++  (when (and (= :crew-prompt (:kind e)) (contains? #{:pending :sending} (:state e))
++             (= :bash (:kind (:prompt e))))
+     (case (:state e)
+       :sending {:allow? (allowable-kind? e) :disabled? true :hint "sending…"}
+       :pending {:allow? (allowable? e) :disabled? (not bridge-on?) :hint (when-not bridge-on? "bridge off")})))
+ 
++(defn prompt-controls
++  "Allow / Always / No controls for any pending or sending crew-prompt,
++   bash or unknown alike (GDD: every permission prompt is answerable in
++   the game; a risky or unknown one still gets Allow, it's the player's
++   call). :always? is true only when the dialog itself offered a \"don't
++   ask again\" option."
++  [e bridge-on?]
++  (when (and (= :crew-prompt (:kind e)) (contains? #{:pending :sending} (:state e)))
++    (let [always? (integer? (:always (:prompt e)))]
++      (case (:state e)
++        :sending {:allow? true :always? always? :disabled? true :hint "sending…"}
++        :pending {:allow? true :always? always? :disabled? (not bridge-on?)
++                  :hint (when-not bridge-on? "bridge off")}))))
++
+ (defn- name-of [action]
+   (case action :allowed "allowed" :declined "declined" nil))
+ 
+@@ -607,6 +640,93 @@
+          talk
+          new)))))
+ 
++(defn observe-said
++  "talk, folding in state/crew-said.edn: for every member with a newer
++   last-said item than it's shown before, one quiet :crew-said line (the
++   member's own end-of-turn summary, GDD-free: no badge, no caption).
++   Identical to `talk` when nothing's newer."
++  [talk said crew-state now]
++  (let [talk (or talk empty-talk)]
++    (if-not (and (map? said) (map? (:said said)))
++      talk
++      (let [titles (if (map? crew-state) (:titles crew-state) {})
++            result (reduce
++                     (fn [t m]
++                       (let [item    (peek (vec (get-in said [:said m])))
++                             prev-at (get-in t [:said-at m])]
++                         (if (and (map? item) (integer? (:at item))
++                                  (or (nil? prev-at) (> (:at item) prev-at)))
++                           (-> t
++                               (assoc-in [:said-at m] (:at item))
++                               (append-crew {:who (get titles m (name m)) :text (:text item)
++                                             :at (:at item) :kind :crew-said :member m
++                                             :question? (boolean (:question? item))}))
++                           t)))
++                     talk
++                     (sort (keys (:said said))))]
++        (if (= result talk) talk result)))))
++
++(defn said-questions
++  "Every idle member with an unanswered question as its last-said line, as
++   {member-name-string {:text :since}} (pm.world's asks-player shape, GDD
++   §3.1): the member's row and walker get the \"!\". Clears when the
++   member goes working again, its current idle period started after the
++   question, or the player has already replied (a :crew-say for it,
++   :sending or :sent). {} on a stale or missing crew-state."
++  [talk crew-state now]
++  (let [talk (or talk empty-talk)]
++    (if (or (nil? crew-state) (not (crew/fresh? crew-state now)))
++      {}
++      (let [entries (:entries talk)
++            last-said (fn [m] (last (filter #(and (= :crew-said (:kind %)) (= m (:member %))) entries)))
++            replied?  (fn [m at] (boolean (some #(and (= :crew-say (:kind %)) (= m (:member %))
++                                                        (contains? #{:sending :sent} (:state %))
++                                                        (>= (:at %) at))
++                                                 entries)))]
++        (into {}
++              (keep (fn [[m a]]
++                      (when (= :idle (:status a))
++                        (when-let [e (last-said m)]
++                          (when (and (true? (:question? e))
++                                     (integer? (:since a)) (<= (:since a) (:at e))
++                                     (not (replied? m (:at e))))
++                            [(name m) {:text (:text e) :since (:at e)}])))))
++              (:agents crew-state))))))
++
++(defn observe-says
++  "talk, folding in world's :says (pm.world's speech markers, keyed by
++   agent name string): a quiet :crew-reply line in a member's thread for
++   every `hal-say --as <member>` line newer than the one shown before.
++   Skips the twin's own agent (its say is heard elsewhere, not relayed
++   into a member's thread). Identical to `talk` when nothing's newer."
++  [talk world]
++  (let [talk (or talk empty-talk)
++        says (:says world)]
++    (if-not (map? says)
++      talk
++      (let [walkers    (:walkers world)
++            twin-name  (get-in world [:jumeaux :twin :name])
++            twin-agent (:agent (first (filter #(= twin-name (:name %)) walkers)))
++            result     (reduce
++                         (fn [t agent-str]
++                           (let [s       (get says agent-str)
++                                 walker  (first (filter #(= agent-str (name (:agent %))) walkers))
++                                 agent   (:agent walker)
++                                 text    (:text s)
++                                 at      (:since s)
++                                 prev-at (get-in t [:says-at agent-str])]
++                             (if (and (some? agent) (not= agent twin-agent)
++                                      (non-blank-str? text) (finite-number? at)
++                                      (or (nil? prev-at) (> at prev-at)))
++                               (-> t
++                                   (assoc-in [:says-at agent-str] at)
++                                   (append-crew {:who (or (:name walker) agent-str) :text text :at at
++                                                 :kind :crew-reply :member agent}))
++                               t)))
++                         talk
++                         (sort (keys says)))]
++        (if (= result talk) talk result)))))
++
+ (defn log-label
+   "The roster's past-entries line for a crew-log.edn entry."
+   ([x offset-min] (log-label x offset-min nil))
+@@ -627,7 +747,8 @@
+               :pending   (str (when risky (str " · " (j/twin jum) " reviews this one"))
+                                (when-let [err (:error e)] (str " · not sent: " err)))
+               :sending   " · sending…"
+-              :allowed   (str " · ☑ allowed " (clock-text (:answered-at e) offset-min))
++              :allowed   (str " · ☑ " (if (= :always (:action e)) "always allowed" "allowed")
++                               " " (clock-text (:answered-at e) offset-min))
+               :declined  (str " · ✕ declined " (clock-text (:answered-at e) offset-min)
+                                (when-let [note (:note e)] (str " · “" note "”")))
+               :stale     (str " · already answered"
+@@ -643,6 +764,7 @@
+             ""))
+      :crew-log (str (:who e) " " (:text e) " · " (clock-text (:at e) offset-min))
+      :crew-reply (str (:who e) " · " (:text e))
++     :crew-said (if (:question? e) (str (:who e) " asks: " (:text e)) (str (:who e) " · " (:text e)))
+      nil)))
+ 
+ (defn with-questions
+@@ -821,7 +943,7 @@
+     (pr-str {:v 1 :n (:n talk) :seen (:seen talk) :seen-by (:seen-by talk) :crew-last (:crew-last talk) :log-at (:log-at talk)
+              :entries (mapv #(select-keys % [:n :who :text :at :kind :mirror :event :chore :done? :asks
+                                                :member :prompt :state :action :note :answered-at :error :to
+-                                               :by :log])
++                                               :by :log :question?])
+                              (:entries talk))})))
+ 
+ (defn- valid-restored-entry? [e]
+@@ -844,7 +966,8 @@
+                 :crew-prompt (and (crew/valid-prompt? (:prompt e)) (contains? prompt-states (:state e)))
+                 :crew-status true
+                 :crew-say (and (non-blank-str? (:to e)) (contains? say-states (:state e)))
+-                :crew-reply true))
++                :crew-reply true
++                :crew-said (boolean? (:question? e))))
+ 
+          :else true)))
+ 
+@@ -868,7 +991,8 @@
+           sending? (assoc :error "not confirmed")
+           (and (not sending?) (string? (:error e))) (assoc :error (:error e))))
+       :crew-log (assoc (select-keys e [:n :who :text :at :kind :member]) :log (cl/upgrade-entry (:log e)))
+-      :crew-reply (select-keys e [:n :who :text :at :kind :member]))
++      :crew-reply (select-keys e [:n :who :text :at :kind :member])
++      :crew-said (select-keys e [:n :who :text :at :kind :member :question?]))
+     (let [base (cond-> (select-keys e [:n :who :text :at :kind])
+                  (keyword? (:mirror e)) (assoc :mirror (:mirror e))
+                  (keyword? (:event e))  (assoc :event (:event e))
+@@ -917,6 +1041,12 @@
+   (into {} (for [e entries :when (and (keyword? (:mirror e)) (not= :chore (:kind e)))]
+              [(:mirror e) (:text e)])))
+ 
++(defn- said-ats
++  "What each member's last-shown crew-said item's :at was, from the
++   history: reconstructed rather than stored, like last-says."
++  [entries]
++  (into {} (for [e entries :when (= :crew-said (:kind e))] [(:member e) (:at e)])))
++
+ (defn restore [text]
+   (let [m (try (reader/read-string text) (catch :default _ nil))]
+     (if-not (and (map? m) (= 1 (:v m)))
+@@ -944,8 +1074,10 @@
+             ;; doesn't bring every line back as unread (Michael)
+             seen-by     (into {} (for [[c v] (when (map? (:seen-by m)) (:seen-by m))
+                                        :when (and (keyword? c) (integer? v))]
+-                                   [c (-> v (max 0) (min n))]))]
++                                   [c (-> v (max 0) (min n))]))
++            said-at     (said-ats entries)]
+         (cond-> (assoc empty-talk :entries entries :n n :seen seen :log-at log-at
+                        :last-say (last-says entries)
+                        :crew-last (clean-crew-last (:crew-last m)))
+-          (seq seen-by) (assoc :seen-by seen-by))))))
++          (seq seen-by) (assoc :seen-by seen-by)
++          (seq said-at) (assoc :said-at said-at))))))
+diff --git a/src/pm/ui.cljs b/src/pm/ui.cljs
+index e74d1ee..d6f718c 100644
+--- a/src/pm/ui.cljs
++++ b/src/pm/ui.cljs
+@@ -946,8 +946,8 @@
+     (.appendChild li text-span)))
+ 
+ (defn- render-crew-row! [^js li entry offset-of crew]
+-  (let [{:keys [bridge-on? on-allow on-deny jumeaux]} crew
+-        controls (talk/crew-controls entry bridge-on?)
++  (let [{:keys [bridge-on? on-allow on-always on-deny jumeaux]} crew
++        controls (talk/prompt-controls entry bridge-on?)
+         ^js time-span (js/document.createElement "span")
+         ^js row       (js/document.createElement "div")
+         ^js text-span (js/document.createElement "span")]
+@@ -956,21 +956,31 @@
+     (set! (.-textContent time-span) (talk/clock-text (:at entry) (offset-of (:at entry))))
+     (set! (.-className row) "row")
+     (when (and controls (:allow? controls))
+-      (let [^js cb (js/document.createElement "input")]
+-        (set! (.-type cb) "checkbox")
+-        (set! (.-disabled cb) (boolean (:disabled? controls)))
+-        (.addEventListener cb "change" (fn [^js e] (when (.. e -target -checked) (on-allow (:n entry)))))
+-        (.appendChild row cb)))
++      (let [^js allow (js/document.createElement "button")]
++        (set! (.-className allow) "allow")
++        (set! (.-textContent allow) "Allow")
++        (set! (.-disabled allow) (boolean (:disabled? controls)))
++        (.addEventListener allow "click" (fn [_] (on-allow (:n entry))))
++        (.appendChild row allow)))
++    (when (and controls (:always? controls))
++      (let [^js always (js/document.createElement "button")]
++        (set! (.-className always) "always")
++        (set! (.-textContent always) "Always")
++        (set! (.-disabled always) (boolean (:disabled? controls)))
++        (.addEventListener always "click" (fn [_] (on-always (:n entry))))
++        (.appendChild row always)))
++    (when controls
++      (let [^js no (js/document.createElement "button")]
++        (set! (.-className no) "deny")
++        (set! (.-textContent no) "No")
++        (set! (.-disabled no) (boolean (:disabled? controls)))
++        (.addEventListener no "click" (fn [_] (on-deny (:n entry) nil)))
++        (.appendChild row no)))
+     (set! (.-className text-span) (str "text" (when (:risky (:prompt entry)) " risky")))
+     (set! (.-textContent text-span) (talk/crew-label entry (offset-of (:at entry)) jumeaux))
+     (.appendChild row text-span)
+     (when controls
+-      (let [^js x   (js/document.createElement "button")
+-            ^js inp (js/document.createElement "input")]
+-        (set! (.-className x) "deny")
+-        (set! (.-textContent x) "✕")
+-        (set! (.-disabled x) (boolean (:disabled? controls)))
+-        (.addEventListener x "click" (fn [_] (on-deny (:n entry) nil)))
++      (let [^js inp (js/document.createElement "input")]
+         (set! (.-type inp) "text")
+         (.setAttribute inp "placeholder" "reply…")
+         (.setAttribute inp "data-n" (str (:n entry)))
+@@ -978,7 +988,6 @@
+         (.addEventListener inp "keydown"
+           (fn [^js e] (when (= "Enter" (.-key e))
+                         (on-deny (:n entry) (.. e -target -value)))))
+-        (.appendChild row x)
+         (.appendChild row inp)))
+     (.appendChild li time-span)
+     (.appendChild li row)
+diff --git a/test/pm/crew_talk_test.cljs b/test/pm/crew_talk_test.cljs
+index 7625c12..88139cc 100644
+--- a/test/pm/crew_talk_test.cljs
++++ b/test/pm/crew_talk_test.cljs
+@@ -174,7 +174,7 @@
+   (is (= "http://localhost:8080" b/allowed-origin))
+   (is (= 1000 b/max-text))
+   (is (= 4096 b/max-body))
+-  (is (= #{"allow" "deny" "say"} b/actions))
++  (is (= #{"allow" "always" "approve" "deny" "say"} b/actions))   ; crew-mirror-v0 added approve/always
+   (is (= 5000 b/wait-ms)))
+ 
+ (def CJ {:members [{:name "hal" :title "Hal" :external true :enabled true}
+@@ -262,7 +262,7 @@
+            (b/validate (rq m ALLOW) CTX))
+         m))
+   (is (= {:ok false :status 400 :reason "bad action"}
+-         (b/validate (rq "le-testeur" (assoc ALLOW "action" "approve")) CTX)))
++         (b/validate (rq "le-testeur" (assoc ALLOW "action" "nope")) CTX)))   ; approve is a real action since crew-mirror-v0
+   (is (= {:ok false :status 400 :reason "bad action"}
+          (b/validate (rq "le-testeur" (dissoc ALLOW "action")) CTX)))
+   (doseq [pid [(str/upper-case ID1) (subs ID1 0 39) nil 5]]
+@@ -565,7 +565,7 @@
+     (is (identical? S (tk/crew-send S 1 :allow nil)))
+     (is (identical? T1 (tk/crew-send T1 99 :allow nil)))
+     (is (identical? T2 (tk/crew-send T2 2 :deny nil)))
+-    (is (identical? T1 (tk/crew-send T1 1 :approve nil)))))
++    (is (identical? T1 (tk/crew-send T1 1 :nope nil)))))   ; :approve is a real action since crew-mirror-v0
+ 
+ (deftest t41-say-lifecycle
+   (let [Q (tk/crew-say T1 :le-testeur "Le Testeur" " please rerun the gate " (+ A 1000))
+diff --git a/test/pm/crew_talk_v1_test.cljs b/test/pm/crew_talk_v1_test.cljs
+index 05dad15..3814f9d 100644
+--- a/test/pm/crew_talk_v1_test.cljs
++++ b/test/pm/crew_talk_v1_test.cljs
+@@ -276,7 +276,7 @@
+   (is (= 403 (:status (b/validate (assoc (hq (assoc H "action" "allow")) :origin "http://evil.example") CTX))))
+   (is (= {:ok false :status 400 :reason "bad action"}
+          (b/validate {:method "POST" :uri "/crew/le-testeur" :origin OK-ORIGIN :body {"token" TOK "action" "hold" "on" true}} CTX)))
+-  (is (= #{"allow" "deny" "say"} b/actions)))
++  (is (= #{"allow" "always" "approve" "deny" "say"} b/actions)))   ; crew-mirror-v0 added approve/always
+ 
+ (deftest t27-log-line
+   (is (= "2026-11-08T17:00:00Z - hold 200 on" (b/log-line "2026-11-08T17:00:00Z" nil :hold 200 "on")))

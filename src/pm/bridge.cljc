@@ -12,7 +12,7 @@
 (def allowed-origin "http://localhost:8080")
 (def max-text 1000)
 (def max-body 4096)
-(def actions #{"allow" "deny" "say"})
+(def actions #{"allow" "deny" "say" "approve" "always"})
 (def wait-ms 5000)
 (def hold-uri "/hold")
 (def events-uri "/events")
@@ -177,19 +177,27 @@
 
           :else
           (let [action (keyword (get body "action"))
-                pid    (get body "prompt-id")]
-            (if (and (contains? #{:allow :deny} action)
-                     (not (and (string? pid) (re-matches prompt-id-re pid))))
+                pid    (get body "prompt-id")
+                by-raw (get body "by")]
+            (cond
+              (and (contains? #{:allow :deny :approve :always} action)
+                   (not (and (string? pid) (re-matches prompt-id-re pid))))
               {:ok false :status 400 :reason "bad prompt-id"}
+
+              (and (contains? body "by") (not (contains? #{"twin" "player"} by-raw)))
+              {:ok false :status 400 :reason "bad by"}
+
+              :else
               (let [tr (case action
-                         :allow {:text nil}
+                         (:allow :approve :always) {:text nil}
                          :deny  (validate-text (get body "text") false)
                          :say   (validate-text (get body "text") true))]
                 (if (:error tr)
                   {:ok false :status 400 :reason (:error tr)}
-                  {:ok true :member member :action action
-                   :prompt-id (if (= action :say) nil pid)
-                   :text (:text tr)})))))))))
+                  (cond-> {:ok true :member member :action action
+                           :prompt-id (if (= action :say) nil pid)
+                           :text (:text tr)}
+                    (and (contains? body "by") (not= action :say)) (assoc :by (keyword by-raw))))))))))))
 
 (defn validate-ws
   "Whether a websocket handshake to `/events` should be accepted (GDD
@@ -288,8 +296,21 @@
 
 (defn decide [v live]
   (let [{:keys [action prompt-id text]} v
-        {:keys [status prompt]} live]
+        {:keys [status prompt always]} live]
     (case action
+      :approve
+      (cond
+        (not= status :blocked) {:ok false :status 409 :reason "not blocked"}
+        (or (nil? prompt) (not= (:id prompt) prompt-id)) {:ok false :status 409 :reason "prompt changed"}
+        :else {:ok true :steps [[:keys "1"]] :reason "allowed"})
+
+      :always
+      (cond
+        (not= status :blocked) {:ok false :status 409 :reason "not blocked"}
+        (or (nil? prompt) (not= (:id prompt) prompt-id)) {:ok false :status 409 :reason "prompt changed"}
+        (not (integer? always)) {:ok false :status 409 :reason "no always option"}
+        :else {:ok true :steps [[:keys (str always)]] :reason "allowed always"})
+
       :allow
       (cond
         (not= status :blocked) {:ok false :status 409 :reason "not blocked"}
@@ -313,6 +334,15 @@
         (= status :blocked) {:ok false :status 409 :reason "blocked: answer its prompt first"}
         :else {:ok false :status 409 :reason "busy"}))))
 
+(defn log-action
+  "The crew-log action for a successful request's :action, or nil for one
+   that isn't logged (:say)."
+  [action]
+  (case action
+    (:allow :approve :always) :allowed
+    :deny :declined
+    nil))
+
 (defn reply [decision origin]
   (let [headers (merge {"Content-Type" "application/json"} (cors-headers origin))]
     (if (:ok decision)
@@ -327,8 +357,18 @@
       ;; Herdr has no `--`; it reads a leading "-" as an option, so such text gets a space first.
       :prompt    [herdr "agent" "prompt" m (let [t (second step)] (if (re-find #"^-" t) (str " " t) t))]
       :read      [herdr "agent" "read" m "--source" "visible"]
+      :read-recent [herdr "agent" "read" m "--source" "recent" "--lines" "200"]
       :list      [herdr "agent" "list"]
       nil)))
+
+(defn relay-argv
+  "argv for the same relay python script and success test crew_bridge.clj
+   and crew_answer use to pass text into the twin's chat."
+  [python script session text]
+  [python script session text])
+
+(defn relay-ok? [out]
+  (and (string? out) (str/includes? out "\"ok\": true")))
 
 (defn- loggable [v]
   (cond
@@ -340,5 +380,5 @@
   (let [m (loggable member)
         a (loggable action)
         m' (cond (nil? member) "-" (and m (re-matches name-re m)) m :else "?")
-        a' (cond (nil? action) "-" (and a (or (contains? actions a) (contains? #{"hold" "ws" "view"} a))) a :else "?")]
+        a' (cond (nil? action) "-" (and a (or (contains? actions a) (contains? #{"hold" "ws" "view" "forward"} a))) a :else "?")]
     (str iso " " m' " " a' " " status " " reason)))

@@ -62,10 +62,9 @@
 (defn- relay-to-hal!
   "Passes the player's words into the twin's Hermes chat, tagged as from the game."
   [text]
-  (let [{:keys [exit out err]} (p/sh {:extra-env {"PYTHONPATH" (str (System/getProperty "user.home") "/.hermes/hermes-agent")}}
-                                     hal-python "scripts/hal_relay.py" (hal-session)
-                                     (str "[from the game] " text))
-        ok? (and (zero? exit) (str/includes? (str out) "\"ok\": true"))]
+  (let [argv (b/relay-argv hal-python "scripts/hal_relay.py" (hal-session) (str "[from the game] " text))
+        {:keys [exit out err]} (apply p/sh {:extra-env {"PYTHONPATH" (str (System/getProperty "user.home") "/.hermes/hermes-agent")}} argv)
+        ok? (and (zero? exit) (b/relay-ok? out))]
     (if ok?
       {:ok true :reason "sent"}
       {:ok false :status 502 :reason (str "relay failed" (when-let [e (not-empty (str/trim (str err out)))] (str ": " (subs e 0 (min 160 (count e))))))})))
@@ -144,24 +143,28 @@
     (catch Exception _)))
 
 (defn- live-for
-  "The member's status and (when blocked) its prompt, read right now."
+  "The member's status and (when blocked) its prompt, read right now, plus
+   a top-level :always (pm.prompt/always-option) when the dialog itself
+   offers a \"don't ask again\" option."
   [member]
   (let [{:keys [exit out]} (p/sh (b/step-argv herdr member [:list]))
         status (if (zero? exit)
                  (:status (get (b/agent-statuses (json/parse-string out true)) member {:status :unknown}))
-                 :unknown)]
-    {:status status
-     :prompt (when (= status :blocked)
-               (let [{:keys [exit out]} (p/sh (b/step-argv herdr member [:read]))]
-                 (when (zero? exit) (pr/read-prompt out (repo-path)))))}))
+                 :unknown)
+        screen (when (= status :blocked)
+                 (let [{:keys [exit out]} (p/sh (b/step-argv herdr member [:read]))]
+                   (when (zero? exit) out)))]
+    (cond-> {:status status :prompt (when screen (pr/read-prompt screen (repo-path)))}
+      (and screen (integer? (pr/always-option screen))) (assoc :always (pr/always-option screen)))))
 
 (defn- append-crew-log!
-  "Appends an allow/deny outcome to state/crew-log.edn. A failure is logged
-   and never changes the bridge's reply."
-  [member action prompt]
+  "Appends an allow/deny outcome to state/crew-log.edn, credited to `by`
+   (the player, unless the request named itself as the twin -- bb
+   crew-answer). A failure is logged and never changes the bridge's reply."
+  [member action prompt by]
   (try
     (let [cur  (cl/parse (try (slurp crew-log-file) (catch Exception _ nil)))
-          e    (cl/entry (System/currentTimeMillis) member action :player prompt)
+          e    (cl/entry (System/currentTimeMillis) member action by prompt)
           log' (cl/append cur e)]
       (when-not (write-edn! crew-log-file log')
         (throw (ex-info "write failed" {}))))
@@ -340,10 +343,12 @@
                       (let [ran    (run-decided! (:member v) decision)
                             reason (if (:ok ran) (:reason decision) (:reason ran))
                             final  (if (:ok ran) decision ran)
-                            r      (b/reply (assoc final :reason reason) origin)]
-                        (log! (:member v) (:action v) (:status r) reason)
-                        (when (and (:ok ran) (contains? #{:allow :deny} (:action v)))
-                          (append-crew-log! (:member v) (if (= :allow (:action v)) :allowed :declined) (:prompt live)))
+                            r      (b/reply (assoc final :reason reason) origin)
+                            by     (or (:by v) :player)
+                            log-reason (if (and (:ok ran) (= :twin by)) (str reason " by the twin") reason)]
+                        (log! (:member v) (:action v) (:status r) log-reason)
+                        (when (and (:ok ran) (b/log-action (:action v)))
+                          (append-crew-log! (:member v) (b/log-action (:action v)) (:prompt live) by))
                         {:status (:status r) :headers (:headers r) :body (json/generate-string (:body r))}))))))))))))))))
 
 (defn -main [& _]

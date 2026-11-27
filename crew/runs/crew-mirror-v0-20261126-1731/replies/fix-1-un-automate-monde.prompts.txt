@@ -1,0 +1,72 @@
+=== prompt 1 (18:33:28)
+  Testing pm.world-test
+
+  Ran 1633 tests containing 8738 assertions.
+  4 failures, 0 errors.
+  GATE: FAIL tests (Ran 1633 tests containing 8738
+  assertions.)
+
+  When you have completely finished, end your reply
+  with a line containing only this: done-5738
+
+⏺ Running .crew/gate.sh > /tmp/gate-full.txt 2>&1; tail
+  -5 …
+  ⎿  $ .crew/gate.sh > /tmp/gate-full.txt 2>&1; tail -5
+     /tmp/gate-full.txt; echo "---"; grep -n "FAIL
+     in\|^FAIL" /tmp/gate-full.txt
+
+───────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ .crew/gate.sh > /tmp/gate-full.txt 2>&1; tail -5
+ │ /tmp/gate-full.txt; echo "---"; grep -n "FAIL
+ │ in\|^FAIL" /tmp/gate-full.txt
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and allow access to /tmp and .crew/gate.sh
+      commands
+   3. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 2 (18:34:04)
+  Testing pm.world-test
+
+  Ran 1633 tests containing 8738 assertions.
+  4 failures, 0 errors.
+  GATE: FAIL tests (Ran 1633 tests containing 8738
+  assertions.)
+
+  When you have completely finished, end your reply
+  with a line containing only this: done-5738
+
+  Running node out/gate-js/test.js 2>&1 | grep -n -B2
+  -A15 …
+  ⎿  $ node out/gate-js/test.js 2>&1 | grep -n -B2 -A15
+     "^FAIL" | head -200
+
+───────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ node out/gate-js/test.js 2>&1 | grep -n -B2 -A15
+ "^FAIL" | head -200
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: node
+      out/gate-js/test.js
+   3. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend

@@ -58,7 +58,10 @@
                                             since (:since vv)]
                                         [k (cond-> {:status s}
                                              (and (= s :blocked) (valid-prompt? p))
-                                             (assoc :prompt (select-keys p [:id :kind :text :risky :since]))
+                                             (assoc :prompt
+                                                    (cond-> (select-keys p [:id :kind :text :risky :since])
+                                                      (and (integer? (:always p)) (<= 2 (:always p) 9))
+                                                      (assoc :always (:always p))))
                                              ;; when this agent last changed status (scripts/crew_status.clj),
                                              ;; so a long-unchanged "busy" status can be read as stalled below.
                                              (and (integer? since) (not (neg? since)))

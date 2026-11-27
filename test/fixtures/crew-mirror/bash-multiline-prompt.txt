@@ -1,0 +1,35 @@
+     printf "%s\n" "$name" >>
+     /private/tmp/pm-fixture/items.txt
+     done
+     for name in mailbox phone-booth workshop creek
+     lobby; do…
+
+───────────────────────────────────────────────────────
+ Bash command
+ Fixture capture for crew-mirror spec
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ mkdir -p /private/tmp/pm-fixture
+ │ for name in bench lamp-post table planter; do
+ │   printf "%s\n" "$name" >>
+ │ /private/tmp/pm-fixture/items.txt
+ │ done
+ │ for name in mailbox phone-booth workshop creek
+ │ lobby; do
+ │   printf "%s\n" "$name" >>
+ │ /private/tmp/pm-fixture/places.txt
+ │ done
+ │ wc -l /private/tmp/pm-fixture/items.txt
+ │ wc -l /private/tmp/pm-fixture/places.txt
+ │ ls -la /private/tmp/pm-fixture
+ │ cat /private/tmp/pm-fixture/items.txt
+ │ cat /private/tmp/pm-fixture/places.txt
+ │
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ A variable in this command can't be checked before it
+ runs
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. No
+
+ Esc to cancel · Tab to amend

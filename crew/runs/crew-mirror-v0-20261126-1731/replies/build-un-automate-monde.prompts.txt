@@ -1,0 +1,144 @@
+=== prompt 1 (18:07:47)
+     idx = s.index('(keyword by-raw)')
+     # the whole statement from '(assoc' to before
+     newline
+     start = s.rindex('(assoc', 0, idx)…
+
+───────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ python3 -c "
+ │ s = open('src/pm/bridge.cljc').read()
+ │ idx = s.index('(keyword by-raw)')
+ │ # the whole statement from '(assoc' to before
+ │ newline
+ │ start = s.rindex('(assoc', 0, idx)
+ │ end = s.index('\n', idx)
+ │ seg = s[start:end]
+ │ print(repr(seg))
+ │ print('opens', seg.count('('), 'closes',
+ │ seg.count(')'))
+ │ "
+ │
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ Newline followed by # inside a quoted argument can
+ │ hide arguments from path validation
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   3. No
+
+ Esc to cancel · Tab to amend
+=== prompt 2 (18:26:20)
+      153          (Thread/sleep every-ms)
+      150 -        (recur agents seen agents')))
+          -))
+      154 +        (recur agents seen agents' sa
+          +id')))))
+      155
+      156  (apply -main *command-line-args*)
+
+  Running timeout 15 bb scripts/crew_status.clj --once;
+  ech…
+  ⎿  $ timeout 15 bb scripts/crew_status.clj --once;
+     echo "EXIT:$?"
+
+───────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ timeout 15 bb scripts/crew_status.clj --once; echo
+ "EXIT:$?"
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don't ask again for timeout 15 bb
+      scripts/crew_status.clj --once and "echo
+      \"EXIT:$?\"" commands in
+      /Users/hal/src/prime-meridian
+   3. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 3 (18:28:19)
+      351 +                          (append-cre
+          +w-log! (:member v) (b/log-action (:ac
+          +tion v)) (:prompt live) by))
+      352                          {:status (:st
+           atus r) :headers (:headers r) :body (
+           json/generate-string (:body r))})))))
+           )))))))))))
+      353
+      354  (defn -main [& _]
+
+  Running timeout 10 bb scripts/crew_bridge.clj; echo
+  "EXIT…
+  ⎿  $ timeout 10 bb scripts/crew_bridge.clj; echo
+     "EXIT:$?"
+
+───────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ timeout 10 bb scripts/crew_bridge.clj; echo "EXIT:$?"
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don't ask again for timeout 10 bb
+      scripts/crew_bridge.clj and "echo \"EXIT:$?\""
+      commands in /Users/hal/src/prime-meridian
+   3. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 4 (18:30:43)
+      29    content-test {:doc  "Deterministic t
+          ests for the scored content loop's pur
+          e parts (content/pipeline_test.clj)"
+
+  Running 1 shell command…
+  ⎿  $ bb crew-answer 2>&1; echo "EXIT:$?"; echo ---;
+     bb crew-answer bad-member-name-toolong-xxxxxxxxxxx
+     xxxxxxxxxxxxxxxxxxxxxxxxxxxx allow 2>&1; echo
+     "EXIT:$?"; echo ---; bb crew-answer le-testeur
+     allow 2>&1; echo "EXIT:$?"
+
+───────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ bb crew-answer 2>&1; echo "EXIT:$?"; echo ---; bb
+ │ crew-answer bad-member-name-toolong-xxxxxxxxxxxxxxx
+ │ xxxxxxxxxxxxxxxxxxxxxxxx allow 2>&1; echo
+ │ "EXIT:$?"; echo ---; bb crew-answer le-testeur
+ │ allow 2>&1; echo "EXIT:$?"
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don't ask again for bb crew-answer and
+      "echo \"EXIT:$?\"" commands in
+      /Users/hal/src/prime-meridian
+   3. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend

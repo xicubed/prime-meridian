@@ -1,0 +1,400 @@
+      57
+      50 -(defn- log! [member status reason]
+      58 +(defn- log! [member action status reas
+         +on]
+      59    (try
+      60      (io/make-parents (io/file log-file
+          ))
+      53 -    (spit log-file (str (b/log-line (s
+         -tr (Instant/now)) member :allow status
+         - reason) "\n") :append true)
+      61 +    (spit log-file (str (b/log-line (s
+         +tr (Instant/now)) member action status
+         + reason) "\n") :append true)
+      62      (catch Exception _)))
+      63
+      64  (defn- live-for
+     ...
+       74                 (let [{:keys [exit out
+           ]} (p/sh (b/step-argv herdr member [:
+           read]))]
+       75                   (when (zero? exit) (
+           pr/read-prompt out (repo-path)))))}))
+       76
+       77 +(defn- hal-session []
+       78 +  (let [s (try (str/trim (slurp hal-s
+          +ession-file)) (catch Exception _ ""))
+          +]
+       79 +    (when (re-matches #"[A-Za-z0-9_-]
+          +{1,120}" s) s)))
+       80 +
+       81 +(defn- relay-to-hal!
+       82 +  "Passes text into the twin's Hermes
+          + chat, the same way crew_bridge.clj's
+       83 +   relay-to-hal! does for a player's
+          +say."
+       84 +  [text]
+       85 +  (let [argv (b/relay-argv hal-python
+          + "scripts/hal_relay.py" (hal-session)
+          + text)
+       86 +        {:keys [exit out]} (apply p/s
+          +h {:extra-env {"PYTHONPATH" (str (Sys
+          +tem/getProperty "user.home") "/.herme
+          +s/hermes-agent")}} argv)]
+       87 +    (and (zero? exit) (b/relay-ok? ou
+          +t))))
+       88 +
+       89 +(defn- write-forwarded! [fwd]
+       90 +  (try
+       91 +    (let [f   (io/file forwarded-file
+          +)
+       92 +          tmp (io/file (str forwarded
+          +-file ".tmp"))]
+       93 +      (io/make-parents f)
+       94 +      (spit tmp (pr-str fwd))
+       95 +      (.renameTo tmp f))
+       96 +    (catch Exception _ false)))
+       97 +
+       98 +(defn- forward-one!
+       99 +  "Relays one forwardable prompt to t
+          +he twin's chat and records it.
+      100 +   Returns forwarded, unchanged on a
+          +relay failure (so it's retried)."
+      101 +  [titles repo forwarded member promp
+          +t]
+      102 +  (let [title  (get titles member (na
+          +me member))
+      103 +        reason (pr/risk-reason (:kind
+          + prompt) (:text prompt) repo)
+      104 +        text   (f/forward-text title
+          +member prompt reason)]
+      105 +    (if (relay-to-hal! text)
+      106 +      (do (log! member :forward 200 "
+          +forwarded to the twin")
+      107 +          (f/record-forward forwarded
+          + member prompt (System/currentTimeMil
+          +lis)))
+      108 +      (do (log! member :forward 502 "
+          +forward failed")
+      109 +          forwarded))))
+      110 +
+      111  (defn- write-crew-log! [entry]
+      112    (try
+      113      (let [cur  (cl/parse (slurp-or-ni
+           l crew-log-file))
+
+⏺ Now update handle-one!'s log! call sites to pass the
+  action, and rewire -main:
+
+  Read 1 file
+
+⏺ Update(scripts/crew_fielder.clj)
+  ⎿  Added 26 lines, removed 17 lines
+      141        (cond
+      142          dry-run?
+      143          (if (:ok d)
+      144 -          (log! member "-" "dry-run:
+          -would allow")
+      145 -          (log! member (:status d) (:
+          -reason d)))
+      144 +          (log! member :allow "-" "dr
+          +y-run: would allow")
+      145 +          (log! member :allow (:statu
+          +s d) (:reason d)))
+      146
+      147          (:ok d)
+      148          (let [ok? (every? (fn [step]
+           (zero? (:exit (p/sh (b/step-argv herd
+           r member step))))) (:steps d))]
+     ...
+      150              (do
+      151                (when-let [e (f/log-ent
+           ry now member live)]
+      152                  (write-crew-log! e))
+      153 -              (log! member 200 "allow
+          -ed"))
+      154 -            (log! member 502 "herdr f
+          -ailed")))
+      153 +              (log! member :allow 200
+          + "allowed"))
+      154 +            (log! member :allow 502 "
+          +herdr failed")))
+      155
+      156          :else
+      157 -        (log! member (:status d) (:re
+          -ason d)))
+      157 +        (log! member :allow (:status
+          +d) (:reason d)))
+      158        tried)))
+      159
+      160  (defn -main [& args]
+      161    (let [dry-run? (boolean (some #{"--
+           dry-run"} args))]
+      162      (println start-message)
+      163 -    (log! nil "-" start-message)
+      164 -    (loop [tried {}]
+      165 -      (let [tried' (try
+      166 -                     (let [ctx (ctx-n
+          -ow tried)]
+      167 -                       (reduce (fn [t
+          -r {:keys [member prompt]}]
+      168 -                                 (han
+          -dle-one! member prompt dry-run? tr))
+      169 -                               tried
+      170 -                               (f/due
+          - ctx)))
+      171 -                     (catch Exception
+          - ex
+      172 -                       (log! nil "-"
+          -(str "error: " (.getMessage ex)))
+      173 -                       tried))]
+      163 +    (log! nil nil "-" start-message)
+      164 +    (loop [tried {} forwarded (f/pars
+          +e-forwarded (slurp-or-nil forwarded-f
+          +ile))]
+      165 +      (let [[tried' forwarded']
+      166 +            (try
+      167 +              (let [ctx  (ctx-now tri
+          +ed)
+      168 +                    tr2  (reduce (fn
+          +[tr {:keys [member prompt]}]
+      169 +                                   (h
+          +andle-one! member prompt dry-run? tr)
+          +)
+      170 +                                 trie
+          +d
+      171 +                                 (f/d
+          +ue ctx))
+      172 +                    fw2  (if dry-run?
+      173 +                           forwarded
+      174 +                           (reduce (f
+          +n [fw {:keys [member prompt]}]
+      175 +
+          +(forward-one! (:titles (:crew ctx)) (
+          +repo-path) fw member prompt))
+      176 +                                   fo
+          +rwarded
+      177 +                                   (f
+          +/forwardable ctx forwarded)))]
+      178 +                (when (not= fw2 forwa
+          +rded) (write-forwarded! fw2))
+      179 +                [tr2 fw2])
+      180 +              (catch Exception ex
+      181 +                (log! nil nil "-" (st
+          +r "error: " (.getMessage ex)))
+      182 +                [tried forwarded]))]
+      183          (Thread/sleep f/every-ms)
+      175 -        (recur tried')))))
+      184 +        (recur tried' forwarded')))))
+      185
+      186  (apply -main *command-line-args*)
+
+  Read 2 files, ran 3 shell commands
+
+⏺ Update(scripts/hal_say.clj)
+  ⎿  Added 5 lines, removed 4 lines
+       7  ;; mailbox, phone-booth, lobby) and sa
+          ys the line there, then carries on.
+       8  ;;
+       9  ;; Sends a :say agent-event to the loc
+          al bridge (bb crew-bridge), which rela
+          ys it to the
+      10 -;; game: the line shows on a speech pl
+         -ate over that walker for a few seconds
+         -. When the
+      11 -;; speaker is the twin (the default, t
+         -he estate's twin walker), the line is
+         -also his
+      12 -;; caption, spoken when voice is on, a
+         -nd kept in the 💭 history -- so what h
+         -e answers
+      13 -;; in his chat can be said back in the
+         - world. No answer is waited for.
+      10 +;; game: the line shows on a speech pl
+         +ate over that walker for a few seconds
+         +, and lands
+      11 +;; as a quiet line in that member's ow
+         +n 💭 thread too (pm.talk/observe-says)
+         + -- so a
+      12 +;; --as <member> line is never speech-
+         +plate-only. When the speaker is the tw
+         +in (the
+      13 +;; default, the estate's twin walker),
+         + the line is also his caption, spoken
+         +when voice
+      14 +;; is on. No answer is waited for.
+      15
+      16  (require '[babashka.http-client.websoc
+          ket :as ws]
+      17           '[cheshire.core :as json]
+
+⏺ Write(scripts/crew_answer.clj)
+  ⎿  Wrote 47 lines to scripts/crew_answer.clj
+      1 #!/usr/bin/env bb
+      2 ;; The twin's own half of a prompt the f
+        ielder left alone (risky or unreadable):
+      3 ;; crew_fielder.clj forwards it into the
+         twin's Hermes chat with a line like thi
+        s
+      4 ;; script's usage; this answers it throu
+        gh the bridge, with the same prompt-id c
+        heck
+      5 ;; as the game's own Allow/Always/No (st
+     … +43 lines (~2 KB)
+
+⏺ Now let's update bb.edn with the crew-answer task and
+  the hal-say doc string:
+
+⏺ Update(bb.edn)
+  ⎿  Added 5 lines, removed 2 lines
+      17                        (System/exit (:e
+          xit r)))}
+      18    juice      {:doc  "The real usage me
+          ter: types /usage into an idle Claude
+          member, writes state/juice.edn: bb jui
+          ce [--watch [S]] [--member NAME]"
+      19                :task (apply shell "bb"
+          "scripts/juice.clj" *command-line-args
+          *)}
+      20 -  hal-say    {:doc  "An agent speaks o
+         -n the estate: a bubble over its walker
+         - (the twin's line also captioned, spok
+         -en, kept in 💭); --at makes it an erra
+         -nd, said there: bb hal-say \"line\" [-
+         --as <member>] [--at <where>]"
+      20 +  hal-say    {:doc  "An agent speaks o
+         +n the estate: a bubble over its walker
+         + and a quiet line in its own 💭 thread
+         + (the twin's line also captioned, spok
+         +en); --at makes it an errand, said the
+         +re: bb hal-say \"line\" [--as <member>
+         +] [--at <where>]"
+      21                :task (apply shell "bb"
+          "scripts/hal_say.clj" *command-line-ar
+          gs*)}
+      22 -  crew-fielder {:doc  "The twin's auto
+         -matic half: answers routine crew promp
+         -ts after :answer-after-s; holds while
+         -state/hold.edn is on: bb crew-fielder
+         -[--dry-run]"
+      22 +  crew-fielder {:doc  "The twin's auto
+         +matic half: answers routine crew promp
+         +ts after :answer-after-s, forwards eve
+         +ry other one (risky/unreadable) to the
+         + twin's chat; holds while state/hold.e
+         +dn is on: bb crew-fielder [--dry-run]"
+      23                  :task (apply shell "bb
+          " "scripts/crew_fielder.clj" *command-
+          line-args*)}
+      24 +  crew-answer {:doc  "The twin answers
+         + a prompt crew_fielder.clj forwarded h
+         +im: bb crew-answer <member> allow|alwa
+         +ys|deny [--note \"…\"]"
+      25 +               :task (let [r (apply sh
+         +ell {:continue true} "bb" "scripts/cre
+         +w_answer.clj" *command-line-args*)]
+      26 +                       (System/exit (:
+         +exit r)))}
+      27    content {:doc  "Generate game conten
+          t from the GDD: bb content <request>|a
+          ll [--dry-run]"
+      28             :task (apply shell "bb" "co
+          ntent/pipeline.clj" *command-line-args
+          *)}
+      29    content-test {:doc  "Deterministic t
+          ests for the scored content loop's pur
+          e parts (content/pipeline_test.clj)"
+
+  Listed 1 directory, ran 2 shell commands
+
+⏺ Write(crew/runs/crew-mirror-v0-202…/builder-notes.md)
+  ⎿  Wrote 61 lines to crew/runs/crew-mirror-v0-20
+     261126-1731/builder-notes.md
+       1 # Builder notes — crew-mirror-v0
+       2
+       3 How Hal checks this live (after the gat
+         e passes and Michael has committed):
+       4
+       5 1. **Restart the services** so they pic
+         k up the new code (they were running th
+         e old
+       6    build the whole time I worked):
+       7    ```
+     … +54 lines
+  ⎿  Read crew/runs/crew-mirror-v0-20261126-1731/builde
+     r-notes.md (61 lines)
+  ⎿  Read scripts/crew_answer.clj (47 lines)
+  ⎿  Read scripts/crew_status.clj (156 lines)
+  ⎿  Referenced file src/pm/core.cljs
+  ⎿  Referenced file src/pm/ui.cljs
+
+  Ran 1 shell command
+
+⏺ All source edits assigned to the builder are done,
+  the gate passes except the four expected pre-existing
+  conflicts, and builder-notes.md is written.
+
+  What I changed: implemented the crew-mirror-v0 spec
+  in pm.prose (new), pm.prompt, pm.bridge, pm.fielder,
+  pm.crew, pm.talk, pm.ui, pm.core, and the bb scripts
+  crew_status.clj, crew_bridge.clj, crew_fielder.clj,
+  hal_say.clj (comment only), plus a new
+  scripts/crew_answer.clj and a crew-answer bb task —
+  covering: member prose summaries and questions
+  mirrored into 💭 (state/crew-said.edn, the "!" on a
+  trailing question), every permission prompt (not just
+  plain bash) answerable in-game via Allow/Always/No,
+  the twin forwarding/answering risky or unknown-shape
+  prompts (bb crew-answer, state/crew-forwarded.edn),
+  by-attributed logging ("… by the twin" in
+  crew/bridge.log), and hal-say --as <member> lines
+  landing in that member's own 💭 thread.
+
+  Gate's last line: GATE: FAIL tests (Ran 1633 tests
+  containing 8738 assertions.) — compile is 0 warnings;
+  the only 4 failures are pre-existing pinned tests
+  the spec deliberately supersedes (not something to
+  fix):
+  1. test/pm/crew_talk_test.cljs:177 (t15-constants) —
+     pins b/actions to the old 3-element set.
+  2. test/pm/crew_talk_test.cljs:264
+     (t20-validate-refusals) — pins "approve" as a bad
+     action.
+  3. test/pm/crew_talk_test.cljs:568
+     (t40-stale-and-error-outcomes-invalid-calls) —
+     pins crew-send … :approve as a no-op.
+  4. test/pm/crew_talk_v1_test.cljs:279
+     (t26-refusals-in-order) — same b/actions root
+     cause as #1.
+
+   bb.edn                   |   7 +-
+   scripts/crew_bridge.clj  |  41 ++++++------
+   scripts/crew_fielder.clj |  91
+  ++++++++++++++++++++------
+   scripts/crew_status.clj  |  77
+  +++++++++++++++++-----
+   scripts/hal_say.clj      |   9 +--
+   src/pm/bridge.cljc       |  60 ++++++++++++++---
+   src/pm/core.cljs         |  57 ++++++++++++++--
+   src/pm/crew.cljs         |   5 +-
+   src/pm/fielder.cljc      | 127
+  +++++++++++++++++++++++++++++++++++-
+   src/pm/prompt.cljc       |  58 ++++++++++++++++-
+   src/pm/talk.cljs         | 164
+  ++++++++++++++++++++++++++++++++++++++++++-----
+   src/pm/ui.cljs           |  37 +++++++----
+   12 files changed, 622 insertions(+), 111
+  deletions(-)
+   (new) scripts/crew_answer.clj
+                     | 47 ++++
+   (new) crew/runs/crew-mirror-v0-20261126-1731/builder
+  -notes.md           | 61 ++++
+
+  done-9902
+
+✻ Baked for 35m 48s · done 6:31 PM
+
+───────────────────────────────────────────────────────
+❯ go check the logs for the known test conflicts
+───────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

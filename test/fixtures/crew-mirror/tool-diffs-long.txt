@@ -1,0 +1,58 @@
+⏺ Update(crew/runs/demo-talk-v0-2026…/builder-notes.md)
+  ⎿  Couldn't edit file
+
+  Read 1 file
+
+⏺ Update(crew/runs/demo-talk-v0-2026…/builder-notes.md)
+  ⎿  Added 3 lines, removed 3 lines
+      34  4. DOM selectors used above: `#talk-li
+          st` is the thread's `<ul>`; each row
+      35     is an `<li class="mine">` or `<li c
+          lass="theirs">`; the visible line is
+      36     its `span.text` (`crew-label`'s out
+          put for a crew row, the raw `:text`
+      37 -   for others). The composer input is
+         -`#talk-panel input[placeholder]`
+      38 -   (or whatever id/selector the roster
+         - strip gives each member's row —
+      39 -   same element Hal would click).
+      37 +   for others). Each roster row's comp
+         +oser is
+      38 +   `input[data-member="<agent-keyword-
+         +name>"]` (e.g.
+      39 +   `input[data-member="hal"]` for the
+         +twin).
+      40
+      41  5. Sanity check the dev build still fa
+          ils the old way: `npx shadow-cljs
+      42     watch app`, bridge off (no `bb crew
+          -bridge` running), say anything to
+
+⏺ Now let's view the final diff stat to report.
+
+  Ran 1 shell command
+
+⏺ Implemented spec §2–4 in pm.talk (new :crew-reply
+  kind, demo-member-line, say-reply, crew-reply,
+  crew-label/restore arms, with-walkers 5-arity), wired
+  on-say and the roster's with-walkers call in
+  pm.core, and added the :member-talk block to
+  resources/estate.edn.
+
+  Gate: GATE: PASS — 0 warnings; Ran 1577 tests
+  containing 8518 assertions. (includes the tester's
+  27-case demo_talk_test.cljs, all passing).
+
+   resources/estate.edn |  4 ++++
+   src/pm/core.cljs     | 25 +++++++++++--------
+   src/pm/talk.cljs     | 68
+  ++++++++++++++++++++++++++++++++++++++++++----------
+   3 files changed, 75 insertions(+), 22 deletions(-)
+
+  crew/runs/demo-talk-v0-20261126-1137/builder-notes.md
+  written (headless dist/demo check steps + what
+  changed).
+
+  done-5271
+
+✻ Sautéed for 4m 30s · done 11:46 AM

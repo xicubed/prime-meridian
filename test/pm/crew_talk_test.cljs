@@ -174,7 +174,7 @@
   (is (= "http://localhost:8080" b/allowed-origin))
   (is (= 1000 b/max-text))
   (is (= 4096 b/max-body))
-  (is (= #{"allow" "deny" "say"} b/actions))
+  (is (= #{"allow" "always" "approve" "deny" "say"} b/actions))   ; crew-mirror-v0 added approve/always
   (is (= 5000 b/wait-ms)))
 
 (def CJ {:members [{:name "hal" :title "Hal" :external true :enabled true}
@@ -262,7 +262,7 @@
            (b/validate (rq m ALLOW) CTX))
         m))
   (is (= {:ok false :status 400 :reason "bad action"}
-         (b/validate (rq "le-testeur" (assoc ALLOW "action" "approve")) CTX)))
+         (b/validate (rq "le-testeur" (assoc ALLOW "action" "nope")) CTX)))   ; approve is a real action since crew-mirror-v0
   (is (= {:ok false :status 400 :reason "bad action"}
          (b/validate (rq "le-testeur" (dissoc ALLOW "action")) CTX)))
   (doseq [pid [(str/upper-case ID1) (subs ID1 0 39) nil 5]]
@@ -565,7 +565,7 @@
     (is (identical? S (tk/crew-send S 1 :allow nil)))
     (is (identical? T1 (tk/crew-send T1 99 :allow nil)))
     (is (identical? T2 (tk/crew-send T2 2 :deny nil)))
-    (is (identical? T1 (tk/crew-send T1 1 :approve nil)))))
+    (is (identical? T1 (tk/crew-send T1 1 :nope nil)))))   ; :approve is a real action since crew-mirror-v0
 
 (deftest t41-say-lifecycle
   (let [Q (tk/crew-say T1 :le-testeur "Le Testeur" " please rerun the gate " (+ A 1000))

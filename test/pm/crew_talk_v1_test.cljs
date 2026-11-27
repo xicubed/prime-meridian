@@ -276,7 +276,7 @@
   (is (= 403 (:status (b/validate (assoc (hq (assoc H "action" "allow")) :origin "http://evil.example") CTX))))
   (is (= {:ok false :status 400 :reason "bad action"}
          (b/validate {:method "POST" :uri "/crew/le-testeur" :origin OK-ORIGIN :body {"token" TOK "action" "hold" "on" true}} CTX)))
-  (is (= #{"allow" "deny" "say"} b/actions)))
+  (is (= #{"allow" "always" "approve" "deny" "say"} b/actions)))   ; crew-mirror-v0 added approve/always
 
 (deftest t27-log-line
   (is (= "2026-11-08T17:00:00Z - hold 200 on" (b/log-line "2026-11-08T17:00:00Z" nil :hold 200 "on")))

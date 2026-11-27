@@ -12,6 +12,7 @@
 
 (def ^:private box-edge-re #"^\s*[╭╰]─+[╮╯]$")
 (def ^:private box-side-re #"^\s*│(.*)│$")
+(def ^:private left-border-re #"^│\s?(.*)$")
 (def ^:private proceed-line "Do you want to proceed?")
 (def ^:private bash-line "Bash command")
 (def ^:private option-re #"^(❯\s*)?1\.\s+Yes\b")
@@ -44,8 +45,14 @@
           R  (when (and H P)
                (keep-indexed (fn [i l] (when (and (> i H) (< i P) (re-matches rule-re l)) i)) ls))
           cmd (when (and P has-option? H (>= (count R) 2))
-                (let [r0 (first R) r1 (second R)]
-                  (into [] (remove str/blank?) (subvec ls (inc r0) r1))))]
+                (let [r0 (first R) r1 (second R)
+                      raw (subvec ls (inc r0) r1)
+                      unbordered (mapv (fn [l]
+                                          (if-let [[_ g1] (re-matches left-border-re l)]
+                                            (str/trim g1)
+                                            l))
+                                        raw)]
+                  (into [] (remove str/blank?) unbordered)))]
       (if (seq cmd)
         {:kind :bash :lines cmd :full (str/join " " cmd)}
         {:kind :unknown :full (str/join "\n" (take-last tail-lines (remove str/blank? ls)))}))))
@@ -98,6 +105,26 @@
         (and (boolean (re-find write-marker-re text))
              (some #(outside-path? repo %) (re-seq token-re text))))))
 
+(def risk-reasons
+  "Runs parallel to risky-res: the phrase for the first one that matches."
+  ["changes git state" "deletes files" "reaches the network" "reaches the network"
+   "reaches another machine" "reaches another machine" "installs software"
+   "installs software" "installs software" "runs as root" "changes system services"])
+
+(defn risk-reason
+  "Why a prompt is risky, for the twin's chat: the first match wins, nil
+   when nothing explains it (the caller falls back to \"flagged risky\")."
+  [kind text repo]
+  (cond
+    (not= kind :bash) "not a plain shell command"
+    :else
+    (or (first (keep (fn [[re phrase]] (when (re-find re text) phrase))
+                      (map vector risky-res risk-reasons)))
+        (when (and (re-find write-marker-re text)
+                   (some #(outside-path? repo %) (re-seq token-re text)))
+          "writes outside the repo")
+        (when (>= (count text) max-text) "too long to check"))))
+
 (defn prompt-of [screen repo]
   (when-let [{:keys [kind lines full]} (parse-screen screen)]
     (let [risky (if (= kind :bash)
@@ -147,6 +174,33 @@
 
 (defn prompt-screen? [screen]
   (boolean (dialog-info screen)))
+
+(def ^:private opt-line-re #"^(?:❯\s*)?(\d{1,2})\.\s+(.*)$")
+(def ^:private always-text-re #"(?i)^Yes, (?:and don['’]t ask again\b|allow\b)")
+
+(defn always-option
+  "The option number the dialog offers for \"don't ask again\" / \"allow …
+   this session/project\", or nil (Yes/No only, or not a dialog)."
+  [screen]
+  (when-let [{:keys [ls q]} (dialog-info screen)]
+    (first (keep (fn [l]
+                   (when-let [[_ ns txt] (re-matches opt-line-re (str/trim l))]
+                     (let [n #?(:clj (Long/parseLong ns) :cljs (js/parseInt ns 10))]
+                       (when (and (>= n 2) (re-find always-text-re txt)) n))))
+                 (subvec ls (inc q))))))
+
+(defn with-always
+  "agents with [:prompt :always] set to always-option's screen for every
+   blocked member whose screen offers one. Every other entry unchanged."
+  [agents screens]
+  (into {}
+        (map (fn [[m v]]
+               (let [scr (get screens m)]
+                 (if (and (= :blocked (:status v)) (map? (:prompt v)) (string? scr)
+                          (integer? (always-option scr)))
+                   [m (assoc-in v [:prompt :always] (always-option scr))]
+                   [m v]))))
+        agents))
 
 (defn read-prompt [screen repo]
   (when-let [{:keys [ls q]} (dialog-info screen)]

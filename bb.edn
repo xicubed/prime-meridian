@@ -17,10 +17,13 @@
                       (System/exit (:exit r)))}
   juice      {:doc  "The real usage meter: types /usage into an idle Claude member, writes state/juice.edn: bb juice [--watch [S]] [--member NAME]"
               :task (apply shell "bb" "scripts/juice.clj" *command-line-args*)}
-  hal-say    {:doc  "An agent speaks on the estate: a bubble over its walker (the twin's line also captioned, spoken, kept in 💭); --at makes it an errand, said there: bb hal-say \"line\" [--as <member>] [--at <where>]"
+  hal-say    {:doc  "An agent speaks on the estate: a bubble over its walker and a quiet line in its own 💭 thread (the twin's line also captioned, spoken); --at makes it an errand, said there: bb hal-say \"line\" [--as <member>] [--at <where>]"
               :task (apply shell "bb" "scripts/hal_say.clj" *command-line-args*)}
-  crew-fielder {:doc  "The twin's automatic half: answers routine crew prompts after :answer-after-s; holds while state/hold.edn is on: bb crew-fielder [--dry-run]"
+  crew-fielder {:doc  "The twin's automatic half: answers routine crew prompts after :answer-after-s, forwards every other one (risky/unreadable) to the twin's chat; holds while state/hold.edn is on: bb crew-fielder [--dry-run]"
                 :task (apply shell "bb" "scripts/crew_fielder.clj" *command-line-args*)}
+  crew-answer {:doc  "The twin answers a prompt crew_fielder.clj forwarded him: bb crew-answer <member> allow|always|deny [--note \"…\"]"
+               :task (let [r (apply shell {:continue true} "bb" "scripts/crew_answer.clj" *command-line-args*)]
+                       (System/exit (:exit r)))}
   content {:doc  "Generate game content from the GDD: bb content <request>|all [--dry-run]"
            :task (apply shell "bb" "content/pipeline.clj" *command-line-args*)}
   content-test {:doc  "Deterministic tests for the scored content loop's pure parts (content/pipeline_test.clj)"

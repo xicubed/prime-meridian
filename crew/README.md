@@ -126,11 +126,17 @@ cd ~/src/prime-meridian
    crew-up also starts the crew's **services** from `.crew/crew.json` (in the
    crew workspace's `services` tab): `bb crew-status`, which writes each
    member's Herdr state to the gitignored `state/crew.edn` so the coloured dots
-   over the walkers on the estate stay live; `bb crew-bridge`, which carries
-   your 💭 allow / no / reply to Herdr (127.0.0.1 only); and `bb crew-fielder`,
-   the twin's automatic half, which answers routine prompts after 5 s (never
-   risky or unreadable ones, and nothing while 💭's "I'll answer" is on) and
-   logs to `crew/fielder.log`.
+   over the walkers on the estate stay live, and now also each Claude member's
+   last words of a turn to `state/crew-said.edn`, which become a quiet line in
+   its own 💭 thread (a turn ending in a question raises its "!"); `bb
+   crew-bridge`, which carries your 💭 Allow / Always / No / reply to Herdr
+   (127.0.0.1 only); and `bb crew-fielder`, the twin's automatic half, which
+   answers routine prompts after 5 s (never risky or unreadable ones, and
+   nothing while 💭's "I'll answer" is on) and logs to `crew/fielder.log` —
+   it now also forwards every prompt it won't answer to the twin's own chat,
+   which answers with `bb crew-answer <member> allow|always|deny [--note
+   "…"]` through the bridge's same prompt check (stale if the dialog
+   changed since).
 
 3. **Run a round** (Hal normally does this; with `bb crew-fielder` running,
    rounds use `"onBlocked": "wait"` and the fielder answers the routine
@@ -182,5 +188,6 @@ Hermes profile named `crew` (see crew-up's README, "Hermes").
 | `pony-spike-v0` (Nov 8) | architect → builder ∥ tester → runner + gate (2 fails) → critic | **PASS** after a manager fix (the test's MuJoCo loader): 674 tests, incl. both generated bodies compiled and stepped in real MuJoCo; species as data (`resources/creatures/horse.edn`, `dog.edn`) → MuJoCo body; MuJoCo WebAssembly in the game behind `?pony[=dog]`, a seeded twitch controller behind one controller interface, fixed 2 ms steps. Critic: no defects. Live: a foal flopping on the east bank, 0.3 ms/frame | [`log.md`](runs/pony-spike-v0-20261108-1308/log.md) · [spec](runs/pony-spike-v0-20261108-1308/spec.md) · [review](runs/pony-spike-v0-20261108-1308/review.md) |
 | `head-reflex-v0` (Nov 8) | architect → builder ∥ tester → runner + gate → critic | **PASS** first gate: 704 tests; a lying foal lifts its head and holds it level (Michael's ask): species `:reflexes`, Jacobian-transpose on the neck/head hinges (several joints per body now), legs keep twitching; same for the dog; real-MuJoCo test drops each on its side. Plus the builder's fix (asked by Michael directly) for a one-frame flash at the world origin. Critic: one cosmetic naming note. Live: head up and level, "not struggling" yet | [`log.md`](runs/head-reflex-v0-20261108-1435/log.md) · [spec](runs/head-reflex-v0-20261108-1435/spec.md) · [review](runs/head-reflex-v0-20261108-1435/review.md) |
 | `blueprint-draft-v0` (Nov 24) | architect → builder ∥ tester → runner + gate → critic → docs | **PASS** first gate: 1437 tests; a member places what the player asks for: `bb blueprint-draft <member> <draft.edn> --near <landmark>` finds level open ground near the named place on the kit's sampled ground map, clear of other things and walker routes (`pm.lot`, rules in `:build-rules`), and proposes it through `bb blueprint-add`; refusals say why. Critic: no defects. Live: "put a lamp post near the lobby" typed to the builder → a ghost by the veranda in 15 s | [`log.md`](runs/blueprint-draft-v0-20261124-1208/log.md) · [spec](runs/blueprint-draft-v0-20261124-1208/spec.md) · [review](runs/blueprint-draft-v0-20261124-1208/review.md) |
+| `crew-mirror-v0` (Nov 26) | architect → builder ∥ tester → runner + gate (3 fails) → critic → docs | **PASS** after a manager fix (4 old test expectations the spec's own set change made stale): 1633 tests, 8738 assertions; the crew in your phone, mirrored for real: a Claude member's last prose of a turn lands as a quiet line in its own 💭 thread, a turn ending in a question raises its "!", every prompt gets Allow / Always / No, and a prompt the fielder won't answer is forwarded to the twin's own chat, who answers with `bb crew-answer`. Critic: 4 findings (the Allow button wired to the old action, the fielder's hold re-read before forwarding, `said-questions`/`observe-said` drift from the spec), all fixed in one builder fix round; Hal's live check: a member's question in its thread with "!", a `--as` line in 💭, a risky prompt forwarded to the twin and declined with `bb crew-answer`; Claude's idle-compaction notice read as prose, fixed by Hal | [`log.md`](runs/crew-mirror-v0-20261126-1731/log.md) · [spec](runs/crew-mirror-v0-20261126-1731/spec.md) · [review](runs/crew-mirror-v0-20261126-1731/review.md) |
 
 Screenshots in `crew/runs/` show the game running on [Hiroshi's Island](https://3ditions.drop3.app/watch/hiroshis-island/) by 3DITIONS (Pixel Palms / Cocotofy LLC), used under license; the kit itself is not in this repo.

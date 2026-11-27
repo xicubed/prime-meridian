@@ -1,0 +1,35 @@
+
+❯ Second build request from Michael (via Hal): "make
+  another bench here". He is looking at x,z
+  10.23,-23.67, under trees again. Hal checked: --near
+  9,-26 lands on the nearest level open ground (about
+  [8.5 -30]). Draft a second bench with a NEW id (not
+  the one you just placed, not bench-behind-house)
+  via bb blueprint-draft un-automate-monde <draft>
+  --near 9,-26, then bb hal-say "<where it went>" --as
+  un-automate-monde. Go straight to the command; no
+  ground-map checks needed.
+
+  Made 1 scratchpad edit +6, ran 1 shell command
+
+⏺ Placed. Now let Michael know.
+
+  Ran 1 shell command
+
+⏺ Drafted bench-south-of-house at [8.5 6.86 -30], yaw
+  90, 4.03 m from the search point — the nearest level
+  open ground past the tree/bush cover near where
+  Michael was looking. Told him in-world.
+
+✻ Baked for 18s · done 5:18 PM
+
+※ recap: Finished the demo-talk-v0 build task (gate
+  passing) and drafted two requested benches near the
+  lobby as blueprints. No next action pending; waiting
+  on Michael/Hal for further requests. (turn off recaps
+  in /config)
+
+───────────────────────────────────────────────────────
+❯ bb where
+───────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

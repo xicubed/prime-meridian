@@ -30,6 +30,7 @@
             [pm.pick :as pick]
             [pm.scene :as scene]
             [pm.plan :as plan]
+            [pm.prose :as prose]
             [pm.ask-build :as ab]
             [pm.talk :as talk]
             [pm.today :as today]
@@ -281,6 +282,27 @@
   (when (nil? (:timer @!crew-log-poll))
     (fetch-crew-log!)
     (swap! !crew-log-poll assoc :timer (js/setInterval fetch-crew-log! crew-talk-poll-ms))))
+
+(def crew-said-url "/state/crew-said.edn")
+
+(defonce ^:private !crew-said-poll (atom {:timer nil :busy? false}))
+
+(defn- fetch-crew-said! []
+  (when-not (:busy? @!crew-said-poll)
+    (swap! !crew-said-poll assoc :busy? true)
+    (-> (js/fetch (str crew-said-url "?t=" (js/Date.now)) #js {:cache "no-store"})
+        (.then (fn [^js resp] (if (.-ok resp) (.text resp) nil)))
+        (.then (fn [text]
+                 (let [s (prose/parse-said text)]
+                   (when (not= s (:crew-said @!world))
+                     (swap! !world assoc :crew-said s)))))
+        (.catch (fn [_]))
+        (.finally (fn [] (swap! !crew-said-poll assoc :busy? false))))))
+
+(defn- start-crew-said-poll! []
+  (when (nil? (:timer @!crew-said-poll))
+    (fetch-crew-said!)
+    (swap! !crew-said-poll assoc :timer (js/setInterval fetch-crew-said! crew-talk-poll-ms))))
 
 (def juice-file-url "/state/juice.edn")
 (def juice-poll-ms 60000)
@@ -797,6 +819,18 @@
     (when (= :sending (:state e))
       (post-crew! (:member e) :deny (:id (:prompt e)) (:note e) n))))
 
+(defn- on-approve [n]
+  (swap! !world update :talk talk/crew-send n :approve nil)
+  (let [e (talk/entry (:talk @!world) n)]
+    (when (= :sending (:state e))
+      (post-crew! (:member e) :approve (:id (:prompt e)) nil n))))
+
+(defn- on-always [n]
+  (swap! !world update :talk talk/crew-send n :always nil)
+  (let [e (talk/entry (:talk @!world) n)]
+    (when (= :sending (:state e))
+      (post-crew! (:member e) :always (:id (:prompt e)) nil n))))
+
 (defn- send-answer!
   "Answers a pending ask_player question (GDD §3.1, §2.1, §4.8): sends a
    real :answer event for `agent` out over the bridge's websocket --
@@ -1001,13 +1035,23 @@
 (defn- gone-fn [entry]
   (talk/gone? entry (:crew @!world) (js/Date.now)))
 
+(defn- merged-asks
+  "pm.world's own ask_player questions (GDD §3.1), plus every idle
+   member's unanswered said question (talk/said-questions) -- never
+   written back into :asks-player itself. Real ask_player questions win
+   a key clash."
+  [now]
+  (merge (talk/said-questions (:talk @!world) (:crew @!world) now) (:asks-player @!world)))
+
 (defn- talk-tick! [now]
   (let [jum (j/names @!world)
         t  (:talk @!world)
         t' (-> t
                (talk/observe @!world now)
                (talk/observe-crew (:crew @!world) now (talk/policy (:crew-talk @!world) (:hold @!world)))
-               (talk/observe-log (:crew-log @!world) (:crew @!world) now jum))]
+               (talk/observe-log (:crew-log @!world) (:crew @!world) now jum)
+               (talk/observe-said (:crew-said @!world) (:crew @!world) now)
+               (talk/observe-says @!world))]
     (when-not (identical? t' t)
       (swap! !world assoc :talk t'))
     ;; 1. a call ends itself: End clicked elsewhere, the 💭 toggle, Escape,
@@ -1049,11 +1093,13 @@
           (when-not (and (identical? (:entries t') (:listed @!talk-ui)) (= bridge-on (:listed-bridge @!talk-ui)))
             (let [keep-scroll? (= (:n t') (:listed-n @!talk-ui))]
               (ui/render-panel! (:entries t') offset-of label-of pick! on-check keep-scroll?
-                                 {:bridge-on? bridge-on :on-allow on-allow :on-deny on-deny :jumeaux jum
+                                 {:bridge-on? bridge-on :on-allow on-allow :on-deny on-deny
+                                  :on-approve on-approve :on-always on-always :jumeaux jum
                                   :twin (:agent twin)} gone-fn)
               (swap! !talk-ui assoc :listed (:entries t') :listed-n (:n t') :listed-bridge bridge-on)))
           (swap! !talk-ui assoc :listed nil :listed-n nil :listed-bridge nil)))
-      (let [asked (set (map keyword (keys (:asks-player @!world))))
+      (let [asks  (merged-asks now)
+            asked (set (map keyword (keys asks)))
             w     @!world
             ;; the creatures are contacts too: their lines and chores make their thread
             colors (crew/colors w)
@@ -1072,7 +1118,7 @@
                         (merge row (when entry (walker-colours entry)) {:dot (:color d)})))
             rows  (-> (talk/crew-roster (:crew w) now (bridge-on?) (:crew-log w) (:expanded @!talk-ui) asked)
                       (talk/with-walkers (:walkers w) (:agent twin) asked DEMO)
-                      (talk/with-questions (:asks-player w))
+                      (talk/with-questions asks)
                       (talk/with-twin twin (bridge-on?) (twin-thinking? w now))
                       (->> (mapv dressed))
                       (into pets)
@@ -1108,7 +1154,7 @@
     (when (kit/handle) (creature-spike/tick! dt' now))
     (when-let [h (kit/handle)] (camera/save-tick! h now))
     (when-let [h (kit/handle)] (view-tick! h now))
-    (bricks/set-dots! (:crew @!world) (:asks-player @!world) (js/Date.now)
+    (bricks/set-dots! (:crew @!world) (merged-asks (js/Date.now)) (js/Date.now)
                       (twin-dots @!world (js/Date.now) (crew/colors @!world))
                       (:call @!world))
     (bricks/set-says! (world/says-now @!world (js/Date.now)))
@@ -1938,6 +1984,7 @@
         (start-crew-poll!)
         (start-bridge-poll!)
         (start-crew-log-poll!)
+        (start-crew-said-poll!)
         (start-hold-poll!)
         (start-juice-poll!)))
   (kit/load! start-kit! start-scaffold!))

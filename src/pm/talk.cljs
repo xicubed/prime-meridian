@@ -9,7 +9,7 @@
             [pm.jumeaux :as j]
             [pm.content :as c]))
 
-(def crew-kinds #{:crew-prompt :crew-status :crew-say :crew-log :crew-reply})
+(def crew-kinds #{:crew-prompt :crew-status :crew-say :crew-log :crew-reply :crew-said})
 (def prompt-states #{:pending :sending :allowed :declined :stale})
 (def say-states #{:sending :sent :failed})
 (def you "You")
@@ -255,8 +255,9 @@
 
 (def quiet-kinds
   "Entries that aren't messages to the player (status flips, the crew log,
-   the player's own lines): they never count as unread."
-  #{:crew-log :crew-status :crew-say})
+   the player's own lines, a member's own prose summary): they never count
+   as unread."
+  #{:crew-log :crew-status :crew-say :crew-said})
 
 (defn counts?
   "Does this entry count as a message the player hasn't read?"
@@ -358,10 +359,20 @@
     (cond-> (assoc talk :entries entries :n n')
       open? (assoc :seen n'))))
 
+(def prompt-preview-max 160)
+
+(defn prompt-preview
+  "A prompt's command, read as the row shows it: the first ~160 chars,
+   then \"…\" when there's more."
+  [text]
+  (if (<= (count text) prompt-preview-max)
+    text
+    (str (subs text 0 (dec prompt-preview-max)) "…")))
+
 (defn- crew-prompt-text [p]
   (if (= :bash (:kind p))
-    (str "wants to run " (:text p))
-    (str "is waiting at a prompt: " (str/replace (:text p) "\n" " / "))))
+    (str "wants to run " (prompt-preview (:text p)))
+    (str "is waiting at a prompt: " (prompt-preview (str/replace (:text p) "\n" " / ")))))
 
 (defn- stale-pending [entries member eff]
   (mapv (fn [e]
@@ -464,8 +475,11 @@
   (let [talk (or talk empty-talk)
         e    (entry talk n)]
     (if-not (and e (= :crew-prompt (:kind e)) (= :pending (:state e))
-                 (contains? #{:allow :deny} action)
-                 (or (= action :deny) (allowable? e)))
+                 (contains? #{:allow :deny :approve :always} action)
+                 (or (= action :deny)
+                     (= action :approve)
+                     (and (= action :allow) (allowable? e))
+                     (and (= action :always) (integer? (:always (:prompt e))))))
       talk
       (let [note' (when (= action :deny) (clean-note note))]
         (if (and note' (> (count note') 1000))
@@ -491,7 +505,8 @@
                      (case (:kind x)
                        :crew-prompt
                        (case result
-                         :ok (assoc x :state (if (= :allow (:action x)) :allowed :declined) :answered-at now)
+                         :ok (assoc x :state (if (contains? #{:allow :approve :always} (:action x)) :allowed :declined)
+                                    :answered-at now)
                          :stale (assoc x :state :stale)
                          :error (-> x (dissoc :action :note) (assoc :state :pending :error reason))
                          x)
@@ -556,11 +571,29 @@
     (boolean (some #(and (= :crew-prompt (:kind %)) (contains? #{:pending :sending} (:state %)))
                    (:entries talk)))))
 
-(defn crew-controls [e bridge-on?]
-  (when (and (= :crew-prompt (:kind e)) (contains? #{:pending :sending} (:state e)))
+(defn crew-controls
+  "The old bash-only Allow/No controls: nil for a non-bash (:unknown)
+   prompt, which prompt-controls alone now handles."
+  [e bridge-on?]
+  (when (and (= :crew-prompt (:kind e)) (contains? #{:pending :sending} (:state e))
+             (= :bash (:kind (:prompt e))))
     (case (:state e)
       :sending {:allow? (allowable-kind? e) :disabled? true :hint "sending…"}
       :pending {:allow? (allowable? e) :disabled? (not bridge-on?) :hint (when-not bridge-on? "bridge off")})))
+
+(defn prompt-controls
+  "Allow / Always / No controls for any pending or sending crew-prompt,
+   bash or unknown alike (GDD: every permission prompt is answerable in
+   the game; a risky or unknown one still gets Allow, it's the player's
+   call). :always? is true only when the dialog itself offered a \"don't
+   ask again\" option."
+  [e bridge-on?]
+  (when (and (= :crew-prompt (:kind e)) (contains? #{:pending :sending} (:state e)))
+    (let [always? (integer? (:always (:prompt e)))]
+      (case (:state e)
+        :sending {:allow? true :always? always? :disabled? true :hint "sending…"}
+        :pending {:allow? true :always? always? :disabled? (not bridge-on?)
+                  :hint (when-not bridge-on? "bridge off")}))))
 
 (defn- name-of [action]
   (case action :allowed "allowed" :declined "declined" nil))
@@ -607,6 +640,104 @@
          talk
          new)))))
 
+(defn observe-said
+  "talk, folding in state/crew-said.edn: for every member with a newer
+   last-said item than it's shown before, one quiet :crew-said line (the
+   member's own end-of-turn summary, GDD-free: no badge, no caption).
+   Identical to `talk` when nothing's newer."
+  [talk said crew-state now]
+  (let [talk (or talk empty-talk)]
+    (if-not (and (map? said) (map? (:said said)))
+      talk
+      (let [titles (if (map? crew-state) (:titles crew-state) {})
+            result (reduce
+                     (fn [t m]
+                       (let [since (get-in t [:said-at m] 0)
+                             news  (filter #(and (map? %) (integer? (:at %)) (> (:at %) since))
+                                           (get-in said [:said m]))]
+                         (if (empty? news)
+                           t
+                           (-> (reduce (fn [t2 it]
+                                         (if (> (:at it) (- now quiet-ms))
+                                           (append-crew t2 {:who (get titles m (name m)) :text (:text it)
+                                                             :at (:at it) :kind :crew-said :member m
+                                                             :question? (true? (:question? it))})
+                                           t2))
+                                       t (sort-by :at news))
+                               (assoc-in [:said-at m] (reduce max since (map :at news)))))))
+                     talk
+                     (sort (keys (:said said))))]
+        (if (= result talk) talk result)))))
+
+(def said-grace-ms
+  "Tolerance between a said item's :at and the agent's :since: a few ms of
+   skew between the two timestamps never clears the \"!\" on its own."
+  5000)
+
+(defn said-questions
+  "Every idle/done member with an unanswered question as its last-said line, as
+   {member-name-string {:text :since}} (pm.world's asks-player shape, GDD
+   §3.1): the member's row and walker get the \"!\". Clears when the
+   member goes working again well after the question, or the player has
+   already replied (a :crew-say for it, :sending or :sent). {} on a stale
+   or missing crew-state."
+  [talk crew-state now]
+  (let [talk (or talk empty-talk)]
+    (if (or (nil? crew-state) (not (crew/fresh? crew-state now)))
+      {}
+      (let [entries (:entries talk)
+            last-said (fn [m] (last (filter #(and (= :crew-said (:kind %)) (= m (:member %))) entries)))
+            replied?  (fn [m at] (boolean (some #(and (= :crew-say (:kind %)) (= m (:member %))
+                                                        (contains? #{:sending :sent} (:state %))
+                                                        (>= (:at %) at))
+                                                 entries)))]
+        (into {}
+              (keep (fn [[m a]]
+                      (when (contains? #{:idle :done} (:status a))
+                        (when-let [e (last-said m)]
+                          (when (and (true? (:question? e))
+                                     (or (not (integer? (:since a)))
+                                         (<= (:since a) (+ (:at e) said-grace-ms)))
+                                     (not (replied? m (:at e))))
+                            [(name m) {:text (:text e) :since (:at e)}])))))
+              (:agents crew-state))))))
+
+(defn observe-says
+  "talk, folding in world's :says (pm.world's speech markers, keyed by
+   agent name string): a quiet :crew-reply line in a member's thread for
+   every `hal-say --as <member>` line newer than the one shown before.
+   Skips the twin's own agent (its say is heard elsewhere, not relayed
+   into a member's thread). Identical to `talk` when nothing's newer."
+  [talk world]
+  (let [talk (or talk empty-talk)
+        says (:says world)]
+    (if-not (map? says)
+      talk
+      (let [walkers    (:walkers world)
+            twin-name  (get-in world [:jumeaux :twin :name])
+            twin-agent (:agent (first (filter #(= twin-name (:name %)) walkers)))
+            result     (reduce
+                         (fn [t agent-str]
+                           (let [s       (get says agent-str)
+                                 walker  (first (filter #(= agent-str (name (:agent %))) walkers))
+                                 agent   (:agent walker)
+                                 text    (:text s)
+                                 at      (:since s)
+                                 prev-at (get-in t [:says-at agent-str])]
+                             (if (and (some? agent) (not= agent twin-agent)
+                                      (non-blank-str? text) (finite-number? at)
+                                      (or (nil? prev-at) (> at prev-at)))
+                               (let [who (or (:name walker)
+                                             (get-in world [:crew :titles (keyword agent-str)])
+                                             agent-str)]
+                                 (-> t
+                                     (assoc-in [:says-at agent-str] at)
+                                     (crew-reply (keyword agent) who text at)))
+                               t)))
+                         talk
+                         (sort (keys says)))]
+        (if (= result talk) talk result)))))
+
 (defn log-label
   "The roster's past-entries line for a crew-log.edn entry."
   ([x offset-min] (log-label x offset-min nil))
@@ -627,7 +758,8 @@
               :pending   (str (when risky (str " · " (j/twin jum) " reviews this one"))
                                (when-let [err (:error e)] (str " · not sent: " err)))
               :sending   " · sending…"
-              :allowed   (str " · ☑ allowed " (clock-text (:answered-at e) offset-min))
+              :allowed   (str " · ☑ " (if (= :always (:action e)) "always allowed" "allowed")
+                               " " (clock-text (:answered-at e) offset-min))
               :declined  (str " · ✕ declined " (clock-text (:answered-at e) offset-min)
                                (when-let [note (:note e)] (str " · “" note "”")))
               :stale     (str " · already answered"
@@ -643,6 +775,7 @@
             ""))
      :crew-log (str (:who e) " " (:text e) " · " (clock-text (:at e) offset-min))
      :crew-reply (str (:who e) " · " (:text e))
+     :crew-said (if (:question? e) (str (:who e) " asks: " (:text e)) (str (:who e) " · " (:text e)))
      nil)))
 
 (defn with-questions
@@ -821,7 +954,7 @@
     (pr-str {:v 1 :n (:n talk) :seen (:seen talk) :seen-by (:seen-by talk) :crew-last (:crew-last talk) :log-at (:log-at talk)
              :entries (mapv #(select-keys % [:n :who :text :at :kind :mirror :event :chore :done? :asks
                                                :member :prompt :state :action :note :answered-at :error :to
-                                               :by :log])
+                                               :by :log :question?])
                              (:entries talk))})))
 
 (defn- valid-restored-entry? [e]
@@ -844,7 +977,8 @@
                 :crew-prompt (and (crew/valid-prompt? (:prompt e)) (contains? prompt-states (:state e)))
                 :crew-status true
                 :crew-say (and (non-blank-str? (:to e)) (contains? say-states (:state e)))
-                :crew-reply true))
+                :crew-reply true
+                :crew-said (boolean? (:question? e))))
 
          :else true)))
 
@@ -868,7 +1002,8 @@
           sending? (assoc :error "not confirmed")
           (and (not sending?) (string? (:error e))) (assoc :error (:error e))))
       :crew-log (assoc (select-keys e [:n :who :text :at :kind :member]) :log (cl/upgrade-entry (:log e)))
-      :crew-reply (select-keys e [:n :who :text :at :kind :member]))
+      :crew-reply (select-keys e [:n :who :text :at :kind :member])
+      :crew-said (select-keys e [:n :who :text :at :kind :member :question?]))
     (let [base (cond-> (select-keys e [:n :who :text :at :kind])
                  (keyword? (:mirror e)) (assoc :mirror (:mirror e))
                  (keyword? (:event e))  (assoc :event (:event e))
@@ -917,6 +1052,12 @@
   (into {} (for [e entries :when (and (keyword? (:mirror e)) (not= :chore (:kind e)))]
              [(:mirror e) (:text e)])))
 
+(defn- said-ats
+  "What each member's last-shown crew-said item's :at was, from the
+   history: reconstructed rather than stored, like last-says."
+  [entries]
+  (into {} (for [e entries :when (= :crew-said (:kind e))] [(:member e) (:at e)])))
+
 (defn restore [text]
   (let [m (try (reader/read-string text) (catch :default _ nil))]
     (if-not (and (map? m) (= 1 (:v m)))
@@ -944,8 +1085,10 @@
             ;; doesn't bring every line back as unread (Michael)
             seen-by     (into {} (for [[c v] (when (map? (:seen-by m)) (:seen-by m))
                                        :when (and (keyword? c) (integer? v))]
-                                   [c (-> v (max 0) (min n))]))]
+                                   [c (-> v (max 0) (min n))]))
+            said-at     (said-ats entries)]
         (cond-> (assoc empty-talk :entries entries :n n :seen seen :log-at log-at
                        :last-say (last-says entries)
                        :crew-last (clean-crew-last (:crew-last m)))
-          (seq seen-by) (assoc :seen-by seen-by))))))
+          (seq seen-by) (assoc :seen-by seen-by)
+          (seq said-at) (assoc :said-at said-at))))))
