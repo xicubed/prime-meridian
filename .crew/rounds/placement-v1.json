@@ -1,0 +1,67 @@
+{
+  "round": "placement-v1",
+  "quest": ".crew/quests/placement-v1.md",
+  "runDir": "crew/runs",
+  "gate": "bash .crew/gate.sh",
+  "fix": {
+    "who": "un-automate-monde",
+    "max": 2
+  },
+  "timeoutMinutes": 75,
+  "steps": [
+    {
+      "id": "spec",
+      "who": [
+        "un-architecte"
+      ],
+      "prompt": "New quest: read {quest} and the code it cites. Write the spec to {run}/spec.md following your role card: the pm.lot changes (:open-kinds, the widening search to :max-search-m, :moved-m, refusal only past it) with exact signatures, the new estate :build-rules keys and :blueprint-text words, the fly-to decision as a pure fn (inputs: the new ghost's position, the camera, whether it is on screen, trial card open, last player camera move) and its wiring in pm.core for both the dev blueprints poll and the demo's demo-ask!, the builder role card's Build requests rewrite (one bb blueprint-draft + one bb hal-say --as, no ground-map scripts), numbered test cases with hand-checked expected values (check every existing pm.lot test that a widened search or :open-kinds would change, and list the old expectations to update), and a who-touches-what table (builder: src/ and scripts/ files you name, resources/estate.edn's :build-rules and :blueprint-text only; tester: new test files only plus the old-test edits you list; le-docteur: .crew/roles builder card's Build requests section and PLAY.md's Build bullet). Reply when it's written.",
+      "expect": [
+        "{run}/spec.md"
+      ]
+    },
+    {
+      "id": "build",
+      "who": [
+        "un-automate-monde",
+        "le-testeur"
+      ],
+      "prompt": {
+        "un-automate-monde": "Spec: {run}/spec.md (quest: {quest}). Implement it in the source files the spec assigns the builder, and nothing else. Run .crew/gate.sh before replying, then write {run}/builder-notes.md as the quest's Done-when says.",
+        "le-testeur": "Spec: {run}/spec.md (quest: {quest}). Write its test cases in the test file the spec assigns the tester, and nothing else. The builder is coding in parallel."
+      },
+      "expect": [
+        "{run}/builder-notes.md"
+      ]
+    },
+    {
+      "id": "gate",
+      "who": [
+        "le-coureur"
+      ],
+      "verify": true,
+      "prompt": "Run the gate (.crew/gate.sh) and write the gate note to {run}/gate-note.md as your role card says.",
+      "expect": [
+        "{run}/gate-note.md"
+      ]
+    },
+    {
+      "id": "review",
+      "who": [
+        "le-critique"
+      ],
+      "prompt": "Review the round's changes against {run}/spec.md and {quest}: git diff for edited files, and read the new files. Check in particular: canopy cells placed only via :open-kinds (default [\"o\"] when missing); bushes/trunks/rocks/water still refused; the widened search stops at :max-search-m and says how far it moved; the fly-to never fires while a trial card is open or right after a player camera move, and reuses the CREW flight; the demo path gets it too; the builder role card asks for one command; no person, pet or member named in code; no npm deps. Write the review to {run}/review.md.",
+      "expect": [
+        "{run}/review.md"
+      ]
+    },
+    {
+      "id": "docs",
+      "who": [
+        "le-docteur"
+      ],
+      "prompt": "Spec: {run}/spec.md (quest: {quest}). Make only the documentation edits the spec's who-touches-what table gives le-docteur (if none, change nothing). Reply with git diff --stat of what you changed.",
+      "expect": []
+    }
+  ],
+  "onBlocked": "wait"
+}
