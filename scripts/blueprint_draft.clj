@@ -1,8 +1,8 @@
 #!/usr/bin/env bb
 ;; blueprint-draft (TASKS T-13): a crew member draws a look with no :at/:yaw and asks to put it
-;; near a landmark; this finds a level, open spot on the kit's sampled ground map, clear of
-;; everything else and every walker's route, and proposes the full blueprint through the
-;; existing bb blueprint-add -- one writer, one validator.
+;; near a landmark; this finds a level spot on open ground or under a tree's crown, searching
+;; out to :max-search-m, clear of everything else and every walker's route, and proposes the
+;; full blueprint through the existing bb blueprint-add -- one writer, one validator.
 ;;
 ;;   bb blueprint-draft <member> <draft.edn> --near <landmark|x,z> [--dry-run]
 ;;   bb blueprint-draft --landmarks
@@ -63,18 +63,23 @@
             (fail! (:reason result))
             (let [bp (lot/blueprint draft result)
                   problems (bf/problems bp)
-                  lm (lot/resolve-landmark (lot/landmarks ground estate file-bps view') near)]
+                  lm (lot/resolve-landmark (lot/landmarks ground estate file-bps view') near)
+                  print-lines! (fn []
+                                 (println (lot/placed-line draft (:word lm) result))
+                                 (when-let [moved (lot/moved-line (get-in estate [:blueprint-text :moved])
+                                                                   (:word lm) result)]
+                                   (println moved)))]
               (when (seq problems)
                 (fail! (str "invalid draft: " (clojure.string/join "; " problems))))
               (if dry-run
-                (do (println (lot/placed-line draft (:word lm) result))
+                (do (print-lines!)
                     (System/exit 0))
                 (let [tmp (java.io.File/createTempFile "blueprint-draft" ".edn")]
                   (try
                     (spit tmp (pr-str bp))
                     (let [r (p/shell {:continue true} "bb" "scripts/blueprint_add.clj" (name member) (str tmp))]
                       (if (zero? (:exit r))
-                        (do (println (lot/placed-line draft (:word lm) result))
+                        (do (print-lines!)
                             (System/exit 0))
                         (System/exit 1)))
                     (finally (.delete tmp))))))))))))

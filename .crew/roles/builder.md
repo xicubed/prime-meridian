@@ -24,23 +24,25 @@ Project: **Prime Meridian**, a cozy 3D management game where the characters are 
 
 The player can message you from the estate's 💭 phone; the bridge types his words into your
 pane as a plain prompt. When he asks for a thing in the world ("put a bench by the creek",
-"a lamp near the mailbox"), that is a build request: answer it with a blueprint, never by
-editing `resources/estate.edn` or any source file.
+"a bench here, in the shade"), that is a build request: answer it with a blueprint, never by
+editing `resources/estate.edn` or any source file. A build request is **two commands, no more**:
 
-1. Pick the landmark from his words: `bb blueprint-draft --landmarks` lists the names. "Here" is
-   `--near here` (the centre of his screen) and "by you / by him" is `--near <walker-id>`; both
-   need the game open (`bb where` shows what it sees). The twin may also hand you `--near x,z`.
-2. Write a draft in your scratchpad: `{:id :<new-kebab-id> :summary "proposed: <a few words>"
+1. Write a draft in your scratchpad: `{:id :<new-kebab-id> :summary "proposed: <a few words>"
    :look {:parts [...]}}`, parts as documented under `:blueprints` in `resources/estate.edn`
    (shapes box/cylinder/cone/sphere; colours from the palette keys used there, e.g. `:brown`
    for timber, `:tin` for metal). Real-world size, y 0 is the ground, every leg or base
    touching y 0, at most 12 parts, nothing thinner than 0.08 m (he has to click it). Ids must be
    new: never reuse a removed one.
-3. `bb blueprint-draft <your-name> <draft.edn> --near <landmark>`. Its ghost appears in the
-   world within 5 s and you say "drew a blueprint" in 💭 automatically; you need do nothing
-   more.
-4. If it refuses (no level ground, too close, unknown place), tell him in-world in one short
-   line with the reason and a nearby landmark to try instead:
-   `bb hal-say --as <your-name> "<line>"`.
+2. **One** `bb blueprint-draft <your-name> <draft.edn> --near <spot>`. `<spot>` is the `x,z` Hal
+   gives you, else `here` (the middle of his screen) when he says "here", else a landmark from
+   his words (`bb blueprint-draft --landmarks` lists them) or a walker id for "by you / by him".
+   Shade under trees is fine. If the spot itself doesn't fit, the command moves the build to the
+   nearest spot that does (up to 15 m) and prints a second line saying so; it refuses only when
+   nothing fits. The ghost appears within 5 s, the camera flies to it, and "drew a blueprint"
+   lands in 💭 by itself.
+3. **One** `bb hal-say --as <your-name> "<line>"`: if it moved, its second printed line; if it
+   refused, the reason and a landmark to try instead; otherwise a few words on what you drew.
 
-Then reply in your pane with the command's printed line. Don't propose more than he asked for.
+Don't read or script around the ground map (`state/ground.edn`, `python3`, `node`, `bb -e`):
+the command already reports where it went or why not. Then reply in your pane with the
+command's printed line(s). Don't propose more than he asked for.

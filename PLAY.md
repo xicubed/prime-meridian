@@ -76,8 +76,9 @@ When all four are ticked, the **Day won** card appears. Click **Keep playing** t
   with a local model, or when you don't want the leader spending tokens to pass a message on.
 - **Build:** Hal can build a **bench**, a **lamp post**, a **table** or a **planter**, near
   **here** (the middle of your screen), the **mailbox**, the **phone booth**, the **workshop**
-  or the **creek**. Example: *"a lamp post by the mailbox"*. He picks level, open ground; if a
-  spot is too steep or under trees he says so, so try somewhere flatter.
+  or the **creek**. Example: *"a lamp post by the mailbox"*. Shade under the trees is fine. If
+  the exact spot is too steep, crowded or in a bush, he puts it at the nearest spot that fits
+  and tells you how far he moved it, and the camera flies over to show you.
 - **Change your mind:** click a real build, then **Remove…**. A red preview shows what goes;
   confirm with **Remove it**.
 - **Mail:** click the mailbox to read the sample inbox.

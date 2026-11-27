@@ -10,7 +10,7 @@
 (def RAW   (reader/read-string w/estate-edn))       ; the raw estate (mirrors a vector)
 (def DB    (:demo-builds RAW))
 (def SAMP  (:sampler DB))
-(def RULES (:build-rules RAW))                      ; {:step-m 0.5 :yaws [0 45 90 135] :search-m 6 :gap-m 1.2 :route-m 0.8 :max-spread-m 0.12}
+(def RULES (:build-rules RAW))                      ; {:step-m 0.5 :yaws [0 45 90 135] :search-m 6 :max-search-m 15 :open-kinds ["o" "T"] :gap-m 1.2 :route-m 0.8 :max-spread-m 0.12 :show-me {:near-m 10 :quiet-ms 2000 :lift-m 0.6 :back 1.4 :low 0.5}}
 (def E0    {:demo-builds DB :mirrors [] :walkers []})            ; an empty estate
 (def DB2   (assoc DB :words {"banc" :bench} :places {"ici" :here "poste" :post}))
 (def E1    {:demo-builds DB2 :post {:at [0 1 0]} :mirrors [] :walkers []})   ; one place at the origin
@@ -217,7 +217,9 @@
 
 (deftest t29-ask-ready-to-measure
   (is (= (ab/ask (ctx E0 {} ab/empty-file [0 1 0]) "put a bench here")
-         {:req {:look :bench :near :here} :target [0 0] :spec {:origin [-7 -7] :step 0.5 :cols 29 :rows 29}})))
+         {:req {:look :bench :near :here} :target [0 0]
+          :spec {:origin [-7 -7] :step 0.5 :cols 29 :rows 29}
+          :wide-spec {:origin [-16 -16] :step 0.5 :cols 65 :rows 65}})))
 
 (deftest t30-ask-a-place-with-no-position
   (let [E2 (assoc-in E0 [:demo-builds :places] {"moon" :moon})]
@@ -242,9 +244,17 @@
     (is (= (:at (:blueprint r)) [-2.5 1 0]))
     (is (= (:say r) "A bench, drawn near the post. Try it, and make it real if you like it."))))
 
-(deftest t33-plan-refused-under-trees
+(deftest t33-plan-under-trees
   (is (= (ab/plan (ctx E0 {} ab/empty-file [0 1 0]) {:look :bench :near :here} TREES)
-         {:ok false :say "I can't put that there: no level open ground within 6 m of where you're looking: most of it is under trees."})))
+         {:ok true :id :bench-1
+          :blueprint {:id :bench-1 :at [0 1 0] :yaw 0 :summary "A bench" :look BENCH :by :tw}
+          :file {:as-of 5000 :blueprints [{:id :bench-1 :at [0 1 0] :yaw 0 :summary "A bench" :look BENCH :by :tw}]
+                 :real [] :removed []}
+          :say "A bench, drawn near where you're looking. Try it, and make it real if you like it."}))
+  (is (= (ab/plan (assoc (ctx E0 {} ab/empty-file [0 1 0]) :rules (assoc RULES :open-kinds ["o"] :max-search-m 6))
+                   {:look :bench :near :here} TREES)
+         {:ok false :say "I can't put that there: no level open ground within 6 m of where you're looking: most of it is under trees."
+          :reason "no level open ground within 6 m of where you're looking: most of it is under trees"})))
 
 (deftest t34-plan-the-id-avoids-the-world-and-the-file
   (let [world {:blueprints [{:id :bench-1 :at [50 1 50] :summary "x"}]}

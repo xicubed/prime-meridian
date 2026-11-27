@@ -2,7 +2,10 @@
  ;; :step-m within :search-m of the landmark, turned to each of :yaws (degrees); every foot on
  ;; open ground (state/ground.edn), feet at most :max-spread-m apart in height, the item's
  ;; circle :gap-m clear of every other thing's and :route-m clear of every walker's route.
- :build-rules {:step-m 0.5 :yaws [0 45 90 135] :search-m 6 :gap-m 1.2 :route-m 0.8 :max-spread-m 0.12}
+ :build-rules {:step-m 0.5 :yaws [0 45 90 135] :search-m 6 :max-search-m 15 :open-kinds ["o" "T"]
+               :gap-m 1.2 :route-m 0.8 :max-spread-m 0.12
+               ;; show me (placement-v1): a new ghost from an ask flies the camera to it
+               :show-me {:near-m 10 :quiet-ms 2000 :lift-m 0.6 :back 1.4 :low 0.5}}
  :hud {:mirrors [:flora]}                 ; mirrors whose status-line goes on the HUD, in order
  :jumeaux {:player {:name "Michael" :sex :m}   ; les jumeaux: the player and their twin; onboarding asks (TASKS O-1)
            :twin   {:name "Hal"}}              ; the twin's word follows the player's :sex (:m jumeau, :f jumelle)
@@ -307,7 +310,8 @@
                   :removing         "will be removed"                                  ; the removal ghost's sign, second line (TASKS T-15)
                   :removing-wait    "Removing…"                                        ; Remove it while the bridge records it, disabled (TASKS T-15)
                   :removed          "Removed. It's gone for good."                     ; twin's caption once it's recorded (TASKS T-15)
-                  :no-bridge-remove "Start the bridge (bb crew-bridge) to remove it."}  ; no bridge (or refused): nothing changes (TASKS T-15)
+                  :no-bridge-remove "Start the bridge (bb crew-bridge) to remove it."    ; no bridge (or refused): nothing changes (TASKS T-15)
+                  :moved            "Not there: {why}, so I put it {moved} m from {place}."}   ; placement-v1: the near ground didn't fit, the build went further out
  :blueprints [{:id :bench-by-mailbox :at [3.5 1.82 -9.25] :yaw 0   ; south of the mailbox, 2.6 m from it and 3 m from the phone booth (Michael, Nov 23: it was crammed against the booth); 8 cm across the legs, probed every foot; a walker loop passes close by (TASKS T-7: wanderers don't avoid builds yet); the game seats it (pm.blueprint/seat)
                :summary "proposed: a bench by the mailbox"
                :look {:parts

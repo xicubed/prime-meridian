@@ -10,8 +10,64 @@
 (def save-every-ms 2000)
 (def max-coord 2000)   ; metres: anything beyond is junk, not a camera
 
+(def show-defaults
+  "Show me (placement-v1) defaults for `fly-decision`/`ghost-flight`,
+   overridden by the estate's `:build-rules :show-me`."
+  {:near-m 10 :quiet-ms 2000 :lift-m 0.6 :back 1.4 :low 0.5})
+
 (defn- finite? [x] (and (number? x) (js/isFinite x) (<= (js/Math.abs x) max-coord)))
 (defn- vec3? [v] (and (vector? v) (= 3 (count v)) (every? finite? v)))
+
+;; -- Show me (placement-v1): fly the camera to a new ghost ------------------
+
+(defn- nums3? [v] (and (vector? v) (= 3 (count v)) (every? number? v)))
+(defn- finite-nums3? [v] (and (nums3? v) (every? js/isFinite v)))
+
+(defn on-screen?
+  "True iff `ndc` is a vector of 3 finite numbers, each within [-1 1] (a
+   point behind the camera projects to z > 1, so that excludes it too)."
+  [ndc]
+  (boolean (and (finite-nums3? ndc) (every? (fn [v] (<= -1 v 1)) ndc))))
+
+(defn fly-decision
+  "Show me (placement-v1): whether the camera should fly to a new ghost at
+   `m`'s `:ghost`. `show` is merged over `show-defaults` (nil is fine). The
+   first match wins: no sane `:ghost` -> :no-ghost; a trial card open ->
+   :card-open; the player moved the camera within `:quiet-ms` -> :player-
+   moving; already on screen and within `:near-m` of the camera ->
+   :in-view; else :fly."
+  [show {:keys [ghost camera on-screen? card-open? last-move-ms now-ms]}]
+  (let [{:keys [near-m quiet-ms]} (merge show-defaults show)]
+    (cond
+      (not (finite-nums3? ghost)) :no-ghost
+      card-open? :card-open
+      (and (number? last-move-ms) (< (- now-ms last-move-ms) quiet-ms)) :player-moving
+      (and on-screen? (nums3? camera)
+           (<= (js/Math.sqrt (reduce + (map (fn [a b] (* (- a b) (- a b))) camera ghost))) near-m))
+      :in-view
+      :else :fly)))
+
+(defn flight
+  "The CREW key's framing maths (pm.core's old `fly!`), moved here unchanged
+   so the CREW key and a new ghost's camera share one flight: {:target
+   [x y z] :offset [dx dy dz]}, or nil unless `at` and `offset` are 3
+   numbers each. The camera always comes in from the creek's side."
+  [at lift back offset]
+  (when (and (nums3? at) (nums3? offset))
+    (let [[x y z] at
+          [ox oy oz] offset
+          ox' (if (pos? x) (- (js/Math.abs ox)) (js/Math.abs ox))]
+      {:target [x (+ y lift) z] :offset [(* back ox') (* back oy) (* back oz)]})))
+
+(defn ghost-flight
+  "`flight` framed for a new ghost at `at` (placement-v1): from the side and
+   lower, under a canopy, per `show`'s `:lift-m`/`:back`/`:low` (merged over
+   `show-defaults`)."
+  [at offset show]
+  (let [{:keys [lift-m back low]} (merge show-defaults show)]
+    (when (nums3? offset)
+      (let [[ox oy oz] offset]
+        (flight at lift-m back [ox (* low oy) oz])))))
 
 (defn encode
   "The text to store for a camera at `pos` looking at `target` (both [x y z])."

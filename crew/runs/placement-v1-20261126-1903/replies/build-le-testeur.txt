@@ -1,0 +1,35 @@
+⏺ Now let's run the gate / tests to sanity check
+  compilation (expecting failures since builder's code
+  isn't done yet, but want to check for syntax errors
+  on my end).
+
+  Ran 1 shell command
+
+⏺ Diff stats:
+  - test/pm/placement_test.cljs (new file, ns
+    pm.placement-test): 381 lines — tests 1–54 from
+    spec §7 (A–I).
+  - test/pm/ask_build_test.cljs: 14 insertions, 4
+    deletions — updated the RULES comment (line 13)
+    and rewrote t29-ask-ready-to-measure (adds
+    :wide-spec) and t33-plan-refused-under-trees →
+    t33-plan-under-trees (two assertions per §8).
+
+  Tests added in placement_test.cljs: t01–t05 (rules
+  helpers), t06–t09 (:open-kinds in spot), t10–t14
+  (:open-kinds in place), t15–t23 (widening search),
+  t24–t29 (the moved line), t30–t31 (estate data),
+  t32–t37 (ask-build), t38–t51 (camera show-me),
+  t52–t54 (blueprint arrival-at). These will fail to
+  compile until the builder's code lands (pm.lot,
+  pm.ask-build, pm.camera, pm.blueprint changes) —
+  expected per the parallel-work setup.
+
+  done-2847
+
+✻ Brewed for 1m 53s · done 7:14 PM
+
+──────────────────────────────────────────────────────
+❯
+──────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

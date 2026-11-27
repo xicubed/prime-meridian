@@ -21,6 +21,7 @@
             [pm.creature-spike :as creature-spike]
             [pm.events :as events]
             [pm.juice :as juice]
+            [pm.lot :as lot]
             [pm.sky :as sky]
             [cljs.reader]
             [pm.jumeaux :as j]
@@ -1280,6 +1281,7 @@
 
 (declare open-agent-talk!)
 (defonce ^:private !follow (atom nil))   ; walker id the camera is following
+(defonce ^:private !camera-moved-at (atom nil))   ; js/Date.now of the player's last camera move
 
 (defn- walker-colours
   "A walker's colours for the crew key: :body and :joints. A tint colours
@@ -1354,12 +1356,9 @@
         rows (-> rows (into creatures) (into places)
                  (call/mark-on-call (:call w) #(or (:agent %) (:id %))))
         fly! (fn [h [x y z] lift & [back]]
-               (let [[ox oy oz] (get-in w [:crew-key :offset])
-                     ;; come in from the creek's side (the open middle of the
-                     ;; estate), not out of the woods behind them
-                     ox (if (pos? x) (- (js/Math.abs ox)) (js/Math.abs ox))
-                     k  (or back 1)]   ; a place is framed from further back than a figure
-                 (camera/frame! h [x (+ y lift) z] [(* k ox) (* k oy) (* k oz)])))]
+               (when-let [{:keys [target offset]} (camera/flight [x y z] lift (or back 1)
+                                                                  (get-in w [:crew-key :offset]))]
+                 (camera/frame! h target offset)))]
     (ui/render-crew-key! (get-in w [:crew-key :title]) rows toggle-source!
       (fn [id]
         (when-let [h (kit/handle)]
@@ -1576,8 +1575,18 @@
     (.addEventListener canvas "pointerdown"
       (fn [^js e]
         (reset! !follow nil)   ; the player takes the camera back
+        (reset! !camera-moved-at (js/Date.now))
         (when (and (.-isPrimary e) (zero? (.-button e)))
           (reset! !press {:x (.-clientX e) :y (.-clientY e) :t (.-timeStamp e)})))
+      #js {:passive true})
+    ;; show me (placement-v1): a drag or a scroll also counts as the player
+    ;; moving the camera, so a new ghost never hijacks it mid-gesture
+    (.addEventListener canvas "pointermove"
+      (fn [^js e]
+        (when (pos? (.-buttons e)) (reset! !camera-moved-at (js/Date.now))))
+      #js {:passive true})
+    (.addEventListener canvas "wheel"
+      (fn [^js _e] (reset! !camera-moved-at (js/Date.now)))
       #js {:passive true})
     (.addEventListener js/window "pointerup"
       (fn [^js e]
@@ -1774,12 +1783,14 @@
     (if-let [s (:say r)]
       (twin-reply! s at)
       (let [sampler (get-in raw-estate [:demo-builds :sampler])
-            t0      (js/performance.now)
-            ground  (when h (t/ground-grid (view-ground-meshes! h) (cover-meshes! h) (:spec r)
-                                           (:from-y sampler) (partial ab/sample-cell sampler)))
-            _       (js/console.info "Prime Meridian: ground grid" (:cols (:spec r)) "x" (:rows (:spec r))
-                                     "in" (js/Math.round (- (js/performance.now) t0)) "ms")
-            p       (ab/plan ctx (:req r) ground)]
+            measure (fn [spec] (when h (let [t0 (js/performance.now)
+                                             g  (t/ground-grid (view-ground-meshes! h) (cover-meshes! h) spec
+                                                               (:from-y sampler) (partial ab/sample-cell sampler))]
+                                         (js/console.info "Prime Meridian: ground grid" (:cols spec) "x" (:rows spec)
+                                                          "in" (js/Math.round (- (js/performance.now) t0)) "ms")
+                                         g)))
+            p1      (ab/plan (update ctx :rules lot/near-rules) (:req r) (measure (:spec r)))
+            p       (if (ab/widen? r p1) (ab/plan ctx (:req r) (measure (:wide-spec r))) p1)]
         (when (:ok p)
           (reset! !demo-file (:file p))
           (save-demo-file!)
@@ -1841,6 +1852,25 @@
   (when-let [ground-at (ground-at-fn h)]
     (swap! !world bp/seat-all ground-at)))
 
+(defn- show-arrival!
+  "Show me (placement-v1): a new ghost at `at` flies the camera to it with
+   the CREW key's own flight, framed from the side so a canopy doesn't hide
+   it -- unless it's already on screen and near, a trial card is open, or
+   the player just moved the camera themself (`camera/fly-decision`)."
+  [at]
+  (when-let [^js h (kit/handle)]
+    (let [w    @!world
+          show (get-in w [:build-rules :show-me])
+          fl   (camera/ghost-flight at (get-in w [:crew-key :offset]) show)
+          d    (camera/fly-decision show {:ghost at :camera (:pos (t/rig-view h))
+                                          :on-screen? (camera/on-screen? (when fl (t/project-ndc (.-camera h) (:target fl))))
+                                          :card-open? (some? (bp/card-of w))
+                                          :last-move-ms @!camera-moved-at :now-ms (js/Date.now)})]
+      (when (and fl (= :fly d))
+        (camera/frame! h (:target fl) (:offset fl))
+        (reset! !follow nil))
+      (js/console.info "Prime Meridian: new ghost at" (pr-str at) "camera:" (name d)))))
+
 (defn- apply-blueprint-file!
   "A freshly polled `state/blueprints.edn` (or nil, 404) merged into
    `!world` (TASKS T-13b, `bp/merge-file`): a no-op when nothing changed.
@@ -1849,7 +1879,9 @@
    `start-kit!`'s `seat-blueprints!` seats them -- `seat` is idempotent via
    :seated?), each newly announced one adds its author's line to 💭, and
    the result replaces `!world` in one swap -- the running scene redraws
-   just those blueprints next frame, no reload, no remount."
+   just those blueprints next frame, no reload, no remount. A newly
+   announced blueprint's arrival flies the camera to it (placement-v1,
+   `show-arrival!`), dev poll and demo alike."
   [f]
   (let [r (bp/merge-file @!world f)]
     (when-not (identical? (:world r) @!world)
@@ -1867,7 +1899,8 @@
                         w2 (:announce r))]
         (reset! !real-from-file? true)
         (try (reset! !world w3) (finally (reset! !real-from-file? false)))
-        (js/console.info "Prime Meridian: blueprints added" (:added r) "removed" (:removed r))))))
+        (js/console.info "Prime Meridian: blueprints added" (:added r) "removed" (:removed r))
+        (when-let [at (bp/arrival-at @!world (:announce r))] (show-arrival! at))))))
 
 ;; The card floats just clear of the sign's own plate: anchored at the
 ;; item's top alone, it sat on top of the sign and hid its text.

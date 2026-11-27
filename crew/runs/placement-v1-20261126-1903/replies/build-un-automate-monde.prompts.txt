@@ -1,0 +1,216 @@
+=== prompt 1 (19:14:55)
+
+
+──────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you —
+ choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ bb -e '
+ │ (require (quote [clojure.edn :as edn]))
+ │ (with-open [rdr (java.io.PushbackReader.
+ │ (clojure.java.io/reader "src/pm/lot.cljc"))]
+ │   (binding [*read-eval* false]
+ │     (loop [n 0]
+ │       (let [form (try (read {:eof :eof :read-cond
+ │ :allow} rdr) (catch Exception e (println "ERROR:"
+ │ (.getMessage e)) :err))]
+ │         (cond
+ │           (= form :eof) (println "OK forms=" n)
+ │           (= form :err) (println "stopped at form"
+ │ n)
+ │           :else (recur (inc n)))))))
+ │ '
+ │
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: bb *
+   3. Yes, and switch to auto mode · auto mode
+      handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 2 (19:15:05)
+
+──────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you —
+ choose "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ bb -e '
+ │ (with-open [rdr (java.io.PushbackReader.
+ │ (clojure.java.io/reader "src/pm/lot.cljc"))]
+ │   (binding [*read-eval* false]
+ │     (loop [n 0]
+ │       (let [form (try (read {:eof :eof :read-cond
+ │ :allow} rdr) (catch Exception e [:err (.getMessage
+ │ e)]))]
+ │         (cond
+ │           (= form :eof) (println "OK forms=" n)
+ │           (and (vector? form) (= :err (first
+ │ form))) (println "stopped at form" n ":" (second
+ │ form))
+ │           :else (do (println n (if (seq? form)
+ │ (take 2 form) (type form))) (recur (inc n))))))))
+ │ '
+ │
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: bb *
+   3. Yes, and switch to auto mode · auto mode
+      handles these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 3 (19:16:16)
+
+
+───────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ bb -e '
+ │ (with-open [rdr (java.io.PushbackReader.
+ │ (clojure.java.io/reader "src/pm/ask_build.cljc"))]
+ │   (binding [*read-eval* false]
+ │     (loop [n 0]
+ │       (let [form (try (read {:eof :eof :read-cond
+ │ :allow} rdr) (catch Exception e [:err (.getMessage
+ │ e)]))]
+ │         (cond
+ │           (= form :eof) (println "OK forms=" n)
+ │           (and (vector? form) (= :err (first
+ │ form))) (println "stopped at form" n ":" (second
+ │ form))
+ │           :else (recur (inc n)))))))
+ │ '
+ │
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: bb *
+   3. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 4 (19:17:43)
+
+
+───────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ bb -e '
+ │ (with-open [rdr (java.io.PushbackReader.
+ │ (clojure.java.io/reader "src/pm/camera.cljs"))]
+ │   (binding [*read-eval* false]
+ │     (loop [n 0]
+ │       (let [form (try (read {:eof :eof :read-cond
+ │ :allow} rdr) (catch Exception e [:err (.getMessage
+ │ e)]))]
+ │         (cond
+ │           (= form :eof) (println "OK forms=" n)
+ │           (and (vector? form) (= :err (first
+ │ form))) (println "stopped at form" n ":" (second
+ │ form))
+ │           :else (recur (inc n)))))))
+ │ '
+ │
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: bb *
+   3. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 5 (19:18:03)
+
+
+───────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ bb -e '
+ │ (with-open [rdr (java.io.PushbackReader.
+ │ (clojure.java.io/reader "src/pm/blueprint.cljs"))]
+ │   (binding [*read-eval* false]
+ │     (loop [n 0]
+ │       (let [form (try (read {:eof :eof :read-cond
+ │ :allow} rdr) (catch Exception e [:err (.getMessage
+ │ e)]))]
+ │         (cond
+ │           (= form :eof) (println "OK forms=" n)
+ │           (and (vector? form) (= :err (first
+ │ form))) (println "stopped at form" n ":" (second
+ │ form))
+ │           :else (recur (inc n)))))))
+ │ '
+ │
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: bb *
+   3. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend
+=== prompt 6 (19:19:20)
+───────────────────────────────────────────────────────
+ Bash command
+ Tip: auto mode handles these prompts for you — choose
+ "switch to auto mode" below
+ Run shell command
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ │ bb -e '
+ │ (with-open [rdr (java.io.PushbackReader.
+ │ (clojure.java.io/reader "src/pm/core.cljs"))]
+ │   (binding [*read-eval* false
+ │             *default-data-reader-fn* (fn [tag val]
+ │ val)]
+ │     (loop [n 0]
+ │       (let [form (try (read {:eof :eof :read-cond
+ │ :allow} rdr) (catch Exception e [:err (.getMessage
+ │ e)]))]
+ │         (cond
+ │           (= form :eof) (println "OK forms=" n)
+ │           (and (vector? form) (= :err (first
+ │ form))) (println "stopped at form" n ":" (second
+ │ form))
+ │           :else (recur (inc n)))))))
+ │ '
+ │
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ This command requires approval
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don’t ask again for: bb *
+   3. Yes, and switch to auto mode · auto mode handles
+      these prompts for you
+   4. No
+
+ Esc to cancel · Tab to amend

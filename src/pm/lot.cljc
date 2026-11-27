@@ -11,6 +11,8 @@
 (def grounded-m 0.02)
 (def narrow-m 0.3)
 (def usage "usage: bb blueprint-draft <member> <draft.edn> --near <landmark|here|walker|x,z> [--dry-run] | bb blueprint-draft --landmarks")
+(def refusal-prefix "no level open ground within ")
+(def nothing-fits "nothing fits closer")
 (def no-ground-map "no ground map (state/ground.edn): the twin samples it from the kit")
 (def nothing-grounded "nothing touches the ground")
 (def no-view "I can't see where you're looking: the game isn't sending its view")
@@ -287,17 +289,44 @@
     (or (= kind ":") (= kind "~")) "most of it is in the creek"
     :else "most of it has no ground"))
 
+(defn open-kinds
+  "Ground kinds a foot may stand on, as a set of strings: `(set
+   (:open-kinds rules))` when that's sequential, else `#{\"o\"}`."
+  [rules]
+  (if (sequential? (:open-kinds rules)) (set (:open-kinds rules)) #{"o"}))
+
+(defn max-search-m
+  "How far the second, wider pass searches: `(:search-m rules)` when
+   `:max-search-m` is missing or not a number, else the larger of the two."
+  [rules]
+  (let [s (:search-m rules) m (:max-search-m rules)]
+    (if (number? m) (max s m) s)))
+
+(defn near-rules
+  "`rules` with the second pass turned off (the demo's small grid)."
+  [rules]
+  (assoc rules :max-search-m (:search-m rules)))
+
+(defn dominant-why
+  "The most frequent string in `whys`; a tie goes to the alphabetically
+   smaller one. nil for an empty or nil `whys`."
+  [whys]
+  (when (seq whys)
+    (let [freqs (frequencies whys)]
+      (first (first (sort-by (fn [[w n]] [(- n) w]) freqs))))))
+
 (defn spot
   "Verdict for one candidate point and yaw: {:ok true :y h :spread s} or
    {:ok false :why reason}. ctx = {:ground :rules :feet :radius :things
    :segments}."
   [{:keys [ground rules feet radius things segments]} [x z] yaw]
   (let [{:keys [max-spread-m gap-m route-m]} rules
+        open (open-kinds rules)
         world-feet (feet-at feet [x z] yaw)
         cells (map #(cell ground %) world-feet)
-        bad (first (remove (fn [{:keys [kind y]}] (and (= kind "o") (some? y))) cells))]
+        bad (first (remove (fn [{:keys [kind y]}] (and (contains? open kind) (some? y))) cells))]
     (if bad
-      {:ok false :why (if (= (:kind bad) "o") "most of it has no ground" (cell-reason (:kind bad)))}
+      {:ok false :why (if (contains? open (:kind bad)) "most of it has no ground" (cell-reason (:kind bad)))}
       (let [ys (map :y cells)
             spread (- (apply max ys) (apply min ys))]
         (if (> spread (+ max-spread-m eps))
@@ -324,11 +353,9 @@
            :else (str q "." (if (< r 10) (str "0" r) r))))))
 
 (defn refusal [whys search-m word]
-  (if (seq whys)
-    (let [freqs (frequencies whys)
-          best (first (sort-by (fn [[w n]] [(- n) w]) freqs))]
-      (str "no level open ground within " (fmt search-m) " m of " word ": " (first best)))
-    (str "no level open ground within " (fmt search-m) " m of " word)))
+  (if-let [why (dominant-why whys)]
+    (str refusal-prefix (fmt search-m) " m of " word ": " why)
+    (str refusal-prefix (fmt search-m) " m of " word)))
 
 (defn placed-line [draft word result]
   (let [{:keys [at yaw distance-m spread-m]} result
@@ -340,6 +367,20 @@
 (defn blueprint [draft result]
   {:id (:id draft) :at (:at result) :yaw (:yaw result)
    :summary (:summary draft) :look (:look draft)})
+
+(defn moved-line
+  "`template`'s `{why}`/`{place}`/`{moved}` filled for a build that moved
+   further out than `:search-m` (an unknown placeholder stays as written):
+   nil unless `template` is a string and `(:moved-m result)` is a number."
+  [template word result]
+  (when (and (string? template) (number? (:moved-m result)))
+    (let [vars {:why   (or (:why result) nothing-fits)
+                :place word
+                :moved (fmt (max 0.5 (/ (round* (* 2 (:moved-m result))) 2)))}]
+      (str/replace template #"\{([a-z0-9-]+)\}"
+                   (fn [[whole field]]
+                     (let [v (get vars (keyword field))]
+                       (if (nil? v) whole (str v))))))))
 
 (defn place
   "The quest's placement: ground, estate, file-blueprints, rules, draft,
@@ -376,34 +417,47 @@
                   ctx {:ground ground :rules rules :feet fs :radius radius :things ts :segments segs}
                   lm (resolve-landmark lms near)
                   step (:step-m rules)
-                  search-m (:search-m rules)
+                  S (:search-m rules)
+                  M (max-search-m rules)
                   yaws (:yaws rules)
                   [lo-x hi-x lo-z hi-z]
                   (if (:cells lm)
                     (let [xs (map first (:cells lm)) zs (map second (:cells lm))]
                       [(apply min xs) (apply max xs) (apply min zs) (apply max zs)])
                     (let [[lx lz] (:xz lm)] [lx lx lz lz]))
-                  kx-lo (ceil*  (- (/ (- lo-x search-m) step) eps))
-                  kx-hi (floor* (+ (/ (+ hi-x search-m) step) eps))
-                  kz-lo (ceil*  (- (/ (- lo-z search-m) step) eps))
-                  kz-hi (floor* (+ (/ (+ hi-z search-m) step) eps))
+                  kx-lo (ceil*  (- (/ (- lo-x M) step) eps))
+                  kx-hi (floor* (+ (/ (+ hi-x M) step) eps))
+                  kz-lo (ceil*  (- (/ (- lo-z M) step) eps))
+                  kz-hi (floor* (+ (/ (+ hi-z M) step) eps))
                   candidates (for [kx (range kx-lo (inc kx-hi))
                                    kz (range kz-lo (inc kz-hi))
                                    :let [x (* kx step) z (* kz step)
                                          d (dist-to-landmark lm [x z])]
-                                   :when (<= d (+ search-m eps))
+                                   :when (<= d (+ M eps))
                                    yaw yaws]
                                [x z yaw d])
-                  verdicts (map (fn [[x z yaw d]] [x z yaw d (spot ctx [x z] yaw)]) candidates)
-                  accepted (filter (fn [[_ _ _ _ v]] (:ok v)) verdicts)
-                  whys (keep (fn [[_ _ _ _ v]] (when-not (:ok v) (:why v))) verdicts)]
-              (if (seq accepted)
-                (let [[x z yaw d v]
-                      (first (sort-by (fn [[x z yaw d v]]
-                                        [(round* (* d 1e6)) (round* (* (:spread v) 1e6)) x z yaw])
-                                      accepted))]
+                  best (fn [verdicts]
+                         (first (sort-by (fn [[x z yaw d v]]
+                                           [(round* (* d 1e6)) (round* (* (:spread v) 1e6)) x z yaw])
+                                         verdicts)))
+                  verdicts1 (keep (fn [[x z yaw d]]
+                                    (when (<= d (+ S eps)) [x z yaw d (spot ctx [x z] yaw)]))
+                                  candidates)
+                  accepted1 (filter (fn [[_ _ _ _ v]] (:ok v)) verdicts1)
+                  whys1 (keep (fn [[_ _ _ _ v]] (when-not (:ok v) (:why v))) verdicts1)]
+              (if (seq accepted1)
+                (let [[x z yaw d v] (best accepted1)]
                   {:ok true :at [x (:y v) z] :yaw yaw :landmark near :distance-m d :spread-m (:spread v)})
-                {:ok false :reason (refusal whys search-m (:word lm))})))))))))
+                (let [verdicts2 (keep (fn [[x z yaw d]]
+                                         (when (< (+ S eps) d) [x z yaw d (spot ctx [x z] yaw)]))
+                                       candidates)
+                      accepted2 (filter (fn [[_ _ _ _ v]] (:ok v)) verdicts2)]
+                  (if (seq accepted2)
+                    (let [[x z yaw d v] (best accepted2)]
+                      {:ok true :at [x (:y v) z] :yaw yaw :landmark near :distance-m d :spread-m (:spread v)
+                       :moved-m d :why (or (dominant-why whys1) nothing-fits)})
+                    (let [whys2 (keep (fn [[_ _ _ _ v]] (when-not (:ok v) (:why v))) verdicts2)]
+                      {:ok false :reason (refusal (concat whys1 whys2) M (:word lm))}))))))))))))
 
 (defn parse-args [args]
   (let [args (vec (or args []))]

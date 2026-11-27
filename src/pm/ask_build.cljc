@@ -194,8 +194,11 @@
                       {:reason (str "I don't know a place called " (name near))})}
 
           :else
-          {:req req :target xz
-           :spec (grid-spec xz (:rules ctx) (get-in demo [:sampler :pad-m]))})))))
+          (let [rules (:rules ctx)
+                pad-m (get-in demo [:sampler :pad-m])]
+            (cond-> {:req req :target xz :spec (grid-spec xz rules pad-m)}
+              (> (lot/max-search-m rules) (:search-m rules))
+              (assoc :wide-spec (grid-spec xz (assoc rules :search-m (lot/max-search-m rules)) pad-m)))))))))
 
 (defn plan
   "The step after measuring: a new ghost in the world and the `:placed`
@@ -215,12 +218,26 @@
             seen  (when (= near :here) {:ok true :view {:center here :walkers {}}})
             res   (lot/place ground est [] rules draft near seen)]
         (if (:ok res)
-          (let [bp   (assoc (lot/blueprint draft res) :by by)
-                word (:word (get (lot/landmarks ground est [] (:view seen)) near))]
+          (let [bp     (assoc (lot/blueprint draft res) :by by)
+                word   (:word (get (lot/landmarks ground est [] (:view seen)) near))
+                placed (fill (get-in demo [:lines :placed])
+                             {:summary (str/replace (:summary look-def) #"\.$" "") :place word})
+                moved  (lot/moved-line (get-in estate [:blueprint-text :moved]) word res)]
             {:ok true :id id :blueprint bp :file (add-build file bp now)
-             :say (fill (get-in demo [:lines :placed])
-                        {:summary (str/replace (:summary look-def) #"\.$" "") :place word})})
-          {:ok false :say (fill (get-in demo [:lines :refused]) {:reason (:reason res)})})))))
+             :say (if moved (str moved " " placed) placed)})
+          {:ok false :say (fill (get-in demo [:lines :refused]) {:reason (:reason res)})
+           :reason (:reason res)})))))
+
+(defn widen?
+  "Measure the wide grid and plan again? True iff `asked` (ask's result) has
+   a `:wide-spec` and `p1` (plan's result on the near grid) refused for
+   lack of ground (its `:reason` starts with lot/refusal-prefix), not for
+   an unknown look or landmark."
+  [asked p1]
+  (boolean (and (map? (:wide-spec asked))
+                (false? (:ok p1))
+                (string? (:reason p1))
+                (str/starts-with? (:reason p1) lot/refusal-prefix))))
 
 ;; -- The demo file (localStorage pm.demo-builds.v1) ------------------------
 

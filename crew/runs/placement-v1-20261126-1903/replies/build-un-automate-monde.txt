@@ -1,0 +1,400 @@
+           unless `at` and `offset` are 3
+      54     numbers each. The camera always com
+          es in from the creek's side."
+      55    [at lift back offset]
+      52 -  (when (and (vec3? at) (vec3? offset)
+         -)
+      56 +  (when (and (nums3? at) (nums3? offse
+         +t))
+      57      (let [[x y z] at
+      58            [ox oy oz] offset
+      59            ox' (if (pos? x) (- (js/Math
+          .abs ox)) (js/Math.abs ox))]
+     ...
+      65     `show-defaults`)."
+      66    [at offset show]
+      67    (let [{:keys [lift-m back low]} (mer
+          ge show-defaults show)]
+      64 -    (when (vec3? offset)
+      68 +    (when (nums3? offset)
+      69        (let [[ox oy oz] offset]
+      70          (flight at lift-m back [ox (*
+          low oy) oz])))))
+      71
+
+  Ran 1 shell command
+
+⏺ Now add arrival-at to pm.blueprint.
+
+⏺ Update(src/pm/blueprint.cljs)
+  ⎿  Added 9 lines
+      363           :removed  removed
+      364           :announce announce}))))
+      365
+      366 +(defn arrival-at
+      367 +  "The `:at` to fly the camera to for
+          + a newly announced blueprint
+      368 +   (placement-v1): the last id in `id
+          +s` that names a blueprint in
+      369 +   `(:blueprints world)` with a valid
+          + `:at`, else nil."
+      370 +  [world ids]
+      371 +  (let [bps (into {} (map (fn [bp] [(
+          +:id bp) (:at bp)])) (:blueprints worl
+          +d))]
+      372 +    (first (keep (fn [id] (when-let [
+          +at (get bps id)] (when (valid-at? at)
+          + at)))
+      373 +                 (reverse (or ids [])
+          +)))))
+      374 +
+      375  (defn author-line
+      376    "The talk entry for a newly arrived
+            blueprint's author (GDD §2.1, §4.8):
+      377     `{:who :text :kind :blueprint :eve
+           nt :blueprint-drawn}`, or nil unless
+
+  Ran 1 shell command
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 1 line
+      21              [pm.creature-spike :as cre
+          ature-spike]
+      22              [pm.events :as events]
+      23              [pm.juice :as juice]
+      24 +            [pm.lot :as lot]
+      25              [pm.sky :as sky]
+      26              [cljs.reader]
+      27              [pm.jumeaux :as j]
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 1 line
+      1281
+      1282  (declare open-agent-talk!)
+      1283  (defonce ^:private !follow (atom nil
+            ))   ; walker id the camera is follo
+            wing
+      1284 +(defonce ^:private !camera-moved-at
+           +(atom nil))   ; js/Date.now of the p
+           +layer's last camera move
+      1285
+      1286  (defn- walker-colours
+      1287    "A walker's colours for the crew k
+            ey: :body and :joints. A tint colour
+            s
+
+⏺ Now the crew-key-tick! fly! function to use
+  camera/flight.
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 3 lines, removed 6 lines
+      1356          rows (-> rows (into creature
+            s) (into places)
+      1357                   (call/mark-on-call
+            (:call w) #(or (:agent %) (:id %))))
+      1358          fly! (fn [h [x y z] lift & [
+            back]]
+      1359 -               (let [[ox oy oz] (get
+           --in w [:crew-key :offset])
+      1360 -                     ;; come in from
+           - the creek's side (the open middle o
+           -f the
+      1361 -                     ;; estate), not
+           - out of the woods behind them
+      1362 -                     ox (if (pos? x)
+           - (- (js/Math.abs ox)) (js/Math.abs o
+           -x))
+      1363 -                     k  (or back 1)]
+           -   ; a place is framed from further
+           -back than a figure
+      1364 -                 (camera/frame! h [x
+           - (+ y lift) z] [(* k ox) (* k oy) (*
+           - k oz)])))]
+      1359 +               (when-let [{:keys [ta
+           +rget offset]} (camera/flight [x y z]
+           + lift (or back 1)
+      1360 +
+           +                              (get-i
+           +n w [:crew-key :offset]))]
+      1361 +                 (camera/frame! h ta
+           +rget offset)))]
+      1362      (ui/render-crew-key! (get-in w [
+            :crew-key :title]) rows toggle-sourc
+            e!
+      1363        (fn [id]
+      1364          (when-let [h (kit/handle)]
+
+⏺ Now wire-pointer!: add camera-moved resets on
+  pointerdown/pointermove/wheel.
+
+  Read 1 file
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 10 lines
+      1575      (.addEventListener canvas "point
+            erdown"
+      1576        (fn [^js e]
+      1577          (reset! !follow nil)   ; the
+             player takes the camera back
+      1578 +        (reset! !camera-moved-at (js
+           +/Date.now))
+      1579          (when (and (.-isPrimary e) (
+            zero? (.-button e)))
+      1580            (reset! !press {:x (.-clie
+            ntX e) :y (.-clientY e) :t (.-timeSt
+            amp e)})))
+      1581        #js {:passive true})
+      1582 +    ;; show me (placement-v1): a dra
+           +g or a scroll also counts as the pla
+           +yer
+      1583 +    ;; moving the camera, so a new g
+           +host never hijacks it mid-gesture
+      1584 +    (.addEventListener canvas "point
+           +ermove"
+      1585 +      (fn [^js e]
+      1586 +        (when (pos? (.-buttons e)) (
+           +reset! !camera-moved-at (js/Date.now
+           +))))
+      1587 +      #js {:passive true})
+      1588 +    (.addEventListener canvas "wheel
+           +"
+      1589 +      (fn [^js _e] (reset! !camera-m
+           +oved-at (js/Date.now)))
+      1590 +      #js {:passive true})
+      1591      (.addEventListener js/window "po
+            interup"
+      1592        (fn [^js e]
+      1593          (when-let [down @!press]
+
+⏺ Now let's locate apply-blueprint-file! and add
+  show-arrival! plus the wiring.
+
+  Searched for 1 pattern, read 2 files
+
+⏺ Good — (kit/handle) reads window.hiroshi directly,
+  independent of !kit. Now let's add show-arrival! and
+  wire it in.
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 22 lines, removed 1 line
+      1850    (when-let [ground-at (ground-at-fn
+             h)]
+      1851      (swap! !world bp/seat-all ground
+            -at)))
+      1852
+      1853 +(defn- show-arrival!
+      1854 +  "Show me (placement-v1): a new gho
+           +st at `at` flies the camera to it wi
+           +th
+      1855 +   the CREW key's own flight, framed
+           + from the side so a canopy doesn't h
+           +ide
+      1856 +   it -- unless it's already on scre
+           +en and near, a trial card is open, o
+           +r
+      1857 +   the player just moved the camera
+           +themself (`camera/fly-decision`)."
+      1858 +  [at]
+      1859 +  (when-let [^js h (kit/handle)]
+      1860 +    (let [w    @!world
+      1861 +          show (get-in w [:build-rul
+           +es :show-me])
+      1862 +          fl   (camera/ghost-flight
+           +at (get-in w [:crew-key :offset]) sh
+           +ow)
+      1863 +          d    (camera/fly-decision
+           +show {:ghost at :camera (:pos (t/rig
+           +-view h))
+      1864 +
+           +      :on-screen? (camera/on-screen?
+           + (when fl (t/project-ndc (.-camera h
+           +) (:target fl))))
+      1865 +
+           +      :card-open? (some? (bp/card-of
+           + w))
+      1866 +
+           +      :last-move-ms @!camera-moved-a
+           +t :now-ms (js/Date.now)})]
+      1867 +      (when (and fl (= :fly d))
+      1868 +        (camera/frame! h (:target fl
+           +) (:offset fl))
+      1869 +        (reset! !follow nil))
+      1870 +      (js/console.info "Prime Meridi
+           +an: new ghost at" (pr-str at) "camer
+           +a:" (name d)))))
+      1871 +
+      1872  (defn- apply-blueprint-file!
+      1873    "A freshly polled `state/blueprint
+            s.edn` (or nil, 404) merged into
+      1874     `!world` (TASKS T-13b, `bp/merge-
+            file`): a no-op when nothing changed
+            .
+     ...
+      1877     `start-kit!`'s `seat-blueprints!`
+             seats them -- `seat` is idempotent
+            via
+      1878     :seated?), each newly announced o
+            ne adds its author's line to 💭, and
+      1879     the result replaces `!world` in o
+            ne swap -- the running scene redraws
+      1861 -   just those blueprints next frame,
+           - no reload, no remount."
+      1880 +   just those blueprints next frame,
+           + no reload, no remount. A newly
+      1881 +   announced blueprint's arrival fli
+           +es the camera to it (placement-v1,
+      1882 +   `show-arrival!`), dev poll and de
+           +mo alike."
+      1883    [f]
+      1884    (let [r (bp/merge-file @!world f)]
+      1885      (when-not (identical? (:world r)
+             @!world)
+
+⏺ Now add the hook after reset! !world w3.
+
+  Read 1 file
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 2 lines, removed 1 line
+      1897                          w2 (:announc
+            e r))]
+      1898          (reset! !real-from-file? tru
+            e)
+      1899          (try (reset! !world w3) (fin
+            ally (reset! !real-from-file? false)
+            ))
+      1900 -        (js/console.info "Prime Meri
+           -dian: blueprints added" (:added r) "
+           -removed" (:removed r))))))
+      1900 +        (js/console.info "Prime Meri
+           +dian: blueprints added" (:added r) "
+           +removed" (:removed r))
+      1901 +        (when-let [at (bp/arrival-at
+           + @!world (:announce r))] (show-arriv
+           +al! at))))))
+      1902
+      1903  ;; The card floats just clear of the
+             sign's own plate: anchored at the
+      1904  ;; item's top alone, it sat on top o
+            f the sign and hid its text.
+
+⏺ Now update demo-ask! for the two-pass widen logic.
+
+  Read 1 file
+
+⏺ Update(src/pm/core.cljs)
+  ⎿  Added 8 lines, removed 6 lines
+      1783      (if-let [s (:say r)]
+      1784        (twin-reply! s at)
+      1785        (let [sampler (get-in raw-esta
+            te [:demo-builds :sampler])
+      1786 -            t0      (js/performance.
+           -now)
+      1787 -            ground  (when h (t/groun
+           -d-grid (view-ground-meshes! h) (cove
+           -r-meshes! h) (:spec r)
+      1788 -
+           -       (:from-y sampler) (partial ab
+           -/sample-cell sampler)))
+      1789 -            _       (js/console.info
+           - "Prime Meridian: ground grid" (:col
+           -s (:spec r)) "x" (:rows (:spec r))
+      1790 -
+           - "in" (js/Math.round (- (js/performa
+           -nce.now) t0)) "ms")
+      1791 -            p       (ab/plan ctx (:r
+           -eq r) ground)]
+      1786 +            measure (fn [spec] (when
+           + h (let [t0 (js/performance.now)
+      1787 +
+           +         g  (t/ground-grid (view-gro
+           +und-meshes! h) (cover-meshes! h) spe
+           +c
+      1788 +
+           +                           (:from-y
+           +sampler) (partial ab/sample-cell sam
+           +pler))]
+      1789 +
+           +     (js/console.info "Prime Meridia
+           +n: ground grid" (:cols spec) "x" (:r
+           +ows spec)
+      1790 +
+           +                      "in" (js/Math.
+           +round (- (js/performance.now) t0)) "
+           +ms")
+      1791 +
+           +     g)))
+      1792 +            p1      (ab/plan (update
+           + ctx :rules lot/near-rules) (:req r)
+           + (measure (:spec r)))
+      1793 +            p       (if (ab/widen? r
+           + p1) (ab/plan ctx (:req r) (measure
+           +(:wide-spec r))) p1)]
+      1794          (when (:ok p)
+      1795            (reset! !demo-file (:file
+            p))
+      1796            (save-demo-file!)
+
+  Ran 2 shell commands
+
+⏺ All files parse. Now update the role card and PLAY.md
+  are out of scope for the builder — those belong to
+  le-docteur. Let's run the gate now.
+
+  Read 2 files, listed 2 directories, ran 1 shell
+  command
+
+⏺ Good, matches spec correctly. Now let's double check
+  test 36 in ask_build and the gate already passed
+  (le-testeur's tests cover this). Since gate passed
+  with 1688 tests, 0 failures, all good. Let's view git
+  diff --stat.
+
+  Listed 1 directory, ran 1 shell command
+
+⏺ Write(crew/runs/placement-v1-20261…/builder-notes.md)
+  ⎿  Wrote 57 lines to crew/runs/placement-v1-2026
+     1126-1903/builder-notes.md
+      1 # Builder notes: placement-v1
+      2
+      3 Touched (per spec §6): `src/pm/lot.cljc`
+        , `src/pm/ask_build.cljc`, `src/pm/camer
+        a.cljs`,
+      4 `src/pm/blueprint.cljs`, `src/pm/core.cl
+        js`, `scripts/blueprint_draft.clj`,
+      5 `resources/estate.edn` (`:build-rules` w
+        hole value, `:blueprint-text :moved`). N
+        othing under
+     … +52 lines
+
+⏺ Implemented placement-v1 in src/pm/lot.cljc,
+  src/pm/ask_build.cljc, src/pm/camera.cljs,
+  src/pm/blueprint.cljs, src/pm/core.cljs,
+  scripts/blueprint_draft.clj, and
+  resources/estate.edn's :build-rules/:blueprint-text
+  :moved.
+
+  Gate's last line: GATE: PASS — 0 warnings; Ran 1688
+  tests containing 8855 assertions.
+
+  git diff --stat:
+
+  Ran 1 shell command
+
+⏺ test/pm/ask_build_test.cljs in that diff is
+  le-testeur's file, not mine — I never touched it.
+  Wrote
+  crew/runs/placement-v1-20261126-1903/builder-notes.md
+  with the live-check steps and a note that I couldn't
+  capture a real browser ms figure for the widened
+  demo grid (no GUI/browser tooling in this headless
+  pane).
+
+  done-2508
+
+✻ Sautéed for 8m 51s · done 7:21 PM
+
+───────────────────────────────────────────────────────
+❯
+───────────────────────────────────────────────────────
+  ⏵⏵ accept edits on (shift+tab to cycle)

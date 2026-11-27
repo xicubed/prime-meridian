@@ -363,6 +363,15 @@
          :removed  removed
          :announce announce}))))
 
+(defn arrival-at
+  "The `:at` to fly the camera to for a newly announced blueprint
+   (placement-v1): the last id in `ids` that names a blueprint in
+   `(:blueprints world)` with a valid `:at`, else nil."
+  [world ids]
+  (let [bps (into {} (map (fn [bp] [(:id bp) (:at bp)])) (:blueprints world))]
+    (first (keep (fn [id] (when-let [at (get bps id)] (when (valid-at? at) at)))
+                 (reverse (or ids []))))))
+
 (defn author-line
   "The talk entry for a newly arrived blueprint's author (GDD §2.1, §4.8):
    `{:who :text :kind :blueprint :event :blueprint-drawn}`, or nil unless

@@ -1,0 +1,595 @@
+diff --git a/.crew/roles/builder.md b/.crew/roles/builder.md
+index ee0e1a3..e613028 100644
+--- a/.crew/roles/builder.md
++++ b/.crew/roles/builder.md
+@@ -24,23 +24,25 @@ Project: **Prime Meridian**, a cozy 3D management game where the characters are
+ 
+ The player can message you from the estate's 💭 phone; the bridge types his words into your
+ pane as a plain prompt. When he asks for a thing in the world ("put a bench by the creek",
+-"a lamp near the mailbox"), that is a build request: answer it with a blueprint, never by
+-editing `resources/estate.edn` or any source file.
++"a bench here, in the shade"), that is a build request: answer it with a blueprint, never by
++editing `resources/estate.edn` or any source file. A build request is **two commands, no more**:
+ 
+-1. Pick the landmark from his words: `bb blueprint-draft --landmarks` lists the names. "Here" is
+-   `--near here` (the centre of his screen) and "by you / by him" is `--near <walker-id>`; both
+-   need the game open (`bb where` shows what it sees). The twin may also hand you `--near x,z`.
+-2. Write a draft in your scratchpad: `{:id :<new-kebab-id> :summary "proposed: <a few words>"
++1. Write a draft in your scratchpad: `{:id :<new-kebab-id> :summary "proposed: <a few words>"
+    :look {:parts [...]}}`, parts as documented under `:blueprints` in `resources/estate.edn`
+    (shapes box/cylinder/cone/sphere; colours from the palette keys used there, e.g. `:brown`
+    for timber, `:tin` for metal). Real-world size, y 0 is the ground, every leg or base
+    touching y 0, at most 12 parts, nothing thinner than 0.08 m (he has to click it). Ids must be
+    new: never reuse a removed one.
+-3. `bb blueprint-draft <your-name> <draft.edn> --near <landmark>`. Its ghost appears in the
+-   world within 5 s and you say "drew a blueprint" in 💭 automatically; you need do nothing
+-   more.
+-4. If it refuses (no level ground, too close, unknown place), tell him in-world in one short
+-   line with the reason and a nearby landmark to try instead:
+-   `bb hal-say --as <your-name> "<line>"`.
++2. **One** `bb blueprint-draft <your-name> <draft.edn> --near <spot>`. `<spot>` is the `x,z` Hal
++   gives you, else `here` (the middle of his screen) when he says "here", else a landmark from
++   his words (`bb blueprint-draft --landmarks` lists them) or a walker id for "by you / by him".
++   Shade under trees is fine. If the spot itself doesn't fit, the command moves the build to the
++   nearest spot that does (up to 15 m) and prints a second line saying so; it refuses only when
++   nothing fits. The ghost appears within 5 s, the camera flies to it, and "drew a blueprint"
++   lands in 💭 by itself.
++3. **One** `bb hal-say --as <your-name> "<line>"`: if it moved, its second printed line; if it
++   refused, the reason and a landmark to try instead; otherwise a few words on what you drew.
+ 
+-Then reply in your pane with the command's printed line. Don't propose more than he asked for.
++Don't read or script around the ground map (`state/ground.edn`, `python3`, `node`, `bb -e`):
++the command already reports where it went or why not. Then reply in your pane with the
++command's printed line(s). Don't propose more than he asked for.
+diff --git a/PLAY.md b/PLAY.md
+index 1e80cbb..cd5b9f2 100644
+--- a/PLAY.md
++++ b/PLAY.md
+@@ -76,8 +76,9 @@ When all four are ticked, the **Day won** card appears. Click **Keep playing** t
+   with a local model, or when you don't want the leader spending tokens to pass a message on.
+ - **Build:** Hal can build a **bench**, a **lamp post**, a **table** or a **planter**, near
+   **here** (the middle of your screen), the **mailbox**, the **phone booth**, the **workshop**
+-  or the **creek**. Example: *"a lamp post by the mailbox"*. He picks level, open ground; if a
+-  spot is too steep or under trees he says so, so try somewhere flatter.
++  or the **creek**. Example: *"a lamp post by the mailbox"*. Shade under the trees is fine. If
++  the exact spot is too steep, crowded or in a bush, he puts it at the nearest spot that fits
++  and tells you how far he moved it, and the camera flies over to show you.
+ - **Change your mind:** click a real build, then **Remove…**. A red preview shows what goes;
+   confirm with **Remove it**.
+ - **Mail:** click the mailbox to read the sample inbox.
+diff --git a/resources/estate.edn b/resources/estate.edn
+index c134897..99e41eb 100644
+--- a/resources/estate.edn
++++ b/resources/estate.edn
+@@ -2,7 +2,10 @@
+  ;; :step-m within :search-m of the landmark, turned to each of :yaws (degrees); every foot on
+  ;; open ground (state/ground.edn), feet at most :max-spread-m apart in height, the item's
+  ;; circle :gap-m clear of every other thing's and :route-m clear of every walker's route.
+- :build-rules {:step-m 0.5 :yaws [0 45 90 135] :search-m 6 :gap-m 1.2 :route-m 0.8 :max-spread-m 0.12}
++ :build-rules {:step-m 0.5 :yaws [0 45 90 135] :search-m 6 :max-search-m 15 :open-kinds ["o" "T"]
++               :gap-m 1.2 :route-m 0.8 :max-spread-m 0.12
++               ;; show me (placement-v1): a new ghost from an ask flies the camera to it
++               :show-me {:near-m 10 :quiet-ms 2000 :lift-m 0.6 :back 1.4 :low 0.5}}
+  :hud {:mirrors [:flora]}                 ; mirrors whose status-line goes on the HUD, in order
+  :jumeaux {:player {:name "Michael" :sex :m}   ; les jumeaux: the player and their twin; onboarding asks (TASKS O-1)
+            :twin   {:name "Hal"}}              ; the twin's word follows the player's :sex (:m jumeau, :f jumelle)
+@@ -307,7 +310,8 @@
+                   :removing         "will be removed"                                  ; the removal ghost's sign, second line (TASKS T-15)
+                   :removing-wait    "Removing…"                                        ; Remove it while the bridge records it, disabled (TASKS T-15)
+                   :removed          "Removed. It's gone for good."                     ; twin's caption once it's recorded (TASKS T-15)
+-                  :no-bridge-remove "Start the bridge (bb crew-bridge) to remove it."}  ; no bridge (or refused): nothing changes (TASKS T-15)
++                  :no-bridge-remove "Start the bridge (bb crew-bridge) to remove it."    ; no bridge (or refused): nothing changes (TASKS T-15)
++                  :moved            "Not there: {why}, so I put it {moved} m from {place}."}   ; placement-v1: the near ground didn't fit, the build went further out
+  :blueprints [{:id :bench-by-mailbox :at [3.5 1.82 -9.25] :yaw 0   ; south of the mailbox, 2.6 m from it and 3 m from the phone booth (Michael, Nov 23: it was crammed against the booth); 8 cm across the legs, probed every foot; a walker loop passes close by (TASKS T-7: wanderers don't avoid builds yet); the game seats it (pm.blueprint/seat)
+                :summary "proposed: a bench by the mailbox"
+                :look {:parts
+diff --git a/scripts/blueprint_draft.clj b/scripts/blueprint_draft.clj
+index 925e064..3e44e1e 100644
+--- a/scripts/blueprint_draft.clj
++++ b/scripts/blueprint_draft.clj
+@@ -1,8 +1,8 @@
+ #!/usr/bin/env bb
+ ;; blueprint-draft (TASKS T-13): a crew member draws a look with no :at/:yaw and asks to put it
+-;; near a landmark; this finds a level, open spot on the kit's sampled ground map, clear of
+-;; everything else and every walker's route, and proposes the full blueprint through the
+-;; existing bb blueprint-add -- one writer, one validator.
++;; near a landmark; this finds a level spot on open ground or under a tree's crown, searching
++;; out to :max-search-m, clear of everything else and every walker's route, and proposes the
++;; full blueprint through the existing bb blueprint-add -- one writer, one validator.
+ ;;
+ ;;   bb blueprint-draft <member> <draft.edn> --near <landmark|x,z> [--dry-run]
+ ;;   bb blueprint-draft --landmarks
+@@ -63,18 +63,23 @@
+             (fail! (:reason result))
+             (let [bp (lot/blueprint draft result)
+                   problems (bf/problems bp)
+-                  lm (lot/resolve-landmark (lot/landmarks ground estate file-bps view') near)]
++                  lm (lot/resolve-landmark (lot/landmarks ground estate file-bps view') near)
++                  print-lines! (fn []
++                                 (println (lot/placed-line draft (:word lm) result))
++                                 (when-let [moved (lot/moved-line (get-in estate [:blueprint-text :moved])
++                                                                   (:word lm) result)]
++                                   (println moved)))]
+               (when (seq problems)
+                 (fail! (str "invalid draft: " (clojure.string/join "; " problems))))
+               (if dry-run
+-                (do (println (lot/placed-line draft (:word lm) result))
++                (do (print-lines!)
+                     (System/exit 0))
+                 (let [tmp (java.io.File/createTempFile "blueprint-draft" ".edn")]
+                   (try
+                     (spit tmp (pr-str bp))
+                     (let [r (p/shell {:continue true} "bb" "scripts/blueprint_add.clj" (name member) (str tmp))]
+                       (if (zero? (:exit r))
+-                        (do (println (lot/placed-line draft (:word lm) result))
++                        (do (print-lines!)
+                             (System/exit 0))
+                         (System/exit 1)))
+                     (finally (.delete tmp))))))))))))
+diff --git a/src/pm/ask_build.cljc b/src/pm/ask_build.cljc
+index dbfecd7..10e4412 100644
+--- a/src/pm/ask_build.cljc
++++ b/src/pm/ask_build.cljc
+@@ -194,8 +194,11 @@
+                       {:reason (str "I don't know a place called " (name near))})}
+ 
+           :else
+-          {:req req :target xz
+-           :spec (grid-spec xz (:rules ctx) (get-in demo [:sampler :pad-m]))})))))
++          (let [rules (:rules ctx)
++                pad-m (get-in demo [:sampler :pad-m])]
++            (cond-> {:req req :target xz :spec (grid-spec xz rules pad-m)}
++              (> (lot/max-search-m rules) (:search-m rules))
++              (assoc :wide-spec (grid-spec xz (assoc rules :search-m (lot/max-search-m rules)) pad-m)))))))))
+ 
+ (defn plan
+   "The step after measuring: a new ghost in the world and the `:placed`
+@@ -215,12 +218,26 @@
+             seen  (when (= near :here) {:ok true :view {:center here :walkers {}}})
+             res   (lot/place ground est [] rules draft near seen)]
+         (if (:ok res)
+-          (let [bp   (assoc (lot/blueprint draft res) :by by)
+-                word (:word (get (lot/landmarks ground est [] (:view seen)) near))]
++          (let [bp     (assoc (lot/blueprint draft res) :by by)
++                word   (:word (get (lot/landmarks ground est [] (:view seen)) near))
++                placed (fill (get-in demo [:lines :placed])
++                             {:summary (str/replace (:summary look-def) #"\.$" "") :place word})
++                moved  (lot/moved-line (get-in estate [:blueprint-text :moved]) word res)]
+             {:ok true :id id :blueprint bp :file (add-build file bp now)
+-             :say (fill (get-in demo [:lines :placed])
+-                        {:summary (str/replace (:summary look-def) #"\.$" "") :place word})})
+-          {:ok false :say (fill (get-in demo [:lines :refused]) {:reason (:reason res)})})))))
++             :say (if moved (str moved " " placed) placed)})
++          {:ok false :say (fill (get-in demo [:lines :refused]) {:reason (:reason res)})
++           :reason (:reason res)})))))
++
++(defn widen?
++  "Measure the wide grid and plan again? True iff `asked` (ask's result) has
++   a `:wide-spec` and `p1` (plan's result on the near grid) refused for
++   lack of ground (its `:reason` starts with lot/refusal-prefix), not for
++   an unknown look or landmark."
++  [asked p1]
++  (boolean (and (map? (:wide-spec asked))
++                (false? (:ok p1))
++                (string? (:reason p1))
++                (str/starts-with? (:reason p1) lot/refusal-prefix))))
+ 
+ ;; -- The demo file (localStorage pm.demo-builds.v1) ------------------------
+ 
+diff --git a/src/pm/blueprint.cljs b/src/pm/blueprint.cljs
+index c0f81a6..3fc0ea6 100644
+--- a/src/pm/blueprint.cljs
++++ b/src/pm/blueprint.cljs
+@@ -363,6 +363,15 @@
+          :removed  removed
+          :announce announce}))))
+ 
++(defn arrival-at
++  "The `:at` to fly the camera to for a newly announced blueprint
++   (placement-v1): the last id in `ids` that names a blueprint in
++   `(:blueprints world)` with a valid `:at`, else nil."
++  [world ids]
++  (let [bps (into {} (map (fn [bp] [(:id bp) (:at bp)])) (:blueprints world))]
++    (first (keep (fn [id] (when-let [at (get bps id)] (when (valid-at? at) at)))
++                 (reverse (or ids []))))))
++
+ (defn author-line
+   "The talk entry for a newly arrived blueprint's author (GDD §2.1, §4.8):
+    `{:who :text :kind :blueprint :event :blueprint-drawn}`, or nil unless
+diff --git a/src/pm/camera.cljs b/src/pm/camera.cljs
+index 0d7c896..a3eebaa 100644
+--- a/src/pm/camera.cljs
++++ b/src/pm/camera.cljs
+@@ -10,9 +10,65 @@
+ (def save-every-ms 2000)
+ (def max-coord 2000)   ; metres: anything beyond is junk, not a camera
+ 
++(def show-defaults
++  "Show me (placement-v1) defaults for `fly-decision`/`ghost-flight`,
++   overridden by the estate's `:build-rules :show-me`."
++  {:near-m 10 :quiet-ms 2000 :lift-m 0.6 :back 1.4 :low 0.5})
++
+ (defn- finite? [x] (and (number? x) (js/isFinite x) (<= (js/Math.abs x) max-coord)))
+ (defn- vec3? [v] (and (vector? v) (= 3 (count v)) (every? finite? v)))
+ 
++;; -- Show me (placement-v1): fly the camera to a new ghost ------------------
++
++(defn- nums3? [v] (and (vector? v) (= 3 (count v)) (every? number? v)))
++(defn- finite-nums3? [v] (and (nums3? v) (every? js/isFinite v)))
++
++(defn on-screen?
++  "True iff `ndc` is a vector of 3 finite numbers, each within [-1 1] (a
++   point behind the camera projects to z > 1, so that excludes it too)."
++  [ndc]
++  (boolean (and (finite-nums3? ndc) (every? (fn [v] (<= -1 v 1)) ndc))))
++
++(defn fly-decision
++  "Show me (placement-v1): whether the camera should fly to a new ghost at
++   `m`'s `:ghost`. `show` is merged over `show-defaults` (nil is fine). The
++   first match wins: no sane `:ghost` -> :no-ghost; a trial card open ->
++   :card-open; the player moved the camera within `:quiet-ms` -> :player-
++   moving; already on screen and within `:near-m` of the camera ->
++   :in-view; else :fly."
++  [show {:keys [ghost camera on-screen? card-open? last-move-ms now-ms]}]
++  (let [{:keys [near-m quiet-ms]} (merge show-defaults show)]
++    (cond
++      (not (finite-nums3? ghost)) :no-ghost
++      card-open? :card-open
++      (and (number? last-move-ms) (< (- now-ms last-move-ms) quiet-ms)) :player-moving
++      (and on-screen? (nums3? camera)
++           (<= (js/Math.sqrt (reduce + (map (fn [a b] (* (- a b) (- a b))) camera ghost))) near-m))
++      :in-view
++      :else :fly)))
++
++(defn flight
++  "The CREW key's framing maths (pm.core's old `fly!`), moved here unchanged
++   so the CREW key and a new ghost's camera share one flight: {:target
++   [x y z] :offset [dx dy dz]}, or nil unless `at` and `offset` are 3
++   numbers each. The camera always comes in from the creek's side."
++  [at lift back offset]
++  (when (and (nums3? at) (nums3? offset))
++    (let [[x y z] at
++          [ox oy oz] offset
++          ox' (if (pos? x) (- (js/Math.abs ox)) (js/Math.abs ox))]
++      {:target [x (+ y lift) z] :offset [(* back ox') (* back oy) (* back oz)]})))
++
++(defn ghost-flight
++  "`flight` framed for a new ghost at `at` (placement-v1): from the side and
++   lower, under a canopy, per `show`'s `:lift-m`/`:back`/`:low` (merged over
++   `show-defaults`)."
++  [at offset show]
++  (let [{:keys [lift-m back low]} (merge show-defaults show)]
++    (when (nums3? offset)
++      (let [[ox oy oz] offset]
++        (flight at lift-m back [ox (* low oy) oz])))))
++
+ (defn encode
+   "The text to store for a camera at `pos` looking at `target` (both [x y z])."
+   [pos target]
+diff --git a/src/pm/core.cljs b/src/pm/core.cljs
+index 0ed8cbd..1693fda 100644
+--- a/src/pm/core.cljs
++++ b/src/pm/core.cljs
+@@ -21,6 +21,7 @@
+             [pm.creature-spike :as creature-spike]
+             [pm.events :as events]
+             [pm.juice :as juice]
++            [pm.lot :as lot]
+             [pm.sky :as sky]
+             [cljs.reader]
+             [pm.jumeaux :as j]
+@@ -1280,6 +1281,7 @@
+ 
+ (declare open-agent-talk!)
+ (defonce ^:private !follow (atom nil))   ; walker id the camera is following
++(defonce ^:private !camera-moved-at (atom nil))   ; js/Date.now of the player's last camera move
+ 
+ (defn- walker-colours
+   "A walker's colours for the crew key: :body and :joints. A tint colours
+@@ -1354,12 +1356,9 @@
+         rows (-> rows (into creatures) (into places)
+                  (call/mark-on-call (:call w) #(or (:agent %) (:id %))))
+         fly! (fn [h [x y z] lift & [back]]
+-               (let [[ox oy oz] (get-in w [:crew-key :offset])
+-                     ;; come in from the creek's side (the open middle of the
+-                     ;; estate), not out of the woods behind them
+-                     ox (if (pos? x) (- (js/Math.abs ox)) (js/Math.abs ox))
+-                     k  (or back 1)]   ; a place is framed from further back than a figure
+-                 (camera/frame! h [x (+ y lift) z] [(* k ox) (* k oy) (* k oz)])))]
++               (when-let [{:keys [target offset]} (camera/flight [x y z] lift (or back 1)
++                                                                  (get-in w [:crew-key :offset]))]
++                 (camera/frame! h target offset)))]
+     (ui/render-crew-key! (get-in w [:crew-key :title]) rows toggle-source!
+       (fn [id]
+         (when-let [h (kit/handle)]
+@@ -1576,9 +1575,19 @@
+     (.addEventListener canvas "pointerdown"
+       (fn [^js e]
+         (reset! !follow nil)   ; the player takes the camera back
++        (reset! !camera-moved-at (js/Date.now))
+         (when (and (.-isPrimary e) (zero? (.-button e)))
+           (reset! !press {:x (.-clientX e) :y (.-clientY e) :t (.-timeStamp e)})))
+       #js {:passive true})
++    ;; show me (placement-v1): a drag or a scroll also counts as the player
++    ;; moving the camera, so a new ghost never hijacks it mid-gesture
++    (.addEventListener canvas "pointermove"
++      (fn [^js e]
++        (when (pos? (.-buttons e)) (reset! !camera-moved-at (js/Date.now))))
++      #js {:passive true})
++    (.addEventListener canvas "wheel"
++      (fn [^js _e] (reset! !camera-moved-at (js/Date.now)))
++      #js {:passive true})
+     (.addEventListener js/window "pointerup"
+       (fn [^js e]
+         (when-let [down @!press]
+@@ -1774,12 +1783,14 @@
+     (if-let [s (:say r)]
+       (twin-reply! s at)
+       (let [sampler (get-in raw-estate [:demo-builds :sampler])
+-            t0      (js/performance.now)
+-            ground  (when h (t/ground-grid (view-ground-meshes! h) (cover-meshes! h) (:spec r)
+-                                           (:from-y sampler) (partial ab/sample-cell sampler)))
+-            _       (js/console.info "Prime Meridian: ground grid" (:cols (:spec r)) "x" (:rows (:spec r))
+-                                     "in" (js/Math.round (- (js/performance.now) t0)) "ms")
+-            p       (ab/plan ctx (:req r) ground)]
++            measure (fn [spec] (when h (let [t0 (js/performance.now)
++                                             g  (t/ground-grid (view-ground-meshes! h) (cover-meshes! h) spec
++                                                               (:from-y sampler) (partial ab/sample-cell sampler))]
++                                         (js/console.info "Prime Meridian: ground grid" (:cols spec) "x" (:rows spec)
++                                                          "in" (js/Math.round (- (js/performance.now) t0)) "ms")
++                                         g)))
++            p1      (ab/plan (update ctx :rules lot/near-rules) (:req r) (measure (:spec r)))
++            p       (if (ab/widen? r p1) (ab/plan ctx (:req r) (measure (:wide-spec r))) p1)]
+         (when (:ok p)
+           (reset! !demo-file (:file p))
+           (save-demo-file!)
+@@ -1841,6 +1852,25 @@
+   (when-let [ground-at (ground-at-fn h)]
+     (swap! !world bp/seat-all ground-at)))
+ 
++(defn- show-arrival!
++  "Show me (placement-v1): a new ghost at `at` flies the camera to it with
++   the CREW key's own flight, framed from the side so a canopy doesn't hide
++   it -- unless it's already on screen and near, a trial card is open, or
++   the player just moved the camera themself (`camera/fly-decision`)."
++  [at]
++  (when-let [^js h (kit/handle)]
++    (let [w    @!world
++          show (get-in w [:build-rules :show-me])
++          fl   (camera/ghost-flight at (get-in w [:crew-key :offset]) show)
++          d    (camera/fly-decision show {:ghost at :camera (:pos (t/rig-view h))
++                                          :on-screen? (camera/on-screen? (when fl (t/project-ndc (.-camera h) (:target fl))))
++                                          :card-open? (some? (bp/card-of w))
++                                          :last-move-ms @!camera-moved-at :now-ms (js/Date.now)})]
++      (when (and fl (= :fly d))
++        (camera/frame! h (:target fl) (:offset fl))
++        (reset! !follow nil))
++      (js/console.info "Prime Meridian: new ghost at" (pr-str at) "camera:" (name d)))))
++
+ (defn- apply-blueprint-file!
+   "A freshly polled `state/blueprints.edn` (or nil, 404) merged into
+    `!world` (TASKS T-13b, `bp/merge-file`): a no-op when nothing changed.
+@@ -1849,7 +1879,9 @@
+    `start-kit!`'s `seat-blueprints!` seats them -- `seat` is idempotent via
+    :seated?), each newly announced one adds its author's line to 💭, and
+    the result replaces `!world` in one swap -- the running scene redraws
+-   just those blueprints next frame, no reload, no remount."
++   just those blueprints next frame, no reload, no remount. A newly
++   announced blueprint's arrival flies the camera to it (placement-v1,
++   `show-arrival!`), dev poll and demo alike."
+   [f]
+   (let [r (bp/merge-file @!world f)]
+     (when-not (identical? (:world r) @!world)
+@@ -1867,7 +1899,8 @@
+                         w2 (:announce r))]
+         (reset! !real-from-file? true)
+         (try (reset! !world w3) (finally (reset! !real-from-file? false)))
+-        (js/console.info "Prime Meridian: blueprints added" (:added r) "removed" (:removed r))))))
++        (js/console.info "Prime Meridian: blueprints added" (:added r) "removed" (:removed r))
++        (when-let [at (bp/arrival-at @!world (:announce r))] (show-arrival! at))))))
+ 
+ ;; The card floats just clear of the sign's own plate: anchored at the
+ ;; item's top alone, it sat on top of the sign and hid its text.
+diff --git a/src/pm/lot.cljc b/src/pm/lot.cljc
+index 7b423c0..0998277 100644
+--- a/src/pm/lot.cljc
++++ b/src/pm/lot.cljc
+@@ -11,6 +11,8 @@
+ (def grounded-m 0.02)
+ (def narrow-m 0.3)
+ (def usage "usage: bb blueprint-draft <member> <draft.edn> --near <landmark|here|walker|x,z> [--dry-run] | bb blueprint-draft --landmarks")
++(def refusal-prefix "no level open ground within ")
++(def nothing-fits "nothing fits closer")
+ (def no-ground-map "no ground map (state/ground.edn): the twin samples it from the kit")
+ (def nothing-grounded "nothing touches the ground")
+ (def no-view "I can't see where you're looking: the game isn't sending its view")
+@@ -287,17 +289,44 @@
+     (or (= kind ":") (= kind "~")) "most of it is in the creek"
+     :else "most of it has no ground"))
+ 
++(defn open-kinds
++  "Ground kinds a foot may stand on, as a set of strings: `(set
++   (:open-kinds rules))` when that's sequential, else `#{\"o\"}`."
++  [rules]
++  (if (sequential? (:open-kinds rules)) (set (:open-kinds rules)) #{"o"}))
++
++(defn max-search-m
++  "How far the second, wider pass searches: `(:search-m rules)` when
++   `:max-search-m` is missing or not a number, else the larger of the two."
++  [rules]
++  (let [s (:search-m rules) m (:max-search-m rules)]
++    (if (number? m) (max s m) s)))
++
++(defn near-rules
++  "`rules` with the second pass turned off (the demo's small grid)."
++  [rules]
++  (assoc rules :max-search-m (:search-m rules)))
++
++(defn dominant-why
++  "The most frequent string in `whys`; a tie goes to the alphabetically
++   smaller one. nil for an empty or nil `whys`."
++  [whys]
++  (when (seq whys)
++    (let [freqs (frequencies whys)]
++      (first (first (sort-by (fn [[w n]] [(- n) w]) freqs))))))
++
+ (defn spot
+   "Verdict for one candidate point and yaw: {:ok true :y h :spread s} or
+    {:ok false :why reason}. ctx = {:ground :rules :feet :radius :things
+    :segments}."
+   [{:keys [ground rules feet radius things segments]} [x z] yaw]
+   (let [{:keys [max-spread-m gap-m route-m]} rules
++        open (open-kinds rules)
+         world-feet (feet-at feet [x z] yaw)
+         cells (map #(cell ground %) world-feet)
+-        bad (first (remove (fn [{:keys [kind y]}] (and (= kind "o") (some? y))) cells))]
++        bad (first (remove (fn [{:keys [kind y]}] (and (contains? open kind) (some? y))) cells))]
+     (if bad
+-      {:ok false :why (if (= (:kind bad) "o") "most of it has no ground" (cell-reason (:kind bad)))}
++      {:ok false :why (if (contains? open (:kind bad)) "most of it has no ground" (cell-reason (:kind bad)))}
+       (let [ys (map :y cells)
+             spread (- (apply max ys) (apply min ys))]
+         (if (> spread (+ max-spread-m eps))
+@@ -324,11 +353,9 @@
+            :else (str q "." (if (< r 10) (str "0" r) r))))))
+ 
+ (defn refusal [whys search-m word]
+-  (if (seq whys)
+-    (let [freqs (frequencies whys)
+-          best (first (sort-by (fn [[w n]] [(- n) w]) freqs))]
+-      (str "no level open ground within " (fmt search-m) " m of " word ": " (first best)))
+-    (str "no level open ground within " (fmt search-m) " m of " word)))
++  (if-let [why (dominant-why whys)]
++    (str refusal-prefix (fmt search-m) " m of " word ": " why)
++    (str refusal-prefix (fmt search-m) " m of " word)))
+ 
+ (defn placed-line [draft word result]
+   (let [{:keys [at yaw distance-m spread-m]} result
+@@ -341,6 +368,20 @@
+   {:id (:id draft) :at (:at result) :yaw (:yaw result)
+    :summary (:summary draft) :look (:look draft)})
+ 
++(defn moved-line
++  "`template`'s `{why}`/`{place}`/`{moved}` filled for a build that moved
++   further out than `:search-m` (an unknown placeholder stays as written):
++   nil unless `template` is a string and `(:moved-m result)` is a number."
++  [template word result]
++  (when (and (string? template) (number? (:moved-m result)))
++    (let [vars {:why   (or (:why result) nothing-fits)
++                :place word
++                :moved (fmt (max 0.5 (/ (round* (* 2 (:moved-m result))) 2)))}]
++      (str/replace template #"\{([a-z0-9-]+)\}"
++                   (fn [[whole field]]
++                     (let [v (get vars (keyword field))]
++                       (if (nil? v) whole (str v))))))))
++
+ (defn place
+   "The quest's placement: ground, estate, file-blueprints, rules, draft,
+    near (a landmark keyword) -> {:ok true :at [x y z] :yaw deg :landmark k
+@@ -376,34 +417,47 @@
+                   ctx {:ground ground :rules rules :feet fs :radius radius :things ts :segments segs}
+                   lm (resolve-landmark lms near)
+                   step (:step-m rules)
+-                  search-m (:search-m rules)
++                  S (:search-m rules)
++                  M (max-search-m rules)
+                   yaws (:yaws rules)
+                   [lo-x hi-x lo-z hi-z]
+                   (if (:cells lm)
+                     (let [xs (map first (:cells lm)) zs (map second (:cells lm))]
+                       [(apply min xs) (apply max xs) (apply min zs) (apply max zs)])
+                     (let [[lx lz] (:xz lm)] [lx lx lz lz]))
+-                  kx-lo (ceil*  (- (/ (- lo-x search-m) step) eps))
+-                  kx-hi (floor* (+ (/ (+ hi-x search-m) step) eps))
+-                  kz-lo (ceil*  (- (/ (- lo-z search-m) step) eps))
+-                  kz-hi (floor* (+ (/ (+ hi-z search-m) step) eps))
++                  kx-lo (ceil*  (- (/ (- lo-x M) step) eps))
++                  kx-hi (floor* (+ (/ (+ hi-x M) step) eps))
++                  kz-lo (ceil*  (- (/ (- lo-z M) step) eps))
++                  kz-hi (floor* (+ (/ (+ hi-z M) step) eps))
+                   candidates (for [kx (range kx-lo (inc kx-hi))
+                                    kz (range kz-lo (inc kz-hi))
+                                    :let [x (* kx step) z (* kz step)
+                                          d (dist-to-landmark lm [x z])]
+-                                   :when (<= d (+ search-m eps))
++                                   :when (<= d (+ M eps))
+                                    yaw yaws]
+                                [x z yaw d])
+-                  verdicts (map (fn [[x z yaw d]] [x z yaw d (spot ctx [x z] yaw)]) candidates)
+-                  accepted (filter (fn [[_ _ _ _ v]] (:ok v)) verdicts)
+-                  whys (keep (fn [[_ _ _ _ v]] (when-not (:ok v) (:why v))) verdicts)]
+-              (if (seq accepted)
+-                (let [[x z yaw d v]
+-                      (first (sort-by (fn [[x z yaw d v]]
+-                                        [(round* (* d 1e6)) (round* (* (:spread v) 1e6)) x z yaw])
+-                                      accepted))]
++                  best (fn [verdicts]
++                         (first (sort-by (fn [[x z yaw d v]]
++                                           [(round* (* d 1e6)) (round* (* (:spread v) 1e6)) x z yaw])
++                                         verdicts)))
++                  verdicts1 (keep (fn [[x z yaw d]]
++                                    (when (<= d (+ S eps)) [x z yaw d (spot ctx [x z] yaw)]))
++                                  candidates)
++                  accepted1 (filter (fn [[_ _ _ _ v]] (:ok v)) verdicts1)
++                  whys1 (keep (fn [[_ _ _ _ v]] (when-not (:ok v) (:why v))) verdicts1)]
++              (if (seq accepted1)
++                (let [[x z yaw d v] (best accepted1)]
+                   {:ok true :at [x (:y v) z] :yaw yaw :landmark near :distance-m d :spread-m (:spread v)})
+-                {:ok false :reason (refusal whys search-m (:word lm))})))))))))
++                (let [verdicts2 (keep (fn [[x z yaw d]]
++                                         (when (< (+ S eps) d) [x z yaw d (spot ctx [x z] yaw)]))
++                                       candidates)
++                      accepted2 (filter (fn [[_ _ _ _ v]] (:ok v)) verdicts2)]
++                  (if (seq accepted2)
++                    (let [[x z yaw d v] (best accepted2)]
++                      {:ok true :at [x (:y v) z] :yaw yaw :landmark near :distance-m d :spread-m (:spread v)
++                       :moved-m d :why (or (dominant-why whys1) nothing-fits)})
++                    (let [whys2 (keep (fn [[_ _ _ _ v]] (when-not (:ok v) (:why v))) verdicts2)]
++                      {:ok false :reason (refusal (concat whys1 whys2) M (:word lm))}))))))))))))
+ 
+ (defn parse-args [args]
+   (let [args (vec (or args []))]
+diff --git a/test/pm/ask_build_test.cljs b/test/pm/ask_build_test.cljs
+index dca9f95..6855ea1 100644
+--- a/test/pm/ask_build_test.cljs
++++ b/test/pm/ask_build_test.cljs
+@@ -10,7 +10,7 @@
+ (def RAW   (reader/read-string w/estate-edn))       ; the raw estate (mirrors a vector)
+ (def DB    (:demo-builds RAW))
+ (def SAMP  (:sampler DB))
+-(def RULES (:build-rules RAW))                      ; {:step-m 0.5 :yaws [0 45 90 135] :search-m 6 :gap-m 1.2 :route-m 0.8 :max-spread-m 0.12}
++(def RULES (:build-rules RAW))                      ; {:step-m 0.5 :yaws [0 45 90 135] :search-m 6 :max-search-m 15 :open-kinds ["o" "T"] :gap-m 1.2 :route-m 0.8 :max-spread-m 0.12 :show-me {:near-m 10 :quiet-ms 2000 :lift-m 0.6 :back 1.4 :low 0.5}}
+ (def E0    {:demo-builds DB :mirrors [] :walkers []})            ; an empty estate
+ (def DB2   (assoc DB :words {"banc" :bench} :places {"ici" :here "poste" :post}))
+ (def E1    {:demo-builds DB2 :post {:at [0 1 0]} :mirrors [] :walkers []})   ; one place at the origin
+@@ -217,7 +217,9 @@
+ 
+ (deftest t29-ask-ready-to-measure
+   (is (= (ab/ask (ctx E0 {} ab/empty-file [0 1 0]) "put a bench here")
+-         {:req {:look :bench :near :here} :target [0 0] :spec {:origin [-7 -7] :step 0.5 :cols 29 :rows 29}})))
++         {:req {:look :bench :near :here} :target [0 0]
++          :spec {:origin [-7 -7] :step 0.5 :cols 29 :rows 29}
++          :wide-spec {:origin [-16 -16] :step 0.5 :cols 65 :rows 65}})))
+ 
+ (deftest t30-ask-a-place-with-no-position
+   (let [E2 (assoc-in E0 [:demo-builds :places] {"moon" :moon})]
+@@ -242,9 +244,17 @@
+     (is (= (:at (:blueprint r)) [-2.5 1 0]))
+     (is (= (:say r) "A bench, drawn near the post. Try it, and make it real if you like it."))))
+ 
+-(deftest t33-plan-refused-under-trees
++(deftest t33-plan-under-trees
+   (is (= (ab/plan (ctx E0 {} ab/empty-file [0 1 0]) {:look :bench :near :here} TREES)
+-         {:ok false :say "I can't put that there: no level open ground within 6 m of where you're looking: most of it is under trees."})))
++         {:ok true :id :bench-1
++          :blueprint {:id :bench-1 :at [0 1 0] :yaw 0 :summary "A bench" :look BENCH :by :tw}
++          :file {:as-of 5000 :blueprints [{:id :bench-1 :at [0 1 0] :yaw 0 :summary "A bench" :look BENCH :by :tw}]
++                 :real [] :removed []}
++          :say "A bench, drawn near where you're looking. Try it, and make it real if you like it."}))
++  (is (= (ab/plan (assoc (ctx E0 {} ab/empty-file [0 1 0]) :rules (assoc RULES :open-kinds ["o"] :max-search-m 6))
++                   {:look :bench :near :here} TREES)
++         {:ok false :say "I can't put that there: no level open ground within 6 m of where you're looking: most of it is under trees."
++          :reason "no level open ground within 6 m of where you're looking: most of it is under trees"})))
+ 
+ (deftest t34-plan-the-id-avoids-the-world-and-the-file
+   (let [world {:blueprints [{:id :bench-1 :at [50 1 50] :summary "x"}]}
