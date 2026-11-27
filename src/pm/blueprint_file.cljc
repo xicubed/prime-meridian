@@ -29,6 +29,21 @@
 (defn valid? [bp]
   (empty? (problems bp)))
 
+(defn part-problems
+  "Reasons `bp`'s look parts can't be drawn where they're meant to be, `[]` when
+   they can: every part needs `:at [x y z]` (its centre). Checked by `bb
+   blueprint-add` only, so the game keeps drawing what it draws today (a part
+   written with `:pos` once collapsed a bench into a lump, Nov 26)."
+  [bp]
+  (let [parts (get-in bp [:look :parts])]
+    (if-not (sequential? parts)
+      []
+      (vec (keep-indexed (fn [i part]
+                           (when-not (and (map? part) (valid-at? (:at part)))
+                             (str "part " i " needs :at [x y z], its centre"
+                                  (when (and (map? part) (:pos part)) " (not :pos)"))))
+                         parts)))))
+
 (defn normalize
   "`file` (the raw parsed `state/blueprints.edn`) as `{:as-of int :blueprints
    [map ...]}`: not a map (incl. nil) becomes `empty-file`; a non-integer

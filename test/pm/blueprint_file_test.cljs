@@ -140,3 +140,11 @@
   (doseq [args [nil [] ["le-testeur"] ["Le Testeur" "f.edn"] ["le-testeur" ""]
                 ["--remove"] ["--remove" "Bad!"] ["--remove" "x" "y"] ["a" "b" "c"]]]
     (is (= {:usage bf/usage} (bf/parse-args args)) (str "args " (pr-str args)))))
+
+(deftest p-parts-need-at
+  ;; Nov 26: a builder wrote :pos and the bench collapsed into a lump; blueprint-add refuses it now.
+  (is (= [] (bf/part-problems {:look {:parts [{:shape :box :size [1 1 1] :at [0 0.5 0]}]}})))
+  (is (= ["part 1 needs :at [x y z], its centre (not :pos)"]
+         (bf/part-problems {:look {:parts [{:shape :box :size [1 1 1] :at [0 0.5 0]}
+                                           {:shape :box :size [1 1 1] :pos [0 0.5 0]}]}})))
+  (is (= [] (bf/part-problems {:id :x}))))

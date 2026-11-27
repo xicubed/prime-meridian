@@ -54,7 +54,10 @@
   (set (keep :id (:blueprints (edn/read-string (slurp "resources/estate.edn"))))))
 
 (defn- read-blueprint [path]
-  (try (edn/read-string (slurp path)) (catch Exception _ (fail! (str "can't read " path)))))
+  (let [bp (try (edn/read-string (slurp path)) (catch Exception _ (fail! (str "can't read " path))))]
+    (when-let [why (first (bf/part-problems bp))]
+      (fail! why))
+    bp))
 
 (defn- write-atomically! [path data]
   (let [f   (io/file path)
