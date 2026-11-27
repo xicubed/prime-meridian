@@ -113,6 +113,9 @@ The twin on the estate (GDD §2.1). Built today: he walks (black body, white joi
 - [ ] F-7 A first-time playtest from `?fresh` (Michael, then someone who has never seen it); fixes as one crew round.
 - [ ] F-8 Maybe: a **Next ›** button on the Construct's self-advancing lines (~6 s each) if the playtest says it drags; Flora's "not due" case explained in PLAY.md; the poster on the kit's loading screen.
 
+- [ ] F-9 Placement follow-ups from the Nov 26 bench takes: a live check of the cottage blocking "here" (Hal's fix, `:motion :view-blockers`, not yet tried live); `bb blueprint-add` refuses a part without `:at` (a fresh builder wrote `:pos` and the bench collapsed into a lump); the ground sampler tells roofs from leaves (a roof reads as `T`); a fly-to that waits until the player stops moving instead of skipping; "show me / take me to it" as something you can ask the twin; `crew-answer`'s forward text says `--note` goes with deny only.
+- [ ] F-10 Reshoot the final video's scene 6 (make the bench real; take 3's bench was the collapsed one) and shoot 9-11 (Juniper, CREW flights, the booth); Friday from 4:40 PM: 7-8 (Flora, real) and 12 (Day won); then 0-1 and the rough cut.
+
 ## After the course: make it yours (README "Make it yours", Michael, Nov 26)
 Future work, after the Dec 6 hand-in. Write each one into the GDD before building it.
 - [ ] M-1 Your key, in the browser: a setup card in the hosted game takes the player's own AI API key (kept only in their browser's storage, never sent to our server) and the twin becomes that model with the game's prompt (the estate, what it can build, STYLE.md's voice); it places builds through `pm.ask-build`/`pm.lot`, and the crew stays SAMPLE. Nothing to install. Say plainly on the card what the key is used for.

@@ -1743,6 +1743,23 @@
       (when (seq gm) (reset! !view-meshes gm))))
   @!view-meshes)
 
+(defonce ^:private !view-blockers (atom nil))
+
+(defn- view-blocker-meshes!
+  "The kit's buildings (`:motion :view-blockers` name prefixes), found once:
+   the middle of the screen on one of these is not ground for \"here\"."
+  [^js h]
+  (when (empty? @!view-blockers)
+    (let [prefixes (get-in @!world [:motion :view-blockers])
+          bm (when (seq prefixes) (t/find-meshes (.-scene h) #(m/ground-name? % prefixes)))]
+      (when (seq bm) (reset! !view-blockers bm))))
+  @!view-blockers)
+
+(defn- view-center
+  "Ground at the middle of the screen, or nil (sky, or a building in the way)."
+  [^js h]
+  (t/center-ground-hit (.-camera h) (view-ground-meshes! h) (view-blocker-meshes! h)))
+
 ;; The demo's pretend twin builds what you ask for (pm.ask-build, demo build
 ;; only): a request in 💭 goes to demo-ask!, Make it real/Remove on a demo
 ;; build go through demo-make-real!/demo-remove! instead of the bridge.
@@ -1775,7 +1792,7 @@
   [text at]
   (let [^js h (kit/handle)
         ctx   {:estate raw-estate :world @!world :file @!demo-file :rules (:build-rules @!world)
-               :here (when h (t/center-hit (.-camera h) (view-ground-meshes! h)))
+               :here (when h (view-center h))
                :by (:agent (world/twin-walker @!world)) :now (js/Date.now)}
         r     (ab/ask ctx text)]
     (if-let [s (:say r)]
@@ -1819,8 +1836,7 @@
   (when-not DEMO
     (when (>= (- now (:checked-at @!view)) view/post-every-ms)
       (swap! !view assoc :checked-at now)
-      (let [meshes (view-ground-meshes! h)
-            snap (view/snapshot (t/rig-view h) (t/center-hit (.-camera h) meshes) (bricks/spots))]
+      (let [snap (view/snapshot (t/rig-view h) (view-center h) (bricks/spots))]
         (when (view/post? @!view snap now {:demo? DEMO :bridge-on? (bridge-on?)})
           (swap! !view view/sent snap now)
           (let [b (:bridge @!world)]

@@ -647,6 +647,26 @@
             [(.-x pt) (.-y pt) (.-z pt)]))))
     (catch :default _ nil)))
 
+(defn center-ground-hit
+  "Like center-hit, but `blockers` (meshes that aren't ground: a house) stop
+   the ray too: when the nearest hit is a blocker the middle of the screen is
+   that building, not ground, so this returns nil (as for sky) instead of the
+   ground behind its walls."
+  [^js camera ground blockers]
+  (try
+    (when (seq ground)
+      (let [^js T (three)
+            ^js Raycaster (.-Raycaster T)
+            ^js Vector2 (.-Vector2 T)
+            ^js rc (Raycaster.)
+            block (set blockers)]
+        (.setFromCamera rc (Vector2. 0 0) camera)
+        (when-let [^js hit (first (.intersectObjects rc (into-array (concat ground blockers)) true))]
+          (when-not (contains? block (.-object hit))
+            (let [^js pt (.-point hit)]
+              [(.-x pt) (.-y pt) (.-z pt)])))))
+    (catch :default _ nil)))
+
 (defn vec3
   "new THREE.Vector3(x, y, z) with the current THREE."
   [[x y z]]

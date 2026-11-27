@@ -176,6 +176,7 @@
                      :model "/models/soma/"   ; local copy (gitignored public/models/soma/; from repalash.com/three-motionbricks/soma-model/)
                      :backend :webgpu}   ; :auto (WebGPU if a warm generation is fast enough), :webgpu or :wasm
             :ground ["SM_Hiroshi_Terrain" "SM_Hiroshi_Gravel"]   ; meshes you can stand on (name prefixes)
+            :view-blockers ["SM_Hiroshi_Cottage"]   ; looking at these, the middle of your screen is a building, not ground: "here" refuses instead of building inside (Michael, Nov 26)
             :speed  1.2                                          ; kinematic m/s
             :obstacles [{:at [-4.8 -8.2] :r 0.7} {:at [-4.3 -12.0] :r 0.6}]   ; the bank rocks
             :radius 0.3
