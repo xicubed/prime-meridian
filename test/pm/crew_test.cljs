@@ -72,7 +72,7 @@
 ;; Colours
 
 (deftest t10-colors-from-estate
-  (is (= {:working 15905076 :blocked 15026253 :done 4630360 :idle 10133670 :unknown 10133670
+  (is (= {:working 15905076 :blocked 15026253 :done 4630360 :idle 4630360 :unknown 10133670
           :needs-you 16098851 :stalled 6191766}
          (c/colors W)))
   (is (= c/default-colors (c/colors {}))))
@@ -91,7 +91,7 @@
 
 (deftest t13-dot-idle-and-unknown
   (let [crew {:as-of T0 :agents {:a {:status :idle} :b {:status :unknown}}}]
-    (is (= {:glyph "●" :color 10133670 :pulse? false} (c/dot crew :a T0 P)))
+    (is (= {:glyph "○" :color (:idle P) :pulse? false} (c/dot crew :a T0 P)))
     (is (= {:glyph "●" :color 10133670 :pulse? false} (c/dot crew :b T0 P)))))
 
 (deftest t14-dot-missing-agent-hollow
@@ -106,7 +106,7 @@
   (is (= {:glyph "○" :color 10133670 :pulse? false} (c/dot nil :un-automate-monde T0 P))))
 
 (deftest t17-dot-palette-from-data
-  (let [P2 (assoc P :working 255 :idle 1)]
+  (let [P2 (assoc P :working 255 :unknown 1)]
     (is (= 255 (:color (c/dot C :un-automate-monde T0 P2))))
     (is (= {:glyph "○" :color 1 :pulse? false} (c/dot C :nobody T0 P2)))
     (is (= 10133670 (:color (c/dot C :un-architecte T0 (dissoc P :done)))))))
@@ -170,11 +170,11 @@
 (deftest t27-estate-walkers-end-to-end
   (let [S (c/parse "{:as-of 1000 :agents {:un-automate-monde {:status :working} :le-testeur {:status :idle}}}")
         colors (c/colors W)]
-    (is (= ["● Un Automate" "● Le Testeur" "○ Un Architecte" "○ Le Coureur" "○ Le Critique" "○ Le Docteur"]
+    (is (= ["● Un Automate" "○ Le Testeur" "○ Un Architecte" "○ Le Coureur" "○ Le Critique" "○ Le Docteur"]
            (mapv (fn [wk] (c/label-text (c/dot S (:agent wk) 3000 colors) (:name wk))) (m/walkers W))))
     (is (= ["○ Un Automate" "○ Le Testeur" "○ Un Architecte" "○ Le Coureur" "○ Le Critique" "○ Le Docteur"]
            (mapv (fn [wk] (c/label-text (c/dot S (:agent wk) 16001 colors) (:name wk))) (m/walkers W))))
-    (is (= [15905076 10133670 10133670 10133670 10133670 10133670]
+    (is (= [15905076 4630360 10133670 10133670 10133670 10133670]
            (mapv (fn [wk] (:color (c/dot S (:agent wk) 3000 colors))) (m/walkers W))))))
 
 (deftest t28-keep-the-last-good-file

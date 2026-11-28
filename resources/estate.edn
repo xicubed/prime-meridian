@@ -189,7 +189,7 @@
             :status-dots {:working 0xf2b134   ; Herdr's colours for the crew's states (dot before the name)
                           :blocked 0xe5484d   ; also pulses slowly: waiting for a human
                           :done    0x46a758
-                          :idle    0x9aa0a6
+                          :idle    0x46a758   ; Herdr: a hollow green ring (○), done a filled one (●)
                           :unknown 0x9aa0a6}
             :legs {:soma   {:left  ["LeftLeg" "LeftShin" "LeftFoot" "LeftToeBase"]
                             :right ["RightLeg" "RightShin" "RightFoot" "RightToeBase"]}

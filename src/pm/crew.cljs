@@ -104,9 +104,11 @@
 
 (defn dot [crew agent now palette]
   (if (or (not (fresh? crew now)) (not (contains? (:agents crew) agent)))
-    {:glyph "○" :color (:idle palette) :pulse? false}
+    {:glyph "○" :color (:unknown palette) :pulse? false}
     (let [s (effective-status (get-in crew [:agents agent]) now)]
-      {:glyph "●" :color (or (get palette s) (:unknown palette)) :pulse? (= s :blocked)})))
+      ;; Herdr's own marks (Michael, Nov 27: "all green circles in herdr but a lot
+      ;; were grey in game"): idle is a hollow green ring, done a filled green dot
+      {:glyph (if (= s :idle) "○" "●") :color (or (get palette s) (:unknown palette)) :pulse? (= s :blocked)})))
 
 (defn pulse-alpha [t]
   (let [a (+ 0.4 (* 0.6 (+ 0.5 (* 0.5 (js/Math.cos (/ (* 2 js/Math.PI t) pulse-ms))))))]
