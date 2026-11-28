@@ -844,9 +844,10 @@
    camera to them. `rows` [{:id :name :body :joints :dot}] (colours as
    ints), or for a creature {:id :name :kind :creature :color :dot :real?
    :can-real?}; rebuilt only when they change. `on-pick` gets the row's id;
-   a creature row ends in its SAMPLE/REAL checkbox (GDD §4.6: checked =
-   REAL, her numbers from the twin's record; greyed when there's no real
-   data), and `on-toggle` gets its id."
+   a creature row ends in its SAMPLE checkbox (GDD §4.6: ticked = SAMPLE, a
+   test that never touches real life; unticked = REAL, her numbers from the
+   twin's record; ticked and locked when there's no real data), and
+   `on-toggle` gets its id."
   [title rows on-toggle on-pick]
   (let [^js box (or (el "crew-key") (make-crew-key-drawer!))
         ^js panel (.querySelector box ".panel")
@@ -879,14 +880,17 @@
               (let [^js lab (js/document.createElement "label")
                     ^js cb  (js/document.createElement "input")]
                 (set! (.-type cb) "checkbox")
-                (set! (.-checked cb) (boolean real?))
+                ;; the box is SAMPLE (Michael, Nov 27): ticked = a test that never
+                ;; touches real life; a creature with nothing real behind it is
+                ;; SAMPLE through and through, ticked and locked
+                (set! (.-checked cb) (not real?))
                 (set! (.-disabled cb) (not can-real?))
                 (set! (.. lab -style -cssText) "margin-left:auto;display:flex;align-items:center;gap:4px;font-size:10px;letter-spacing:.08em;opacity:.85;cursor:pointer")
-                (set! (.-title lab) (cond (not can-real?) "SAMPLE: no real data behind this one yet"
-                                          real? "REAL: the numbers are your twin's record; a feed here goes through the bridge. Untick for SAMPLE."
-                                          :else "SAMPLE: pretend numbers, changes stay in this browser. Tick for REAL."))
+                (set! (.-title lab) (cond (not can-real?) "SAMPLE through and through: a test, nothing here touches real life"
+                                          real? "REAL: the numbers are your twin's record; a feed here counts in real life. Tick SAMPLE to test without touching it."
+                                          :else "SAMPLE: a test, pretend numbers, nothing touches real life. Untick for REAL."))
                 (.appendChild lab cb)
-                (.appendChild lab (js/document.createTextNode (if real? "REAL" "SAMPLE")))
+                (.appendChild lab (js/document.createTextNode "SAMPLE"))
                 (.addEventListener lab "click" (fn [^js e] (.stopPropagation e)))
                 (.addEventListener cb "change" (fn [^js e] (.stopPropagation e) (on-toggle id)))
                 (.appendChild r lab)))
