@@ -39,7 +39,7 @@ Events:
 - :weekly-card        the weekly card: time jacked in this week ({hours}), a trend, never a score"
  :shape "An EDN map from each event keyword to a vector of 3-5 strings, e.g.
 {:jack-in [\"Welcome back.\" \"...\" \"...\"]
- :chore-done [\"{name}'s {chore}: done. That one counts.\" \"...\" \"...\"]
+ :chore-done [\"{name}'s {chore}: done. That one counts in real life.\" \"...\" \"...\"]
  ...}
 Placeholders are written {like-this} and may appear only in the events that list them."
  :rules "- every event above, no others; 3-5 distinct lines each; at most 110 characters per line
