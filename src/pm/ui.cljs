@@ -870,7 +870,7 @@
             ;; ring; a creature is a low round body with a tail, in its own colour
             (set! (.-innerHTML r)
                   (str (figure-svg {:kind kind :color color :body body :joints joints} 24)
-                       "<span style='width:12px;text-align:center;font-weight:700;color:" (hex-css dot) "'>" (if (= "!" glyph) "!" "●") "</span>"
+                       "<span style='width:12px;text-align:center;font-weight:700;color:" (hex-css dot) "'>" (if (string? glyph) glyph "●") "</span>"
                        "<span></span>"))
             (set! (.-textContent (aget (.-children r) 2)) (call/glyph-name name on-call?))
             (.addEventListener r "click" (fn [^js e] (.preventDefault e) (.stopPropagation e) (on-pick id)))
