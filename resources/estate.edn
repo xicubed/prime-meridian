@@ -95,7 +95,7 @@
   ;; the phone rings with a pretend chore, you jack out, and you jack back
   ;; in -- all of it sample, so nothing real is ever at stake here.
   :jump {:show "That's the hardline: the phone booth. One rule matters here -- when real life calls, you go."
-         :ring "It's ringing: a pretend chore, the kettle's boiled over. Jack out and see what happens."
+         :ring "It's ringing: a pretend chore, the kettle's boiled over. Out on the estate, the real ones count in real life. Jack out and see what happens."
          :out  "You're out. The estate holds everything right where it is until you jack back in."
          :back "Nothing broke. Jack out, jack back in, and the work waited for you -- that's the whole trick."}
   ;; Beat 5, free your mind (GDD §2.7, §4.8): the Construct's last beat. The
@@ -103,7 +103,7 @@
   ;; for the programs loaded so far -- and the twin steps back.
   :free {:line "I can open the browser. Leaving your world is up to you."}
   ;; said once, as you land on the estate: the Today card and the first step
-  :landed "Your day's on the card, top left. Start with me: open 💭, tap me, and ask for a bench."
+  :landed "Your day's on the card, top left. The chore on it is real: it counts in real life. Start with me: open 💭, tap me, and ask for a bench."
   ;; what a click does at each interactive moment, shown under the line
   :hints {:ask "Yes, rounder" :blueprint "Approve" :ring "Jack out" :out "Jack back in"}   ; the buttons
   ;; where the camera looks as your agent's building (the workshop) lands in beat 5

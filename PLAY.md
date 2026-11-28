@@ -36,7 +36,7 @@ the same, step for step (it takes about 5 minutes).
 2. **The tutorial** (about 75 seconds). Hal talks you through it; you click five buttons:
    **Yes, rounder** → **Approve** (your first approval: the worker's rock gets rounder) →
    **Jack out** → **Jack back in** (the booth's lesson: the work waits for you).
-3. **Land on the estate.** Hal says *"Your day's on the card, top left."* The **Today** card
+3. **Land on the estate.** Hal says *"Your day's on the card, top left. The chore on it is real: it counts in real life."* The **Today** card
    shows your four goals; the first is already ticked.
 4. **Ask Hal for a bench.** Look at open grass near the cottage, open **💭**, tap **Hal**, type
    *put a bench here* (or tap 🎙 and say it). A glowing blue ghost bench appears.
