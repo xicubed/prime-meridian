@@ -237,7 +237,7 @@
     (is (set/subset? (c/placeholders s) (set (keys (get-in W [:mirrors id :state])))))))
 
 (deftest t20-coverage-hal-lines
-  (is (= (set (keys c/hal-events)) #{:jack-in :chore-done :chore-not-due :chore-undone}))
+  (is (= (set (keys c/hal-events)) #{:jack-in :chore-done :sample-chore-done :chore-not-due :chore-undone}))
   (is (= (c/missing-hal c/hal-lines) #{}))
   (doseq [[e allowed] c/hal-events
           s (variants c/hal-lines [e])]
@@ -279,8 +279,8 @@
     (is (= (:hal (c/hal-on-chore (w/chore-done K2 (ev :flora :feed (+ A D2) :key)) H))
            {:event :chore-done :text "did feed for Flora" :until 1794186006000})))
   (is (contains? (filled c/hal-lines [:chore-done] {:name "Flora" :chore "feed"})
-                 (c/hal-text (c/hal-on-chore K c/hal-lines) A)))
-  (is (not (re-find #"\{" (c/hal-text (c/hal-on-chore K c/hal-lines) A)))))
+                 (c/hal-text (c/hal-on-chore (assoc-in K [:mirrors :flora :state :source] :hal) c/hal-lines) A)))
+  (is (not (re-find #"\{" (c/hal-text (c/hal-on-chore (assoc-in K [:mirrors :flora :state :source] :hal) c/hal-lines) A)))))
 
 (deftest t24-hal-after-chore-others
   (is (= (:hal (c/hal-on-chore (w/chore-done W (ev :juniper :hay A :key)) H))
@@ -338,9 +338,9 @@
   (is (= (c/used-lines MX) #{[:fern :dry] [:fern :missing] [:fern :calm]}))
   (is (= (c/missing-lines MX (:lines MXL)) #{[:fern :missing]}))
   (is (= (c/missing-hal (dissoc c/hal-lines :jack-in)) #{:jack-in}))
-  (is (= (c/missing-hal {}) #{:jack-in :chore-done :chore-not-due :chore-undone}))
-  (is (= (c/missing-hal {:jack-in [] :chore-done "x"}) #{:jack-in :chore-not-due :chore-undone}))
-  (is (= (c/missing-hal {:jack-in ["a" 7] :chore-done ["b"]}) #{:jack-in :chore-not-due :chore-undone})))
+  (is (= (c/missing-hal {}) #{:jack-in :chore-done :sample-chore-done :chore-not-due :chore-undone}))
+  (is (= (c/missing-hal {:jack-in [] :chore-done "x"}) #{:jack-in :sample-chore-done :chore-not-due :chore-undone}))
+  (is (= (c/missing-hal {:jack-in ["a" 7] :chore-done ["b"]}) #{:jack-in :sample-chore-done :chore-not-due :chore-undone})))
 
 (deftest inbox-rows-newest-first-and-held-mail-shows-only-the-note
   (let [inbox c/sample-inbox
@@ -357,3 +357,11 @@
 (deftest inbox-rows-of-nothing
   (is (nil? (c/inbox-rows nil)))
   (is (= [] (c/inbox-rows {:messages []}))))
+
+(deftest t24b-sample-creature-never-counts-in-real-life
+  ;; Nov 27 take: SAMPLE Juniper got "That one counts in real life."
+  (let [J  (assoc-in W [:mirrors :juniper :state :source] :sample)
+        Jd (c/hal-on-chore (w/chore-done J (ev :juniper :hay A :key)) c/hal-lines)]
+    (is (= :sample-chore-done (get-in Jd [:hal :event])))
+    (is (contains? (filled c/hal-lines [:sample-chore-done] {:name "Juniper" :chore "hay"}) (c/hal-text Jd A))))
+  (is (= :chore-done (get-in (c/hal-on-chore (w/chore-done (assoc-in W [:mirrors :flora :state :source] :hal) (ev :flora :feed A :key)) c/hal-lines) [:hal :event]))))

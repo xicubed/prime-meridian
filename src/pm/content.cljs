@@ -19,6 +19,7 @@
   "The twin's events the game uses -> the placeholders each fills."
   {:jack-in       #{}
    :chore-done    #{:name :chore}
+   :sample-chore-done #{:name :chore}
    :chore-not-due #{:name :chore :last-at :next-at}
    :chore-undone  #{:name :chore}})
 
@@ -96,10 +97,16 @@
         world))
     world))
 
-(defn hal-on-chore [world table]
-  (let [e (peek (:log world))]
+(defn hal-on-chore
+  "The twin's line for the chore just counted: a SAMPLE creature (`:source
+   :sample`, nothing real behind it) gets :sample-chore-done when the table has
+   it, so \"counts in real life\" is only ever said about a real one."
+  [world table]
+  (let [e (peek (:log world))
+        sample? (= :sample (get-in world [:mirrors (:mirror e) :state :source]))
+        event (if (and sample? (usable? (get table :sample-chore-done))) :sample-chore-done :chore-done)]
     (if (= :counted (:result e))
-      (hal-say world table :chore-done
+      (hal-say world table event
                {:name  (or (get-in world [:mirrors (:mirror e) :name]) (name (:mirror e)))
                 :chore (name (:chore e))}
                (:at e))
